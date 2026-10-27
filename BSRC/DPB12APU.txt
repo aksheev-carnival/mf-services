@@ -1,0 +1,2418 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.       DPB12APU.  
+       AUTHOR.           TCS LTD GS9.   
+       DATE-WRITTEN.     21 SEP 2006.   
+       DATE-COMPILED.    21 SEP 2006.   
+      * REMARKS. THIS PROGRAM UPDATES THE APIS ADVANCED BOARDING IND.   
+      * 
+      * OUTPUT FILES  :  DPBAPU01P - EXTRACT FILE   
+      *                  DPBAPU02P - PRINT REPORT   
+      *                  DPBAPU03P - STARRED REPORT 
+      *                  DPBAPU04P - FAX EXTRACT
+      ******************************************************************
+C60521*  ISSDM00060521        T. Felix        June-21-2007             *
+C60521*  Sail & Sign Registration and Cruise Ticket Contract Acceptance*
+      ******************************************************************
+RA0907* ISSDM000057897      "Sizing for Itinerary Increase"            *
+C57897*  CHANGED PER PROJECT SPECIFICATIONS.           RSA 09/20/2007  *
+      ******************************************************************
+C70056*  ISSDM00070056        T. Felix        Nov-12-2007              *
+C70056*  SSCA - Incorrect Indicator displayed                          *
+      ******************************************************************
+C72014*  ISSDM00072014        T. Felix        Jan-18-2008              *
+C72014*  Adjust restart procedure for rollback.                        *
+      ******************************************************************
+C72501*  ISSDM00072501        Rick Hoeninghaus  March-2008             *
+C72501*  Effiency inprovements as suggested by Ken Longland.           *
+C72501*  Moving 2 to FETCH-WITH-LOCK before IMPART turns on the        *
+C72501*  FETCH WITH LOCK feature. Moving 2 to FETCH-WITH-LOCK before   *
+C72501*  a FIND or FETCH activates the feature.                        *
+      ******************************************************************
+SOTPRJ* OCT-2008    M5J     TCS LTD.            SOTPRJ                 *
+SOTPRJ* Changes done according to Database changes due To SOT Project. *
+      ******************************************************************
+C85443* 15-MAR-11     3AC     TCS LTD.               CQ85443           *
+C85443* ONLY PBO - REMOVED UNUSED PROC.                                *
+************************************************************************
+113282* 29-OCT-11     NY0     TCS LTD.               CQ113282          *
+113282* BRING CANCELLATION WAIVER REASON INTO DATA WAREHOUSE           *
+************************************************************************
+*********************************************************** 
+C90569* 11-NOV-11     RJ1                            C90569 
+C90569* Added open of confirm area and procs For storing
+C90569* Confirmation Record 
+************************************************************************
+157139* 13-AUG-13     SK6     TCS LTD.               CQ157139          *
+157139* CHANGES MADE TO PERVENT THE ABORT IF SAILING DOESN'T HAVE      *
+157139* ANY BOOKING.                                                   *
+************************************************************************
+163066* 14-APR-14     5NS     TCS LTD.               CQ163066          *
+163066* DEADLOCK LOGIC ADDED                                           *
+************************************************************************
+193591* 05-APR-16     RB1     TCS LTD.               CQ193591          *
+193591* Changes done to fetch only IBR's and SIBR's and not the GBR's. *
+************************************************************************
+188688* 11-AUG-16     BK4     TCS LTD.               CQ188688          *
+188688* Convert existing batch and transaction programs to use         *
+188688* Explicit Thread Control                                        *
+************************************************************************
+195192* 08-SEP-16     DC6     TCS LTD.               CQ195192          *
+195192* DPB12APU DOES UNNECESSARY FREE COMMANDS.                       *
+************************************************************************
+204893* 16-MAY-17     PA8     TCS LTD.               CQ204893          *
+204893* SPLITTING OF PAX-INFO AREA.                                    *
+************************************************************************
+205173* 01-JUN-17     STP     TCS LTD.               CQ205173          *
+205173* BOOKING AND PAX REPLICATION CHANGES                            *
+************************************************************************
+PPC470* 22-DEC-16     V0V     TCS LTD.               PPC470            *
+PPC470* SAIL1 AREA CHANGES.                                            *
+************************************************************************
+PPC470* 23-APR-18     XP1     TCS LTD.               PPC470            *
+PPC470* PPC PROJECT CHANGES FOR SAIL SUMMARY.                          *
+************************************************************************
+208566* 26-JUN-18     XP1     TCS LTD.               CQ208566          *
+208566* RDMS AND DMS CHANGES FOR BIGFILE ENHANCEMENT                   *
+************************************************************************
+
+       ENVIRONMENT DIVISION.
+
+       CONFIGURATION SECTION.   
+
+       SOURCE-COMPUTER. UNISYS. 
+       OBJECT-COMPUTER. UNISYS. 
+       SPECIAL-NAMES.   
+              PRINTER IS PRINTER
+              PRINTER IS PRT
+              CONSOLE IS CONSOLE
+              CARD-READER IS CARD-READER
+              SWITCH-24 IS ERROR-SW, ON STATUS IS IN-ERROR, 
+                                     OFF STATUS IS NO-ERROR.
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+             SELECT FINAL-REP-FILE   ASSIGN TO DISC DPBAPU01P   
+                                FILE STATUS IS WS-FR-FILE-STATUS.   
+             SELECT PRINT-REP-FILE   ASSIGN TO DISC DPBAPU02P   
+                                FILE STATUS IS WS-PR-FILE-STATUS.   
+             SELECT STAR-REP-FILE    ASSIGN TO DISC DPBAPU03P   
+                                FILE STATUS IS WS-SR-FILE-STATUS.   
+             SELECT FAX-EXTRACT-FILE ASSIGN TO DISC DPBAPU04P   
+                                FILE STATUS IS WS-FX-FILE-STATUS.   
+             SELECT OPTIONAL PARAM-FILE ASSIGN TO DISC. 
+C60521       SELECT CONTROL-PARAM    ASSIGN TO DISC DPBAPU01D   
+C60521                          FILE STATUS IS WS-CP-FILE-STATUS.   
+
+       DATA DIVISION.   
+       SUBSCHEMA SECTION.   
+144449 INVOKE SUBSCHEMA PRD100UCOBSU
+144449        IN FILE SUBSCHEMAS OF SCHEMA PRD100SCHEMA 
+144449        COPYING RECORDS    INTO COMMON
+144449        COPYING DATA-NAMES INTO COMMON
+144449        OVERLAY PAX-REC WITH PAX-CXF-REC  
+169014*                            PAX-FUT-REC  
+144449                             PAX-VI-REC   
+144449        SAVE DATA INCLUDES DEFERRED-UPDATES   
+144449        DMCA  COMMON  
+144449        ERROR RECOVERY IS 9100-DATABASE-ERROR 
+144449        ROLLBACK       IS 9100-DATABASE-ERROR.
+
+       FILE SECTION.
+
+       FD  PARAM-FILE   
+           LABEL RECORDS ARE STANDARD   
+           DATA RECORD IS PARAM-REC.
+       01  PARAM-REC                         PIC X(19). 
+
+       FD FINAL-REP-FILE
+           LABEL RECORDS ARE STANDARD.  
+       01 FINAL-REP-FILE-REC.   
+2         03 FR-SHIP-CODE                    PIC X(2).  
+3         03 FILLER-1                        PIC X. 
+11        03 FR-SAIL-DATE                    PIC 9(8).  
+12        03 FILLER-2                        PIC X. 
+14        03 FR-DURATION-DAYS                PIC 9(2).  
+15        03 FILLER-3                        PIC X. 
+16        03 FR-BOOK-TYPE                    PIC X. 
+17        03 FILLER-4                        PIC X. 
+23        03 FR-IBR-BOOK-NUM                 PIC X(6).  
+24        03 FILLER-5                        PIC X. 
+30        03 FR-IBR-GROUP-BOOK-NUM           PIC X(6).  
+31        03 FILLER-6                        PIC X. 
+36        03 FR-IBR-CABIN-NUM                PIC X(5).  
+37        03 FILLER-7                        PIC X. 
+47        03 FR-AGENT-PHONE-NUM              PIC 9(10). 
+48        03 FILLER-8                        PIC X. 
+53        03 FR-PAX-SEQ-NUM                  PIC 9(5).  
+54        03 FILLER-9                        PIC X. 
+58        03 FR-PAX-TITLE                    PIC X(4).  
+59        03 FILLER-10                       PIC X. 
+69        03 FR-PAX-FIRST-NAME               PIC X(10). 
+70        03 FILLER-11                       PIC X. 
+85        03 FR-PAX-LAST-NAME                PIC X(15). 
+86        03 FILLER-12                       PIC X. 
+166       03 FR-PAX-EMAIL-ADDR               PIC X(80). 
+167       03 FILLER-13                       PIC X. 
+168       03 FR-OLD-COP-IND                  PIC X. 
+169       03 FILLER-14                       PIC X. 
+170       03 FR-NEW-COP-IND                  PIC X. 
+171       03 FILLER-15                       PIC X. 
+172       03 FR-OLD-INS-IND                  PIC X. 
+173       03 FILLER-16                       PIC X. 
+174       03 FR-NEW-INS-IND                  PIC X. 
+175       03 FILLER-17                       PIC X. 
+176       03 FR-OLD-CONTRACT-IND             PIC 9. 
+177       03 FILLER-18                       PIC X. 
+178       03 FR-NEW-CONTRACT-IND             PIC 9. 
+179       03 FILLER-19                       PIC X. 
+180       03 FR-OLD-SAIL-SIGN-IND            PIC 9. 
+181       03 FILLER-20                       PIC X. 
+182       03 FR-NEW-SAIL-SIGN-IND            PIC 9. 
+181       03 FILLER-21                       PIC X. 
+182       03 FR-OLD-GUEST-INFO-IND           PIC 9. 
+183       03 FILLER-22                       PIC X. 
+184       03 FR-NEW-GUEST-INFO-IND           PIC 9. 
+185       03 FILLER-23                       PIC X. 
+186       03 FR-OLD-IMMIG-INFO-IND           PIC 9. 
+187       03 FILLER-24                       PIC X. 
+188       03 FR-NEW-IMMIG-INFO-IND           PIC 9. 
+189       03 FILLER-25                       PIC X. 
+190       03 FR-ADV-BOARDING-IND             PIC X. 
+
+       FD PRINT-REP-FILE
+           LABEL RECORDS ARE STANDARD.  
+       01 PRINT-REP-FILE-REC.   
+2         03 PR-SHIP-CODE                    PIC X(2).  
+3         03 PR-FILLER-1                     PIC X. 
+11        03 PR-SAIL-DATE                    PIC 9(8).  
+12        03 PR-FILLER-2                     PIC X. 
+14        03 PR-DURATION-DAYS                PIC 9(2).  
+15        03 PR-FILLER-3                     PIC X. 
+16        03 PR-BOOK-TYPE                    PIC X. 
+17        03 PR-FILLER-4                     PIC X. 
+23        03 PR-IBR-BOOK-NUM                 PIC X(6).  
+24        03 PR-FILLER-5                     PIC X. 
+29        03 PR-IBR-CABIN-NUM                PIC X(5).  
+30        03 PR-FILLER-7                     PIC X. 
+40        03 PR-AGENT-PHONE-NUM              PIC 9(10). 
+41        03 PR-FILLER-8                     PIC X. 
+46        03 PR-PAX-SEQ-NUM                  PIC 9(5).  
+47        03 PR-FILLER-9                     PIC X. 
+51        03 PR-PAX-TITLE                    PIC X(4).  
+52        03 PR-FILLER-10                    PIC X. 
+62        03 PR-PAX-FIRST-NAME               PIC X(10). 
+77        03 PR-PAX-LAST-NAME                PIC X(15). 
+119       03 PR-PAX-EMAIL-ADDR               PIC X(42). 
+120       03 PR-OLD-COP-IND                  PIC X. 
+121       03 PR-NEW-COP-IND                  PIC X. 
+122       03 PR-OLD-INS-IND                  PIC X. 
+123       03 PR-NEW-INS-IND                  PIC X. 
+124       03 PR-OLD-CONTRACT-IND             PIC 9. 
+125       03 PR-NEW-CONTRACT-IND             PIC 9. 
+126       03 PR-OLD-SAIL-SIGN-IND            PIC 9. 
+127       03 PR-NEW-SAIL-SIGN-IND            PIC 9. 
+128       03 PR-OLD-GUEST-INFO-IND           PIC 9. 
+129       03 PR-NEW-GUEST-INFO-IND           PIC 9. 
+130       03 PR-OLD-IMMIG-INFO-IND           PIC 9. 
+131       03 PR-NEW-IMMIG-INFO-IND           PIC 9. 
+132       03 PR-ADV-BOARDING-IND             PIC X. 
+
+       FD STAR-REP-FILE 
+           LABEL RECORDS ARE STANDARD.  
+       01 STAR-REP-FILE-REC.
+2         03 SR-SHIP-CODE                    PIC X(2).  
+3         03 SR-FILLER-1                     PIC X. 
+11        03 SR-SAIL-DATE                    PIC 9(8).  
+12        03 SR-FILLER-2                     PIC X. 
+14        03 SR-DURATION-DAYS                PIC 9(2).  
+15        03 SR-FILLER-3                     PIC X. 
+16        03 SR-BOOK-TYPE                    PIC X. 
+17        03 SR-FILLER-4                     PIC X. 
+23        03 SR-IBR-BOOK-NUM                 PIC X(6).  
+24        03 SR-FILLER-5                     PIC X. 
+29        03 SR-IBR-CABIN-NUM                PIC X(5).  
+30        03 SR-FILLER-7                     PIC X. 
+40        03 SR-AGENT-PHONE-NUM              PIC 9(10). 
+41        03 SR-FILLER-8                     PIC X. 
+46        03 SR-PAX-SEQ-NUM                  PIC 9(5).  
+47        03 SR-FILLER-9                     PIC X. 
+51        03 SR-PAX-TITLE                    PIC X(4).  
+52        03 SR-FILLER-10                    PIC X. 
+62        03 SR-PAX-FIRST-NAME               PIC X(10). 
+77        03 SR-PAX-LAST-NAME                PIC X(15). 
+119       03 SR-PAX-EMAIL-ADDR               PIC X(42). 
+120       03 SR-OLD-COP-IND                  PIC X. 
+121       03 SR-NEW-COP-IND                  PIC X. 
+122       03 SR-OLD-INS-IND                  PIC X. 
+123       03 SR-NEW-INS-IND                  PIC X. 
+124       03 SR-OLD-CONTRACT-IND             PIC 9. 
+125       03 SR-NEW-CONTRACT-IND             PIC 9. 
+126       03 SR-OLD-SAIL-SIGN-IND            PIC 9. 
+127       03 SR-NEW-SAIL-SIGN-IND            PIC 9. 
+128       03 SR-OLD-GUEST-INFO-IND           PIC 9. 
+129       03 SR-NEW-GUEST-INFO-IND           PIC 9. 
+130       03 SR-OLD-IMMIG-INFO-IND           PIC 9. 
+131       03 SR-NEW-IMMIG-INFO-IND           PIC 9. 
+132       03 SR-ADV-BOARDING-IND             PIC X. 
+
+       FD FAX-EXTRACT-FILE  
+           LABEL RECORDS ARE STANDARD.  
+       01 FAX-EXTRACT-FILE-REC. 
+          03 FX-IBR-BOOK-NUM                 PIC X(6).  
+          03 FX-FILLER-1                     PIC X. 
+          03 FX-BOOK-TYPE                    PIC X. 
+
+C60521 FD  CONTROL-PARAM
+C60521     LABEL RECORDS ARE STANDARD   
+C60521     DATA RECORD IS CONTROL-REC.  
+C60521 01  CONTROL-REC                       PIC X(21). 
+
+      ***************************************************************   
+      *   Flags & miscellaneous variables are defined here          *   
+      ***************************************************************   
+
+       WORKING-STORAGE SECTION. 
+144449 01  WS-PROG-ID            PIC X(8) VALUE 'DPB12APU'. 
+
+       77  WS-PAGE-SIZE                      PIC 9(2)  VALUE 49.
+       01  MCFLAG                            PIC 9(10) USAGE BINARY.
+       01  WS-SYSTEM-DATE                    PIC 9(8).  
+       01  WS-SYSTEM-DATE-RD REDEFINES  WS-SYSTEM-DATE. 
+           05  WS-SYSTEM-DATE-CC             PIC 9(2).  
+           05  WS-SYSTEM-DATE-YY             PIC 9(2).  
+           05  WS-SYSTEM-DATE-MM             PIC 9(2).  
+           05  WS-SYSTEM-DATE-DD             PIC 9(2).  
+       01  WS-SYSTEM-TIME                    PIC 9(8).  
+       01  WS-SR-BOOK-NUM-HOLD               PIC X(6).  
+208566 01  WS-SYSTEM-DATETIME                PIC 9(16). 
+208566 01  WS-CBKG-DATETIME.
+208566     03  WS-CBKG-DATE-YYYY             PIC 9(04) VALUE ZEROES.
+208566     03  WS-CBKG-FILL1                 PIC X(01) VALUE '-'.   
+208566     03  WS-CBKG-DATE-MM               PIC 9(02) VALUE ZEROES.
+208566     03  WS-CBKG-FILL2                 PIC X(01) VALUE '-'.   
+208566     03  WS-CBKG-DATE-DD               PIC 9(02) VALUE ZEROES.
+208566     03  WS-CBKG-FILL3                 PIC X(01) VALUE ' '.   
+208566     03  WS-CBKG-TIME-HH               PIC 9(02) VALUE ZEROES.
+208566     03  WS-CBKG-FILL4                 PIC X(01) VALUE ':'.   
+208566     03  WS-CBKG-TIME-MN               PIC 9(02) VALUE ZEROES.
+208566     03  WS-CBKG-FILL5                 PIC X(01) VALUE ':'.   
+208566     03  WS-CBKG-TIME-SS               PIC 9(02) VALUE ZEROES.
+208566     03  WS-CBKG-FILL6                 PIC X(01) VALUE '.'.   
+208566     03  WS-CBKG-TIME-MS               PIC 9(02) VALUE ZEROES.
+208566     03  WS-CBKG-FILL7                 PIC X(04) VALUE ZEROS. 
+
+      * File status indicators are defined here.
+       01  WS-FILE-STATUS                    VALUE ZERO.
+           05  WS-FR-FILE-STATUS             PIC X(2).  
+               88  FR-FILE-AT-END            VALUE '10'.
+               88  FR-FILE-OK                VALUE '00'.
+           05  WS-PR-FILE-STATUS             PIC X(2).  
+               88  PR-FILE-AT-END            VALUE '10'.
+               88  PR-FILE-OK                VALUE '00'.
+           05  WS-SR-FILE-STATUS             PIC X(2).  
+               88  SR-FILE-AT-END            VALUE '10'.
+               88  SR-FILE-OK                VALUE '00'.
+           05  WS-FX-FILE-STATUS             PIC X(2).  
+               88  FX-FILE-AT-END            VALUE '10'.
+               88  FX-FILE-OK                VALUE '00'.
+           05  WS-CP-FILE-STATUS             PIC X(2).  
+               88  CP-FILE-AT-END            VALUE '10'.
+               88  CP-FILE-OK                VALUE '00'.
+
+      * Program counters defined here.  
+       01  WS-SAIL-CNT                       PIC 9(5) VALUE ZEROES. 
+C60521 01  WS-TOTAL-PAX-READ                 PIC 9(9) VALUE ZEROES. 
+C60521 01  WS-TOTAL-PAX-UPD                  PIC 9(9) VALUE ZEROES. 
+C60521 01  WS-STAR-CNT                       PIC 9(9) VALUE ZEROES. 
+C60521 01  WS-I-STAR-CNT                     PIC 9(9) VALUE ZEROES. 
+C60521 01  WS-G-STAR-CNT                     PIC 9(9) VALUE ZEROES. 
+
+       01  WS-COUNTERS. 
+           05  WS-GRP-PAX-CNT                PIC 9(5) VALUE ZEROES. 
+           05  WS-IBR-CNT                    PIC 9(5) VALUE ZEROES. 
+           05  WS-INDV-PAX-CNT               PIC 9(7) VALUE ZEROES. 
+           05  WS-PAX-CNT                    PIC 9(7) VALUE ZEROES. 
+           05  WS-PAX-UPD-CNT                PIC 9(7) VALUE ZEROES. 
+           05  WS-COP-IND-CNT                PIC 9(7) VALUE ZEROES. 
+           05  WS-INS-IND-CNT                PIC 9(7) VALUE ZEROES. 
+C60521     05  WS-CONTRACT-IND-CNT           PIC 9(7) VALUE ZEROES. 
+C60521     05  WS-SAIL-SIGN-IND-CNT          PIC 9(7) VALUE ZEROES. 
+C60521     05  WS-GUEST-IND-CNT              PIC 9(7) VALUE ZEROES. 
+C60521     05  WS-IMMIG-IND-CNT              PIC 9(7) VALUE ZEROES. 
+C60521 01  WS-TOT-COUNTERS. 
+C60521     05  WS-TOT-GRP-PAX-CNT            PIC 9(9) VALUE ZEROES. 
+C60521     05  WS-TOT-IBR-CNT                PIC 9(9) VALUE ZEROES. 
+C60521     05  WS-TOT-INDV-PAX-CNT           PIC 9(9) VALUE ZEROES. 
+C60521     05  WS-TOT-PAX-CNT                PIC 9(9) VALUE ZEROES. 
+C60521     05  WS-TOT-PAX-UPD-CNT            PIC 9(9) VALUE ZEROES. 
+C60521     05  WS-TOT-COP-IND-CNT            PIC 9(9) VALUE ZEROES. 
+C60521     05  WS-TOT-INS-IND-CNT            PIC 9(9) VALUE ZEROES. 
+C60521     05  WS-TOT-CONTRACT-IND-CNT       PIC 9(9) VALUE ZEROES. 
+C60521     05  WS-TOT-SAIL-SIGN-IND-CNT      PIC 9(9) VALUE ZEROES. 
+C60521     05  WS-TOT-GUEST-IND-CNT          PIC 9(9) VALUE ZEROES. 
+C60521     05  WS-TOT-IMMIG-IND-CNT          PIC 9(9) VALUE ZEROES. 
+       01  WS-PR-LINE-CNT                    PIC 9(2) VALUE ZEROES. 
+       01  WS-PR-PAGE-CNT                    PIC 9(4) VALUE 1.  
+       01  WS-SR-LINE-CNT                    PIC 9(2) VALUE ZEROES. 
+       01  WS-SR-PAGE-CNT                    PIC 9(4) VALUE 1.  
+
+C60521 01  WS-PAX-CONTRACT-IND               PIC 9     VALUE ZEROES.
+C60521 01  WS-PAX-SAIL-SIGN-IND              PIC 9     VALUE ZEROES.
+C60521 01  WS-PAX-GUEST-INFO-IND             PIC 9     VALUE ZEROES.
+C60521 01  WS-PAX-IMMIG-INFO-IND             PIC 9     VALUE ZEROES.
+C60521 01  WS-UPD-CONTRACT-FLAG              PIC X     VALUE SPACES.
+C60521 01  WS-UPD-SAIL-SIGN-FLAG             PIC X     VALUE SPACES.
+C60521 01  WS-UPD-GUEST-INFO-FLAG            PIC X     VALUE SPACES.
+C60521 01  WS-UPD-IMMIG-INFO-FLAG            PIC X     VALUE SPACES.
+C60521 01  WS-SEL-SHIP-IND                   PIC X. 
+C60521 01  WS-FIRST-PAX-IND                  PIC X. 
+C60521 01  WS-ADV-BOARDING-IND               PIC X. 
+
+C70056 01  WS-OLD-COP-IND                    PIC X. 
+C70056 01  WS-OLD-INS-IND                    PIC X. 
+C70056 01  WS-NEW-SAIL-SIGN-IND              PIC 9. 
+C70056 01  WS-NEW-CONTRACT-IND               PIC 9. 
+C70056 01  WS-STAR-PRINT-IND                 PIC X(1).  
+C70056 01  WS-SAV-SHIP-CODE                  PIC X(2).  
+C70056 01  WS-SAV-BOOK-NUM                   PIC X(6).  
+C70056 01  WS-SAV-SAIL-DATE                  PIC 9(8).  
+C70056 01  WS-SAIL-BOOK-CNT                  PIC 9(6).  
+C70056 01  WS-SAIL-PAX-CNT                   PIC 9(6).  
+
+      * Input data from card reader.
+       01  WS-INPUT.
+C60521*    05  WS-RUN-MODE                   PIC X(3).  
+           05  WS-SHIP-CODE                  PIC X(2).  
+           05  WS-START-SAIL-DATE            PIC 9(8).  
+           05  WS-START-SAIL-DATE-X REDEFINES WS-START-SAIL-DATE.   
+               10  WS-START-SAIL-DATE-CC     PIC 9(2).  
+               10  WS-START-SAIL-DATE-YY     PIC 9(2).  
+               10  WS-START-SAIL-DATE-MM     PIC 9(2).  
+               10  WS-START-SAIL-DATE-DD     PIC 9(2).  
+           05  WS-END-SAIL-DATE              PIC 9(8).  
+           05  WS-END-SAIL-DATE-X REDEFINES  WS-END-SAIL-DATE.  
+               10  WS-END-SAIL-DATE-CC       PIC 9(2).  
+               10  WS-END-SAIL-DATE-YY       PIC 9(2).  
+               10  WS-END-SAIL-DATE-MM       PIC 9(2).  
+               10  WS-END-SAIL-DATE-DD       PIC 9(2).  
+C60521     05  WS-RUN-TYPE                   PIC X(3).  
+
+      * Input Card file will be moved to WS-SAILING-RANGE-PARAM 
+       01  WS-SAILING-RANGE-PARAM.  
+           05  PARAM-BEGIN-DATE.
+               10 PARAM-BEGIN-DATE-MM        PIC 9(2).  
+               10 PARAM-BEGIN-DATE-DD        PIC 9(2).  
+               10 PARAM-BEGIN-DATE-YY        PIC 9(2).  
+           05  FILLER                        PIC X(1).  
+           05  PARAM-END-DATE.  
+               10 PARAM-END-DATE-MM          PIC 9(2).  
+               10 PARAM-END-DATE-DD          PIC 9(2).  
+               10 PARAM-END-DATE-YY          PIC 9(2).  
+           05  FILLER                        PIC X(1).  
+           05  PARAM-SHIP-CODE               PIC X(2).  
+           05  FILLER                        PIC X(1).  
+           05  PARAM-DURATION-DAYS           PIC X(2).  
+C60521     05  FILLER                        PIC X(1).  
+C60521     05  PARAM-RUN-TYPE                PIC X(3).  
+
+       01  WS-START-DATE                     PIC 9(8).  
+       01  WS-START-DATE-X REDEFINES  WS-START-DATE.
+           05  WS-START-DATE-CC              PIC 9(2).  
+           05  WS-START-DATE-YY              PIC 9(2).  
+           05  WS-START-DATE-MM              PIC 9(2).  
+           05  WS-START-DATE-DD              PIC 9(2).  
+       01  WS-END-DATE                       PIC 9(8).  
+       01  WS-END-DATE-X REDEFINES  WS-END-DATE.
+           05  WS-END-DATE-CC                PIC 9(2).  
+           05  WS-END-DATE-YY                PIC 9(2).  
+           05  WS-END-DATE-MM                PIC 9(2).  
+           05  WS-END-DATE-DD                PIC 9(2).  
+
+       01  WS-LAST-SAIL.
+           05  WS-LAST-SAIL-DATE             PIC 9(08) VALUE 0. 
+           05  WS-LAST-SHIP-CODE             PIC X(02) VALUE SPACE. 
+           05  WS-LAST-DURATION-DAYS         PIC 9(03) VALUE 0. 
+
+       01  WS-PAX-COP-INFO-IND               PIC X     VALUE SPACE. 
+       01  WS-PAX-INS-INFO-IND               PIC X     VALUE SPACE. 
+       01  WS-UPD-COP-FLAG                   PIC X     VALUE SPACE. 
+       01  WS-UPD-INS-FLAG                   PIC X     VALUE SPACE. 
+
+195192 01  WS-UPDATE-FLAG                    PIC X     VALUE SPACE. 
+
+C60521*01  WS-FR-LINE                        PIC X(175) VALUE ALL '-'.  
+C60521 01  WS-FR-LINE                        PIC X(192) VALUE ALL '-'.  
+C60521 01  WS-FR-TITLE-1.   
+C60521     05  FILLER                        PIC X(17)  VALUE 'DPBAPU '.
+C60521     05  FILLER                        PIC X(45)  VALUE   
+C60521        '*****   DPB12APU EXTRACT FINAL-REPORT   *****'.  
+C70056     05  FILLER                        PIC X(20)  VALUE SPACES.   
+C70056     05  FILLER                        PIC X(10)  VALUE   
+C70056                                       'RUN-TYPE: '.  
+C70056     05  WS-FR-RUN-TYPE                PIC X(3).  
+C70056     05  FILLER                        PIC X(72)  VALUE SPACES.   
+C60521     05  FILLER                        PIC X(24)  VALUE   
+C60521        'C C I I A A S S G G D D '.   
+
+      * Print report headers defined here.  
+
+       01  WS-PR-BLANK-LINE                  PIC X(132) VALUE SPACES.   
+
+       01  WS-PR-HEADER1.   
+8          05 FILLER                         PIC X(08) VALUE 'DPBAPU'.  
+C70056     05 FILLER                         PIC X(10)  VALUE SPACES.   
+C70056     05 FILLER                         PIC X(10)  VALUE   
+C70056                                       'RUN-TYPE: '.  
+C70056     05 WS-PR-RUN-TYPE                 PIC X(3).  
+C70056     05 FILLER                         PIC X(14) VALUE SPACES.
+80         05 FILLER                         PIC X(35) VALUE
+                                            'REQUIREMENT CHANGE REPORT'.
+90         05 FILLER                         PIC X(10) VALUE SPACES.
+96         05 FILLER                         PIC X(6)  VALUE 'DATE: '.  
+           05 WS-PR-HEADER1-DATE.   
+98            10 WS-PR-HEADER1-DATE-MM       PIC 9(2).  
+99            10 FILLER                      PIC X     VALUE '/'.   
+101           10 WS-PR-HEADER1-DATE-DD       PIC 9(2).  
+102           10 FILLER                      PIC X     VALUE '/'.   
+104           10 WS-PR-HEADER1-DATE-CC       PIC 9(2).  
+106           10 WS-PR-HEADER1-DATE-YY       PIC 9(2).  
+122        05 FILLER                         PIC X(16) VALUE SPACES.
+           05 WS-PR-PAGE.   
+128           10 FILLER                      PIC X(6)  VALUE 'PAGE: '.  
+132           10 WS-PR-PAGE-NUM              PIC ZZZ9.  
+
+       01 WS-PR-HEADER-LINE.
+2         05 FILLER                          PIC X(2)  VALUE ALL '='.   
+3         05 FILLER                          PIC X     VALUE SPACES.
+11        05 FILLER                          PIC X(8)  VALUE ALL '='.   
+12        05 FILLER                          PIC X     VALUE SPACES.
+14        05 FILLER                          PIC X(2)  VALUE ALL '='.   
+15        05 FILLER                          PIC X     VALUE SPACES.
+16        05 FILLER                          PIC X     VALUE '='.   
+17        05 FILLER                          PIC X     VALUE SPACES.
+23        05 FILLER                          PIC X(6)  VALUE ALL '='.   
+24        05 FILLER                          PIC X     VALUE SPACES.
+29        05 FILLER                          PIC X(5)  VALUE ALL '='.   
+30        05 FILLER                          PIC X     VALUE SPACES.
+40        05 FILLER                          PIC X(10) VALUE ALL '='.   
+41        05 FILLER                          PIC X     VALUE SPACES.
+46        05 FILLER                          PIC X(5)  VALUE ALL '='.   
+47        05 FILLER                          PIC X     VALUE SPACES.
+51        05 FILLER                          PIC X(4)  VALUE ALL '='.   
+52        05 FILLER                          PIC X     VALUE SPACES.
+62        05 FILLER                          PIC X(10) VALUE ALL '='.   
+77        05 FILLER                          PIC X(15) VALUE ALL '='.   
+132       05 FILLER                          PIC X(55) VALUE ALL '='.   
+
+       01 WS-PR-HEADER2.
+14        05 FILLER                          PIC X(14) VALUE
+                                                      'SAILING DETAIL'. 
+15        05 FILLER                          PIC X     VALUE SPACES.
+16        05 FILLER                          PIC X     VALUE 'I'.   
+41        05 FILLER                          PIC X(25) VALUE SPACES.
+62        05 FILLER                          PIC X(21) VALUE
+                                                'PASSENGER INFORMATION'.
+119       05 FILLER                          PIC X(57) VALUE SPACES.
+131       05 FILLER                          PIC X(12) VALUE
+                                                'CCIIAASSGGDD'. 
+132       05 FILLER                          PIC X     VALUE SPACES.
+
+       01 WS-PR-HEADER3.
+2         05 FILLER                          PIC X(2)  VALUE 'SH'.  
+3         05 FILLER                          PIC X     VALUE SPACES.
+11        05 FILLER                          PIC X(8)  VALUE 'SAILDATE'.
+12        05 FILLER                          PIC X     VALUE SPACES.
+14        05 FILLER                          PIC X(2)  VALUE 'DD'.  
+15        05 FILLER                          PIC X     VALUE SPACES.
+16        05 FILLER                          PIC X     VALUE 'G'.   
+17        05 FILLER                          PIC X     VALUE SPACES.
+23        05 FILLER                          PIC X(6)  VALUE 'BKGNUM'.  
+24        05 FILLER                          PIC X     VALUE SPACES.
+29        05 FILLER                          PIC X(5)  VALUE 'CABIN'.   
+30        05 FILLER                          PIC X     VALUE SPACES.
+40        05 FILLER                          PIC X(10) VALUE
+                                                           'AGNT-PHONE'.
+41        05 FILLER                          PIC X     VALUE SPACES.
+46        05 FILLER                          PIC X(5)  VALUE 'PAX #'.   
+47        05 FILLER                          PIC X     VALUE SPACES.
+51        05 FILLER                          PIC X(4)  VALUE 'TITL'.
+52        05 FILLER                          PIC X     VALUE SPACES.
+62        05 FILLER                          PIC X(10) VALUE
+                                                           'FIRST-NAME'.
+72        05 FILLER                          PIC X(10) VALUE
+                                                           ' LAST-NAME'.
+77        05 FILLER                          PIC X(5)  VALUE SPACES.
+119       05 FILLER                          PIC X(42) VALUE
+                                                'EMAIL-ADDRESS'.
+131       05 FILLER                          PIC X(12) VALUE
+                                                'ONONONONONON'. 
+132       05 FILLER                          PIC X     VALUE SPACES.
+
+       01 WS-PR-SUMMARY.
+7         05 WS-PR-PAX-UPD                   PIC 9(7)  VALUE ZEROES.
+35        05 FILLER                          PIC X(28) VALUE
+                                         ' PAX-RECORDS UPDATED OUT OF '.
+42        05 WS-PR-PAX-READ                  PIC 9(7)  VALUE ZEROES.
+64        05 FILLER                          PIC X(22) VALUE
+                                               ' SCANNED PAX-RECORDS.'. 
+123       05 FILLER                          PIC X(59) VALUE
+          'No OF PAX WHOSE ADVANCE-BOARDING-INDICATOR CHANGED TO "N" ='.
+124       05 FILLER                          PIC X     VALUE SPACES.
+131       05 WS-PR-STAR-CNT                  PIC 9(7)  VALUE ZEROES.
+132       05 FILLER                          PIC X     VALUE SPACES.
+
+       01 WS-SR-HEADER1.
+8         05 FILLER                          PIC X(08) VALUE 'DPBAPU'.  
+C70056    05 FILLER                          PIC X(10)  VALUE SPACES.   
+C70056    05 FILLER                          PIC X(10)  VALUE   
+C70056                                       'RUN-TYPE: '.  
+C70056    05 WS-SR-RUN-TYPE                  PIC X(3).  
+C70056    05 FILLER                          PIC X(14) VALUE SPACES.
+80        05 FILLER                          PIC X(35) VALUE
+                                            'STARRED REQ CHANGE REPORT'.
+90        05 FILLER                          PIC X(10) VALUE SPACES.
+96        05 FILLER                          PIC X(6)  VALUE 'DATE: '.  
+          05 WS-SR-HEADER1-DATE.
+98           10 WS-SR-HEADER1-DATE-MM        PIC 9(2).  
+99           10 FILLER                       PIC X     VALUE '/'.   
+101          10 WS-SR-HEADER1-DATE-DD        PIC 9(2).  
+102          10 FILLER                       PIC X     VALUE '/'.   
+104          10 WS-SR-HEADER1-DATE-CC        PIC 9(2).  
+106          10 WS-SR-HEADER1-DATE-YY        PIC 9(2).  
+122       05 FILLER                          PIC X(16) VALUE SPACES.
+          05 WS-SR-PAGE.
+128          10 FILLER                       PIC X(6)  VALUE 'PAGE: '.  
+132          10 WS-SR-PAGE-NUM               PIC ZZZ9.  
+
+       01 WS-SR-SUMMARY.
+59        05 FILLER                          PIC X(59) VALUE
+          'No OF PAX WHOSE ADVANCE-BOARDING-INDICATOR CHANGED TO "N" ='.
+60        05 FILLER                          PIC X     VALUE SPACES.
+67        05 WS-SR-STAR-CNT                  PIC 9(7)  VALUE ZEROES.
+69        05 FILLER                          PIC X(2)  VALUE '.'.   
+93        05 FILLER                          PIC X(24) VALUE
+                                             'BOOK-TYPE COUNTS (I/G): '.
+100       05 WS-SR-I-CNT                     PIC 9(7)  VALUE ZEROES.
+101       05 FILLER                          PIC X     VALUE '/'.   
+108       05 WS-SR-G-CNT                     PIC 9(7)  VALUE ZEROES.
+132       05 FILLER                          PIC X(24) VALUE SPACES.
+
+C70056 01 WS-SAIL-SUMMARY.  
+C70056    05 FILLER                          PIC X(31) VALUE
+C70056    '  Ship Sail-Date Total Break : '.
+C70056    05 FILLER                          PIC X(17) VALUE
+C70056    'No Of Bookings = '.  
+C70056    05 WS-SL-BOOK-CNT                  PIC 9(6)  VALUE ZEROES.
+C70056    05 FILLER                          PIC X(17) VALUE
+C70056    '  No Of Guests = '.  
+C70056    05 WS-SL-GUEST-CNT                 PIC 9(6)  VALUE ZEROES.
+C70056  
+C72014 01  WS-RESTART-INDICATOR              PIC X(1)  VALUE SPACES.
+C72014 01  WS-RESTART-BOOK-TYPE              PIC X(1)  VALUE SPACES.
+PPC470*01  WS-RESTART-SAIL-DBK               PIC 1(36) BINARY-1.
+144449 01  WS-RESTART-SIBR-DBK               PIC 1(36) BINARY-1.
+144449 01  WS-RESTART-SGBR-DBK               PIC 1(36) BINARY-1.
+144449 01  WS-RESTART-IBR-DBK                PIC 1(36) BINARY-1.
+
+PPC470 01  WS-RESTART-SAIL-KEY. 
+PPC470     05 WS-RESTART-SAIL-DATE           PIC 9(08). 
+PPC470     05 WS-RESTART-SHIP-CODE           PIC X(02). 
+PPC470     05 WS-RESTART-DUR-DAYS            PIC 9(03). 
+
+      ***************************************************************   
+      *   Copy libraries are defined here                           *   
+      ***************************************************************   
+
+      * Working storage for requirements proc.  
+FUNPAS*COPY CCP04REW.   
+FUNPAS COPY CCP21REW.   
+      * Working storage for itinerary proc. 
+FUNPAS*COPY CCP04ITW.   
+FUNPAS COPY CCP21ITW.   
+      * Working storage for database error handling 
+144449*COPY DPP01BWS.   
+144449 COPY DPP01DTA.   
+144449 COPY DPP01ERR.   
+144449 COPY DPP01MCB.   
+144449 COPY DPP12SCO.   
+144449 COPY DPP42ERR.   
+144449 COPY RSP00DMS.   
+144449 COPY RSP32DMS.   
+144449 COPY RSP64DMS.   
+144449 COPY RSP77GMD.   
+      * Working storage for RSO23RGC
+       COPY DPP01CIW.   
+      * Input and output fields needed to call subprogram "RSO23RGC"
+       COPY DPP01SCO.   
+      * Working storage used by DPP14RSB & DPP10Y2K for date conversion 
+       COPY DPP02Y2K.   
+      * The following will be used by DPP11POP  
+       COPY DPP03PWS.   
+       COPY DPP04BHS.   
+147885 COPY SSP70TSR.   
+      * Working storage to be used by DPP14RSB proc:
+       COPY DPP06RSB.   
+PPC470*COPY SSP13WSD.   
+       COPY DPP15ACW.   
+      * Working storage used by DPP20Y2K for Y2K conversion of dates
+       COPY DPP20DWS.   
+       COPY DPP66PWS.   
+       COPY GRP15BHW.   
+       COPY IRP66IBR.   
+C85443*COPY RSP23RGC.   
+       COPY RSP06GCI.   
+       COPY YMP01DLW.   
+
+C90569*    For automated email confirmation 
+C90569 COPY IRP48CNW.   
+163032 COPY SSP05GCD.   
+PPC470 COPY TDP01SAW.   
+205173 COPY TDP03GSW.   
+
+       COMMON-STORAGE SECTION.  
+
+      ***************************************************************   
+      *   Procedure Division Starts  here                           *   
+      ***************************************************************   
+
+       PROCEDURE DIVISION.  
+
+      *-----------------------------------------------------------------
+       0000-INITIALIZE. 
+      *-----------------------------------------------------------------
+      *   Temporary variables are intialized here   
+             MOVE 0 TO MCFLAG.  
+C90569*    For automated email confirmation 
+144449     COPY DPP01INT.   
+PPC470     COPY TDP01INT.   
+205173     COPY TDP03INT.   
+188688     PERFORM DPP12-BEGIN-THREAD THRU DPP12-BEGIN-THREAD-EXIT. 
+
+188688     IF DPP01-SQL-ERROR-IND = 'Y' 
+188688        GO TO DPP12-THREAD-ERROR-EXIT.
+
+PPC470     EXEC SQL USE DEFAULT SCHEMA PRDRDMS END-EXEC.
+
+PPC470     EXEC SQL WHENEVER SQLERROR   
+PPC470       GO TO DPP12-RDMS-ERROR 
+PPC470     END-EXEC.
+
+C90569     COPY IRP48INT.   
+113282     COPY DPP04INT.   
+113282     COPY GRP15INT.   
+           INITIALIZE WS-COUNTERS.  
+C60521     INITIALIZE WS-TOT-COUNTERS.  
+           SET ERROR-SW                 TO  OFF.
+           ACCEPT WS-SYSTEM-DATE  FROM DATE YYYYMMDD.   
+           ACCEPT WS-SYSTEM-TIME  FROM TIME.
+208566     STRING WS-SYSTEM-DATE
+208566            WS-SYSTEM-TIME  DELIMITED BY SIZE 
+208566       INTO WS-SYSTEM-DATETIME.   
+208566     MOVE WS-SYSTEM-DATETIME (1:4)  TO WS-CBKG-DATE-YYYY. 
+208566     MOVE WS-SYSTEM-DATETIME (5:2)  TO WS-CBKG-DATE-MM.   
+208566     MOVE WS-SYSTEM-DATETIME (7:2)  TO WS-CBKG-DATE-DD.   
+208566     MOVE WS-SYSTEM-DATETIME (9:2)  TO WS-CBKG-TIME-HH.   
+208566     MOVE WS-SYSTEM-DATETIME (11:2) TO WS-CBKG-TIME-MN.   
+208566     MOVE WS-SYSTEM-DATETIME (13:2) TO WS-CBKG-TIME-SS.   
+208566     MOVE WS-SYSTEM-DATETIME (15:2) TO WS-CBKG-TIME-MS.   
+208566  
+           DISPLAY 'START-TIME  '  WS-SYSTEM-TIME UPON PRINTER. 
+           DISPLAY 'START-DATE  '  WS-SYSTEM-DATE UPON PRINTER. 
+           MOVE SPACES                  TO WS-SR-BOOK-NUM-HOLD. 
+
+           MOVE WS-SYSTEM-DATE-CC       TO WS-PR-HEADER1-DATE-CC
+                                           WS-SR-HEADER1-DATE-CC.   
+           MOVE WS-SYSTEM-DATE-YY       TO WS-PR-HEADER1-DATE-YY
+                                           WS-SR-HEADER1-DATE-YY.   
+           MOVE WS-SYSTEM-DATE-MM       TO WS-PR-HEADER1-DATE-MM
+                                           WS-SR-HEADER1-DATE-MM.   
+           MOVE WS-SYSTEM-DATE-DD       TO WS-PR-HEADER1-DATE-DD
+                                           WS-SR-HEADER1-DATE-DD.   
+           MOVE WS-PR-PAGE-CNT          TO WS-PR-PAGE-NUM.  
+           MOVE WS-SR-PAGE-CNT          TO WS-SR-PAGE-NUM.  
+           COPY DPP03INT.   
+
+C72014     IF WS-RESTART-INDICATOR = SPACES 
+PPC470        MOVE 0                    TO WS-RESTART-SAIL-DATE 
+PPC470        MOVE 0                    TO WS-RESTART-DUR-DAYS  
+PPC470        MOVE SPACES               TO WS-RESTART-SHIP-CODE 
+C72014        MOVE SPACES               TO WS-RESTART-BOOK-TYPE 
+PPC470*       MOVE 0                    TO WS-RESTART-SAIL-DBK  
+PPC470*                                    WS-RESTART-SIBR-DBK  
+PPC470        MOVE 0                    TO WS-RESTART-SIBR-DBK  
+C72014                                     WS-RESTART-SGBR-DBK  
+                                           WS-RESTART-IBR-DBK.  
+
+      *   Database Areas are opened here
+C72501     MOVE 2 TO FETCH-WITH-LOCK.   
+           IMPART.  
+C72501     MOVE 0 TO FETCH-WITH-LOCK.   
+C90569     OPEN CONFIRM       USAGE-MODE UPDATE.
+           OPEN AGENCY-ASSOC
+                AGENT   
+                AGENT-IDX   
+112836*         BOOK-HDR
+163032*         COMPANY 
+SOTPRJ*         CRUO-FLT-SEG USAGE-MODE IS UPDATE   
+SOTPRJ          PAXXFER      USAGE-MODE IS UPDATE   
+                ERROR-DESC  
+                GRP1-BOOK    USAGE-MODE IS UPDATE   
+169014*         GRP1-CABS   
+169014*         GRP1-CABSX  
+                GTRF         USAGE-MODE IS UPDATE   
+                ITRF         USAGE-MODE IS UPDATE   
+                ITINERARY   
+                ITINSPEC
+PPC470*         PAX-COUPON  
+                PAX-PKG 
+                PAX-SEQ 
+204893*         PAX-INFO     USAGE-MODE IS UPDATE   
+                PORT-NAME   
+PPC470*         SAIL1   
+163032*         SAIL1DAILY  
+PPC470*         SAIL1-IDX   
+105574*         SAIL1-INDV  
+105574*         SAIL1GROUP  
+105574          SAILBOOK
+161301*         SAIL1SUMM   
+161301*         SAIL1SUMMX  
+                TRAVEL-INS  
+                TRAVEL-WITH 
+C57897          ACITINAME   
+C57897          ACITINAMEX  
+C57897          ITIN-REF
+C72501*         ITIN-REF-IDX.   
+C72501          ITIN-REF-IDX
+C72501          CONACCPT     USAGE-MODE IS UPDATE   
+PPC470*         CONSETUP     USAGE-MODE IS UPDATE   
+PPC470          CONSETUP     USAGE-MODE IS UPDATE.  
+PPC470*         SAILSIGN     USAGE-MODE IS UPDATE.  
+
+C72501*    OPEN CONACCPT     USAGE-MODE IS UPDATE   
+C72501*         CONSETUP     USAGE-MODE IS UPDATE   
+C72501*         SAILSIGN     USAGE-MODE IS UPDATE.  
+
+204893     PERFORM DPP04-OPEN-PAX-UPDATE  THRU  
+204893             DPP04-OPEN-PAX-AREAS-EXIT.   
+
+           PERFORM IRP66-OPEN-IBR-UPDATE
+                  THRU IRP66-OPEN-IBR-AREAS-EXIT.   
+           PERFORM IRP14-OPEN-HISTORY-UPDATE THRU IRP14-EXIT.   
+
+           PERFORM GRP15-OPEN-HISTORY-UPDATE
+               THRU GRP15-OPEN-EXIT.
+
+           MOVE 'U'                     TO DPP03-OPEN-FLAG. 
+           PERFORM DPP11-OPEN-PAX-AREAS THRU DPP11-EXIT.
+
+C72501*    MOVE 'AGENCY-ASSOC'          TO AGENCY-ASSOC-CALCAREA.   
+C72501*    MOVE 'AGENCY-CONN'           TO AGENCY-CONN-CALCAREA.
+C72501*    MOVE 'CRUO-FLT-SEG'          TO CRUO-FLT-SEG-CALCAREA.   
+C72501*    MOVE 'GTRF'                  TO GTRF1-CALCAREA.  
+C72501*    MOVE 'ITRF'                  TO ITRF-CALCAREA.   
+C72501*    MOVE 'ITINSPEC'              TO ITINSPEC-CALCAREA.   
+C72501*    MOVE 'ITINERARY'             TO ITINERARY-CALCAREA.  
+C72501*    MOVE 'GRP1-BOOK'             TO GRP1-BOOK-CALCAREA.  
+C72501*    MOVE 'PAX-INFO'              TO PAX-INFO-CALCAREA.   
+C72501*    MOVE 'PAX-COUPON'            TO PAX-COUPON-CALCAREA. 
+C72501*    MOVE 'PAX-PKG'               TO PAX-PKG-CALCAREA.
+C72501*    MOVE 'PAX-SEQ'               TO PAX-SEQ-CALCAREA.
+C72501*    MOVE 'PORT-NAME'             TO PORT-NAME-CALCAREA.  
+C72501*    MOVE 'TRAVEL-INS'            TO TRAVEL-INS-CALCAREA. 
+C72501*    MOVE 'TRAVEL-WITH'           TO TRAVEL-WITH-CALCAREA.
+C72501*    MOVE 'CONACCPT'              TO CONACCPT-CALCAREA.   
+C72501*    MOVE 'SAILSIGN'              TO SAILSIGN-CALCAREA.   
+C72501*    MOVE 'CONSETUP'              TO CONSETUP-CALCAREA.   
+
+      *  Files are opened here  
+
+           OPEN OUTPUT FINAL-REP-FILE.  
+           IF FR-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY "I-O ERROR " " " "DPBAPU01P FILE STATUS = "   
+                      WS-FR-FILE-STATUS UPON PRINTER
+              GO TO 9100-I-O-FILE-ERROR.
+
+           OPEN OUTPUT PRINT-REP-FILE.  
+           IF PR-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY "I-O ERROR " " " "DPBAPU02P FILE STATUS = "   
+                      WS-FR-FILE-STATUS UPON PRINTER
+              GO TO 9100-I-O-FILE-ERROR.
+
+           OPEN OUTPUT STAR-REP-FILE.   
+           IF SR-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY "I-O ERROR " " " "DPBAPU03P FILE STATUS = "   
+                      WS-SR-FILE-STATUS UPON PRINTER
+              GO TO 9100-I-O-FILE-ERROR.
+
+           PERFORM  DPP15-OPEN-ASTRF-AREA THRU  
+                              DPP15-ASTRF-OPEN-EXIT.
+
+           OPEN OUTPUT FAX-EXTRACT-FILE.
+           IF FX-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY "I-O ERROR " " " "DPBAPU04P FILE STATUS = "   
+                      WS-FX-FILE-STATUS UPON PRINTER
+              GO TO 9100-I-O-FILE-ERROR.
+
+C60521     OPEN INPUT CONTROL-PARAM.
+C60521     IF CP-FILE-OK
+C60521        NEXT SENTENCE 
+C60521     ELSE 
+C60521        DISPLAY "I-O ERROR " " " "DPBAPU01C FILE STATUS = "   
+C60521                WS-CP-FILE-STATUS UPON PRINTER
+C60521        GO TO 9100-I-O-FILE-ERROR.
+C72501     MOVE ','                     TO FILLER-1 
+C72501                                     FILLER-2 
+C72501                                     FILLER-3 
+C72501                                     FILLER-4 
+C72501                                     FILLER-5 
+C72501                                     FILLER-6 
+C72501                                     FILLER-7 
+C72501                                     FILLER-8 
+C72501                                     FILLER-9 
+C72501                                     FILLER-10
+C72501                                     FILLER-11
+C72501                                     FILLER-12
+C72501                                     FILLER-13
+C72501                                     FILLER-14
+C72501                                     FILLER-15
+C72501                                     FILLER-16
+C72501                                     FILLER-17
+C72501                                     FILLER-18
+C72501                                     FILLER-19
+C72501                                     FILLER-20
+C72501                                     FILLER-21
+C72501                                     FILLER-22
+C72501                                     FILLER-23
+C72501                                     FILLER-24
+C72501                                     FILLER-25.   
+C70056 0010-READ-CONTROL.   
+C70056     READ CONTROL-PARAM NEXT  
+C70056        AT END GO TO 0020-END-READ.   
+C70056     MOVE CONTROL-REC     TO WS-INPUT.
+C70056 0020-END-READ.   
+C70056     CLOSE CONTROL-PARAM. 
+C70056     IF WS-INPUT = SPACES 
+C70056        DISPLAY 'INVALID CONTROL PARAM ' WS-INPUT UPON PRT
+C70056        GO TO 9000-TERMINATE. 
+C70056     IF WS-START-SAIL-DATE = 0
+C70056        MOVE WS-SYSTEM-DATE      TO DPP02-YYYYMMDD-DATE   
+C70056     ELSE 
+C70056        MOVE WS-START-SAIL-DATE  TO DPP02-YYYYMMDD-DATE   
+C70056     END-IF.  
+C70056     MOVE DPP02-YYYYMMDD-DATE    TO WS-START-DATE.
+C70056     IF WS-END-SAIL-DATE = 0  
+C70056        MOVE 42                  TO DPP02-NUMBER-DAYS 
+C70056        PERFORM DPP10-ADVANCE-YYYYMMDD-DATE   
+C70056        MOVE DPP02-YYYYMMDD-DATE TO WS-END-DATE   
+C70056     ELSE 
+C70056        MOVE WS-END-SAIL-DATE    TO WS-END-DATE   
+C70056     END-IF.  
+C70056     MOVE WS-START-DATE-YY       TO PARAM-BEGIN-DATE-YY.  
+C70056     MOVE WS-START-DATE-MM       TO PARAM-BEGIN-DATE-MM.  
+C70056     MOVE WS-START-DATE-DD       TO PARAM-BEGIN-DATE-DD.  
+C70056     MOVE WS-END-DATE-YY         TO PARAM-END-DATE-YY.
+C70056     MOVE WS-END-DATE-MM         TO PARAM-END-DATE-MM.
+C70056     MOVE WS-END-DATE-DD         TO PARAM-END-DATE-DD.
+C70056     IF WS-SHIP-CODE =  'XX' OR SPACES
+C70056         MOVE SPACES             TO PARAM-SHIP-CODE   
+C70056     ELSE 
+C70056         MOVE WS-SHIP-CODE       TO PARAM-SHIP-CODE   
+C70056     END-IF.  
+C70056     MOVE ZEROES                 TO PARAM-DURATION-DAYS.  
+C70056     IF WS-RUN-TYPE = '1ST' OR '2ND' OR '3RD' 
+C70056        MOVE WS-RUN-TYPE         TO PARAM-RUN-TYPE
+C70056     ELSE 
+C70056        MOVE '2ND'               TO PARAM-RUN-TYPE
+C70056     END-IF.  
+C70056     MOVE PARAM-RUN-TYPE         TO WS-FR-RUN-TYPE
+C70056                                    WS-PR-RUN-TYPE
+C70056                                    WS-SR-RUN-TYPE.   
+
+           INITIALIZE FINAL-REP-FILE-REC.   
+           INITIALIZE PRINT-REP-FILE-REC.   
+           INITIALIZE STAR-REP-FILE-REC.
+           INITIALIZE FAX-EXTRACT-FILE-REC. 
+
+      * Write header for final-report   
+C60521*    MOVE 'DPBAPU           *****   DPB12APU EXTRACT FINAL-REPORT 
+C60521*    '*****                      ' TO  FINAL-REP-FILE-REC.
+C60521     MOVE WS-FR-TITLE-1            TO  FINAL-REP-FILE-REC.
+           WRITE FINAL-REP-FILE-REC.
+              IF NOT FR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "DPBAPU01P FILE STATUS = "
+                      WS-FR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+
+           MOVE WS-FR-LINE              TO FINAL-REP-FILE-REC.  
+           WRITE FINAL-REP-FILE-REC.
+              IF NOT FR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "DPBAPU01P FILE STATUS = "
+                      WS-FR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+
+      * Write header for Print-report   
+           PERFORM 4000-PRINT-HEADER-PARA THRU  
+                   4999-PRINT-HEADER-EXIT.  
+
+      * Write header for Star-report
+           PERFORM 5000-STAR-HEADER-PARA THRU   
+                   5999-STAR-HEADER-EXIT.   
+
+C60521     MOVE 'N' TO CCP04-ALL-SHIP-IND.  
+C60521     INITIALIZE  CCP04-SELECT-SHIP-TABLE. 
+C60521     MOVE 0   TO CCP04-SEL-SHIP-COUNT.
+
+      *  Stores/updates of records are done here
+      *-----------------------------------------------------------------
+       1000-PROCESS-MAIN-PARA.  
+      *-----------------------------------------------------------------
+           INITIALIZE FINAL-REP-FILE-REC.   
+           INITIALIZE PRINT-REP-FILE-REC.   
+           INITIALIZE STAR-REP-FILE-REC.
+           INITIALIZE FAX-EXTRACT-FILE-REC. 
+
+      * Accept input parameters from card reader.   
+C60521*    ACCEPT WS-INPUT FROM CARD-READER.
+C60521*    DISPLAY 'INPUT: ' WS-INPUT UPON PRINTER. 
+C60521*    EVALUATE WS-RUN-MODE 
+C60521*        WHEN 'REG'   
+C60521*           MOVE WS-SYSTEM-DATE      TO DPP02-YYYYMMDD-DATE   
+C60521*                                              WS-START-DATE  
+C60521*           MOVE 42                  TO DPP02-NUMBER-DAYS 
+C60521*           PERFORM DPP10-ADVANCE-YYYYMMDD-DATE   
+C60521*           MOVE DPP02-YYYYMMDD-DATE TO WS-END-DATE   
+C60521* 
+C60521*        WHEN 'TST'   
+C60521*           MOVE WS-START-SAIL-DATE  TO WS-START-DATE 
+C60521*           MOVE WS-END-SAIL-DATE    TO WS-END-DATE   
+C60521* 
+C60521*        WHEN OTHER   
+C60521*          DISPLAY 'INVALID RUN-MODE: ' WS-RUN-MODE UPON PRT  
+C60521*          GO TO 9000-TERMINATE   
+C60521*    END-EVALUATE.
+C60521*1010-READ-CONTROL.   
+C60521*    READ CONTROL-PARAM NEXT  
+C60521*       AT END GO TO 1020-END-READ.   
+C60521*    MOVE CONTROL-REC     TO WS-INPUT.
+C60521*1020-END-READ.   
+C60521*    CLOSE CONTROL-PARAM. 
+C60521*    IF WS-INPUT = SPACES 
+C60521*       DISPLAY 'INVALID CONTROL PARAM ' WS-INPUT UPON PRT
+C60521*       GO TO 9000-TERMINATE. 
+C60521*    IF WS-START-SAIL-DATE = 0
+C60521*       MOVE WS-SYSTEM-DATE      TO DPP02-YYYYMMDD-DATE   
+C60521*    ELSE 
+C60521*       MOVE WS-START-SAIL-DATE  TO DPP02-YYYYMMDD-DATE   
+C60521*    END-IF.  
+C60521*    MOVE DPP02-YYYYMMDD-DATE    TO WS-START-DATE.
+C60521*    IF WS-END-SAIL-DATE = 0  
+C60521*       MOVE 42                  TO DPP02-NUMBER-DAYS 
+C60521*       PERFORM DPP10-ADVANCE-YYYYMMDD-DATE   
+C60521*       MOVE DPP02-YYYYMMDD-DATE TO WS-END-DATE   
+C60521*    ELSE 
+C60521*       MOVE WS-END-SAIL-DATE    TO WS-END-DATE   
+C60521*    END-IF.  
+C60521*    MOVE WS-START-DATE-YY       TO PARAM-BEGIN-DATE-YY.  
+C60521*    MOVE WS-START-DATE-MM       TO PARAM-BEGIN-DATE-MM.  
+C60521*    MOVE WS-START-DATE-DD       TO PARAM-BEGIN-DATE-DD.  
+C60521*    MOVE WS-END-DATE-YY         TO PARAM-END-DATE-YY.
+C60521*    MOVE WS-END-DATE-MM         TO PARAM-END-DATE-MM.
+C60521*    MOVE WS-END-DATE-DD         TO PARAM-END-DATE-DD.
+C60521*    IF WS-SHIP-CODE =  'XX' OR SPACES
+C60521*        MOVE SPACES             TO PARAM-SHIP-CODE   
+C60521*    ELSE 
+C60521*        MOVE WS-SHIP-CODE       TO PARAM-SHIP-CODE   
+C60521*    END-IF.  
+C60521*    MOVE ZEROES                 TO PARAM-DURATION-DAYS.  
+C60521*    IF WS-RUN-TYPE = '1ST' OR '2ND'  
+C60521*       MOVE WS-RUN-TYPE         TO PARAM-RUN-TYPE
+C60521*    ELSE 
+C60521*       MOVE '2ND'               TO PARAM-RUN-TYPE
+C60521*    END-IF.  
+C60521* 
+           DISPLAY 'Sail Range: ' WS-SAILING-RANGE-PARAM UPON PRINTER   
+
+      * DPP14 will be used to walk through all bookings in the range of 
+      * sailings indicated by the PARAM fields in working storage   
+           MOVE 'N'                    TO DPP06-READ-PARAM-FILE.
+           MOVE 'A'                    TO DPP06-REQUEST-SAIL-STATUS.
+193591*    MOVE 'A'                    TO DPP06-REQUEST-BOOK-TYPE.  
+193591     MOVE 'I'                    TO DPP06-REQUEST-BOOK-TYPE.  
+           MOVE SPACES                 TO DPP06-BOOK-STATUS.
+           MOVE 'Y'                    TO DPP06-FETCH-BOOKING-IND.  
+           MOVE 'N'                    TO DPP06-PARAM-PROCESSED.
+C70056     MOVE SPACES                 TO WS-SAV-SHIP-CODE  
+C70056                                    WS-SAV-BOOK-NUM   
+C70056                                    WS-STAR-PRINT-IND.
+C70056     MOVE 0                      TO WS-SAV-SAIL-DATE  
+C70056                                    WS-SAIL-BOOK-CNT  
+C70056                                    WS-SAIL-PAX-CNT.  
+
+C72014     IF WS-RESTART-INDICATOR = 'Y'
+C72014        MOVE SPACES              TO DPP06-PARAM-IND   
+C72014        MOVE 'DPP14'             TO DPP01-PROC-NAME   
+C72014        PERFORM DPP14-READ-PARAM-FILE 
+PPC470*       MOVE WS-RESTART-SAIL-DBK TO GENERIC-DBK   
+144449*       FETCH SAIL1-REC RECORD WS-RESTART-SAIL-DBK
+PPC470*       FETCH SAIL1-REC RECORD GENERIC-DBK
+PPC470*       MOVE SAIL1-SHIP-CODE     TO DPP06-HOLD-SAIL-SHIP-CODE 
+PPC470*                                   DPP03-SHIP-CODE   
+PPC470*       MOVE SAIL1-SAIL-DATE     TO DPP06-HOLD-SAIL-SAIL-DATE 
+PPC470*       MOVE SAIL1-DURATION-DAYS TO DPP06-HOLD-SAIL-DURATION-DAYS 
+PPC470        MOVE WS-RESTART-SAIL-DATE 
+PPC470                                 TO TDP01-I-SAIL-DATE-YYYYMMDD
+PPC470        MOVE WS-RESTART-SHIP-CODE 
+PPC470                                 TO TDP01-I-SHIP-CODE 
+PPC470        MOVE WS-RESTART-DUR-DAYS TO TDP01-I-DUR-DAYS  
+
+PPC470        PERFORM TDP01-RET-SAIL-DETAILS THRU   
+PPC470                              TDP01-RET-SAIL-DETAILS-EXIT 
+PPC470        IF TDP01-SAIL-SQLERR  
+PPC470           GO TO 9150-RDMS-ERROR  
+PPC470        END-IF
+
+PPC470        MOVE TDP01-SHIP-CODE     TO DPP06-HOLD-SAIL-SHIP-CODE 
+PPC470                                    DPP03-SHIP-CODE   
+PPC470        MOVE TDP01-SAIL-DATE-YYYYMMDD 
+PPC470                                 TO DPP06-HOLD-SAIL-SAIL-DATE 
+PPC470        MOVE TDP01-DURATION-DAYS TO DPP06-HOLD-SAIL-DURATION-DAYS 
+C72014        IF WS-RESTART-BOOK-TYPE = 'I' 
+144449           MOVE WS-RESTART-SIBR-DBK TO GENERIC-DBK
+144449*          FETCH SAIL-INDV-BOOK-REC  RECORD WS-RESTART-SIBR-DBK   
+144449           FETCH SAIL-INDV-BOOK-REC  RECORD GENERIC-DBK   
+C72014        ELSE  
+144449           MOVE WS-RESTART-SGBR-DBK TO GENERIC-DBK
+144449*          FETCH SAIL-GROUP-BOOK-REC RECORD WS-RESTART-SGBR-DBK   
+144449           FETCH SAIL-GROUP-BOOK-REC RECORD GENERIC-DBK   
+C72014        END-IF
+144449        MOVE WS-RESTART-IBR-DBK TO GENERIC-DBK
+144449*       FETCH INDV-BOOKING-REC RECORD WS-RESTART-IBR-DBK  
+144449        FETCH INDV-BOOKING-REC RECORD GENERIC-DBK 
+C72014        MOVE WS-RESTART-BOOK-TYPE TO DPP06-BOOK-TYPE  
+C72014        GO TO 1150-PROCESS-BOOKINGS-CONT. 
+
+      * Read first booking in range 
+           PERFORM DPP14-RETRIEVE-SAIL-BKGS THRU DPP14-EXIT.
+
+157139     IF  DPP06-PARAM-IND = 'Y'
+157139         GO TO 1999-PROCESS-MAIN-EXIT 
+157139     END-IF.  
+
+157139     GO TO 1150-PROCESS-BOOKINGS-CONT.
+      *-----------------------------------------------------------------
+       1100-PROCESS-BOOKINGS.   
+      *-----------------------------------------------------------------
+188688*    FREE.
+195192*    PERFORM DPP12-COMMIT THRU DPP12-COMMIT-EXIT. 
+195192     IF ( WS-UPDATE-FLAG = 'Y')   
+208566        PERFORM 7000-STORE-UPD-DATETIME THRU 7000-STORE-EXIT  
+195192        PERFORM DPP12-COMMIT THRU DPP12-COMMIT-EXIT   
+195192     END-IF.  
+C72501 1100-PROCESS-CONT.   
+195192     MOVE 'N'                     TO WS-UPDATE-FLAG.  
+           PERFORM DPP14-FETCH-NEXT-BOOKING  THRU  DPP14-EXIT.  
+
+157139*    IF IBR-CANCEL-DATE > 0   
+C72501*       GO TO 1100-PROCESS-BOOKINGS.  
+157139*       GO TO 1100-PROCESS-CONT.  
+
+C72014 1150-PROCESS-BOOKINGS-CONT.  
+
+157139     IF  IBR-CANCEL-DATE > 0  
+157139         GO TO 1100-PROCESS-CONT  
+157139     END-IF.  
+
+C72014     MOVE SPACES                  TO WS-RESTART-INDICATOR.
+      * Count number of sailings processed  
+PPC470*           IF (SAIL1-SAIL-DATE = WS-LAST-SAIL-DATE) AND  
+PPC470*              (SAIL1-SHIP-CODE = WS-LAST-SHIP-CODE) AND  
+PPC470*              (SAIL1-DURATION-DAYS = WS-LAST-DURATION-DAYS)  
+PPC470     IF (TDP01-SAIL-DATE-YYYYMMDD = WS-LAST-SAIL-DATE) AND
+PPC470        (TDP01-SHIP-CODE          = WS-LAST-SHIP-CODE) AND
+PPC470        (TDP01-DURATION-DAYS      = WS-LAST-DURATION-DAYS)
+              CONTINUE  
+           ELSE 
+              ADD 1                     TO WS-SAIL-CNT  
+              IF WS-SAIL-CNT > 1
+                 DISPLAY '***  SUMMARY FOR SAILING # ' WS-SAIL-CNT  
+                                                      ' *** ' UPON PRT  
+                 DISPLAY '----------------------------------' UPON PRT  
+                 DISPLAY 'SHIP CODE = ' WS-LAST-SHIP-CODE     UPON PRT  
+                 DISPLAY 'SAIL DATE = ' WS-LAST-SAIL-DATE     UPON PRT  
+                 DISPLAY 'DUR  DAYS = ' WS-LAST-DURATION-DAYS UPON PRT  
+                 DISPLAY 'TOTAL IBRs  #  ' WS-IBR-CNT         UPON PRT  
+                 DISPLAY 'TOTAL PAX   #  ' WS-PAX-CNT         UPON PRT  
+                 DISPLAY 'INDV PAX    #  ' WS-INDV-PAX-CNT    UPON PRT  
+                 DISPLAY 'GROUP PAX   #  ' WS-GRP-PAX-CNT     UPON PRT  
+                 DISPLAY 'PAX UPDATED #  ' WS-PAX-UPD-CNT     UPON PRT  
+                 DISPLAY 'COP-IND UPD #  ' WS-COP-IND-CNT     UPON PRT  
+                 DISPLAY 'INS-IND UPD #  ' WS-INS-IND-CNT     UPON PRT  
+C60521           DISPLAY 'CONTRACT-IND UPD #   ' WS-CONTRACT-IND-CNT
+C60521                                           UPON PRT   
+C60521           DISPLAY 'SAIL-SIGN-IND UPD #  ' WS-SAIL-SIGN-IND-CNT   
+C60521                                           UPON PRT   
+C60521           DISPLAY 'GUEST-IND UPD #      ' WS-GUEST-IND-CNT   
+C60521                                           UPON PRT   
+C60521           DISPLAY 'IMMIG-IND UPD #      ' WS-IMMIG-IND-CNT   
+C60521                                           UPON PRT   
+                 INITIALIZE WS-COUNTERS 
+              END-IF
+PPC470*       MOVE SAIL1-SAIL-DATE      TO WS-LAST-SAIL-DATE
+PPC470*       MOVE SAIL1-SHIP-CODE      TO WS-LAST-SHIP-CODE
+PPC470*       MOVE SAIL1-DURATION-DAYS  TO WS-LAST-DURATION-DAYS
+PPC470        MOVE TDP01-SAIL-DATE-YYYYMMDD 
+PPC470                                  TO WS-LAST-SAIL-DATE
+PPC470        MOVE TDP01-SHIP-CODE      TO WS-LAST-SHIP-CODE
+PPC470        MOVE TDP01-DURATION-DAYS  TO WS-LAST-DURATION-DAYS
+PPC470     END-IF.  
+
+157139     IF DPP06-PARAM-IND > SPACES  
+157139        IF WS-STAR-PRINT-IND = 'Y'
+157139           PERFORM 6000-STAR-SAIL-BREAK THRU  
+157139                   6099-STAR-SAIL-BREAK-EXIT  
+157139        END-IF
+157139        MOVE SPACES               TO WS-RESTART-INDICATOR 
+PPC470*       MOVE 0                    TO WS-RESTART-SAIL-DBK  
+PPC470        MOVE 0                    TO WS-RESTART-SIBR-DBK  
+157139                                     WS-RESTART-SGBR-DBK  
+157139                                     WS-RESTART-IBR-DBK   
+PPC470        MOVE 0                    TO WS-RESTART-SAIL-DATE 
+PPC470        MOVE 0                    TO WS-RESTART-DUR-DAYS  
+PPC470        MOVE SPACES               TO WS-RESTART-SHIP-CODE 
+157139        GO TO 1999-PROCESS-MAIN-EXIT  
+157139     END-IF.  
+
+C72501*    MOVE ','                     TO FILLER-1 
+C72501*                                    FILLER-2 
+C72501*                                    FILLER-3 
+C72501*                                    FILLER-4 
+C72501*                                    FILLER-5 
+C72501*                                    FILLER-6 
+C72501*                                    FILLER-7 
+C72501*                                    FILLER-8 
+C72501*                                    FILLER-9 
+C72501*                                    FILLER-10
+C72501*                                    FILLER-11
+C72501*                                    FILLER-12
+C72501*                                    FILLER-13
+C72501*                                    FILLER-14
+C72501*                                    FILLER-15
+C72501*                                    FILLER-16
+C72501*                                    FILLER-17.   
+C72501*    MOVE ','                     TO FILLER-18
+C72501*                                    FILLER-17
+C72501*                                    FILLER-18
+C72501*                                    FILLER-19
+C72501*                                    FILLER-20
+C72501*                                    FILLER-21
+C72501*                                    FILLER-22
+C72501*                                    FILLER-23
+C72501*                                    FILLER-24
+C72501*                                    FILLER-25.   
+
+PPC470*    MOVE SAIL1-SHIP-CODE         TO FR-SHIP-CODE.
+PPC470*    MOVE SAIL1-SAIL-DATE         TO FR-SAIL-DATE.
+PPC470*    MOVE SAIL1-DURATION-DAYS     TO FR-DURATION-DAYS.
+PPC470     MOVE TDP01-SHIP-CODE         TO FR-SHIP-CODE.
+PPC470     MOVE TDP01-SAIL-DATE-YYYYMMDD
+PPC470                                  TO FR-SAIL-DATE.
+PPC470     MOVE TDP01-DURATION-DAYS     TO FR-DURATION-DAYS.
+           MOVE IBR-BOOK-TYPE           TO FR-BOOK-TYPE.
+           MOVE IBR-BOOK-NUM            TO FR-IBR-BOOK-NUM. 
+           IF IBR-GROUP-BOOK-NUM > SPACES   
+              MOVE IBR-GROUP-BOOK-NUM   TO FR-IBR-GROUP-BOOK-NUM
+           ELSE 
+              MOVE IBR-BOOK-NUM         TO FR-IBR-GROUP-BOOK-NUM
+           END-IF.  
+           MOVE IBR-CABIN-NUM           TO FR-IBR-CABIN-NUM.
+
+PPC470*     MOVE 'N'                    TO WS-SEL-SHIP-IND. 
+PPC470*    IF SAIL1-SUP-VOY-FILE-IND <= ' ' OR  
+PPC470*       SAIL1-SUP-VOY-FILE-IND  = 'Y' 
+PPC470*    IF TDP01-SUP-VOY-FILE-IND <= ' ' OR  
+PPC470*       TDP01-SUP-VOY-FILE-IND  = 'Y' 
+PPC470     MOVE 1                   TO CCP04-SEL-SUB.   
+PPC470*       MOVE SAIL1-SHIP-CODE     TO CCP04-SEL-SHIP (CCP04-SEL-SUB)
+PPC470*       MOVE SAIL1-SAIL-DATE     TO CCP04-SEL-DATE (CCP04-SEL-SUB)
+PPC470     MOVE TDP01-SHIP-CODE     TO CCP04-SEL-SHIP (CCP04-SEL-SUB).  
+PPC470     MOVE TDP01-SAIL-DATE-YYYYMMDD
+PPC470                              TO CCP04-SEL-DATE (CCP04-SEL-SUB).  
+PPC470     MOVE 'Y'                 TO WS-SEL-SHIP-IND. 
+PPC470     MOVE CCP04-SEL-SUB       TO CCP04-SEL-SHIP-COUNT.
+PPC470*     END-IF. 
+C60521     MOVE WS-SEL-SHIP-IND        TO CCP04-ALL-SHIP-IND.   
+
+C72014     MOVE DPP06-BOOK-TYPE         TO WS-RESTART-BOOK-TYPE.
+PPC470*    MOVE DPP06-SAIL-DBK          TO WS-RESTART-SAIL-DBK. 
+PPC470     MOVE DPP06-HOLD-SAIL-SAIL-DATE   
+PPC470                                  TO WS-RESTART-SAIL-DATE.
+PPC470     MOVE DPP06-HOLD-SAIL-SHIP-CODE   
+PPC470                                  TO WS-RESTART-SHIP-CODE.
+PPC470     MOVE DPP06-HOLD-SAIL-DURATION-DAYS   
+PPC470                                  TO WS-RESTART-DUR-DAYS. 
+C72014     IF DPP06-BOOK-TYPE = 'I' 
+C72014        MOVE DPP06-SIBR-DBK       TO WS-RESTART-SIBR-DBK  
+C72014        MOVE 0                    TO WS-RESTART-SGBR-DBK  
+C72014     ELSE 
+C72014        MOVE DPP06-SGBR-DBK       TO WS-RESTART-SGBR-DBK  
+C72014        MOVE 0                    TO WS-RESTART-SIBR-DBK. 
+144449*    MOVE STATUS FOR RUN-UNIT     TO WS-RESTART-IBR-DBK.  
+144449     MOVE STATUS FOR RUN-UNIT     TO GENERIC-DBK. 
+144449     MOVE GENERIC-DBK             TO WS-RESTART-IBR-DBK.  
+
+      * Get Agency Phone Number.
+
+           MOVE IBR-CUSTOMER-NUM        TO AAR-NUM. 
+           MOVE 'CM'                    TO AAR-TYPE.
+           FETCH AGENCY-ASSOCIATION-REC RECORD. 
+           FETCH OWNER RECORD WITHIN AGENCY-ASSOCIATION-SET SET.
+           MOVE AGENT-PHONE-NUM         TO FR-AGENT-PHONE-NUM.  
+
+157139*    IF DPP06-PARAM-IND > SPACES  
+157139*        IF WS-STAR-PRINT-IND = 'Y'   
+157139*           PERFORM 6000-STAR-SAIL-BREAK THRU 
+157139*                   6099-STAR-SAIL-BREAK-EXIT 
+157139*        END-IF   
+157139*        MOVE SPACES               TO WS-RESTART-INDICATOR
+157139*        MOVE 0                    TO WS-RESTART-SAIL-DBK 
+157139*                                     WS-RESTART-SIBR-DBK 
+157139*                                     WS-RESTART-SGBR-DBK 
+157139*                                     WS-RESTART-IBR-DBK  
+157139*        GO TO 1999-PROCESS-MAIN-EXIT.
+C60521     MOVE 'Y'                     TO WS-FIRST-PAX-IND.
+C60521     MOVE 0                       TO DPP03-PAX-DBK.   
+
+      *-----------------------------------------------------------------
+       1200-FETCH-NEXT-PAX. 
+      *-----------------------------------------------------------------
+           INITIALIZE DPP03-PICF-INFO.  
+           INITIALIZE DPP03-PIID-INFO.  
+C60521     IF WS-FIRST-PAX-IND = 'N' AND
+C60521       (DPP03-PAX-DBK NOT = 0)
+144449        MOVE DPP03-PAX-DBK TO GENERIC-DBK 
+144449*       FIND DPP03-PAX-DBK
+144449        FIND GENERIC-DBK  
+C60521           ON ERROR GO TO 9100-DATABASE-ERROR.
+           MOVE 'A'                     TO DPP03-REQUESTED-PAX-STATUS.  
+SOTPRJ*    MOVE 'N'                     TO DPP03-CSSXR-READ-IND 
+SOTPRJ     MOVE 'N'                     TO DPP03-CSSXR-READ-IND.
+SOTPRJ*                                    DPP03-NEED-ACCEPT-FOR.   
+           PERFORM DPP17-NEXT-WITHIN-INDV-BKG THRU DPP17-EXIT.  
+
+           ADD 1                        TO WS-IBR-CNT.  
+C60521     ADD 1                        TO WS-TOT-IBR-CNT.  
+           IF DPP03-END-OF-PAX-IND = 'Y'
+              GO TO 1100-PROCESS-BOOKINGS.  
+C60521     MOVE 'N'                     TO WS-FIRST-PAX-IND.
+
+           MOVE 'Y'                     TO DPP03-APIS-READ-IND. 
+SOTPRJ*    MOVE 'N'                     TO DPP03-CSSXR-EXIST-IND
+SOTPRJ     MOVE 'N'                     TO DPP03-CSSXR-EXIST-IND
+SOTPRJ*                                    DPP03-CAR-EXIST-IND  
+SOTPRJ*                                    DPP03-SSSR-EXIST-IND.
+C60521     IF WS-SEL-SHIP-IND = 'Y' 
+C60521        MOVE 'Y'                  TO DPP03-CSSXR-READ-IND 
+C60521     END-IF.  
+           PERFORM DPP17-BUILD-COMPLETE-GUEST THRU DPP17-EXIT.  
+
+           ADD 1                        TO WS-PAX-CNT   
+C60521                                     WS-TOT-PAX-CNT   
+                                           WS-TOTAL-PAX-READ.   
+
+           IF PAX-BOOK-TYPE = 'I'   
+              ADD 1                     TO WS-INDV-PAX-CNT  
+C60521                                     WS-TOT-INDV-PAX-CNT  
+           END-IF.  
+
+           IF PAX-BOOK-TYPE = 'G'   
+              ADD 1                     TO WS-GRP-PAX-CNT   
+C60521                                     WS-TOT-GRP-PAX-CNT   
+           END-IF.  
+
+           PERFORM CCP04-INIT-VARIABLES THRU
+                   CCP04-INIT-EXIT. 
+           MOVE 'N'                     TO CCP04-CMP-FETCHED
+                                           CCP04-ISCXR-FETCHED. 
+C60521     MOVE 'N'                     TO CCP04-CONTRACT-FAIL-IND  
+C60521                                     CCP04-SAIL-SIGN-FAIL-IND.
+FUNFIX     MOVE DPP03-PIAR-CAR-PARKED TO
+FUNFIX                                CCP04-PIAR-CAR-PARKED.
+
+FUNFIX     MOVE DPP03-PIAR-CAR-INFO TO  
+FUNFIX                                CCP04-PIAR-CAR-INFO.  
+           PERFORM CCP04-PROCESS-REQUIREMENTS THRU  
+                   CCP04-PEXIT. 
+
+           IF CCP04-ERROR-IND = 'Y' 
+              DISPLAY 'PAX ERROR ENCOUNTERED FOR BOOKING: ' 
+               IBR-BOOK-NUM ',' IBR-GROUP-BOOK-NUM ',TYPE: '
+                IBR-BOOK-TYPE ',PAX: ' PAX-SEQ-NUM UPON PRT 
+              GO TO 1200-FETCH-NEXT-PAX.
+FUNFIX*    IF US/US SET THIS TO "Y" Steve, Geary and MC.
+FUNFIX     IF (DPP03-PIAR-NATIONALITY = 'US' OR ' US') AND  
+FUNFIX        (DPP03-PIAR-RESIDENCE-COUNTRY = 'US' OR ' US') AND
+FUNFIX         CCP04-INS-FAIL-IND  = 'Y'
+FUNFIX         DISPLAY ' CORRECTD THE INS FLAG '
+FUNFIX         IBR-BOOK-NUM ',' IBR-GROUP-BOOK-NUM ',TYPE: '
+FUNFIX         IBR-BOOK-TYPE ',PAX: ' PAX-SEQ-NUM UPON PRT  
+FUNFIX         MOVE 'N' TO CCP04-INS-FAIL-IND   
+FUNFIX     END-IF.  
+FUNFIX  
+           IF CCP04-COP-FAIL-IND  = 'N' 
+              MOVE 'Y'                  TO WS-PAX-COP-INFO-IND  
+           ELSE 
+              MOVE 'N'                  TO WS-PAX-COP-INFO-IND  
+           END-IF.  
+
+           IF CCP04-INS-FAIL-IND  = 'N' 
+              MOVE 'Y'                  TO WS-PAX-INS-INFO-IND  
+           ELSE 
+              MOVE 'N'                  TO WS-PAX-INS-INFO-IND  
+           END-IF.  
+
+C60521     MOVE 0                       TO WS-PAX-CONTRACT-IND  
+C60521                                     WS-PAX-SAIL-SIGN-IND.
+C60521*                                    WS-PAX-GUEST-INFO-IND
+C60521*                                    WS-PAX-IMMIG-INFO-IND.   
+C60521     IF WS-SEL-SHIP-IND = 'Y' 
+C60521        IF CCP04-CONTRACT-FAIL-IND  = 'N' 
+C60521           MOVE 1                 TO WS-PAX-CONTRACT-IND  
+C60521        ELSE  
+C60521           MOVE 0                 TO WS-PAX-CONTRACT-IND  
+C60521        END-IF
+C60521        IF CCP04-SAIL-SIGN-FAIL-IND  = 'N'
+C60521           MOVE 1                 TO WS-PAX-SAIL-SIGN-IND 
+C60521        ELSE  
+C60521           MOVE 0                 TO WS-PAX-SAIL-SIGN-IND 
+C60521        END-IF
+C70056     END-IF.  
+C70056     IF CCP04-GUEST-FAIL-IND  = 'N'   
+C70056        MOVE 1                    TO WS-PAX-GUEST-INFO-IND
+C70056     ELSE 
+C70056        MOVE 0                    TO WS-PAX-GUEST-INFO-IND
+C70056     END-IF.  
+C70056     IF CCP04-IMMIG-FAIL-IND  = 'N'   
+C70056        MOVE 1                    TO WS-PAX-IMMIG-INFO-IND
+C70056     ELSE 
+C70056        MOVE 0                    TO WS-PAX-IMMIG-INFO-IND
+C70056     END-IF.  
+
+           MOVE 'N'                     TO WS-UPD-COP-FLAG. 
+           MOVE 'N'                     TO WS-UPD-INS-FLAG. 
+C60521     MOVE 'N'                     TO WS-UPD-CONTRACT-FLAG 
+C60521                                     WS-UPD-SAIL-SIGN-FLAG
+C60521                                     WS-UPD-GUEST-INFO-FLAG   
+C60521                                     WS-UPD-IMMIG-INFO-FLAG.  
+C70056     MOVE PAX-COP-INFO-IND        TO WS-OLD-COP-IND.  
+C70056     MOVE PAX-INS-INFO-IND        TO WS-OLD-INS-IND.  
+           IF WS-PAX-COP-INFO-IND NOT = PAX-COP-INFO-IND
+              ADD 1                     TO WS-COP-IND-CNT   
+C60521                                     WS-TOT-COP-IND-CNT   
+              MOVE PAX-COP-INFO-IND     TO FR-OLD-COP-IND   
+              MOVE WS-PAX-COP-INFO-IND  TO PAX-COP-INFO-IND 
+                                           FR-NEW-COP-IND   
+              MOVE 'Y'                  TO WS-UPD-COP-FLAG  
+           END-IF.  
+
+           IF FR-OLD-COP-IND <= SPACES  
+C60521      AND (WS-PAX-COP-INFO-IND NOT = 'Y') 
+C60521      AND WS-COP-IND-CNT > 0  
+              SUBTRACT 1                FROM WS-COP-IND-CNT 
+              MOVE 'N'                  TO WS-UPD-COP-FLAG  
+              MOVE ' '                  TO FR-NEW-COP-IND   
+           END-IF.  
+
+           IF WS-PAX-INS-INFO-IND NOT = PAX-INS-INFO-IND
+              ADD 1                     TO WS-INS-IND-CNT   
+C60521                                     WS-TOT-INS-IND-CNT   
+              MOVE PAX-INS-INFO-IND     TO FR-OLD-INS-IND   
+              MOVE WS-PAX-INS-INFO-IND  TO PAX-INS-INFO-IND 
+                                           FR-NEW-INS-IND   
+              MOVE 'Y'                  TO WS-UPD-INS-FLAG  
+           END-IF.  
+
+           IF FR-OLD-INS-IND <= SPACES  
+C60521      AND (WS-PAX-INS-INFO-IND NOT = 'Y') 
+C60521      AND WS-INS-IND-CNT > 0  
+              SUBTRACT 1                FROM WS-INS-IND-CNT 
+              MOVE 'N'                  TO WS-UPD-INS-FLAG  
+              MOVE ' '                  TO FR-NEW-INS-IND   
+           END-IF.  
+
+C60521     IF WS-PAX-CONTRACT-IND NOT = PAX-CONTRACT-IND
+C60521        ADD 1                     TO WS-CONTRACT-IND-CNT  
+C60521                                     WS-TOT-CONTRACT-IND-CNT  
+C60521        MOVE PAX-CONTRACT-IND     TO FR-OLD-CONTRACT-IND  
+C60521        MOVE WS-PAX-CONTRACT-IND  TO PAX-CONTRACT-IND 
+C60521                                     FR-NEW-CONTRACT-IND  
+C60521        MOVE 'Y'                  TO WS-UPD-CONTRACT-FLAG 
+C60521     END-IF.  
+C70056     MOVE PAX-CONTRACT-IND        TO WS-NEW-CONTRACT-IND. 
+
+C60521     IF WS-PAX-SAIL-SIGN-IND NOT = PAX-SAIL-SIGN-IND  
+C60521        ADD 1                     TO WS-SAIL-SIGN-IND-CNT 
+C60521                                     WS-TOT-SAIL-SIGN-IND-CNT 
+C60521        MOVE PAX-SAIL-SIGN-IND    TO FR-OLD-SAIL-SIGN-IND 
+C60521        MOVE WS-PAX-SAIL-SIGN-IND TO PAX-SAIL-SIGN-IND
+C60521                                     FR-NEW-SAIL-SIGN-IND 
+C60521        MOVE 'Y'                  TO WS-UPD-SAIL-SIGN-FLAG
+C60521     END-IF.  
+C70056     MOVE PAX-SAIL-SIGN-IND       TO WS-NEW-SAIL-SIGN-IND.
+
+C60521     IF WS-PAX-GUEST-INFO-IND NOT = PAX-GUEST-INFO-IND
+C60521        ADD 1                      TO WS-GUEST-IND-CNT
+C60521                                      WS-TOT-GUEST-IND-CNT
+C60521        MOVE PAX-GUEST-INFO-IND    TO FR-OLD-GUEST-INFO-IND   
+C60521        MOVE WS-PAX-GUEST-INFO-IND TO PAX-GUEST-INFO-IND  
+C60521                                      FR-NEW-GUEST-INFO-IND   
+C60521        MOVE 'Y'                   TO WS-UPD-GUEST-INFO-FLAG  
+C60521     END-IF.  
+
+C60521     IF WS-PAX-IMMIG-INFO-IND NOT = PAX-IMMIG-INFO-IND
+C60521        ADD 1                      TO WS-IMMIG-IND-CNT
+C60521                                      WS-TOT-IMMIG-IND-CNT
+C60521        MOVE PAX-IMMIG-INFO-IND    TO FR-OLD-IMMIG-INFO-IND   
+C60521        MOVE WS-PAX-IMMIG-INFO-IND TO PAX-IMMIG-INFO-IND  
+C60521                                      FR-NEW-IMMIG-INFO-IND   
+C60521        MOVE 'Y'                   TO WS-UPD-IMMIG-INFO-FLAG  
+C60521     END-IF.  
+
+           IF WS-UPD-INS-FLAG = 'Y' AND WS-UPD-COP-FLAG = 'N'   
+              MOVE WS-PAX-COP-INFO-IND  TO FR-NEW-COP-IND   
+           END-IF.  
+           MOVE 0 TO MCFLAG.
+C60521     PERFORM 1400-SET-ADV-BOARDING-IND THRU 1449-EXIT.
+
+C60521*    IF ( WS-UPD-COP-FLAG = 'Y' ) OR ( WS-UPD-INS-FLAG = 'Y' )
+C60521*    IF (FR-ADV-BOARDING-IND = '*') OR
+C60521*       (WS-ADV-BOARDING-IND = '*')   
+C60521     IF WS-UPD-COP-FLAG        = 'Y' OR   
+C60521        WS-UPD-INS-FLAG        = 'Y' OR   
+C60521        WS-UPD-CONTRACT-FLAG   = 'Y' OR   
+C60521        WS-UPD-SAIL-SIGN-FLAG  = 'Y' OR   
+C60521        WS-UPD-GUEST-INFO-FLAG = 'Y' OR   
+C60521        WS-UPD-IMMIG-INFO-FLAG = 'Y' OR   
+C70056        WS-ADV-BOARDING-IND    = '*'  
+              MOVE DPP03-SEQ-NUM        TO FR-PAX-SEQ-NUM   
+              MOVE DPP03-TITLE          TO FR-PAX-TITLE 
+              MOVE DPP03-PAX-FIRST-NAME TO FR-PAX-FIRST-NAME
+              MOVE DPP03-PAX-LAST-NAME  TO FR-PAX-LAST-NAME 
+              IF DPP03-PIER-EXIST-IND = 'Y' 
+                 MOVE DPP03-PIER-EMAIL-ADDR 
+                                        TO FR-PAX-EMAIL-ADDR
+              END-IF
+C60521*       IF FR-OLD-INS-IND = 'Y' AND   
+C60521*         ( ( FR-OLD-COP-IND = 'Y' ) OR   
+C60521*          ( DPP03-PAX-FARE-TYPE NOT = 'C' ) )
+C60521*           MOVE '*'              TO FR-ADV-BOARDING-IND  
+C60521*           ADD 1                 TO WS-STAR-CNT  
+C60521*       ELSE  
+C60521*           MOVE SPACES           TO FR-ADV-BOARDING-IND  
+C60521*       END-IF
+C60521        IF WS-UPD-COP-FLAG        = 'Y' OR
+C60521           WS-UPD-INS-FLAG        = 'Y' OR
+C60521           WS-UPD-CONTRACT-FLAG   = 'Y' OR
+C60521           WS-UPD-SAIL-SIGN-FLAG  = 'Y' OR
+C60521           WS-UPD-GUEST-INFO-FLAG = 'Y' OR
+C60521           WS-UPD-IMMIG-INFO-FLAG = 'Y'   
+C70056           IF PARAM-RUN-TYPE = '1ST' OR '2ND' 
+C60521              PERFORM DPP18-UPDATE-PAX   THRU 
+C60521                      DPP18-EXIT  
+C60521              ADD 1            TO WS-PAX-UPD-CNT  
+C60521                                  WS-TOT-PAX-UPD-CNT  
+C60521                                  WS-TOTAL-PAX-UPD
+C60521              PERFORM 2000-STORE-HISTORY THRU 
+C60521                   2999-EXIT  
+195192              MOVE 'Y'         TO WS-UPDATE-FLAG  
+C70056           END-IF 
+C60521        END-IF
+C70056        IF WS-SAV-SHIP-CODE = SPACES AND  
+C70056           WS-SAV-SAIL-DATE = 0   
+C70056           MOVE FR-SHIP-CODE   TO WS-SAV-SHIP-CODE
+C70056           MOVE FR-SAIL-DATE   TO WS-SAV-SAIL-DATE
+C70056        END-IF
+              PERFORM 3000-WRITE-REP-PARA THRU  
+                      3999-WRITE-REP-PARA-EXIT  
+           END-IF.  
+           GO TO 1200-FETCH-NEXT-PAX.   
+
+C60521 1400-SET-ADV-BOARDING-IND.   
+C60521     MOVE SPACES                  TO FR-ADV-BOARDING-IND. 
+C60521     MOVE SPACES                  TO WS-ADV-BOARDING-IND. 
+C60521*    IF (WS-UPD-INS-FLAG = 'Y') OR
+C60521*       (WS-UPD-COP-FLAG = 'Y') OR
+C60521*       (WS-UPD-CONTRACT-FLAG   = 'Y') OR 
+C60521*       (WS-UPD-SAIL-SIGN-FLAG  = 'Y') OR 
+C60521*       (WS-UPD-GUEST-INFO-FLAG = 'Y') OR 
+C60521*       (WS-UPD-IMMIG-INFO-FLAG = 'Y')
+C60521*        MOVE '*'                 TO FR-ADV-BOARDING-IND  
+C60521*        ADD 1                    TO WS-STAR-CNT  
+C60521*        GO TO 1449-EXIT  
+C60521*    END-IF.  
+C60521     IF PARAM-RUN-TYPE = '1ST'
+C60521        IF WS-SEL-SHIP-IND = 'Y'  
+C60521           IF DPP03-PAX-FARE-TYPE = 'C'   
+C60521              IF FR-OLD-INS-IND  = 'Y' AND
+C60521                 FR-OLD-COP-IND  = 'Y'
+C60521                 IF (FR-NEW-INS-IND NOT = 'Y') OR 
+C60521                    (FR-NEW-COP-IND NOT = 'Y') OR 
+C60521                    (FR-NEW-CONTRACT-IND  = 0) OR 
+C60521                    (FR-NEW-SAIL-SIGN-IND = 0)
+C60521                     MOVE '*'     TO WS-ADV-BOARDING-IND  
+C60521                     ADD 1        TO WS-STAR-CNT  
+C60521                 END-IF   
+C60521              END-IF  
+C60521           ELSE   
+C60521              IF FR-OLD-INS-IND = 'Y' 
+C60521                 IF (FR-NEW-INS-IND NOT  = 'Y') OR
+C60521                    (FR-NEW-CONTRACT-IND  = 0)  OR
+C60521                    (FR-NEW-SAIL-SIGN-IND = 0)
+C60521                    MOVE '*'      TO WS-ADV-BOARDING-IND  
+C60521                    ADD 1         TO WS-STAR-CNT  
+C60521                 END-IF   
+C60521              END-IF  
+C60521           END-IF 
+C60521        ELSE  
+C60521           IF DPP03-PAX-FARE-TYPE = 'C'   
+C60521              IF FR-OLD-INS-IND  = 'Y' AND
+C60521                 FR-OLD-COP-IND  = 'Y'
+C60521                 IF (FR-NEW-INS-IND NOT = 'Y') OR 
+C60521                    (FR-NEW-COP-IND NOT = 'Y')
+C60521                     MOVE '*'     TO WS-ADV-BOARDING-IND  
+C60521                     ADD 1        TO WS-STAR-CNT  
+C60521                 END-IF   
+C60521              END-IF  
+C60521           ELSE   
+C60521              IF FR-OLD-INS-IND  = 'Y'
+C60521                 IF (FR-NEW-INS-IND NOT = 'Y')
+C60521                     MOVE '*'     TO WS-ADV-BOARDING-IND  
+C60521                     ADD 1        TO WS-STAR-CNT  
+C60521                 END-IF   
+C60521              END-IF  
+C60521           END-IF 
+C60521        END-IF
+C60521     END-IF.  
+C60521     IF PARAM-RUN-TYPE = '2ND'
+C60521        IF WS-SEL-SHIP-IND = 'Y'  
+C60521           IF DPP03-PAX-FARE-TYPE = 'C'   
+C60521              IF FR-OLD-INS-IND  = 'Y'  AND   
+C60521                 FR-OLD-COP-IND  = 'Y'  AND   
+C60521                 FR-OLD-CONTRACT-IND  = 1  AND
+C60521                 FR-OLD-SAIL-SIGN-IND = 1 
+C60521                 IF (FR-NEW-INS-IND NOT = 'Y')  OR
+C60521                    (FR-NEW-COP-IND NOT = 'Y')  OR
+C60521                    (FR-NEW-CONTRACT-IND  = 0)  OR
+C60521                    (FR-NEW-SAIL-SIGN-IND = 0)
+C60521                     MOVE '*'     TO WS-ADV-BOARDING-IND  
+C60521                     ADD 1        TO WS-STAR-CNT  
+C60521                 END-IF   
+C60521              END-IF  
+C60521           ELSE   
+C60521              IF FR-OLD-INS-IND  = 'Y'  AND   
+C60521                 FR-OLD-CONTRACT-IND  = 1  AND
+C60521                 FR-OLD-SAIL-SIGN-IND = 1 
+C60521                 IF (FR-NEW-INS-IND NOT = 'Y')  OR
+C60521                    (FR-NEW-CONTRACT-IND  = 0)  OR
+C60521                    (FR-NEW-SAIL-SIGN-IND = 0)
+C60521                     MOVE '*'     TO WS-ADV-BOARDING-IND  
+C60521                     ADD 1        TO WS-STAR-CNT  
+C60521                 END-IF   
+C60521              END-IF  
+C60521           END-IF 
+C60521        ELSE  
+C60521           IF DPP03-PAX-FARE-TYPE = 'C'   
+C60521              IF FR-OLD-INS-IND  = 'Y'  AND   
+C60521                 FR-OLD-COP-IND  = 'Y'
+C60521                 IF (FR-NEW-INS-IND NOT = 'Y')  OR
+C60521                    (FR-NEW-COP-IND NOT = 'Y')
+C60521                     MOVE '*'     TO WS-ADV-BOARDING-IND  
+C60521                     ADD 1        TO WS-STAR-CNT  
+C60521                 END-IF   
+C60521              END-IF  
+C60521           ELSE   
+C60521              IF FR-OLD-INS-IND  = 'Y'
+C60521                 IF (FR-NEW-INS-IND NOT = 'Y')
+C60521                     MOVE '*'     TO WS-ADV-BOARDING-IND  
+C60521                     ADD 1        TO WS-STAR-CNT  
+C60521                 END-IF   
+C60521              END-IF  
+C60521           END-IF 
+C60521        END-IF
+C60521     END-IF.  
+C70056     IF PARAM-RUN-TYPE = '3RD'
+C70056        IF WS-SEL-SHIP-IND = 'Y'  
+C70056           IF DPP03-PAX-FARE-TYPE = 'C'   
+C70056              IF WS-OLD-INS-IND  = 'Y' AND
+C70056                 WS-OLD-COP-IND  = 'Y'
+C70056                 IF WS-NEW-CONTRACT-IND   = 0  OR 
+C70056                    WS-NEW-SAIL-SIGN-IND  = 0 
+C70056                     MOVE WS-OLD-COP-IND TO FR-OLD-COP-IND
+C70056                     MOVE WS-OLD-INS-IND TO FR-OLD-INS-IND
+C70056                     MOVE WS-NEW-CONTRACT-IND  TO 
+C70056                          FR-NEW-CONTRACT-IND 
+C70056                     MOVE WS-NEW-SAIL-SIGN-IND TO 
+C70056                          FR-NEW-SAIL-SIGN-IND
+C70056                     MOVE '*'     TO WS-ADV-BOARDING-IND  
+C70056                     ADD 1        TO WS-STAR-CNT  
+C70056                 END-IF   
+C70056              END-IF  
+C70056           ELSE   
+C70056              IF WS-OLD-INS-IND = 'Y' 
+C70056                 IF FR-NEW-CONTRACT-IND   = 0  OR 
+C70056                    FR-NEW-SAIL-SIGN-IND  = 0 
+C70056                    MOVE WS-OLD-COP-IND TO FR-OLD-COP-IND 
+C70056                    MOVE WS-OLD-INS-IND TO FR-OLD-INS-IND 
+C70056                    MOVE WS-NEW-CONTRACT-IND  TO  
+C70056                         FR-NEW-CONTRACT-IND  
+C70056                    MOVE WS-NEW-SAIL-SIGN-IND TO  
+C70056                         FR-NEW-SAIL-SIGN-IND 
+C70056                    MOVE '*'      TO WS-ADV-BOARDING-IND  
+C70056                    ADD 1         TO WS-STAR-CNT  
+C70056                 END-IF   
+C70056              END-IF  
+C70056           END-IF 
+C70056        ELSE  
+C70056           IF DPP03-PAX-FARE-TYPE = 'C'   
+C70056              IF FR-OLD-INS-IND  = 'Y' AND
+C70056                 FR-OLD-COP-IND  = 'Y'
+C70056                 IF (FR-NEW-INS-IND NOT = 'Y') OR 
+C70056                    (FR-NEW-COP-IND NOT = 'Y')
+C70056                     MOVE '*'     TO WS-ADV-BOARDING-IND  
+C70056                     ADD 1        TO WS-STAR-CNT  
+C70056                 END-IF   
+C70056              END-IF  
+C70056           ELSE   
+C70056              IF FR-OLD-INS-IND  = 'Y'
+C70056                 IF (FR-NEW-INS-IND NOT = 'Y')
+C70056                     MOVE '*'     TO WS-ADV-BOARDING-IND  
+C70056                     ADD 1        TO WS-STAR-CNT  
+C70056                 END-IF   
+C70056              END-IF  
+C70056           END-IF 
+C70056        END-IF
+C70056     END-IF.  
+C60521     MOVE WS-ADV-BOARDING-IND     TO FR-ADV-BOARDING-IND. 
+C60521 1449-EXIT.   
+C60521     EXIT.
+
+       1999-PROCESS-MAIN-EXIT.  
+            GO TO 9000-TERMINATE.   
+      *-----------------------------------------------------------------
+       2000-STORE-HISTORY.  
+      *-----------------------------------------------------------------
+           IF IBR-BOOK-TYPE = 'I'   
+              MOVE 'SYS'                TO DPP04-HIST-OPER-INITIAL  
+              MOVE DPP03-SEQ-NUM        TO DPP04-HIST-PAX-SEQ-NUM   
+                                           DPP04-TRF-PAX-SEQ-NUM
+              MOVE 'DPBAPU'             TO DPP04-HIST-CONTACT   
+              MOVE DPP03-SEQ-NUM        TO DPP04-HIST-PAX-NUM   
+              MOVE DPP03-CABIN-NUM      TO DPP04-HIST-CABIN-NUM 
+              MOVE DPP03-CABIN-BOOK-NUM TO DPP04-HIST-BOOK-NUM  
+              MOVE IBR-SHIP-CODE        TO DPP04-TRF-SHIP-CODE  
+              MOVE IBR-SAIL-DATE        TO DPP04-TRF-SAIL-DATE  
+              MOVE IBR-DURATION-DAYS    TO DPP04-TRF-DURATION-DAYS  
+              MOVE 'APG'                TO DPP04-HIST-ACTIVITY-TYPE 
+              MOVE 'GUEST INFORMATION CHANGE'   
+                                        TO DPP04-HIST-COMMENT   
+              PERFORM IRP15-CREATE-BOOKING-HISTORY THRU 
+                      IRP15-TRF-EXIT
+              GO TO 2999-EXIT   
+           ELSE 
+              MOVE PAX-BOOK-NUM         TO GBR1-BOOK-NUM
+              MOVE 14010002             TO DPP01-ERROR-NUMBER   
+              FETCH GRP1-BOOKING-REC RECORD 
+              ON ERROR GO TO 9100-DATABASE-ERROR
+
+              MOVE 'SYS'                TO GRP15-USERID 
+              MOVE DPP03-SEQ-NUM        TO GRP15-PAX-SEQ-NUM
+              MOVE DPP03-CABIN-SEQ-NUM  TO GRP15-PAX-NUM
+              MOVE 'DPBAPU'             TO GRP15-AGENCY-CONTACT 
+              MOVE DPP03-CABIN-NUM      TO GRP15-CABIN-NUM  
+              MOVE DPP03-CABIN-BOOK-NUM TO GRP15-IBR-BOOK-NUM   
+              MOVE  'APG'               TO GRP15-ACTIVITY-CODE  
+              MOVE 'GUEST INFORMATION CHANGE'   
+                                        TO GRP15-COMMENT
+              PERFORM GRP15-CREATE-BOOKING-HISTORY THRU 
+                      GRP15-GTRF-EXIT.  
+       2999-EXIT.   
+           EXIT.
+      *-----------------------------------------------------------------
+       3000-WRITE-REP-PARA. 
+      *-----------------------------------------------------------------
+           WRITE FINAL-REP-FILE-REC.
+              IF NOT FR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "DPBAPU01P FILE STATUS = "
+                      WS-FR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+
+           IF FR-ADV-BOARDING-IND = SPACES  
+C60521     AND WS-ADV-BOARDING-IND = SPACES 
+               MOVE FR-SHIP-CODE            TO PR-SHIP-CODE 
+               MOVE FR-SAIL-DATE            TO DPP02-YYYYMMDD-DATE  
+               PERFORM DPP10-YYYYMMDD-TO-MMDDYYYY   
+               MOVE DPP02-MMDDYYYY-DATE     TO PR-SAIL-DATE 
+               MOVE FR-DURATION-DAYS        TO PR-DURATION-DAYS 
+               MOVE FR-BOOK-TYPE            TO PR-BOOK-TYPE 
+               MOVE FR-IBR-BOOK-NUM         TO PR-IBR-BOOK-NUM  
+               MOVE FR-IBR-CABIN-NUM        TO PR-IBR-CABIN-NUM 
+               MOVE FR-AGENT-PHONE-NUM      TO PR-AGENT-PHONE-NUM   
+               MOVE FR-PAX-SEQ-NUM          TO PR-PAX-SEQ-NUM   
+               MOVE FR-PAX-TITLE            TO PR-PAX-TITLE 
+               MOVE FR-PAX-FIRST-NAME       TO PR-PAX-FIRST-NAME
+               MOVE FR-PAX-LAST-NAME        TO PR-PAX-LAST-NAME 
+               MOVE FR-PAX-EMAIL-ADDR       TO PR-PAX-EMAIL-ADDR
+               MOVE FR-OLD-COP-IND          TO PR-OLD-COP-IND   
+               MOVE FR-NEW-COP-IND          TO PR-NEW-COP-IND   
+               MOVE FR-OLD-INS-IND          TO PR-OLD-INS-IND   
+               MOVE FR-NEW-INS-IND          TO PR-NEW-INS-IND   
+C60521         MOVE FR-OLD-CONTRACT-IND     TO PR-OLD-CONTRACT-IND  
+C60521         MOVE FR-NEW-CONTRACT-IND     TO PR-NEW-CONTRACT-IND  
+C60521         MOVE FR-OLD-SAIL-SIGN-IND    TO PR-OLD-SAIL-SIGN-IND 
+C60521         MOVE FR-NEW-SAIL-SIGN-IND    TO PR-NEW-SAIL-SIGN-IND 
+C60521         MOVE FR-OLD-GUEST-INFO-IND   TO PR-OLD-GUEST-INFO-IND
+C60521         MOVE FR-NEW-GUEST-INFO-IND   TO PR-NEW-GUEST-INFO-IND
+C60521         MOVE FR-OLD-IMMIG-INFO-IND   TO PR-OLD-IMMIG-INFO-IND
+C60521         MOVE FR-NEW-IMMIG-INFO-IND   TO PR-NEW-IMMIG-INFO-IND
+               MOVE FR-ADV-BOARDING-IND     TO PR-ADV-BOARDING-IND  
+               WRITE PRINT-REP-FILE-REC 
+                  IF NOT PR-FILE-OK 
+                     DISPLAY "I-O ERROR " " " "DPBAPU02P FILE STATUS = "
+                          WS-PR-FILE-STATUS UPON PRINTER
+                     GO TO 9100-I-O-FILE-ERROR  
+                  END-IF
+               ADD 1                        TO WS-PR-LINE-CNT   
+               IF WS-PR-LINE-CNT > WS-PAGE-SIZE 
+                  ADD 1                     TO WS-PR-PAGE-CNT   
+                  MOVE WS-PR-PAGE-CNT       TO WS-PR-PAGE-NUM   
+                  MOVE WS-PR-BLANK-LINE     TO PRINT-REP-FILE-REC   
+                  WRITE PRINT-REP-FILE-REC  
+                  IF NOT PR-FILE-OK 
+                     DISPLAY "I-O ERROR " " " "DPBAPU02P FILE STATUS = "
+                          WS-PR-FILE-STATUS UPON PRINTER
+                     GO TO 9100-I-O-FILE-ERROR  
+                  END-IF
+                  PERFORM 4000-PRINT-HEADER-PARA THRU   
+                          4999-PRINT-HEADER-EXIT
+                  MOVE 0                    TO WS-PR-LINE-CNT   
+               END-IF   
+           ELSE 
+C70056         IF FR-SHIP-CODE = WS-SAV-SHIP-CODE AND   
+C70056            FR-SAIL-DATE = WS-SAV-SAIL-DATE   
+C70056            ADD 1                     TO WS-SAIL-PAX-CNT  
+C70056            IF FR-IBR-BOOK-NUM NOT = WS-SAV-BOOK-NUM  
+C70056               ADD 1                  TO WS-SAIL-BOOK-CNT 
+C70056               MOVE FR-IBR-BOOK-NUM   TO WS-SAV-BOOK-NUM  
+C70056            END-IF
+C70056         ELSE 
+C70056            PERFORM 6000-STAR-SAIL-BREAK THRU 
+C70056                    6099-STAR-SAIL-BREAK-EXIT 
+C70056            ADD 1                     TO WS-SR-PAGE-CNT   
+C70056            MOVE WS-SR-PAGE-CNT       TO WS-SR-PAGE-NUM   
+C70056            PERFORM 5000-STAR-HEADER-PARA THRU
+C70056                    5999-STAR-HEADER-EXIT 
+C70056            MOVE 0                    TO WS-SR-LINE-CNT   
+C70056            MOVE FR-SHIP-CODE         TO WS-SAV-SHIP-CODE 
+C70056            MOVE FR-SAIL-DATE         TO WS-SAV-SAIL-DATE 
+C70056            MOVE FR-IBR-BOOK-NUM      TO WS-SAV-BOOK-NUM  
+C70056            MOVE 1                    TO WS-SAIL-BOOK-CNT 
+C70056            MOVE 1                    TO WS-SAIL-PAX-CNT  
+C70056         END-IF   
+C70056         MOVE 'Y'                     TO WS-STAR-PRINT-IND
+               MOVE FR-SHIP-CODE            TO SR-SHIP-CODE 
+               MOVE FR-SAIL-DATE            TO DPP02-YYYYMMDD-DATE  
+               PERFORM DPP10-YYYYMMDD-TO-MMDDYYYY   
+               MOVE DPP02-MMDDYYYY-DATE     TO SR-SAIL-DATE 
+               MOVE FR-DURATION-DAYS        TO SR-DURATION-DAYS 
+               MOVE FR-BOOK-TYPE            TO SR-BOOK-TYPE 
+               IF FR-BOOK-TYPE = 'I'
+                  MOVE FR-BOOK-TYPE         TO FX-BOOK-TYPE 
+                  ADD 1                     TO WS-I-STAR-CNT
+               ELSE 
+                  MOVE 'A'                  TO FX-BOOK-TYPE 
+                  ADD 1                     TO WS-G-STAR-CNT
+               END-IF   
+               MOVE FR-IBR-BOOK-NUM         TO SR-IBR-BOOK-NUM  
+                                               FX-IBR-BOOK-NUM  
+               MOVE FR-IBR-CABIN-NUM        TO SR-IBR-CABIN-NUM 
+               MOVE FR-AGENT-PHONE-NUM      TO SR-AGENT-PHONE-NUM   
+               MOVE FR-PAX-SEQ-NUM          TO SR-PAX-SEQ-NUM   
+               MOVE FR-PAX-TITLE            TO SR-PAX-TITLE 
+               MOVE FR-PAX-FIRST-NAME       TO SR-PAX-FIRST-NAME
+               MOVE FR-PAX-LAST-NAME        TO SR-PAX-LAST-NAME 
+               MOVE FR-PAX-EMAIL-ADDR       TO SR-PAX-EMAIL-ADDR
+               MOVE FR-OLD-COP-IND          TO SR-OLD-COP-IND   
+               MOVE FR-NEW-COP-IND          TO SR-NEW-COP-IND   
+               MOVE FR-OLD-INS-IND          TO SR-OLD-INS-IND   
+               MOVE FR-NEW-INS-IND          TO SR-NEW-INS-IND   
+C60521         MOVE FR-OLD-CONTRACT-IND     TO SR-OLD-CONTRACT-IND  
+C60521         MOVE FR-NEW-CONTRACT-IND     TO SR-NEW-CONTRACT-IND  
+C60521         MOVE FR-OLD-SAIL-SIGN-IND    TO SR-OLD-SAIL-SIGN-IND 
+C60521         MOVE FR-NEW-SAIL-SIGN-IND    TO SR-NEW-SAIL-SIGN-IND 
+C60521         MOVE FR-OLD-GUEST-INFO-IND   TO SR-OLD-GUEST-INFO-IND
+C60521         MOVE FR-NEW-GUEST-INFO-IND   TO SR-NEW-GUEST-INFO-IND
+C60521         MOVE FR-OLD-IMMIG-INFO-IND   TO SR-OLD-IMMIG-INFO-IND
+C60521         MOVE FR-NEW-IMMIG-INFO-IND   TO SR-NEW-IMMIG-INFO-IND
+               MOVE FR-ADV-BOARDING-IND     TO SR-ADV-BOARDING-IND  
+               WRITE STAR-REP-FILE-REC  
+                  IF NOT SR-FILE-OK 
+                     DISPLAY "I-O ERROR " " " "DPBAPU03P FILE STATUS = "
+                          WS-SR-FILE-STATUS UPON PRINTER
+                     GO TO 9100-I-O-FILE-ERROR  
+                  END-IF
+               MOVE SPACES                  TO FX-FILLER-1  
+               IF FX-IBR-BOOK-NUM NOT = WS-SR-BOOK-NUM-HOLD 
+                  WRITE FAX-EXTRACT-FILE-REC
+                  IF NOT FX-FILE-OK 
+                     DISPLAY "I-O ERROR " " " "DPBAPU04P FILE STATUS = "
+                          WS-FX-FILE-STATUS UPON PRINTER
+                     GO TO 9100-I-O-FILE-ERROR  
+                  END-IF
+                  MOVE FX-IBR-BOOK-NUM      TO WS-SR-BOOK-NUM-HOLD  
+               END-IF   
+               ADD 1                        TO WS-SR-LINE-CNT   
+               IF WS-SR-LINE-CNT > WS-PAGE-SIZE 
+                  ADD 1                     TO WS-SR-PAGE-CNT   
+                  MOVE WS-SR-PAGE-CNT       TO WS-SR-PAGE-NUM   
+                  MOVE WS-PR-BLANK-LINE     TO STAR-REP-FILE-REC
+                  WRITE STAR-REP-FILE-REC   
+                  IF NOT SR-FILE-OK 
+                     DISPLAY "I-O ERROR " " " "DPBAPU03P FILE STATUS = "
+                          WS-SR-FILE-STATUS UPON PRINTER
+                     GO TO 9100-I-O-FILE-ERROR  
+                  END-IF
+                  PERFORM 5000-STAR-HEADER-PARA THRU
+                          5999-STAR-HEADER-EXIT 
+                  MOVE 0                    TO WS-SR-LINE-CNT   
+               END-IF   
+           END-IF.  
+
+           MOVE 0                       TO FR-PAX-SEQ-NUM.  
+           MOVE SPACES                  TO FR-PAX-TITLE 
+                                           FR-PAX-FIRST-NAME
+                                           FR-PAX-LAST-NAME 
+                                           FR-PAX-EMAIL-ADDR
+                                           FR-OLD-COP-IND   
+                                           FR-NEW-COP-IND   
+                                           FR-OLD-INS-IND   
+                                           FR-NEW-INS-IND.  
+C60521     MOVE ZEROES                  TO FR-OLD-CONTRACT-IND  
+C60521                                     FR-NEW-CONTRACT-IND  
+C60521                                     FR-OLD-SAIL-SIGN-IND 
+C60521                                     FR-NEW-SAIL-SIGN-IND 
+C60521                                     FR-OLD-GUEST-INFO-IND
+C60521                                     FR-NEW-GUEST-INFO-IND
+C60521                                     FR-OLD-IMMIG-INFO-IND
+C60521                                     FR-NEW-IMMIG-INFO-IND.   
+
+       3999-WRITE-REP-PARA-EXIT.
+           EXIT.
+
+      *-----------------------------------------------------------------
+       4000-PRINT-HEADER-PARA.  
+      *-----------------------------------------------------------------
+      * Write header for Print-report   
+
+           MOVE WS-PR-HEADER1           TO PRINT-REP-FILE-REC.  
+           WRITE PRINT-REP-FILE-REC.
+              IF NOT PR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "DPBAPU02P FILE STATUS = "
+                      WS-PR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+
+           MOVE WS-PR-HEADER-LINE       TO PRINT-REP-FILE-REC.  
+           WRITE PRINT-REP-FILE-REC.
+              IF NOT PR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "DPBAPU02P FILE STATUS = "
+                      WS-PR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+
+           MOVE WS-PR-HEADER2           TO PRINT-REP-FILE-REC.  
+           WRITE PRINT-REP-FILE-REC.
+              IF NOT PR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "DPBAPU02P FILE STATUS = "
+                      WS-PR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+
+           MOVE WS-PR-HEADER3           TO PRINT-REP-FILE-REC.  
+           WRITE PRINT-REP-FILE-REC.
+              IF NOT PR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "DPBAPU02P FILE STATUS = "
+                      WS-PR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+
+           MOVE WS-PR-HEADER-LINE       TO PRINT-REP-FILE-REC.  
+           WRITE PRINT-REP-FILE-REC.
+              IF NOT PR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "DPBAPU02P FILE STATUS = "
+                      WS-PR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+
+       4999-PRINT-HEADER-EXIT.  
+           EXIT.
+
+      *-----------------------------------------------------------------
+       5000-STAR-HEADER-PARA.   
+      *-----------------------------------------------------------------
+      * Write header for Star-report
+
+           MOVE WS-SR-HEADER1           TO STAR-REP-FILE-REC.   
+           WRITE STAR-REP-FILE-REC. 
+              IF NOT SR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "DPBAPU03P FILE STATUS = "
+                      WS-SR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+
+           MOVE WS-PR-HEADER-LINE       TO STAR-REP-FILE-REC.   
+           WRITE STAR-REP-FILE-REC. 
+              IF NOT SR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "DPBAPU03P FILE STATUS = "
+                      WS-SR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+
+           MOVE WS-PR-HEADER2           TO STAR-REP-FILE-REC.   
+           WRITE STAR-REP-FILE-REC. 
+              IF NOT SR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "DPBAPU03P FILE STATUS = "
+                      WS-SR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+
+           MOVE WS-PR-HEADER3           TO STAR-REP-FILE-REC.   
+           WRITE STAR-REP-FILE-REC. 
+              IF NOT SR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "DPBAPU03P FILE STATUS = "
+                      WS-PR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+
+           MOVE WS-PR-HEADER-LINE       TO STAR-REP-FILE-REC.   
+           WRITE STAR-REP-FILE-REC. 
+              IF NOT SR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "DPBAPU03P FILE STATUS = "
+                      WS-SR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+
+       5999-STAR-HEADER-EXIT.   
+           EXIT.
+
+C70056 6000-STAR-SAIL-BREAK.
+C70056     MOVE WS-PR-BLANK-LINE     TO STAR-REP-FILE-REC.  
+C70056     WRITE STAR-REP-FILE-REC. 
+C70056     IF NOT SR-FILE-OK
+C70056        DISPLAY "I-O ERROR " " " "DPBAPU03P FILE STATUS = "   
+C70056                 WS-SR-FILE-STATUS UPON PRINTER   
+C70056        GO TO 9100-I-O-FILE-ERROR 
+C70056     END-IF.  
+C70056     ADD 1                     TO WS-SR-LINE-CNT. 
+C70056         IF WS-SR-LINE-CNT > WS-PAGE-SIZE 
+C70056            ADD 1                     TO WS-SR-PAGE-CNT   
+C70056            MOVE WS-SR-PAGE-CNT       TO WS-SR-PAGE-NUM   
+C70056            MOVE WS-PR-BLANK-LINE     TO STAR-REP-FILE-REC
+C70056            WRITE STAR-REP-FILE-REC   
+C70056            IF NOT SR-FILE-OK 
+C70056               DISPLAY "I-O ERROR " " " "DPBAPU03P FILE STATUS = "
+C70056                    WS-SR-FILE-STATUS UPON PRINTER
+C70056               GO TO 9100-I-O-FILE-ERROR  
+C70056            END-IF
+C70056            PERFORM 5000-STAR-HEADER-PARA THRU
+C70056                    5999-STAR-HEADER-EXIT 
+C70056            MOVE 0                    TO WS-SR-LINE-CNT   
+C70056         END-IF   
+C70056     MOVE WS-SAIL-BOOK-CNT     TO WS-SL-BOOK-CNT. 
+C70056     MOVE WS-SAIL-PAX-CNT      TO WS-SL-GUEST-CNT.
+C70056     MOVE WS-SAIL-SUMMARY      TO STAR-REP-FILE-REC.  
+C70056     WRITE STAR-REP-FILE-REC. 
+C70056     IF NOT SR-FILE-OK
+C70056        DISPLAY "I-O ERROR " " " "DPBAPU03P FILE STATUS = "   
+C70056                 WS-SR-FILE-STATUS UPON PRINTER   
+C70056        GO TO 9100-I-O-FILE-ERROR 
+C70056     END-IF.  
+C70056     ADD 1                     TO WS-SR-LINE-CNT. 
+C70056     MOVE WS-PR-BLANK-LINE     TO STAR-REP-FILE-REC.  
+C70056     WRITE STAR-REP-FILE-REC. 
+C70056     IF NOT SR-FILE-OK
+C70056        DISPLAY "I-O ERROR " " " "DPBAPU03P FILE STATUS = "   
+C70056                 WS-SR-FILE-STATUS UPON PRINTER   
+C70056        GO TO 9100-I-O-FILE-ERROR 
+C70056     END-IF.  
+C70056     MOVE SPACES               TO WS-STAR-PRINT-IND.  
+C70056 6099-STAR-SAIL-BREAK-EXIT.   
+C70056     EXIT.
+
+      ************************************************************* 
+      *   Normal end of routine                                   * 
+      ************************************************************* 
+208566 7000-STORE-UPD-DATETIME. 
+208566  
+208566     FIND CURRENT INDV-BOOKING-REC RECORD 
+208566          ON ERROR GO TO 9100-DATABASE-ERROR. 
+208566     MOVE WS-SYSTEM-DATETIME    TO IBR-UPDATE-DATETIME.   
+208566     MODIFY INDV-BOOKING-REC RECORD.  
+208566     EXEC SQL WHENEVER SQLERROR   
+208566          GO TO 9150-RDMS-ERROR   
+208566     END-EXEC.
+208566     EXEC SQL WHENEVER NOT FOUND  
+208566          CONTINUE
+208566     END-EXEC.
+208566  
+208566     EXEC SQL UPDATE CABIN_BOOK   
+208566          SET (UPDATE_DATETIME =  :WS-CBKG-DATETIME)  
+208566        WHERE (BOOK_NUM        =  :IBR-BOOK-NUM   
+PPC470          AND  SHIP_CODE       =  :IBR-SHIP-CODE  
+208566          AND  UPDATE_DATETIME <> :WS-CBKG-DATETIME)  
+208566     END-EXEC.
+208566*     PERFORM DPP12-COMMIT THRU DPP12-COMMIT-EXIT.
+208566  
+208566 7000-STORE-EXIT. 
+208566     EXIT.
+
+       9000-TERMINATE.  
+           ACCEPT WS-SYSTEM-DATE  FROM DATE YYYYMMDD.   
+           ACCEPT WS-SYSTEM-TIME  FROM TIME.
+           DISPLAY 'END-TIME : '  WS-SYSTEM-TIME UPON PRINTER.  
+           DISPLAY 'END-DATE : '  WS-SYSTEM-DATE UPON PRINTER.  
+C60521     DISPLAY '***  GRAND TOTAL SUMMARY  ***' UPON PRT.
+C60521     DISPLAY 'GRAND TOTAL IBRs  #  ' WS-TOT-IBR-CNT UPON PRT. 
+C60521     DISPLAY 'GRAND TOTAL PAX   #  ' WS-TOT-PAX-CNT UPON PRT. 
+C60521     DISPLAY 'GRAND TOTAL INDV PAX    #  '
+C60521                          WS-TOT-INDV-PAX-CNT UPON PRT.   
+C60521     DISPLAY 'GRAND TOTAL GROUP PAX   #  '
+C60521                          WS-TOT-GRP-PAX-CNT  UPON PRT.   
+C60521     DISPLAY 'GRAND TOTAL PAX UPDATED #  '
+C60521                          WS-TOT-PAX-UPD-CNT  UPON PRT.   
+C60521     DISPLAY 'GRAND TOTAL COP-IND UPD #  '
+C60521                          WS-TOT-COP-IND-CNT  UPON PRT.   
+C60521     DISPLAY 'GRAND TOTAL INS-IND UPD #  '
+C60521                          WS-TOT-INS-IND-CNT  UPON PRT.   
+C60521     DISPLAY 'GRAND TOTAL CONTRACT-IND UPD #   '  
+C60521                          WS-TOT-CONTRACT-IND-CNT UPON PRT.   
+C60521     DISPLAY 'GRAND TOTAL SAIL-SIGN-IND UPD #  '  
+C60521                          WS-TOT-SAIL-SIGN-IND-CNT UPON PRT.  
+C60521     DISPLAY 'GRAND TOTAL GUEST-IND UPD #      '  
+C60521                          WS-TOT-GUEST-IND-CNT UPON PRT.  
+C60521     DISPLAY 'GRAND TOTAL IMMIG-IND UPD #      '  
+C60521                          WS-TOT-IMMIG-IND-CNT UPON PRT.  
+144449*    IF IMPART-DEPART = 1 
+144449*       CLOSE ALL ON ERROR  GO TO 9100-DATABASE-ERROR 
+144449*       DEPART    ON ERROR  GO TO 9100-DATABASE-ERROR 
+144449*    END-IF.  
+144449     GO TO 9900-FINISH-PARA.  
+
+      ******************************************************
+      *        DATABASE ERROR ROUTINES                     *
+      ******************************************************
+
+       9100-DATABASE-ERROR. 
+           DISPLAY 'ERROR FROM PROGRAM - DPB12APU'   UPON PRINTER.  
+           DISPLAY 'ERROR STATUS = ' ERROR-STATUS    UPON PRINTER.  
+           DISPLAY 'ERROR NUMBER = ' ERROR-NUM       UPON PRINTER.  
+           DISPLAY 'ERROR AREA   = ' ERROR-AREA      UPON PRINTER.  
+           DISPLAY 'ERROR RECORD = ' ERROR-RECORD    UPON PRINTER.  
+           DISPLAY 'ERROR SET    = ' ERROR-SET       UPON PRINTER.  
+
+163066     PERFORM 9900-FINISH-PARA.
+163066     IF RB-ERROR-CODE NOT = '02'  
+163066        CLOSE ALL ON ERROR GO TO 9900-FINISH-DISPLAY  
+163066        GO TO DPP12-DATABASE-ERROR
+163066     ELSE 
+163066        MOVE 10000 TO DLREC-WAIT-MILLISECONDS 
+163066        ADD  1     TO DLREC-DEADLOCK-CNT  
+163066        DISPLAY 'DEADLOCK - IN DPB12APU #' DLREC-DEADLOCK-CNT 
+163066                                   UPON PRINTER   
+163066        IF DLREC-DEADLOCK-CNT > 5 
+163066           GO TO 9900-FINISH-DISPLAY  
+163066        END-IF
+163066  
+163066        DISPLAY 'DEADLOCK--ATTEMPTING TO RECOVER ' UPON PRINTER   
+163066        DISPLAY '----WAITING FOR ' DLREC-WAIT-MILLISECONDS
+163066                ' MILLISECONDS'    UPON PRINTER   
+163066  
+163066        CALL    'ERTWAIT' USING DLREC-WAIT-MILLISECONDS   
+163066        DISPLAY '** IMPART-DEPART ' IMPART-DEPART UPON PRINTER
+163066*    Restart the Program  
+163066        IF IMPART-DEPART = 1  
+163066           CLOSE ALL ON ERROR GO TO 9900-FINISH-DISPLAY   
+188688*          DEPART WITH ROLLBACK   
+188688           PERFORM DPP12-CHECK-ROLLBACK THRU  
+188688                   DPP12-CHECK-ROLLBACK-EXIT  
+163066        END-IF
+163066        MOVE '0' TO IMPART-DEPART 
+163066        MOVE 'Y' TO WS-RESTART-INDICATOR  
+PPC470*       IF WS-RESTART-SAIL-DBK = 0
+PPC470        IF WS-RESTART-SAIL-DATE = 0      AND  
+PPC470           WS-RESTART-SHIP-CODE = SPACES AND  
+PPC470           WS-RESTART-DUR-DAYS  = 0   
+163066           GO TO 9900-FINISH-DISPLAY  
+163066        END-IF
+163066        GO TO 0000-INITIALIZE 
+163066     END-IF.  
+144449*    IF IMPART-DEPART = 1 
+144449*       CLOSE ALL ON ERROR GO TO 9900-FINISH-PARA 
+144449*       DEPART ON ERROR GO 9900-FINISH-PARA   
+144449*    END-IF.  
+144449*    GO TO 9900-FINISH-PARA.  
+163066*     GO TO DPP12-DATABASE-ERROR. 
+
+PPC470 9150-RDMS-ERROR. 
+PPC470     DISPLAY 'ERROR FROM PROGRAM - DPB12APU'   UPON PRINTER.  
+PPC470     DISPLAY 'ERROR NUMBER = ' TDP01-PROC-SQLCODE 
+PPC470                                               UPON PRINTER.  
+PPC470     PERFORM 9900-FINISH-PARA.
+PPC470     CLOSE ALL ON ERROR GO TO 9900-FINISH-DISPLAY 
+PPC470     GO TO DPP12-RDMS-ERROR.  
+
+163066*    ******************************************************   
+163066*    *        ROLLBACK ERROR ROUTINES                     *   
+163066*    ******************************************************   
+163066* 
+163066*9100-ROLLBACK-ERROR. 
+163066*    DISPLAY 'RB ERROR FROM PROGRAM- DPB12APU' UPON PRINTER.  
+163066*    DISPLAY 'ERROR STATUS = ' ERROR-STATUS    UPON PRINTER.  
+163066*    DISPLAY 'ERROR NUMBER = ' ERROR-NUM       UPON PRINTER.  
+163066*    DISPLAY 'ERROR AREA   = ' ERROR-AREA      UPON PRINTER.  
+163066*    DISPLAY 'ERROR RECORD = ' ERROR-RECORD    UPON PRINTER.  
+163066*    DISPLAY 'ERROR SET    = ' ERROR-SET       UPON PRINTER.  
+163066* 
+163066*    IF IMPART-DEPART = 1 
+163066*       CLOSE ALL ON ERROR GO TO 9900-FINISH-PARA 
+163066*       DEPART WITH ROLLBACK ON ERROR GO 9900-FINISH-PARA 
+163066*    END-IF.  
+163066*    GO TO 9900-FINISH-PARA.  
+163066* 
+163066*   If it's a deadlock then deadlock processing will follow   
+163066*   else normal Database Error processing will continue   
+163066*    PERFORM 9900-FINISH-PARA.
+163066*    IF RB-ERROR-CODE NOT = '02'  
+163066*       CLOSE ALL ON ERROR GO TO 9900-FINISH-DISPLAY  
+163066*       DEPART WITH ROLLBACK ON ERROR GO 9900-FINISH-DISPLAY  
+163066*       GO TO 9100-DATABASE-ERROR 
+163066*    ELSE 
+163066*       MOVE 10000 TO DLREC-WAIT-MILLISECONDS 
+163066*       ADD  1     TO DLREC-DEADLOCK-CNT  
+163066*       DISPLAY 'DEADLOCK - IN DPB12APU #' DLREC-DEADLOCK-CNT 
+163066*                                  UPON PRINTER   
+163066*       IF DLREC-DEADLOCK-CNT > 5 
+163066*          GO TO 9900-FINISH-DISPLAY  
+163066*       END-IF
+163066* 
+163066*       DISPLAY 'DEADLOCK--ATTEMPTING TO RECOVER ' UPON PRINTER   
+163066*       DISPLAY '----WAITING FOR ' DLREC-WAIT-MILLISECONDS
+163066*               ' MILLISECONDS'    UPON PRINTER   
+163066* 
+163066*       CALL    'ERTWAIT' USING DLREC-WAIT-MILLISECONDS   
+163066*       DISPLAY '** IMPART-DEPART ' IMPART-DEPART UPON PRINTER
+163066*       Restart the Program   
+163066*       IF IMPART-DEPART = 1  
+163066*          CLOSE ALL  
+163066*             ON ERROR GO TO 9900-FINISH-DISPLAY  
+163066*          DEPART WITH ROLLBACK   
+163066*       END-IF
+163066*       MOVE '0' TO IMPART-DEPART 
+163066*       MOVE 'Y' TO WS-RESTART-INDICATOR  
+163066*       IF WS-RESTART-SAIL-DBK = 0
+163066*          GO TO 9900-FINISH-DISPLAY  
+163066*       END-IF
+163066*       GO TO 0000-INITIALIZE 
+163066*    END-IF.  
+
+
+      ******************************************************
+      *           I-O ERROR ROUTINES                       *
+      ******************************************************
+
+144449 9100-I-O-FILE-ERROR. 
+144449     SET ERROR-SW TO ON.  
+144449     GO TO 9300-SEVERE-ERROR-MSG. 
+144449*    IF IMPART-DEPART = 1 
+144449*       CLOSE ALL ON ERROR GO TO 9100-DATABASE-ERROR  
+144449*       DEPART WITH ROLLBACK ON ERROR GO TO 9100-DATABASE-ERROR   
+144449*    END-IF.  
+
+      ******************************************************
+      *       Finish program                               *
+      ******************************************************
+
+144449 9900-FINISH-PARA.
+
+      * Write Summary before closing file.  
+
+           MOVE SPACES                  TO FINAL-REP-FILE-REC.  
+           MOVE WS-FR-LINE              TO FINAL-REP-FILE-REC.  
+           WRITE FINAL-REP-FILE-REC.
+              IF NOT FR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "DPBAPU01P FILE STATUS = "
+                      WS-FR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+
+      * Print File Summary. 
+
+           MOVE SPACES                  TO PRINT-REP-FILE-REC.  
+           MOVE WS-PR-HEADER-LINE       TO PRINT-REP-FILE-REC.  
+           WRITE PRINT-REP-FILE-REC.
+              IF NOT PR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "DPBAPU02P FILE STATUS = "
+                      WS-PR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+
+           MOVE WS-TOTAL-PAX-UPD        TO WS-PR-PAX-UPD.   
+           MOVE WS-TOTAL-PAX-READ       TO WS-PR-PAX-READ.  
+           MOVE WS-STAR-CNT             TO WS-PR-STAR-CNT.  
+           MOVE SPACES                  TO PRINT-REP-FILE-REC.  
+           MOVE WS-PR-SUMMARY           TO PRINT-REP-FILE-REC.  
+           WRITE PRINT-REP-FILE-REC.
+              IF NOT PR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "DPBAPU02P FILE STATUS = "
+                      WS-PR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+
+      * Star File Summary.  
+
+           MOVE SPACES                  TO STAR-REP-FILE-REC.   
+           MOVE WS-PR-HEADER-LINE       TO STAR-REP-FILE-REC.   
+           WRITE STAR-REP-FILE-REC. 
+              IF NOT SR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "DPBAPU03P FILE STATUS = "
+                      WS-PR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+
+           MOVE WS-STAR-CNT             TO WS-SR-STAR-CNT.  
+           MOVE WS-I-STAR-CNT           TO WS-SR-I-CNT. 
+           MOVE WS-G-STAR-CNT           TO WS-SR-G-CNT. 
+           MOVE SPACES                  TO STAR-REP-FILE-REC.   
+           MOVE WS-SR-SUMMARY           TO STAR-REP-FILE-REC.   
+           WRITE STAR-REP-FILE-REC. 
+              IF NOT SR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "DPBAPU03P FILE STATUS = "
+                      WS-PR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+
+      * Close all files here.   
+
+           CLOSE FINAL-REP-FILE.
+           IF FR-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY "I-O ERROR " " " "DPBAPU01P FILE STATUS = "   
+                      WS-FR-FILE-STATUS UPON PRINTER.   
+
+           CLOSE PRINT-REP-FILE.
+           IF PR-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY "I-O ERROR " " " "DPBAPU02P FILE STATUS = "   
+                      WS-PR-FILE-STATUS UPON PRINTER.   
+
+           CLOSE STAR-REP-FILE. 
+           IF SR-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY "I-O ERROR " " " "DPBAPU03P FILE STATUS = "   
+                      WS-SR-FILE-STATUS UPON PRINTER.   
+
+           CLOSE FAX-EXTRACT-FILE.  
+           IF FX-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY "I-O ERROR " " " "DPBAPU04P FILE STATUS = "   
+                      WS-FX-FILE-STATUS UPON PRINTER.   
+
+       9900-FINISH-DISPLAY. 
+      * Display summary of the records on the error-log file.   
+
+           DISPLAY '** SUMMARY OF PAX RECORDS **'          UPON PRT.
+           DISPLAY '----------------------------'          UPON PRT.
+           DISPLAY 'TOTAL PAX SCANNED: ' WS-TOTAL-PAX-READ UPON PRT.
+           DISPLAY 'TOTAL PAX UPDATED: ' WS-TOTAL-PAX-UPD  UPON PRT.
+           DISPLAY 'STARRED RECORDS  : ' WS-STAR-CNT       UPON PRT.
+144449*    STOP RUN.
+
+144449 9000-END-OF-JOB. 
+144449     MOVE ZERO TO DPP42-HOLD-MSG-STATUS.  
+144449     GO TO DPP12-END-OF-JOB.  
+
+
+188688 9200-EDIT-ERROR-MSG. 
+188688     PERFORM DPP12-EDIT-ERROR-MSG 
+188688        THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+188688  
+188688     GO TO DPP12-END-OF-JOB.  
+188688  
+188688 9210-EDIT-CONTINUE-MSG.  
+188688     PERFORM DPP12-EDIT-ERROR-MSG 
+188688        THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+144449 9300-SEVERE-ERROR-MSG.   
+144449     MOVE 3 TO DPP42-HOLD-MSG-STATUS. 
+144449     GO TO DPP12-SEVERE-ERROR-MSG.
+188688 9400-INFO-MSG.   
+188688     PERFORM DPP12-INFO-MSG   
+188688        THRU DPP12-INFO-MSG-EXIT. 
+
+161301 9500-RETURN-SUBROUTINE-ERROR.
+161301     GO TO DPP12-RETURN-SUBROUTINE-ERROR. 
+188688 9600-SAVE-SUBROUTINE-ERRORS. 
+188688     PERFORM DPP12-SAVE-SUBROUTINE-MSGS   
+188688        THRU DPP12-SAVE-SUBROUTINE-MSGS-X.
+
+      ***************************************************************   
+      *   Copy libraries for procedure division are defined here    *   
+      ***************************************************************   
+FUNPAS*    COPY CCP04REQ.   
+FUNPAS     COPY CCP21REQ.   
+      * Proc for fetching the itinerary record. 
+FUNPAS*    COPY CCP04ITI.   
+FUNPAS     COPY CCP21ITI.   
+           COPY DPP10Y2K.   
+      * Proc providing code to open areas for PAX record.   
+           COPY DPP11POP.   
+      * General purpose proc, specifically for batch programs.  
+           COPY DPP12BER.   
+144449 COPY DPP12ERR.   
+144449 COPY DPP12WDB.   
+      * Proc used to walk all bookings in a range of sailings.  
+           COPY DPP14RSB.   
+FUNFIX*    COPY DPP17PFR.   
+FUNFIX     COPY DPP17ONL.   
+      * Proc for modifying pax records  
+           COPY DPP18PMR.   
+      * Proc used to perform Y2K conversion of dates.   
+           COPY DPP20Y2K.   
+           COPY IRP14OHS.   
+           COPY GRP15BHP.   
+           COPY IRP15BHS.   
+      * Proc for opening areas of IBR record.   
+           COPY IRP66OIB.   
+      * Proc used to process IBR records
+           COPY IRP66RIB.   
+           COPY DPP15OAS.   
+      ******************************************************************
+      *                      PROGRAM ENDS HERE                         *
+      ******************************************************************
+
+C90569*    For automated email confirmation 
+C90569 COPY IRP48CNP.   
+PPC470 COPY TDP01SAP.   
+204893 COPY DPP04PIR.   

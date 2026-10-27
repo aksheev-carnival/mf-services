@@ -1,0 +1,35 @@
+SELECT CATEGORY_CODE, PHANTOM_CAT_IND, SOLD_GTEE_CABIN, 
+SOLD_GTEE_CABIN_DBL, SOLD_GTEE_CABIN_TRPL, SOLD_GTEE_CABIN_QUAD, 
+SOLD_GTEE_CABIN_QUNT FROM SAIL_CATEGORY WHERE SHIP_CODE = 'AQ' 
+AND SAIL_ID = 22844 ORDER BY CATEGORY_CODE;
+
+
+4A  N       0       0       0       0       0   
+4B  N       0       0       0       0       0   
+4C  N       0       0       0       0       0   
+4D  N       0       0       0       0       0   
+4E  N       0       0       0       0       0   
+4F  N       0       0       0       0       0   
+4G  N       0       0       0       0       0   
+4H  N       0       0       0       0       0   
+5A  N       0       0       0       0       0   
+6A  N       0       0       0       0       0   
+6B  N      -1       0       0       0      -1   
+8A  N       0       0       0       0       0   
+8B  N       0       0       0       0       0   
+8C  N       0       0       0       0       0   
+8D  N      -1       0       0       0      -1   
+8M  N       0       0       0       0       0   
+BL  Y       0       0       0       0       0   
+BV  N       0       0       0       0       0   
+BY  N       0       0       0       0       0   
+EB  N      -1       0       0       0      -1   
+GB  N       0       0       0       0       0   
+IS  Y       0       0       0       0       0   
+OS  N      -2       0       0       0      -2   
+OT  N       0       0       0       0       0   
+OV  Y       0       0       0       0       0   
+PT  N       0       0       0       0       0   
+SB  N       0       0       0       0       0   
+ST  Y       0       0       0       0       0   
+VB  N       0       0       0       0       0   

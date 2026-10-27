@@ -1,0 +1,242 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.    SXB04VPP. 
+       AUTHOR.        TATA CONSULTANCY SERVICES LTD.
+       DATE-WRITTEN.  JULY 4, 2018. 
+
+************************************************************************
+      * 04-JUL-18     BK4     TCS LTD.               CQ214585          *
+      ******************************************************************
+      *REMARKS.                                                        *
+      * PROGRAM TO PREPARE FILE FOR SHOREX VARIANT PRODUCTS SERVICE,   *
+      * SHOREX VARIANT PRODUCTS PRICE SERVICE & SHOREX INVENTORY       *
+      * SERVICE.                                                       *
+************************************************************************
+215347* 09-APR-19     BK4     TCS LTD.               CQ215347          *
+215347* NEED TO SEND SHORT DESCRIPTION IN SUMMARY FIELD FOR HYBRIS.    *
+************************************************************************
+218508* 05-FEB-20     TEK     TCS LTD.               CQ218508          *
+218508* NEED TO SEND SAILING BASE CURRENCY CODE IN MF FEED TO HYBRIS   *
+************************************************************************
+PPC470* 05-FEB-21     PNK     TCS LTD.               PPC470            *
+PPC470* PPC RELATED CHANGES.                                           *
+************************************************************************
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER. UNISYS. 
+       OBJECT-COMPUTER. UNISYS  MEMORY SIZE 3 MODULES.  
+       SPECIAL-NAMES.   
+           PRINTER IS PRT   
+           PRINTER IS PRINTER   
+           CARD-READER IS CARD-READER.  
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT SKIP-EXC-FILE             ASSIGN TO DISC SXBBPS02C
+                                            ACCESS MODE IS DYNAMIC  
+                                            ORGANIZATION IS INDEXED 
+                                            RECORD KEY IS SKIP-EXC-ID.  
+           SELECT SHOREX-PRICING-FILE       ASSIGN TO DISC SXBVPP01D.   
+           SELECT SHOREX-INV-FILE           ASSIGN TO DISC SXBINV01D.   
+           SELECT SHOREX-VPS-FILE           ASSIGN TO DISC SXBVPS01D.   
+
+       DATA DIVISION.   
+       SUBSCHEMA SECTION.   
+       INVOKE SUBSCHEMA PRD200UCOBSU
+           IN FILE SUBSCHEMAS OF SCHEMA PRD200SCHEMA
+           COPYING RECORDS    INTO COMMON   
+           COPYING DATA-NAMES INTO COMMON   
+           DMCA COMMON  
+           SAVE DATA INCLUDES DEFERRED-UPDATES  
+           ERROR RECOVERY IS 9100-DATABASE-ERROR
+           ROLLBACK       IS 9100-DATABASE-ERROR.   
+
+       FILE SECTION.
+
+       FD  SKIP-EXC-FILE
+           LABEL RECORDS ARE STANDARD   
+           DATA RECORD IS SKIP-EXC-REC. 
+       01  SKIP-EXC-REC.
+           03 SKIP-EXC-ID               PIC X(06).  
+           03 FILLER                    PIC X(01).  
+           03 SKIP-EXCURSION-NAME       PIC X(50).  
+
+       FD  SHOREX-PRICING-FILE  
+           LABEL RECORDS ARE STANDARD.  
+218508*01  SHOREX-PRICING-REC      PIC X(52).   
+218508 01  SHOREX-PRICING-REC      PIC X(56).   
+
+       FD  SHOREX-INV-FILE  
+           LABEL RECORDS ARE STANDARD.  
+       01  SHOREX-INV-REC               PIC X(49).  
+
+       FD  SHOREX-VPS-FILE  
+           LABEL RECORDS ARE STANDARD.  
+       01  SHOREX-VPS-REC               PIC X(204). 
+
+       WORKING-STORAGE SECTION. 
+       01  WS-PROG-ID                   PIC X(08) VALUE 'SXB04VPP'. 
+       01  MCFLAG                       PIC 9(10) USAGE BINARY. 
+       01  WS-OUT-VPP-COUNT             PIC 9(08) VALUE ZEROES. 
+       01  WS-OUT-INV-COUNT             PIC 9(08) VALUE ZEROES. 
+       01  WS-OUT-VPS-COUNT             PIC 9(08) VALUE ZEROES. 
+       01  WS-PARAM-AREA                PIC X(02).  
+       01  WS-SUB                       PIC 9(02) BINARY.   
+       01  WS-DATE-TIME.
+           03 WS-DATE                   PIC 9(8).   
+           03 WS-TIME.  
+              05 WS-HH                  PIC 99. 
+              05 WS-MM                  PIC 99. 
+              05 WS-SS                  PIC 9999.   
+
+       COPY DPP01CIW.   
+       COPY DPP01DTA.   
+       COPY DPP01ERR.   
+       COPY DPP01MCB.   
+       COPY DPP01SCO.   
+       COPY DPP12SCO.   
+       COPY DPP42ERR.   
+       COPY RSP00DMS.   
+       COPY RSP32DMS.   
+       COPY RSP64DMS.   
+       COPY RSP77GMD.   
+       COPY SXP99ESD-DATA.  
+PPC470*COPY SSP13GSD.   
+PPC470 COPY TDP01SAW.   
+       COMMON-STORAGE SECTION.  
+
+       PROCEDURE DIVISION.  
+       0000-MAIN-LINE.  
+PPC470      EXEC SQL USE DEFAULT SCHEMA PRDRDMS END-EXEC.   
+PPC470      EXEC SQL WHENEVER SQLERROR  
+PPC470        GO TO DPP12-RDMS-ERROR
+PPC470      END-EXEC.   
+           COPY DPP01INT.   
+PPC470     COPY TDP01INT.   
+
+           PERFORM DPP12-BEGIN-THREAD THRU DPP12-BEGIN-THREAD-EXIT. 
+
+           IF  DPP01-SQL-ERROR-IND = 'Y'
+               GO TO DPP12-THREAD-ERROR-EXIT
+           END-IF.  
+
+       0100-INIT-DATABASE.  
+           IMPART.  
+
+           ACCEPT WS-PARAM-AREA         FROM CARD-READER.   
+           MOVE WS-PARAM-AREA           TO EXCINV-CALCAREA(7:2).
+
+           OPEN EXCINV-CALCAREA.
+
+           OPEN INPUT  SKIP-EXC-FILE.   
+
+           MOVE FUNCTION CURRENT-DATE TO WS-DATE-TIME.  
+
+       0200-FETCH-FIRST-ESDR-REC.   
+           FETCH FIRST  EXC-SAILING-DEPARTURE-REC   
+                 WITHIN EXCINV-CALCAREA AREA
+                 ON ERROR GO TO 9100-DATABASE-ERROR.
+
+           GO TO 0400-PROCESS-ESDR. 
+
+       0300-FETCH-NEXT-ESDR-REC.
+           FETCH NEXT EXC-SAILING-DEPARTURE-REC 
+                 WITHIN EXCINV-CALCAREA AREA
+                 AT END   GO TO 9000-END-OF-JOB 
+                 ON ERROR GO TO 9100-DATABASE-ERROR.
+
+       0400-PROCESS-ESDR.   
+
+           IF  ESDR-EXC-TYPE = 'EX' 
+               CONTINUE 
+           ELSE 
+               GO TO 0300-FETCH-NEXT-ESDR-REC   
+           END-IF.  
+
+215347*    IF  ESDR-STATUS = 'N'
+215347*        GO TO 0300-FETCH-NEXT-ESDR-REC   
+215347*    END-IF.  
+
+           IF ESDR-SAIL-DATE < WS-DATE  
+              GO TO 0300-FETCH-NEXT-ESDR-REC
+           END-IF.  
+
+           MOVE ESDR-EXC-ID             TO SKIP-EXC-ID. 
+           READ SKIP-EXC-FILE   
+                INVALID KEY GO TO 0500-WRITE-OUTPUT.
+
+           GO TO 0300-FETCH-NEXT-ESDR-REC.  
+
+       0500-WRITE-OUTPUT.   
+
+           IF  WS-PARAM-AREA NOT = '01' 
+              MOVE 'Y'                  TO SXP99-DONT-WRITE-HEADER  
+           END-IF.  
+
+           PERFORM SXP99-WRITE-SX-PRC-FILE THRU 
+                   SXP99-WRITE-SX-PRC-FILE-EXIT.
+
+           ADD 1                        TO WS-OUT-VPP-COUNT.
+
+           PERFORM SXP99-WRITE-SX-INV-FILE THRU 
+                   SXP99-WRITE-SX-INV-FILE-EXIT.
+
+           ADD 1                        TO WS-OUT-INV-COUNT.
+
+           PERFORM SXP99-WRITE-SX-VPS-FILE THRU 
+                   SXP99-WRITE-SX-VPS-FILE-EXIT.
+
+           ADD 1                        TO WS-OUT-VPS-COUNT.
+
+           GO TO 0300-FETCH-NEXT-ESDR-REC.  
+
+       9000-END-OF-JOB. 
+           DISPLAY 'TOTAL REC PROCESSED FOR VPP = ' WS-OUT-VPP-COUNT
+                                                    UPON PRINTER.   
+           DISPLAY 'TOTAL REC PROCESSED FOR INV = ' WS-OUT-INV-COUNT
+                                                    UPON PRINTER.   
+           DISPLAY 'TOTAL REC PROCESSED FOR VPS = ' WS-OUT-VPS-COUNT
+                                                    UPON PRINTER.   
+
+           CLOSE SHOREX-PRICING-FILE
+                 SKIP-EXC-FILE  
+                 SHOREX-INV-FILE
+                 SHOREX-VPS-FILE.   
+           GO TO DPP12-END-OF-JOB.  
+
+PPC470 9150-RDMS-ERROR. 
+PPC470     GO TO DPP12-RDMS-ERROR.  
+
+       9100-DATABASE-ERROR. 
+           GO TO DPP12-DATABASE-ERROR.  
+
+       9200-EDIT-ERROR-MSG. 
+           PERFORM DPP12-EDIT-ERROR-MSG 
+              THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+
+           GO TO DPP12-END-OF-JOB.  
+
+       9210-EDIT-CONTINUE-MSG.  
+           PERFORM DPP12-EDIT-ERROR-MSG 
+              THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+
+       9300-SEVERE-ERROR-MSG.   
+           GO TO DPP12-SEVERE-ERROR-MSG.
+
+       9400-INFO-MSG.   
+           PERFORM DPP12-INFO-MSG   
+              THRU DPP12-INFO-MSG-EXIT. 
+
+       9500-RETURN-SUBROUTINE-ERROR.
+           GO TO DPP12-RETURN-SUBROUTINE-ERROR. 
+
+       9600-SAVE-SUBROUTINE-ERRORS. 
+           PERFORM DPP12-SAVE-SUBROUTINE-MSGS   
+              THRU DPP12-SAVE-SUBROUTINE-MSGS-X.
+
+       COPY DPP12BER.   
+       COPY DPP12ERR.   
+       COPY DPP12WDB.   
+       COPY SXP99ESD-PRC.   
+       COPY SXP99ESD-INV.   
+       COPY SXP99ESD-VPS.   
+PPC470 COPY TDP01SAP.   

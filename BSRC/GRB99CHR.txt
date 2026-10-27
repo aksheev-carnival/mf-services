@@ -1,0 +1,408 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID. GRB99CHR.
+       AUTHOR. TCS LTD. 
+       DATE-WRITTEN. NOV 2011   
+      *REMARKS. 
+      ******************************************************************
+      * 22-NOV-11     RFC     TCS LTD.               CQ116476          *
+      * REMARK:               THIS JOB WILL BE EXECUTED NIGTLY AND WILL*
+      *                       SEND PAYMENT REMINDER FOR CHARTER BOOKING*
+      *                       BEFORE 14 DAYS OF PAYMENT DUE DATE.      *
+      *                       THE JOB WILL SEND REGULAR ALERTS IF THE  *
+      *                       PAYMENT DUE DATE HAS ALREADY PASSED.     *
+      *                                                                *
+      * OUTPUT FILES:         GRBCHR01P - CSV FILE                     *
+      *                       GRBCHR02P - CSV FILE                     *
+************************************************************************
+188688* 08-AUG-16     0SA     TCS LTD.               CQ188688          *
+188688* CONVERT EXISTING BATCH AND TRANSACTION PROGRAMS TO USE         *
+188688* EXPLICIT THREAD CONTROL                                        *
+************************************************************************
+PPC470* 26-APR-18     Y1K     TCS LTD.               PPC470            *
+PPC470* PPC PROJECT CHANGES FOR SAIL SUMMARY                           *
+************************************************************************
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER. UNIVAC-1100-90. 
+       OBJECT-COMPUTER. UNIVAC-1100-90 MEMORY 3 MODULES.
+       SPECIAL-NAMES.   
+               SWITCH-18 IS PST-PROCESS-SW  
+               SWITCH-24 IS REM-PROCESS-SW  
+               PRINTER   IS PRINTER 
+               CONSOLE   IS CONSOLE.
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+            SELECT PAYMENT-DUE-FILE ASSIGN TO DISC GRBCHR01P.   
+            SELECT PAST-DUE-FILE    ASSIGN TO DISC GRBCHR02P.   
+            SELECT PARAM-FILE       ASSIGN TO DISC GRBCHR01D.   
+
+       DATA DIVISION.   
+       SUBSCHEMA SECTION.   
+144449 INVOKE SUBSCHEMA PST100UCOBSU
+144449        IN FILE SUBSCHEMAS OF SCHEMA PST100SCHEMA 
+144449        COPYING RECORDS    INTO COMMON
+144449        COPYING DATA-NAMES INTO COMMON
+144449        OVERLAY PAX-REC WITH PAX-CXF-REC  
+169014*                            PAX-FUT-REC  
+144449                             PAX-VI-REC   
+144449        SAVE DATA INCLUDES DEFERRED-UPDATES   
+144449        DMCA  COMMON  
+144449        ERROR RECOVERY IS 9100-DATABASE-ERROR 
+144449        ROLLBACK       IS 9100-DATABASE-ERROR.
+
+
+       FILE SECTION.
+       FD  PAYMENT-DUE-FILE 
+           LABEL RECORDS ARE STANDARD.  
+       01  PAYMENT-DUE-REC. 
+           03 FILLER                     PIC X(51). 
+
+
+       FD  PAST-DUE-FILE
+           LABEL RECORDS ARE STANDARD.  
+       01  PAST-DUE-REC.
+           03  FILLER                    PIC X(51). 
+
+
+       FD  PARAM-FILE   
+           LABEL RECORDS ARE STANDARD.  
+       01  PARAM-REC.   
+           03  PARAM-SHIP-DAYS. 
+               05  PARAM-SHIP-CODE       PIC XX.
+               05  PARAM-DURATION-DAYS   PIC XX.
+               05  FILLER                PIC X. 
+           03  PARAM-BEGIN-DATE.
+               05  PARAM-BEGIN-DATE-MM    PIC 99.   
+               05  PARAM-BEGIN-DATE-DD    PIC 99.   
+               05  PARAM-BEGIN-DATE-YY    PIC 99.   
+           03  FILLER                     PIC X.
+           03  PARAM-END-DATE.  
+               05  PARAM-END-DATE-MM      PIC 99.   
+               05  PARAM-END-DATE-DD      PIC 99.   
+               05  PARAM-END-DATE-YY      PIC 99.   
+
+
+       WORKING-STORAGE SECTION. 
+144449 01  WS-PROG-ID            PIC X(8) VALUE 'GRB99CHR'. 
+       01  MCFLAG                       PIC 9(10) BINARY.   
+       01  WS-REM-DATE                  PIC 9(08).  
+       01  WS-SUB                       PIC 9(03) BINARY.   
+       01  WS-SUB1                      PIC 9(02) BINARY.   
+
+       01  WS-DETAIL-REC.   
+           03  DET-BOOK-NUM             PIC X(06).  
+           03  FILLER                   PIC X(01) VALUE ','.
+           03  DET-SHIP-CODE            PIC X(02).  
+           03  FILLER                   PIC X(01) VALUE ','.
+           03  DET-SAIL-DATE            PIC 9(08).  
+           03  FILLER                   PIC X(01) VALUE ','.
+           03  DET-DUE-DATE             PIC 9(08).  
+           03  FILLER                   PIC X(01) VALUE ','.
+           03  DET-PMT-RCV-DATE         PIC 9(08).99.   
+           03  FILLER                   PIC X(01) VALUE ','.
+           03  DET-AMT-DUE              PIC 9(08).99.   
+
+       01  WS-HEADER.   
+           03  FILLER                   PIC X(06) VALUE 'BOOK #'.   
+           03  FILLER                   PIC X(01) VALUE ','.
+           03  FILLER                   PIC X(02) VALUE 'SH'.   
+           03  FILLER                   PIC X(01) VALUE ','.
+           03  FILLER                   PIC X(08) VALUE 'SAILDATE'. 
+           03  FILLER                   PIC X(01) VALUE ','.
+           03  FILLER                   PIC X(08) VALUE 'DUE-DATE'. 
+           03  FILLER                   PIC X(01) VALUE ','.
+           03  FILLER                   PIC X(11) VALUE 'AMOUNT RCD '.  
+           03  FILLER                   PIC X(01) VALUE ','.
+           03  FILLER                   PIC X(11) VALUE 'AMOUNT DUE '.  
+
+       01  WS-DATE. 
+           03  WS-DATE-YY               PIC 99. 
+           03  WS-DATE-MM               PIC 99. 
+           03  WS-DATE-DD               PIC 99. 
+
+       01  WS-HOLD-SHIP-CODE            PIC X(02).  
+       01  WS-HOLD-SAIL-DATE            PIC 9(08).  
+       01  WS-HOLD-DURATION             PIC 9(03).  
+       01  WS-HOLD-PMT-DATE             PIC 9(08).  
+       01  WS-HOLD-PMT-AMT              PIC S9(08)V99.  
+       01  WS-PAYMENT                   PIC S9(13)V99.  
+       01  WRITE-PST-FILE               PIC X(1)  VALUE 'N'.
+
+       COPY DPP02Y2K.   
+144449*COPY DPP01BWS.   
+144449 COPY DPP01DTA.   
+144449 COPY DPP01ERR.   
+144449 COPY DPP01MCB.   
+144449 COPY DPP12SCO.   
+144449 COPY DPP42ERR.   
+144449 COPY RSP00DMS.   
+144449 COPY RSP32DMS.   
+144449 COPY RSP64DMS.   
+144449 COPY RSP77GMD.   
+       COPY DPP01CIW.   
+       COPY DPP01SCO.   
+       COPY DPP06RSB.   
+PPC470*COPY SSP13WSD.   
+       COPY IRP66IBR.   
+PPC470*COPY SSP13GSD.   
+PPC470 COPY TDP01SAW.   
+       COMMON-STORAGE SECTION.  
+       PROCEDURE DIVISION.  
+
+       0000-MAIN-PARA.  
+144449     COPY DPP01INT.   
+PPC470     COPY TDP01INT.   
+188688     PERFORM DPP12-BEGIN-THREAD THRU DPP12-BEGIN-THREAD-EXIT. 
+
+188688     IF DPP01-SQL-ERROR-IND = 'Y' 
+188688        GO TO DPP12-THREAD-ERROR-EXIT 
+188688     END-IF.  
+PPC470     EXEC SQL USE DEFAULT SCHEMA PSTRDMS END-EXEC.
+PPC470     EXEC SQL WHENEVER SQLERROR   
+PPC470          GO TO DPP12-RDMS-ERROR  
+PPC470     END-EXEC.
+           OPEN OUTPUT PAYMENT-DUE-FILE 
+                       PAST-DUE-FILE
+                       PARAM-FILE.  
+           SET PST-PROCESS-SW           TO OFF. 
+           SET REM-PROCESS-SW           TO OFF. 
+
+
+
+           MOVE ZEROES                  TO WS-REM-DATE  
+                                           WS-SUB1. 
+           MOVE SPACES                  TO PARAM-SHIP-DAYS  
+                                           PAST-DUE-REC 
+                                           PAYMENT-DUE-REC. 
+
+           WRITE PAST-DUE-REC           FROM WS-HEADER. 
+           WRITE PAYMENT-DUE-REC        FROM WS-HEADER. 
+           PERFORM 1000-OPEN-AREA.  
+           PERFORM DPP10-ACCEPT-SYSTEM-DATE-TIME.   
+           PERFORM 2000-CALCULATE-DATE. 
+
+           GO TO 3000-FETCH-SAILING.
+
+       1000-OPEN-AREA.  
+           MOVE 01010101                TO DPP01-ERROR-NUMBER   
+           IMPART.  
+           MOVE 01010102                TO DPP01-ERROR-NUMBER   
+161301*    OPEN  SAIL1SUMM  
+161301*          SAIL1SUMMX 
+161301     OPEN  GRP1-BOOK  
+                 GRP1-RATE0 
+                 GRP1-RATE1 
+                 GRP1-RATE2 
+                 GRP1-RATE3 
+                 GRP1-RATE4 
+                 GRP1-RATE5 
+                 GRP1-RATE6 
+                 GRP1-RATE7 
+                 GRP1-RATE8 
+                 SAILBOOK   
+                 GRP1-RATE9.
+PPC470*          SAIL1  
+PPC470*          SAIL1-IDX. 
+
+       2000-CALCULATE-DATE. 
+           ACCEPT WS-DATE              FROM DATE.   
+           MOVE WS-DATE-MM              TO PARAM-BEGIN-DATE-MM. 
+           MOVE WS-DATE-DD              TO PARAM-BEGIN-DATE-DD. 
+           MOVE WS-DATE-YY              TO PARAM-BEGIN-DATE-YY. 
+
+           DISPLAY 'PARAM-BEGIN-DATE:' PARAM-BEGIN-DATE UPON PRINTER.   
+           MOVE DPP02-SYSTEM-DATE       TO DPP02-YYYYMMDD-DATE. 
+           MOVE 14                      TO DPP02-NUMBER-DAYS.   
+           PERFORM DPP10-ADVANCE-YYYYMMDD-DATE. 
+           MOVE DPP02-YYYYMMDD-DATE     TO WS-REM-DATE. 
+
+
+       3000-FETCH-SAILING.  
+
+           MOVE 'G'                     TO DPP06-BOOK-TYPE. 
+           MOVE 'G'                     TO DPP06-REQUEST-BOOK-TYPE. 
+           MOVE 'N'                     TO DPP06-READ-PARAM-FILE
+                                           DPP06-PARAM-PROCESSED.   
+           MOVE 123159                  TO PARAM-END-DATE.  
+           PERFORM DPP14-RETRIEVE-SAIL-BKGS THRU DPP14-EXIT.
+           PERFORM 4100-VALIDATE-BOOKING THRU 4900-READ-TABLE-EXIT. 
+
+
+       3910-FETCH-NEXT-BOOKING. 
+           PERFORM DPP14-FETCH-NEXT-BOOKING THRU DPP14-EXIT.
+           PERFORM 4100-VALIDATE-BOOKING THRU 4900-READ-TABLE-EXIT. 
+           IF  DPP06-PARAM-IND > SPACES 
+               GO TO 9000-END-OF-JOB
+           END-IF.  
+           GO TO 3910-FETCH-NEXT-BOOKING.   
+
+       4100-VALIDATE-BOOKING.   
+           MOVE    ZEROES               TO WS-PAYMENT.  
+           COMPUTE WS-PAYMENT           = GBR1-UNALLOC-CASH-PMT-AMT 
+                                          + GBR1-ALLOC-CASH-PMT-AMT 
+                                          + GBR1-CABIN-CASH-PMT-AMT 
+                                          + GBR1-UNALLOC-UCC-PMT-AMT
+                                          + GBR1-ALLOC-UCC-PMT-AMT  
+                                          + GBR1-CABIN-UCC-PMT-AMT  
+                                          + GBR1-CABIN-OTHER-PMT-AMT
+                                          + GBR1-UNALLOC-OTHER-PMT-AMT  
+                                          + GBR1-ALLOC-OTHER-PMT-AMT.   
+
+           IF  GRP1-BOOK-RATE-CODE-SET SET EMPTY
+               DISPLAY 'GRP1-RATE-CODE-REC REC DOES NOT EXIST: '
+                   GBR1-BOOK-NUM  ' '   
+PPC470*            SAIL1-SHIP-CODE ' ' SAIL1-DURATION-DAYS  
+PPC470*            ' ' SAIL1-SAIL-DATE UPON PRINTER 
+PPC470             TDP01-SHIP-CODE ' ' TDP01-DURATION-DAYS  
+PPC470             ' ' TDP01-SAIL-DATE-YYYYMMDD UPON PRINTER
+               GO TO 4900-READ-TABLE-EXIT.  
+
+       4200-FETCH-NEXT-GRR1-REC.
+           MOVE 33481209                TO DPP01-ERROR-NUMBER   
+           FETCH NEXT GRP1-RATE-CODE-REC WITHIN 
+               GRP1-BOOK-RATE-CODE-SET SET  
+                   AT END GO TO 4900-READ-TABLE-EXIT.   
+
+
+           IF  GRR1-RATE-CODE-TYPE = 'C'
+               CONTINUE 
+           ELSE 
+               GO TO 4200-FETCH-NEXT-GRR1-REC   
+           END-IF.  
+
+           IF  GRP1-RATE-CODE-FIXED-SET SET EMPTY   
+               GO TO 4200-FETCH-NEXT-GRR1-REC.  
+
+       4300-FETCH-NEXT-GRFR.
+           MOVE  SPACES                 TO PAST-DUE-REC 
+                                           PAYMENT-DUE-REC  
+                                           DET-BOOK-NUM 
+                                           DET-SHIP-CODE .  
+           MOVE  ZEROES                 TO DET-SAIL-DATE
+                                           DET-DUE-DATE 
+                                           DET-PMT-RCV-DATE 
+                                           DET-AMT-DUE  
+                                           WS-HOLD-PMT-DATE 
+                                           WS-HOLD-PMT-AMT. 
+           MOVE 33511210                TO DPP01-ERROR-NUMBER.  
+           FETCH NEXT GRP1-RATE-FIXED-REC WITHIN
+               GRP1-RATE-CODE-FIXED-SET SET 
+                   AT END GO TO 4200-FETCH-NEXT-GRR1-REC.   
+           MOVE 'N'                     TO WRITE-PST-FILE.  
+           PERFORM 4400-PROCESS-GRFR-TABLE THRU 
+               4500-PROCESS-GRFR-TABLE-EXIT 
+                   VARYING WS-SUB1 FROM 1 BY 1  
+                       UNTIL WS-SUB1 > GRFR1-PMT-TABLE-CNT. 
+
+           IF  WRITE-PST-FILE = 'Y' 
+               SET  PST-PROCESS-SW      TO ON   
+               MOVE GBR1-BOOK-NUM       TO DET-BOOK-NUM 
+               MOVE GBR1-SHIP-CODE      TO DET-SHIP-CODE
+               MOVE GBR1-SAIL-DATE      TO DET-SAIL-DATE
+               MOVE WS-HOLD-PMT-DATE    TO DET-DUE-DATE 
+               MOVE WS-PAYMENT          TO DET-PMT-RCV-DATE 
+               MOVE WS-HOLD-PMT-AMT     TO DET-AMT-DUE  
+               WRITE PAST-DUE-REC       FROM WS-DETAIL-REC  
+               MOVE 'N'                 TO WRITE-PST-FILE   
+            END-IF. 
+            GO TO 4300-FETCH-NEXT-GRFR. 
+
+       4400-PROCESS-GRFR-TABLE. 
+           IF  GRFR1-PMT-AMT (WS-SUB1) > WS-PAYMENT 
+               CONTINUE 
+           ELSE 
+               GO TO 4500-PROCESS-GRFR-TABLE-EXIT   
+           END-IF.  
+           IF  GRFR1-PMT-DATE (WS-SUB1) <= DPP02-SYSTEM-DATE
+               MOVE GRFR1-PMT-DATE (WS-SUB1)
+                                        TO WS-HOLD-PMT-DATE 
+               MOVE GRFR1-PMT-AMT (WS-SUB1) 
+                                        TO WS-HOLD-PMT-AMT  
+               MOVE 'Y'                 TO WRITE-PST-FILE   
+            ELSE
+                IF  GRFR1-PMT-DATE (WS-SUB1) = WS-REM-DATE  
+                    MOVE GBR1-BOOK-NUM  TO DET-BOOK-NUM 
+                    MOVE GBR1-SHIP-CODE TO DET-SHIP-CODE
+                    MOVE GBR1-SAIL-DATE TO DET-SAIL-DATE
+                    MOVE GRFR1-PMT-DATE (WS-SUB1)   
+                                        TO DET-DUE-DATE 
+                    MOVE WS-PAYMENT     TO DET-PMT-RCV-DATE 
+                    MOVE GRFR1-PMT-AMT (WS-SUB1)
+                                        TO DET-AMT-DUE  
+                    SET REM-PROCESS-SW  TO ON   
+                    WRITE PAYMENT-DUE-REC FROM WS-DETAIL-REC
+
+                    MOVE  SPACES        TO DET-BOOK-NUM 
+                                           DET-SHIP-CODE
+                    MOVE  ZEROES        TO DET-SAIL-DATE
+                                           DET-DUE-DATE 
+                                           DET-PMT-RCV-DATE 
+                                           DET-AMT-DUE  
+                END-IF  
+
+                IF  GRFR1-PMT-DATE (WS-SUB1) > WS-REM-DATE  
+                    MOVE  GRFR1-PMT-TABLE-CNT   
+                                        TO WS-SUB1  
+                END-IF  
+            END-IF. 
+
+       4500-PROCESS-GRFR-TABLE-EXIT.
+           EXIT.
+
+       4900-READ-TABLE-EXIT.
+           EXIT.
+
+       9000-END-OF-JOB. 
+           CLOSE ALL.   
+144449*    DEPART.  
+           CLOSE PAYMENT-DUE-FILE   
+                 PAST-DUE-FILE  
+                 PARAM-FILE.
+
+144449     MOVE ZERO TO DPP42-HOLD-MSG-STATUS.  
+           GO TO DPP12-END-OF-JOB.  
+
+       9100-DATABASE-ERROR. 
+           DISPLAY 'ERROR STATUS       : ' ERROR-STATUS UPON PRINTER.   
+           DISPLAY 'ERROR NUM          : ' ERROR-NUM    UPON PRINTER.   
+           DISPLAY 'ERROR AREA         : ' ERROR-AREA   UPON PRINTER.   
+           DISPLAY 'ERROR RECORD       : ' ERROR-RECORD     UPON PRINTER
+           DISPLAY 'DATABASE-ERROR-NUM : ' DPP01-ERROR-NUMBER   
+                                                           UPON PRINTER.
+           GO TO DPP12-DATABASE-ERROR.  
+205173 9150-RDMS-ERROR. 
+205173      GO TO DPP12-RDMS-ERROR. 
+
+161301 9500-RETURN-SUBROUTINE-ERROR.
+161301     GO TO DPP12-RETURN-SUBROUTINE-ERROR. 
+
+188688 9200-EDIT-ERROR-MSG. 
+188688     PERFORM DPP12-EDIT-ERROR-MSG 
+188688        THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+188688  
+188688     GO TO DPP12-END-OF-JOB.  
+188688  
+188688 9210-EDIT-CONTINUE-MSG.  
+188688     PERFORM DPP12-EDIT-ERROR-MSG 
+188688        THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+188688  
+188688 9300-SEVERE-ERROR-MSG.   
+188688     GO TO DPP12-SEVERE-ERROR-MSG.
+188688  
+188688 9400-INFO-MSG.   
+188688     PERFORM DPP12-INFO-MSG   
+188688        THRU DPP12-INFO-MSG-EXIT. 
+188688  
+188688 9600-SAVE-SUBROUTINE-ERRORS. 
+188688     PERFORM DPP12-SAVE-SUBROUTINE-MSGS   
+188688        THRU DPP12-SAVE-SUBROUTINE-MSGS-X.
+
+       COPY DPP10Y2K.   
+       COPY DPP12BER.   
+144449 COPY DPP12ERR.   
+144449 COPY DPP12WDB.   
+       COPY DPP14RSB.   
+       COPY IRP66OIB.   
+       COPY IRP66RIB.   
+PPC470 COPY TDP01SAP.   

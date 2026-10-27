@@ -1,0 +1,3354 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.    RSO50VAA. 
+       AUTHOR.        BOB EVENS 
+       DATE-WRITTEN.  JULY 2004.
+       DATE-COMPILED.   
+      ****************************************************************  
+      *          AGENCY VALIDATION FOR AVAILABILITY ENGINE           *  
+      ****************************************************************  
+      * Description:                                                 *  
+      *     Subprogram to validate agency information and return     *  
+      *     agent specific information for the availabilty process.  *  
+      ****************************************************************  
+      *    Areas to be opened before calling this sub-program        *  
+      *    AGENT-PHONE  AGNT-PHO-IDX AGENT   AGENT-IDX AGENCY-RATE   *  
+      *    AGENCY-ASSOC AGENT-COMP   COMPANY AGENT-BUS               *  
+      ****************************************************************  
+      * Input      DPP01-COMMON-DATA-FIELDS                          *  
+      *            DPP01-COMMON-INFO                                 *  
+      *            RSP50-AGENCY-INPUT                                *  
+      * Output     RSP50-AGENCY-OUTPUT                               *  
+      * Calling Sequence                                             *  
+      *                                                              *  
+      *            CALL 'RSO50VAA' USING DPP01-COMMON-DATA-FIELDS    *  
+      *                                  DPP01-COMMON-INFO           *  
+      *                                  RSP50-AGENCY-INPUT          *  
+      *                                  RSP50-AGENCY-OUTPUT         *  
+      * Return Status Values:                                        *  
+      *                00       OK                                   *  
+      *                01       Informational                        *  
+      *                02       Edit Error                           *  
+      *                03       Fatal or Severe Error                *  
+************************************************************************
+C58653* AUG-30-07     VS8     TCS LTD.               CQ58653           *
+C58653* Added a logic to add 'G' as Agency Wholesale Indicator         *
+************************************************************************
+C54333* 21-JAN-09     RG1     TCS LTD.               CQ54333           *
+C54333* Modified code to protect agency indicators on booking          *
+************************************************************************
+C85885* 17-MAR-09     RG1     TCS LTD.               CQ85885           *
+C85885* MODIFY CODE TO USE COLUMN MOVE ISTEAD OF STRING STATEMENT TO   *
+C85885* IMPROVE PERFORMANCE OF SYSTEM                                  *
+************************************************************************
+C88580* 03-APR-08     AZ4     TCS LTD.               CQ88580           *
+C88580* CODE ADDED TO POPULATE RSP50-O-CUSTOMER-CODE AS 'C' WHEN       *
+C88580* INPUT AGENCY PHONE NUM IS NOT THERE IN DATABASE.               *
+************************************************************************
+C83718* 25-JUN-09     PD3     TCS LTD.               CQ83718           *
+C83718* GR-SYSTEM IS NOW NOT ALLOWING THE USER TO MAKE UPDATES AFTER   *
+C83718* THE BOOKING CONNECTION CODE HAS BEEN SET TO NONE               *
+************************************************************************
+C71731* 15-JUN-09     A2S                            CQ71731           *
+C71731* Fixed a count issue going with this project                    *
+************************************************************************
+C98892* 15-DEC-09     9KS     TCS LTD.               CQ98892           *
+C98892* ALTERNATE AGENCY IS NOT ABLE TO BOOK INTO WHOLESALER GROUP     *
+C98892* BOOKING.                                                       *
+************************************************************************
+C68461* 22-FEB-09     M5J   TCS LTD.               CQ68461  
+C68461* CHANGES DONE FOR AGENCY-WHOLESALE-IND = 'O' 
+************************************************************************
+C81658* 19-FEB-10     A9K     TCS LTD.               CQ81658           *
+C81658* CODE CHANGES FOR NEW EMAIL OVERRIDE INDICATOR                  *
+************************************************************************
+108149* 30-JUN-10     9KS     TCS LTD.               CQ108149          *
+108149* LAUNCHPAD IS NOT ALLOWING THE USER TO BERTH CABINS WITH NRR    *
+108149* WHOLESALE AGENCY.                                              *
+************************************************************************
+C85260* 24-JAN-11     AJS     TCS LTD.               CQ85260           *
+C85260* REMOVED THE CHECKS FOR AGENT ACCOUNTING COMMENT CODE. ALSO     *
+C85260* ADDED NEW BOOKING AND MODIFY BOOKING FLAGS FOR THE AGENCY.     *
+************************************************************************
+C97054* 12-APR-2011 - GAB - Change bit 6 from dormant to indicate COOP.*
+************************************************************************
+116627* JUN-02-2011   JAI BHIMANI     CARNIVAL       CQ 116627         *
+116627* ADDED INTERNATIONAL OPTIONS EXTENSION FLAG FOR THE AGENCY.     *
+************************************************************************
+108267* 04-MAY-11     KA8     TCS LTD.               CQ108267          *
+108267* COMMENTING OUT REFRENCES OF THE CURRENCY CODES                 *
+************************************************************************
+104170* 03-APR-12     RFC     TCS LTD.        CQ104170          *   
+104170* TO BE WITH SYNC OF AGENT-ATCR-INDICATOR FIELDS CHANGES IN      *
+104170* DONE DATABASE.                                                 *
+************************************************************************
+CCL-UK* 22-MAY-12     3AC         TCS LTD.           CCL-UK            *
+CCL-UK* CCL UK PHASE I RESERVATION CHANGES                             *
+************************************************************************
+************************************************************************
+CCL-UK* 01-AUG-12     MCA         TCS LTD.           CCL-UK            *
+CCL-UK* CCL UK SPS IND CHANGE FOR WHOLESALE/RETAIL ISSUE               *
+************************************************************************
+145720* 10-SEP-12     DH7         TCS LTD.           CQ145720          *
+145720* QUICK PRICING MESSAGE CHANGES FOR CCL UK AIR                   *
+************************************************************************
+131886* 12-APR-13     GRS     CARNIVAL          CQ131886-131886        *
+131886*  ADD SATELITTE PHONE NUMBERS FOR AGENTS.                       *
+************************************************************************
+156393* 15-NOV-13     HV0         TCS LTD.           CQ156393          *
+156393* RESTRICT USER TO APPLY CHECK WHEN AGENCY CHECK INDICATOR       *
+156393*  OF PROFILE IS SET TO N                                        *
+************************************************************************
+138466* 13-NOV-13     AZ4     TCS LTD.               CQ138466          *
+138466* ADDED A NEW FIELD TO RETURN AGENT-RES-COMMENT-CODE IN OUTPUT   *
+************************************************************************
+150339* 01-FEB-14     AJS     TCS LTD.               CQ150339          *
+150339* CHANGES FOR ADDING NEW OPER AND ACCT RESPONSIBLE INDICTAORS ON *
+150339* AGENCY PROFILES FOR DETERMINING COMMUNICATION RECIPIENTS.      *
+************************************************************************
+156226* 01-MAY-14     RGM     TCS LTD.               CQ156226          *
+156226* ADDED A NEW FIELD TO RETURN AGENT-ABN-NUMBER IN OUTPUT         *
+************************************************************************
+153834* 01-SEP-14     AZ4     TCS LTD.               CQ153834          *
+153834* MOVED ALL THE CODE CHANGES RELATED TO MINOR 150339 FROM        *
+153834* RSO50VAA TO NEW SUB-ROUTINE RSO49BCD.   
+************************************************************************
+166234* 07-JUL-15     7SG         TCS LTD.           CQ166234          *
+166234* INITIALIZE COMMISSIONS FIELDS                                  *
+************************************************************************
+165711* 20-MAY-15     AJS     TCS LTD.               CQ165711          *
+165711* CHANGES DONE TO SET THE CORRESPONDING OVERRIDE FLAGS WHEN THEY *
+165711* GETS USED IN THE FLOW WHICH LATER ON NEEDS TO BE STAMPED ON    *
+165711* CABIN-HOLD-REC AND ITRF-REC AT THE END.                        *
+************************************************************************
+192660* 07-JUL-16     HK2     TCS LTD.               CQ192660          *
+192660* SUPPORT MULTIPLE ERF NUMBERS PER AGENCY PROFILE TO PAYOUT      *
+192660* COMMISSIONS BASED ON BOOKINGS CURRENCY                         *
+************************************************************************
+199240* 04-OCT-16     BK4     TCS LTD.               CQ199240          *
+199240* CODE CHANGES TO CORRECTLY POPULATE DBKEY FOR ALTERNATE AGENCY. *
+************************************************************************
+PPC470* 19-OCT-16     HK2     TCS LTD.               PPC470            *
+PPC470* SAIL1 AREA CHANGES.                                            *
+PPC470******************************************************************
+PPC470* 04-OCT-17     9AA     TCS LTD.               PPC470            *
+PPC470* SAIL1-REC CHANGES.                                             *
+************************************************************************
+214948* 17-APR-19     SG8     TCS LTD.               CQ214948          *
+214948* CHANGES DONE TO INCORPORATE ALPHANUMERIC AGENCY CUSTOMER NUM.  *
+************************************************************************
+CCLAUS* 03-SEP-19     4NS     TCS LTD.               CCLAUS            *
+CCLAUS* CARNIVAL AUSTRALIA PROJECT RELATED CHANGES                     *
+************************************************************************
+CCLAUS* 09-SEP-19     IU5     TCS LTD.               CCLAUS            *
+CCLAUS* CARNIVAL AUSTRALIA PROJECT CHANGES.                            *
+ME2003******************************************************************
+ME2003*  20200323 M3E           PPC Project continues   
+ME2003*    Create AGENT_SELECT_ID_GTT along with AGENT_SELECT_GTT   
+ME2003*    (which contains entity codes only).  
+************************************************************************
+186084* 09-AUG-24     PVK     TCS LTD.               ADO1860847        *
+186084* CHANGES DONE FOR TRADE SALES PROJECT                           *
+************************************************************************
+190404* 23-AUG-24     VSY     TCS LTD.               ADO1904041        *
+190404* CHANGES DONE TO HANDLE DUPLICATE CASES , IF THE RDMS RETURNS   *
+190404* EITHER ERROR 6012 OR 6003 DURING AN INSERT OR UPDATE OPERATION *
+190404* ON THE AGENT_SELECT_ID_GTT TABLE, THE CODE WILL NOW CONTINUE   *
+190404* ITS FLOW DESPITE THE SQL ERROR.                                *
+************************************************************************
+195213* 15-APR-25   2QJ     TCS LTD.               ADO1952134          *
+195213* CHANGES DONE TO HANDLE DUPLICATE CASES , IF THE RDMS RETURNS   *
+195213* EITHER ERROR 6012 OR 6003 DURING AN INSERT OR UPDATE OPERATION *
+195213* ON THE AGENT_SELECT_ID_GTT TABLE, THE CODE WILL NOW CONTINUE   *
+195213* ITS FLOW DESPITE THE SQL ERROR.                                *
+************************************************************************
+PRCCMB* 30-MAY-25     SAI     TCS LTD.               ADO2108475        *
+PRCCMB* PRICING COMBINABILITY CHANGES, COMMENTED OUT THE CODES FOR     *
+PRCCMB* INSERT OF AGENT_SELECT_ID_GTT TABLE                            *
+************************************************************************
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER. UNISYS-2200.
+       OBJECT-COMPUTER. UNISYS-2200 MEMORY 3 MODULES.   
+       SPECIAL-NAMES.   PRINTER IS PRINTER  
+                        CONSOLE IS CONSOLE. 
+
+       DATA DIVISION.   
+
+       SUBSCHEMA SECTION.   
+       INVOKE SUBSCHEMA PST100UCOBSU
+              IN FILE SUBSCHEMAS OF SCHEMA PST100SCHEMA 
+              COPYING RECORDS    INTO COMMON
+              COPYING DATA-NAMES INTO COMMON
+              OVERLAY PAX-REC WITH PAX-CXF-REC  
+                                   PAX-VI-REC   
+              DMCA  COMMON  
+              SAVE DATA INCLUDES DEFERRED-UPDATES   
+              ERROR RECOVERY IS 9100-DATABASE-ERROR.
+
+       WORKING-STORAGE SECTION. 
+144449 01  WS-PROG-ID                   PIC X(8) VALUE 'RSO50VAA'.  
+       01  WS-MISC-VARS.
+           03  WS-CUSTOMER-NUM-DISP.
+214948*        05  WS-CUSTOMER-NUM         PIC 9(07).   
+214948         05  WS-CUSTOMER-NUM         PIC X(07).   
+214948*    03  WS-BKG-AGT-CUST-NUM         PIC 9(7) BINARY. 
+214948*    03  WS-BOOK-CUSTOMER-NUM        PIC 9(7) BINARY. 
+214948*    03  WS-BOOK-ALT-CUSTOMER-NUM    PIC 9(7) BINARY. 
+214948     03  WS-BKG-AGT-CUST-NUM         PIC X(7).
+214948     03  WS-BOOK-CUSTOMER-NUM        PIC X(7).
+214948     03  WS-BOOK-ALT-CUSTOMER-NUM    PIC X(7).
+214948     03  WS-AGENT-CONT-NUM           PIC 9(07).   
+RE0208     03  WS-INPUT-PASS-IND           PIC X.   
+           03  WS-ALT-COMM-IND             PIC X.   
+           03  WS-PHONE-NUM                PIC 9(10).   
+           03  WS-PHONE-NUM-REDEF REDEFINES WS-PHONE-NUM.   
+               05  WS-AREA-CODE            PIC 9(3).
+               05  FILLER                  PIC 9(7).
+           03  WS-MAIN-COUNTRY-CODE        PIC X(2).
+           03  WS-MAIN-OWNER-CONTRACT      PIC 9(6).
+186084*    03  WS-MAIN-CONTRACT            PIC 9(6).
+186084*    03  WS-MAIN-SUPER-CONTRACT      PIC 9(6).
+186084     03  WS-MAIN-MASTER-CONTRACT     PIC 9(06).   
+214948*    03  WS-USERID-CUSTOMER-NUM      PIC 9(7).
+214948     03  WS-USERID-CUSTOMER-NUM      PIC X(7).
+           03  WS-MAIN-ASSOCIATION-TYPE    PIC X(3).
+150339*    03  WS-MAIN-ALT-FAX-IND         PIC X.   
+150339*    03  WS-MAIN-FAX-CONF-IND        PIC X.   
+150339*    03  WS-MAIN-EMAIL-ADDR          PIC X(100).  
+           03  WS-AGENT-INFO-IND           PIC X.   
+           03  WS-MAIN-ALT-TKT-IND         PIC X.   
+           03  WS-MAIN-NPC-NUM             PIC X(9).
+           03  WS-SUB                      PIC 9 BINARY.
+131886     03  WS-SATELLITE-FLAG           PIC X.   
+131886     03  WS-GET-FIRST-FLAG           PIC X.   
+104170*    03  WS-AGENCY-INDICATORS        PIC 1(36) BINARY-1.  
+104170     03  WS-AGENCY-INDICATORS.
+104170         05  WS-AGENCY-INDICATORS1   PIC 1(36) BINARY-1.  
+104170         05  WS-AGENCY-INDICATORS2   PIC 1(36) BINARY-1.  
+           03  WS-AGENCY-IND-REDEF REDEFINES WS-AGENCY-INDICATORS.  
+CCL-UK         05  FILLER                  PIC 1(12) BINARY-1.  
+CCL-UK         05  WS-SPS-REGISTERED-FLG   PIC 1(1) BINARY-1.   
+CCL-UK         05  FILLER                  PIC 1(2) BINARY-1.   
+               05  WS-TEST-AGENCY-FLG      PIC 1 BINARY-1.  
+               05  WS-SPILL-AGENCY-FLG     PIC 1 BINARY-1.  
+               05  WS-OVR-INTL-BRANCH-FLG  PIC 1 BINARY-1.  
+               05  WS-EDOC-PREF            PIC 1 BINARY-1.  
+CCL-UK*        05  FILLER                  PIC 1(5) BINARY-1.   
+CCL-UK         05  FILLER                  PIC 1(1) BINARY-1.   
+CCL-UK         05  WS-ALLOW-WIRE-PMT-FLG   PIC 1(1) BINARY-1.   
+156393*        05  FILLER                  PIC 1(3) BINARY-1.   
+156393         05  FILLER                  PIC 1(2) BINARY-1.   
+RE0511         05  WS-ALLOW-CHECK-FLG      PIC 1 BINARY-1.  
+156393         05  FILLER                  PIC 1 BINARY-1.  
+RE0511         05  WS-ALLOW-VOUCHER-FLG    PIC 1 BINARY-1.  
+RE0511         05  FILLER                  PIC 1(3) BINARY-1.   
+C85260         05  WS-NEW-BKG-FLG          PIC 1 BINARY-1.  
+C85260         05  FILLER                  PIC 1(2) BINARY-1.   
+C85260         05  WS-MODIFY-BKG-FLG       PIC 1(1) BINARY-1.   
+116627*        05  FILLER                  PIC 1(3) BINARY-1.   
+116627         05  WS-INTL-OPT-EXT-FLG     PIC 1(1) BINARY-1.   
+116627         05  FILLER                  PIC 1(2) BINARY-1.   
+CCL-UK         05  FILLER                  PIC 1(1) BINARY-1.   
+CCL-UK         05  WS-AUTO-VOUCHER-FLG     PIC 1(1) BINARY-1.   
+CCL-UK         05  FILLER                  PIC 1(34) BINARY-1.  
+           03  WS-BKG-CUSTOMER-NUM         PIC X(7).
+           03  WS-BKG-DEPOSIT-TYPE-1       PIC X.   
+           03  WS-BKG-DEPOSIT-TYPE-2       PIC X.   
+           03  WS-BKG-TOTAL-PMT-AMT        PIC S9(8)V99 BINARY. 
+           03  WS-INTL-EDIT-IND            PIC X.   
+C61547     03  WS-AGENT-EMAIL-ADDR         PIC X(100).  
+C61547     03  WS-EMAIL-INDICATORS. 
+C61547         05  WS-EMAIL-ALL-FLG        PIC 1 BINARY-1.  
+C61547         05  WS-EMAIL-IBK-FLG        PIC 1 BINARY-1.  
+C61547         05  WS-EMAIL-GBK-FLG        PIC 1 BINARY-1.  
+C61547         05  WS-EMAIL-PRO-FLG        PIC 1 BINARY-1.  
+C61547         05  WS-EMAIL-ACC-FLG        PIC 1 BINARY-1.  
+C97054*        05  FILLER                  PIC 1(31) BINARY-1.  
+C97054         05  WS-EMAIL-COP-FLG        PIC 1 BINARY-1.  
+C97054         05  FILLER                  PIC 1(30) BINARY-1.  
+C54333     03  WS-PROTECT-RELATIONSHIP-IND PIC X.   
+108267     03  NR-SUB                      PIC 9(5)  BINARY.
+192660*    03  ATCR-SUB                    PIC 9(5)  BINARY.
+192660     03  ACURR-SUB                   PIC 9(5)  BINARY.
+144449*    03  WS-CURR-CNT                 PIC 9(3)  BINARY VALUE ZERO. 
+108267     03  WS-CURR-MAIN-ALT-CODE       PIC X.   
+108267     03  CURR-SUB                    PIC 9(5)  BINARY.
+108267     03  COMM-ATCR-SUB               PIC 9(5)  BINARY.
+108267     03  COMM-RSP50-SUB              PIC 9(5)  BINARY.
+108267     03  RSP94-SUB                   PIC 9(5)  BINARY.
+144449     03  SUB                         PIC S9(5)  BINARY.   
+CCL-UK     03  RSP86-SUB                   PIC 9(5)  BINARY.
+CCL-UK     03  COUNTRY-SUB                 PIC 9(5)  BINARY.
+108267     03  WS-ACTIVE-CURR-FOUND        PIC X.   
+108267     03  WS-SEARCH-CURR-CODE         PIC X(3).
+192660     03  WS-AGENT-NPC-NUM            PIC X(9).
+144449*    03  WS-CURRENCY-TABLE.   
+144449*        05  WS-CURRENCY-TAB OCCURS 500 TIMES.
+144449*            07  WS-CURR-CODE        PIC X(3).
+CCLAUS     03  WS-APR-COUNTRY-CODE         PIC X(02).   
+CCLAUS     03  WS-COUNTRY-NUM              PIC 9(03) BINARY.
+PPC470     03  WSSLG-RECAT-CODE            PIC X(01).   
+PPC470     03  WS-INP-SAIL-DATE-X.  
+PPC470         05  WS-INP-SAIL-DATE        PIC 9(08).   
+186084     03  WS-2ND-CON-RUN-IND          PIC X(01).   
+
+       01  WS-SYS-DATE-TIME-ACCEPT. 
+           03  WS-SYS-DATE-TIME.
+               05  WS-SYS-DATE             PIC 9(8).
+               05  WS-SYS-DATE-REDEF REDEFINES WS-SYS-DATE. 
+                   07  WS-SYS-DATE-YYYY    PIC 9(4).
+                   07  WS-SYS-DATE-MM      PIC 9(2).
+                   07  WS-SYS-DATE-DD      PIC 9(2).
+               05  WS-SYS-TIME. 
+                   07  WS-SYS-TIME-HH      PIC 99.  
+CCLAUS*            07  FILLER              PIC 9(6).
+CCLAUS             07  WS-SYS-TIME-MN      PIC 99.  
+CCLAUS             07  WS-SYS-TIME-SS      PIC 99.  
+CCLAUS             07  WS-SYS-TIME-MS      PIC 99.  
+               05  FILLER                  PIC X(5).
+
+
+144449 COPY DPP01DTA.   
+144449 COPY DPP42ERR.   
+       COPY DPP42SWS.   
+144449*COPY RSP86INP.   
+144449*COPY RSP86OUT.   
+144449 COPY RSP86GLD.   
+144449*COPY RSP94INP.   
+144449*COPY RSP94OUT.   
+144449 COPY RSP94GCD.   
+144449 COPY RSP95SPC.   
+163032 COPY SSP05GCD.   
+CCLAUS COPY DPP02Y2K.   
+
+       COMMON-STORAGE SECTION.  
+
+       LINKAGE SECTION. 
+       COPY DPP01SCO.   
+       COPY DPP01CIW.   
+       COPY RSP50INP.   
+       COPY RSP50OUT.   
+165711 COPY RSP90OVW.   
+
+       PROCEDURE DIVISION USING DPP01-COMMON-DATA-FIELDS
+                                DPP01-COMMON-INFO   
+                                RSP50-AGENCY-INPUT  
+                                RSP50-AGENCY-OUTPUT 
+165711                          RSP90-OVERRIDE-FLAGS-INFO.  
+
+       0000-INITIALIZE. 
+
+           COPY DPP42INT.   
+
+           MOVE 'RSO50VAA'            TO DPP42-HOLD-MSG-SOURCE. 
+           MOVE LOW-VALUES            TO RSP50-O-N-PARAMS   
+                                         RSP50-O-SAT-PHONE-TBL. 
+           MOVE SPACES                TO RSP50-O-AN-PARAMS. 
+C54333     MOVE 'N'                   TO WS-PROTECT-RELATIONSHIP-IND.   
+           MOVE 'Y'                   TO WS-AGENT-INFO-IND  
+                                         WS-INTL-EDIT-IND   
+RE0208                                   WS-INPUT-PASS-IND. 
+PPC470     EXEC SQL USE DEFAULT SCHEMA PSTRDMS END-EXEC.
+
+PPC470     EXEC SQL WHENEVER SQLERROR   
+PPC470        GO TO 9150-RDMS-ERROR 
+PPC470     END-EXEC.
+PPC470  
+PPC470     EXEC SQL WHENEVER NOT FOUND  
+PPC470        CONTINUE  
+PPC470     END-EXEC.
+PPC470  
+PPC470     EXEC SQL 
+PPC470        DELETE FROM AGENT_SELECT_GTT  
+PPC470     END-EXEC.
+PRCCMB*    EXEC SQL 
+PRCCMB*      delete from AGENT_SELECT_ID_GTT
+PRCCMB*    END-EXEC.
+PPC470  
+           MOVE FUNCTION CURRENT-DATE TO WS-SYS-DATE-TIME-ACCEPT.   
+
+           IF (RSP50-I-CONNECTION-CODE NOT > SPACES)
+              MOVE 1 TO DPP42-HOLD-MSG-INDEX
+              GO TO 9200-EDIT-ERROR-MSG 
+           ELSE 
+              MOVE RSP50-I-CONNECTION-CODE TO RSP50-O-CONNECTION-CODE.  
+
+           IF RSP50-I-COMPANY-CODE <= SPACES
+              MOVE 2 TO DPP42-HOLD-MSG-INDEX
+              GO TO 9200-EDIT-ERROR-MSG.
+
+108267     IF RSP50-CHANGE-AGENT-FLG = 1
+108267        IF RSP50-I-GRP-BOOK-NUM <= SPACES AND 
+108267              RSP50-I-IBR-BOOK-NUM <= SPACES  
+108267           MOVE 73 TO DPP42-HOLD-MSG-INDEX
+108267           GO TO 9200-EDIT-ERROR-MSG. 
+
+RE0408     IF RSP50-I-GROUP-CONTRACT-IND <= SPACES  
+RE0408        MOVE 'N' TO RSP50-I-GROUP-CONTRACT-IND.   
+
+       0050-RESTART-PROCESS.
+           IF RSP50-I-AAR-AGENCY-ID > SPACES
+214948*       IF RSP50-I-CUSTOMER-NUM > 0 OR RSP50-I-PHONE-NUM > 0  
+214948        IF RSP50-I-CUSTOMER-NUM > SPACE OR RSP50-I-PHONE-NUM > 0  
+                 MOVE 3 TO DPP42-HOLD-MSG-INDEX 
+                 GO TO 9200-EDIT-ERROR-MSG  
+              ELSE  
+                 GO TO 0100-VALIDATE-ALT-AGENCY.
+
+214948*    IF RSP50-I-CUSTOMER-NUM > ZERO   
+214948     IF RSP50-I-CUSTOMER-NUM > SPACE  
+              IF RSP50-I-PHONE-NUM > ZERO   
+                 MOVE 4 TO DPP42-HOLD-MSG-INDEX 
+                 GO TO 9200-EDIT-ERROR-MSG  
+              ELSE  
+                 GO TO 0100-VALIDATE-ALT-AGENCY.
+
+           IF RSP50-I-PHONE-NUM > ZERO  
+              GO TO 0100-VALIDATE-ALT-AGENCY.   
+
+           MOVE 'N' TO WS-AGENT-INFO-IND.   
+
+           IF (RSP50-I-GRP-BOOK-NUM > SPACES OR 
+                 RSP50-I-IBR-BOOK-NUM > SPACES) 
+              GO TO 0100-VALIDATE-ALT-AGENCY.   
+
+           IF RSP50-ALLOW-NO-AGENCY-FLG = ZERO  
+              MOVE 5 TO DPP42-HOLD-MSG-INDEX
+              GO TO 9200-EDIT-ERROR-MSG.
+
+165711     MOVE 1   TO RSP90-ALLOW-NO-AGENCY-FLG.   
+
+RE0209     MOVE 'C' TO RSP50-O-CUSTOMER-CODE.   
+RE0511     MOVE 'Y' TO RSP50-O-ALLOW-NEW-BKG-IND.   
+
+       0100-VALIDATE-ALT-AGENCY.
+           IF RSP50-I-AAR-ALT-AGENCY-ID > SPACES
+              IF RSP50-I-ALT-PHONE-NUM > ZERO OR
+214948*             RSP50-I-ALT-CUSTOMER-NUM > ZERO 
+214948              RSP50-I-ALT-CUSTOMER-NUM > SPACE
+                 MOVE 6 TO DPP42-HOLD-MSG-INDEX 
+                 GO TO 9200-EDIT-ERROR-MSG  
+              ELSE  
+                 GO TO 0200-CHECK-AGENT-IND.
+
+214948*    IF RSP50-I-ALT-CUSTOMER-NUM > ZERO   
+214948     IF RSP50-I-ALT-CUSTOMER-NUM > SPACE  
+              IF RSP50-I-ALT-PHONE-NUM > ZERO   
+                 MOVE 7 TO DPP42-HOLD-MSG-INDEX 
+                 GO TO 9200-EDIT-ERROR-MSG  
+              ELSE  
+                 GO TO 0200-CHECK-AGENT-IND.
+
+           IF RSP50-I-ALT-PHONE-NUM = ZERO  
+              GO TO 0300-FETCH-COMPANY-REC. 
+
+       0200-CHECK-AGENT-IND.
+           IF WS-AGENT-INFO-IND = 'N'   
+              MOVE 8 TO DPP42-HOLD-MSG-INDEX
+              GO TO 9200-EDIT-ERROR-MSG.
+
+       0300-FETCH-COMPANY-REC.  
+163032 COPY SSP05INT.   
+163032     MOVE RSP50-I-COMPANY-CODE  TO  SSP05-I-COMPANY-CODE. 
+
+169239     CALL 'SSC05GCD' USING DPP42-COMMON-DATA-FIELDS   
+163032                           DPP01-COMMON-INFO  
+163032                           SSP05-INPUT-PARAMS 
+163032                           SSP05-OUTPUT-PARAMS.   
+
+169239     IF DPP42-SUB-MSG-CTR > 0 AND DPP42-SUB-MSG-STATUS (1) > 1
+163032        GO TO 9500-RETURN-SUBROUTINE-ERROR.   
+
+
+       0400-OUTPUT-CMP-DEFAULTS.
+163032     MOVE SSP05-O-COMPANY-CODE        TO RSP50-O-COMPANY-CODE.
+
+           IF RSP50-I-CURRENCY-CODE <= SPACES   
+163032        MOVE SSP05-O-CURRENCY-CODE     TO RSP50-O-CURRENCY-CODE   
+           ELSE 
+              MOVE RSP50-I-CURRENCY-CODE TO RSP50-O-CURRENCY-CODE.  
+
+PPC470*    IF RSP50-I-BROCHURE-TYPE <= SPACES   
+PPC470*       NEXT SENTENCE 
+PPC470*    ELSE 
+PPC470*       MOVE RSP50-I-BROCHURE-TYPE TO RSP50-O-BROCHURE-TYPE.  
+
+CCL-UK     IF RSP50-I-LOCALITY-CODE > SPACES
+CCL-UK        MOVE RSP50-I-LOCALITY-CODE TO RSP50-O-LOCALITY-CODE   
+CCL-UK     END-IF.  
+
+CCL-UK     IF RSP50-I-COUNTRY-CODE > SPACES 
+CCL-UK        MOVE RSP50-I-COUNTRY-CODE TO RSP50-O-COUNTRY-CODE 
+CCL-UK     END-IF.  
+
+CCL-UK     IF RSP50-I-LOCALITY-CODE > SPACES  OR
+CCL-UK        RSP50-I-COUNTRY-CODE > SPACES 
+144449        PERFORM 8350-CALL-RSC86GLD THRU 8399-EXIT 
+CCL-UK     END-IF.  
+
+108267     IF RSP50-I-NATIONALITY-CODE <= SPACES
+163032        MOVE SSP05-O-NATIONALITY-CODE 
+108267                                   TO RSP50-O-NATIONALITY-CODE
+108267     ELSE 
+108267        MOVE RSP50-I-NATIONALITY-CODE 
+108267                                   TO RSP50-O-NATIONALITY-CODE
+108267     END-IF.  
+
+108267     MOVE 1                        TO RSP50-O-MULTI-CURRENCY-CNT. 
+108267     MOVE RSP50-O-CURRENCY-CODE    TO 
+108267                                 RSP50-O-MULTI-CURRENCY-CODE (1). 
+
+108267     PERFORM 8200-BUILD-ACTIVE-CURR   
+108267        THRU 8299-BUILD-ACTIVE-CURR-EXIT. 
+
+           IF RSP50-I-IBR-BOOK-NUM <= SPACES
+              GO TO 0600-FETCH-GRP-BOOK-NUM.
+
+           IF RSP50-I-IBR-BOOK-NUM = IBR-BOOK-NUM   
+              GO TO 0500-CHECK-IBR-BOOKING. 
+
+           MOVE RSP50-I-IBR-BOOK-NUM    TO IBR-BOOK-NUM.
+C85885*    MOVE SPACES                  TO INDV-BOOKING-CALCAREA.   
+C85885* 
+C85885*    STRING 'INDV-BK-' RSP50-I-IBR-BOOK-NUM (6:1) 
+C85885*           DELIMITED BY SIZE INTO INDV-BOOKING-CALCAREA. 
+C85885     MOVE 'INDV-BK-'              TO INDV-BOOKING-CALCAREA.   
+CCLAUS*     MOVE RSP50-I-IBR-BOOK-NUM (6:1) 
+CCLAUS*                                  TO INDV-BOOKING-CALCAREA (9:1).
+CCLAUS     EVALUATE IBR-BOOK-NUM (6:1)  
+CCLAUS        WHEN 'B' WHEN 'C' WHEN '0'
+CCLAUS              MOVE '0'  TO INDV-BOOKING-CALCAREA (9:1)
+CCLAUS        WHEN 'D' WHEN 'F' WHEN '1'
+CCLAUS              MOVE '1'  TO INDV-BOOKING-CALCAREA (9:1)
+CCLAUS        WHEN 'G' WHEN 'H' WHEN '2'
+CCLAUS              MOVE '2'  TO INDV-BOOKING-CALCAREA (9:1)
+CCLAUS        WHEN 'J' WHEN 'K' WHEN '3'
+CCLAUS              MOVE '3'  TO INDV-BOOKING-CALCAREA (9:1)
+CCLAUS        WHEN 'L' WHEN 'M' WHEN '4'
+CCLAUS              MOVE '4'  TO INDV-BOOKING-CALCAREA (9:1)
+CCLAUS        WHEN 'N' WHEN 'P' WHEN '5'
+CCLAUS              MOVE '5'  TO INDV-BOOKING-CALCAREA (9:1)
+CCLAUS        WHEN 'Q' WHEN 'R' WHEN '6'
+CCLAUS              MOVE '6'  TO INDV-BOOKING-CALCAREA (9:1)
+CCLAUS        WHEN 'S' WHEN 'T' WHEN '7'
+CCLAUS              MOVE '7'  TO INDV-BOOKING-CALCAREA (9:1)
+CCLAUS        WHEN 'V' WHEN 'W' WHEN '8'
+CCLAUS              MOVE '8'  TO INDV-BOOKING-CALCAREA (9:1)
+CCLAUS        WHEN 'X' WHEN 'Z' WHEN '9'
+CCLAUS              MOVE '9'  TO INDV-BOOKING-CALCAREA (9:1)
+CCLAUS     END-EVALUATE.
+144449*    MOVE 33201002 TO DPP01-ERROR-NUMBER. 
+           FETCH INDV-BOOKING-REC  RECORD   
+                 ON ERROR GO TO 11400-IBR-BOOK-NUM-NOT-FOUND.   
+
+       0500-CHECK-IBR-BOOKING.  
+108267     IF RSP50-CHANGE-AGENT-FLG = 1
+108267        MOVE IBR-CUSTOMER-NUM     TO WS-BOOK-CUSTOMER-NUM 
+108267        MOVE IBR-ALT-CUSTOMER-NUM TO WS-BOOK-ALT-CUSTOMER-NUM.
+
+CCL-UK     IF RSP50-I-LOCALITY-CODE <= SPACES   
+CCL-UK        MOVE IBR-LOCALITY-CODE    TO RSP50-O-LOCALITY-CODE
+CCL-UK                                     RSP50-I-LOCALITY-CODE
+CCL-UK        PERFORM 8350-CALL-RSC86GLD THRU 8399-EXIT 
+CCL-UK     ELSE 
+CCL-UK         IF  IBR-LOCALITY-CODE NOT = RSP50-I-LOCALITY-CODE
+CCL-UK             MOVE 70              TO DPP42-HOLD-MSG-INDEX 
+CCL-UK             GO TO 9200-EDIT-ERROR-MSG
+CCL-UK         ELSE 
+CCL-UK            MOVE RSP50-I-LOCALITY-CODE TO RSP50-O-LOCALITY-CODE.  
+
+PPC470*    IF RSP50-I-BROCHURE-TYPE <= SPACES   
+PPC470*       MOVE IBR-BROCHURE-TYPE    TO RSP50-I-BROCHURE-TYPE
+PPC470*                                    RSP50-O-BROCHURE-TYPE
+PPC470*    ELSE 
+PPC470*       IF IBR-BROCHURE-TYPE > SPACES 
+PPC470*          IF IBR-BROCHURE-TYPE NOT = RSP50-O-BROCHURE-TYPE   
+PPC470*             MOVE 9 TO DPP42-HOLD-MSG-INDEX  
+PPC470*             GO TO 9200-EDIT-ERROR-MSG.  
+
+           IF RSP50-I-CURRENCY-CODE <= SPACES   
+              MOVE IBR-CURRENCY-CODE    TO RSP50-I-CURRENCY-CODE
+                                           RSP50-O-CURRENCY-CODE
+           ELSE 
+              IF IBR-CURRENCY-CODE NOT = RSP50-O-CURRENCY-CODE  
+                 MOVE 10 TO DPP42-HOLD-MSG-INDEX
+                 GO TO 9200-EDIT-ERROR-MSG. 
+
+108267     IF WS-AGENT-INFO-IND = 'N' AND RSP50-CHANGE-AGENT-FLG = 0
+              MOVE 'Y'                  TO WS-AGENT-INFO-IND
+              MOVE 'N'                  TO WS-INTL-EDIT-IND 
+              MOVE 1                    TO RSP50-OVR-RELATIONSHIP-FLG   
+                                           RSP50-OVR-AGT-CMT-CODE-FLG   
+                                           RSP50-OVR-BOOKING-AGENT-FLG  
+              MOVE IBR-CUSTOMER-NUM     TO RSP50-I-CUSTOMER-NUM 
+              MOVE IBR-ALT-CUSTOMER-NUM TO RSP50-I-ALT-CUSTOMER-NUM.
+
+165711*    IF RSP50-OVERRIDE-RECAT-FLG = 1  
+165711*       GO TO 0550-CONTINUE-PROCESS.  
+
+PPC470*    IF (IBR-SHIP-CODE NOT = SAIL1-SHIP-CODE) OR  
+PPC470*           (IBR-SAIL-DATE NOT = SAIL1-SAIL-DATE) OR  
+PPC470*           (IBR-DURATION-DAYS NOT = SAIL1-DURATION-DAYS) 
+PPC470*       MOVE IBR-SHIP-CODE     TO SAIL1-SHIP-CODE 
+PPC470*       MOVE IBR-SAIL-DATE     TO SAIL1-SAIL-DATE 
+PPC470*       MOVE IBR-DURATION-DAYS TO SAIL1-DURATION-DAYS 
+PPC470*       FETCH SAIL1-REC RECORD
+PPC470*             ON ERROR GO TO 11700-NO-FIND-SAIL1  
+
+PPC470     MOVE IBR-SAIL-DATE        TO WS-INP-SAIL-DATE.   
+PPC470     EXEC SQL 
+PPC470          SELECT RECAT_CODE   
+PPC470           INTO :WSSLG-RECAT-CODE 
+PPC470           FROM  SAILING  
+PPC470         WHERE SAIL_DATE =
+PPC470                  DATE(STRPTIME(:WS-INP-SAIL-DATE-X,'%Y%m%d'))
+PPC470         AND   SHIP_CODE = :IBR-SHIP-CODE 
+PPC470         AND   DURATION_DAYS = :IBR-DURATION-DAYS 
+PPC470         FETCH FIRST 1 ROW ONLY   
+PPC470     END-EXEC.
+PPC470     IF SQLCODE < 0   
+PPC470        GO TO 9150-RDMS-ERROR 
+PPC470     ELSE 
+PPC470        IF SQLCODE = 100  
+PPC470           GO TO 11700-NO-FIND-SAIL1  
+PPC470        END-IF
+PPC470     END-IF.  
+
+
+PPC470*    IF (IBR-SHIP-CODE NOT = SAIL1-SHIP-CODE) OR  
+PPC470*           (IBR-SAIL-DATE NOT = SAIL1-SAIL-DATE) OR  
+PPC470*           (IBR-DURATION-DAYS NOT = SAIL1-DURATION-DAYS) 
+PPC470*       GO TO 11700-NO-FIND-SAIL1.
+
+PPC470*    IF SAIL1-RECAT-CODE = 'Y'
+PPC470     IF WSSLG-RECAT-CODE = 'Y'
+165711        IF RSP50-OVERRIDE-RECAT-FLG NOT = 1   
+C87403           MOVE 55 TO DPP42-HOLD-MSG-INDEX
+C87403           GO TO 9200-EDIT-ERROR-MSG  
+165711        ELSE  
+165711           MOVE 1 TO RSP90-OVERRIDE-RECAT-FLG 
+165711        END-IF
+165711     END-IF.  
+
+C87403 0550-CONTINUE-PROCESS.   
+           IF IBR-BOOK-TYPE = 'I'   
+              IF RSP50-I-GRP-BOOK-NUM <= SPACES 
+                 GO TO 0700-CONTINUE-PROCESS
+              ELSE  
+                 MOVE 11 TO DPP42-HOLD-MSG-INDEX
+                 GO TO 9200-EDIT-ERROR-MSG. 
+
+           IF RSP50-I-GRP-BOOK-NUM <= SPACES
+              MOVE IBR-GROUP-BOOK-NUM TO RSP50-I-GRP-BOOK-NUM   
+              GO TO 0600-FETCH-GRP-BOOK-NUM.
+
+           IF RSP50-I-GRP-BOOK-NUM NOT = IBR-GROUP-BOOK-NUM 
+              MOVE 12 TO DPP42-HOLD-MSG-INDEX   
+              GO TO 9200-EDIT-ERROR-MSG.
+
+C54333     IF IBR-BOOK-TYPE = 'I'   
+C54333        IF (RSP50-I-CUSTOMER-NUM = IBR-CUSTOMER-NUM) AND  
+C54333             (RSP50-I-ALT-CUSTOMER-NUM = IBR-ALT-CUSTOMER-NUM)
+C54333           MOVE 'Y' TO WS-PROTECT-RELATIONSHIP-IND.   
+
+       0600-FETCH-GRP-BOOK-NUM. 
+           IF RSP50-I-GRP-BOOK-NUM <= SPACES
+              GO TO 0700-CONTINUE-PROCESS.  
+
+           IF RSP50-I-GRP-BOOK-NUM = GBR1-BOOK-NUM  
+              GO TO 0650-PROCESS-GBR1.  
+
+           MOVE RSP50-I-GRP-BOOK-NUM    TO GBR1-BOOK-NUM.   
+
+144449*    MOVE 33201003 TO DPP01-ERROR-NUMBER. 
+           FETCH GRP1-BOOKING-REC  RECORD   
+                 ON ERROR GO TO 11500-GRP1-BOOK-NUM-NOT-FOUND.  
+
+       0650-PROCESS-GBR1.   
+108267     IF RSP50-CHANGE-AGENT-FLG = 1 AND
+108267           RSP50-I-GRP-BOOK-NUM > SPACES AND  
+108267           RSP50-I-IBR-BOOK-NUM <= SPACES 
+108267        MOVE GBR1-CUSTOMER-NUM     TO WS-BOOK-CUSTOMER-NUM
+108267        MOVE GBR1-ALT-CUSTOMER-NUM TO WS-BOOK-ALT-CUSTOMER-NUM.   
+
+123440     IF GBR1-WHOLESALE-IND <= SPACES  
+123440        MOVE 'N' TO GBR1-WHOLESALE-IND.   
+
+C83718     IF RSP50-I-CALL-CENTER-IND = 'N' AND 
+C83718           RSP50-I-GRP-BOOK-NUM > SPACES  
+C83718         IF GBR1-AGENT-CONN-DISP-CODE = 'P'   
+C83718            NEXT SENTENCE 
+C83718         ELSE 
+C83718            IF GBR1-AGENT-CONN-DISP-CODE = 'N'
+C83718               MOVE 52 TO DPP42-HOLD-MSG-INDEX
+C83718               GO TO 9200-EDIT-ERROR-MSG  
+C83718            ELSE  
+C83718               IF WS-TEST-AGENCY-FLG = 0  
+C83718                  MOVE 52 TO DPP42-HOLD-MSG-INDEX 
+C83718                  GO TO 9200-EDIT-ERROR-MSG.  
+C83718  
+C98892      IF (RSP50-I-CALL-CENTER-IND = 'N') AND  
+C98892            (RSP50-I-GROUP-CONTRACT-IND = 'N')
+C98892         IF (RSP50-I-AAR-ALT-AGENCY-ID NOT > SPACES) AND  
+C98892               (RSP50-I-ALT-PHONE-NUM NOT > ZEROES) AND   
+214948*              (RSP50-I-ALT-CUSTOMER-NUM NOT > ZEROES)
+214948               (RSP50-I-ALT-CUSTOMER-NUM NOT > SPACES)
+C68461            IF (GBR1-WHOLESALE-IND = 'Y' OR 'G' OR 'O') AND   
+214948*                 (GBR1-ALT-CUSTOMER-NUM NOT > ZEROES) AND
+214948*                 (IBR-ALT-CUSTOMER-NUM > ZEROES) AND 
+214948                  (GBR1-ALT-CUSTOMER-NUM NOT > SPACES) AND
+214948                  (IBR-ALT-CUSTOMER-NUM > SPACES) AND 
+150339                  (IBR-ALT-CUSTOMER-NUM = RSP50-I-AAR-AGENCY-ID)  
+C98892               MOVE RSP50-I-AAR-AGENCY-ID TO  
+C98892                    RSP50-I-AAR-ALT-AGENCY-ID 
+C98892               MOVE RSP50-I-PHONE-NUM TO RSP50-I-ALT-PHONE-NUM
+CCLAUS               MOVE RSP50-I-PHN-COUNTRY-CODE TO   
+CCLAUS                    RSP50-I-ALT-PHN-COUNTRY-CODE  
+C98892               MOVE RSP50-I-CUSTOMER-NUM TO   
+C98892                    RSP50-I-ALT-CUSTOMER-NUM  
+C98892               MOVE SPACES TO RSP50-I-AAR-AGENCY-ID   
+C98892               MOVE ZEROES TO RSP50-I-PHONE-NUM   
+CCLAUS               MOVE SPACES TO RSP50-I-PHN-COUNTRY-CODE
+C98892               MOVE GBR1-CUSTOMER-NUM TO RSP50-I-CUSTOMER-NUM 
+C98892               GO TO 0050-RESTART-PROCESS.
+
+CCL-UK     IF RSP50-I-LOCALITY-CODE <= SPACES   
+CCL-UK        MOVE GBR1-LOCALITY-CODE      TO RSP50-O-LOCALITY-CODE 
+CCL-UK                                        RSP50-I-LOCALITY-CODE 
+CCL-UK        PERFORM 8350-CALL-RSC86GLD THRU 8399-EXIT 
+CCL-UK     ELSE 
+CCL-UK         IF  GBR1-LOCALITY-CODE NOT = RSP50-I-LOCALITY-CODE   
+CCL-UK             MOVE 71                  TO DPP42-HOLD-MSG-INDEX 
+CCL-UK             GO TO 9200-EDIT-ERROR-MSG
+CCL-UK         ELSE 
+CCL-UK            MOVE RSP50-I-LOCALITY-CODE TO RSP50-O-LOCALITY-CODE.  
+
+PPC470*    IF RSP50-I-BROCHURE-TYPE <= SPACES   
+PPC470*       MOVE GBR1-BROCHURE-TYPE TO RSP50-I-BROCHURE-TYPE  
+PPC470*                                  RSP50-O-BROCHURE-TYPE  
+PPC470*    ELSE 
+PPC470*       IF GBR1-BROCHURE-TYPE NOT = RSP50-O-BROCHURE-TYPE 
+PPC470*          MOVE 13 TO DPP42-HOLD-MSG-INDEX
+PPC470*          GO TO 9200-EDIT-ERROR-MSG. 
+
+           IF RSP50-I-CURRENCY-CODE <= SPACES   
+              MOVE GBR1-CURRENCY-CODE TO RSP50-I-CURRENCY-CODE  
+                                         RSP50-O-CURRENCY-CODE  
+           ELSE 
+              IF (GBR1-CURRENCY-CODE NOT = RSP50-O-CURRENCY-CODE)   
+                 MOVE 14 TO DPP42-HOLD-MSG-INDEX
+                 GO TO 9200-EDIT-ERROR-MSG. 
+
+108267     IF WS-AGENT-INFO-IND = 'N' AND RSP50-CHANGE-AGENT-FLG = 0
+              MOVE 'Y'                   TO WS-AGENT-INFO-IND   
+              MOVE 'N'                   TO WS-INTL-EDIT-IND
+              MOVE 1                     TO RSP50-OVR-RELATIONSHIP-FLG  
+              MOVE GBR1-CUSTOMER-NUM     TO RSP50-I-CUSTOMER-NUM
+              MOVE GBR1-ALT-CUSTOMER-NUM TO RSP50-I-ALT-CUSTOMER-NUM.   
+
+165711*    IF RSP50-OVERRIDE-RECAT-FLG = 1  
+165711*       GO TO 0700-CONTINUE-PROCESS.  
+
+PPC470*    IF (GBR1-SHIP-CODE NOT = SAIL1-SHIP-CODE) OR 
+PPC470*           (GBR1-SAIL-DATE NOT = SAIL1-SAIL-DATE) OR 
+PPC470*           (GBR1-DURATION-DAYS NOT = SAIL1-DURATION-DAYS)
+PPC470*       MOVE GBR1-SHIP-CODE     TO SAIL1-SHIP-CODE
+PPC470*       MOVE GBR1-SAIL-DATE     TO SAIL1-SAIL-DATE
+PPC470*       MOVE GBR1-DURATION-DAYS TO SAIL1-DURATION-DAYS
+PPC470*       FETCH SAIL1-REC RECORD
+PPC470*             ON ERROR GO TO 11700-NO-FIND-SAIL1  
+
+PPC470     MOVE GBR1-SAIL-DATE        TO WS-INP-SAIL-DATE.  
+PPC470     EXEC SQL 
+PPC470          SELECT RECAT_CODE   
+PPC470           INTO :WSSLG-RECAT-CODE 
+PPC470           FROM  SAILING  
+PPC470         WHERE SAIL_DATE =
+PPC470                  DATE(STRPTIME(:WS-INP-SAIL-DATE-X,'%Y%m%d'))
+PPC470         AND   SHIP_CODE = :GBR1-SHIP-CODE
+PPC470         AND   DURATION_DAYS = :GBR1-DURATION-DAYS
+PPC470         FETCH FIRST 1 ROW ONLY   
+PPC470     END-EXEC.
+PPC470     IF SQLCODE < 0   
+PPC470        GO TO 9150-RDMS-ERROR 
+PPC470     ELSE 
+PPC470        IF SQLCODE = 100  
+PPC470           GO TO 11700-NO-FIND-SAIL1  
+PPC470        END-IF
+PPC470     END-IF.  
+
+PPC470*    IF (GBR1-SHIP-CODE NOT = SAIL1-SHIP-CODE) OR 
+PPC470*           (GBR1-SAIL-DATE NOT = SAIL1-SAIL-DATE) OR 
+PPC470*           (GBR1-DURATION-DAYS NOT = SAIL1-DURATION-DAYS)
+PPC470*           GO TO 11700-NO-FIND-SAIL1.
+
+PPC470*    IF SAIL1-RECAT-CODE = 'Y'
+PPC470     IF WSSLG-RECAT-CODE = 'Y'
+165711        IF RSP50-OVERRIDE-RECAT-FLG NOT = 1   
+C87403           MOVE 54 TO DPP42-HOLD-MSG-INDEX
+C87403           GO TO 9200-EDIT-ERROR-MSG  
+165711        ELSE  
+165711           MOVE 1 TO RSP90-OVERRIDE-RECAT-FLG 
+165711        END-IF
+165711     END-IF.  
+
+       0700-CONTINUE-PROCESS.   
+           IF WS-AGENT-INFO-IND = 'N'   
+108267        PERFORM 8000-OUTPUT-NR-CURRENCY   
+108267           THRU 8099-OUTPUT-NR-CURRENCY-EXIT  
+              GO TO 9000-END-OF-JOB.
+
+           PERFORM 8900-GET-AGENT-USERID THRU 8999-EXIT.
+
+214948*    IF RSP50-I-CUSTOMER-NUM = ZERO   
+214948     IF RSP50-I-CUSTOMER-NUM = SPACES 
+              GO TO 0800-CHECK-MAIN-PHONE-NUM.  
+
+144449*    IF AGENT-CUSTOMER-NUM = RSP50-I-CUSTOMER-NUM 
+144449*       MOVE 12111004 TO DPP01-ERROR-NUMBER   
+144449*       FIND CURRENT AGENT-REC RECORD 
+144449*       GO TO 1000-PROCESS-MAIN-AGENT.
+
+           MOVE RSP50-I-CUSTOMER-NUM    TO WS-CUSTOMER-NUM. 
+           MOVE WS-CUSTOMER-NUM-DISP    TO AAR-NUM. 
+           MOVE 'CM'                    TO AAR-TYPE.
+
+144449*    MOVE 12111005 TO DPP01-ERROR-NUMBER. 
+           FETCH AGENCY-ASSOCIATION-REC RECORD  
+                 ON ERROR GO TO 10200-NO-MAIN-AGENCY-ASSOC. 
+
+144449*    MOVE 12112106 TO DPP01-ERROR-NUMBER. 
+           FETCH OWNER RECORD WITHIN AGENCY-ASSOCIATION-SET SET.
+
+C87403     IF RSP50-I-IBR-BOOK-NUM > SPACES 
+C87403        IF RSP50-I-CUSTOMER-NUM = IBR-CUSTOMER-NUM
+C87403           MOVE AGENT-CUSTOMER-NUM TO IBR-CUSTOMER-NUM.   
+
+C87403     IF RSP50-I-GRP-BOOK-NUM > SPACES 
+C87403        IF RSP50-I-CUSTOMER-NUM = GBR1-CUSTOMER-NUM   
+C87403           MOVE AGENT-CUSTOMER-NUM TO GBR1-CUSTOMER-NUM.  
+
+C87403     MOVE AGENT-CUSTOMER-NUM TO RSP50-I-CUSTOMER-NUM. 
+
+           GO TO 1000-PROCESS-MAIN-AGENT.   
+
+       0800-CHECK-MAIN-PHONE-NUM.   
+           IF RSP50-I-PHONE-NUM = ZERO  
+              GO TO 0900-GET-MAIN-AGENCY-ID.
+
+           MOVE RSP50-I-PHONE-NUM       TO APR-PHONE-NUM.   
+CCLAUS     IF (RSP50-I-PHN-COUNTRY-CODE = 'US' OR 'CA' OR 'PR' )
+CCLAUS          OR (RSP50-I-PHN-COUNTRY-CODE <= SPACES) 
+CCLAUS         MOVE 1                    TO APR-COUNTRY-NUM 
+CCLAUS     ELSE 
+CCLAUS        MOVE RSP50-I-PHN-COUNTRY-CODE TO WS-APR-COUNTRY-CODE  
+CCLAUS        PERFORM 10000-SELECT-VALID-COUNTRY  THRU 10000-EXIT   
+CCLAUS        MOVE WS-COUNTRY-NUM       TO APR-COUNTRY-NUM  
+CCLAUS     END-IF.  
+
+144449*    MOVE 12011007 TO DPP01-ERROR-NUMBER  
+           FETCH AGENT-PHONE-REC RECORD 
+                 ON ERROR GO TO 10300-NO-MAIN-AGENT-PHONE.  
+
+131886*    IF APR-SATELLITE-FLAG = 1
+131886*       MOVE 'Y' TO RSP50-O-SATELLITE-IND.
+131886*     IF APR-STATUS NOT = 'M' 
+131886*        MOVE 'Y' TO RSP50-O-SATELLITE-IND.   
+144449*    MOVE 12012108 TO DPP01-ERROR-NUMBER. 
+           FETCH OWNER RECORD WITHIN AGENT-PHONE-SET SET.   
+
+131886     MOVE 'N'              TO RSP50-O-SAT-PHONE-IND.  
+131886     IF APR-PHONE-NUM NOT = AGENT-PHONE-NUM   
+131886        MOVE 'Y' TO RSP50-O-SAT-PHONE-IND 
+131886        MOVE 1   TO RSP50-O-SAT-PHONE-CNT 
+CCLAUS        MOVE APR-COUNTRY-NUM TO RSP50-O-SAT-COUNTRY-NUM (1)   
+131886        MOVE APR-PHONE-NUM TO RSP50-O-SAT-PHONE-NUM (1).  
+
+           GO TO 1000-PROCESS-MAIN-AGENT.   
+
+       0900-GET-MAIN-AGENCY-ID. 
+           MOVE RSP50-I-AAR-AGENCY-ID   TO AAR-NUM. 
+           MOVE RSP50-I-AAR-TYPE        TO AAR-TYPE.
+
+144449*    MOVE 12111009 TO DPP01-ERROR-NUMBER. 
+           FETCH AGENCY-ASSOCIATION-REC RECORD  
+                 ON ERROR GO TO 10400-NO-MAIN-AGENCY-ID-ASSOC.  
+
+144449*    MOVE 12112110 TO DPP01-ERROR-NUMBER. 
+           FETCH OWNER RECORD WITHIN AGENCY-ASSOCIATION-SET SET.
+
+       1000-PROCESS-MAIN-AGENT. 
+           MOVE CURRENT-DBKEY           TO RSP50-O-AGENT-DBKEY. 
+
+131886     PERFORM 4000-GET-SAT-PHONE-NUMS THRU 4099-EXIT.  
+192660     PERFORM 4100-FIND-ERF THRU   
+192660             4100-FIND-ERF-EXIT.  
+
+           MOVE AGENT-PHONE-NUM         TO RSP50-O-PHONE-NUM
+                                           WS-PHONE-NUM.
+           MOVE WS-AREA-CODE            TO RSP50-O-AREA-CODE.   
+           MOVE AGENT-CUSTOMER-NUM      TO RSP50-O-CUSTOMER-NUM.
+           MOVE AGENT-STATE             TO RSP50-O-STATE.   
+CCL-UK*    MOVE AGENT-COUNTRY-CODE      TO RSP50-O-COUNTRY-CODE.
+           MOVE AGENT-NAME              TO RSP50-O-AGENT-NAME.  
+           MOVE AGENT-ACCT-COMMENT-CODE TO RSP50-O-ACCT-COMMENT-CODE.   
+138466     MOVE AGENT-RES-COMMENT-CODE  TO RSP50-O-RES-COMMENT-CODE.
+150339*    MOVE AGENT-FAX-NUM           TO RSP50-O-FAX-NUM. 
+           MOVE AGENT-CLIA-NUM          TO RSP50-O-CLIA-NUM.
+109247     MOVE AGENT-IATA-NUM          TO RSP50-O-IATA-NUM.
+           MOVE AGENT-ARC-NUM           TO RSP50-O-AGENT-ARC-NUM.   
+           MOVE AGENT-COMMENT           TO RSP50-O-AGENT-COMMENT.   
+           MOVE AGENT-LANGUAGE-IND      TO RSP50-O-LANGUAGE-CODE.   
+           MOVE AGENT-INTL-SALES-IND    TO RSP50-O-AGENT-INTL-SALES-IND.
+150339*    MOVE AGENT-FAX-NUM           TO RSP50-O-MAIN-FAX-NUM.
+192660*    MOVE AGENT-NPC-NUM           TO RSP50-O-AGENT-NPC-NUM.   
+192660     MOVE WS-AGENT-NPC-NUM        TO RSP50-O-AGENT-NPC-NUM.   
+
+164663     IF AGENT-DIRECT-IND = 'Y'
+164663        MOVE SPACES               TO RSP50-O-ATOL-NUM 
+164663                                     RSP50-O-TRUE-NUM 
+164663                                     RSP50-O-BLN-NUM  
+164663                                     RSP50-O-SOT-NUM  
+164663     ELSE 
+164663        PERFORM VARYING SUB FROM 1 BY 1   
+164663                UNTIL SUB > AGENT-BIN-TABLE-COUNT 
+164663           EVALUATE AGENT-BUS-ID-NUM-TYP(SUB) 
+164663            WHEN 'ATOL'   
+164663              MOVE AGENT-BUS-ID-NUM-VAL (SUB) 
+164663                                  TO RSP50-O-ATOL-NUM 
+164663            WHEN 'TRUE'   
+164663              MOVE AGENT-BUS-ID-NUM-VAL (SUB) 
+164663                                  TO RSP50-O-TRUE-NUM 
+164663            WHEN 'BLN'
+164663              MOVE AGENT-BUS-ID-NUM-VAL (SUB) 
+164663                                  TO RSP50-O-BLN-NUM  
+164663            WHEN 'SOT'
+164663              MOVE AGENT-BUS-ID-NUM-VAL (SUB) 
+164663                                  TO RSP50-O-SOT-NUM  
+164663           END-EVALUATE   
+164663        END-PERFORM   
+164663     END-IF.  
+CCL-UK     IF ( RSP50-I-COUNTRY-CODE > SPACES) AND  
+CCL-UK        ( AGENT-DIRECT-IND = 'Y') AND 
+CCL-UK        ( RSP50-I-GROUP-CONTRACT-IND = 'N') AND   
+CCL-UK        ( RSP50-CHANGE-AGENT-FLG = 0) 
+CCL-UK        NEXT SENTENCE 
+CCL-UK     ELSE 
+CCL-UK        MOVE AGENT-COUNTRY-CODE TO RSP50-O-COUNTRY-CODE.  
+
+CCL-UK     IF ((RSP50-I-GRP-BOOK-NUM <= SPACES ) AND
+CCL-UK        (RSP50-I-IBR-BOOK-NUM <= SPACES )) OR 
+CCL-UK        (RSP50-CHANGE-AGENT-FLG = 1 ) OR  
+144449*       ((RSP86-O-LOCALITY-SUB <= ZEROES) AND 
+144449         (RSP50-I-IBR-BOOK-NUM <= SPACES) 
+
+CCL-UK        PERFORM 8350-CALL-RSC86GLD THRU 8399-EXIT 
+CCL-UK        PERFORM 8360-VALIDATE-AGENCY-LOCALITY THRU 8399-EXIT. 
+
+RE0208     IF WS-INPUT-PASS-IND = 'Y'   
+RE0208        MOVE AGENT-CUSTOMER-NUM TO WS-BKG-AGT-CUST-NUM.   
+
+           IF AGENT-DEFAULT-NATL-CODE > SPACES  
+              MOVE AGENT-DEFAULT-NATL-CODE TO RSP50-O-NATIONALITY-CODE. 
+
+           IF AGENT-DIRECT-IND = 'Y'
+              MOVE 'C' TO RSP50-O-CUSTOMER-CODE 
+           ELSE 
+              MOVE 'A' TO RSP50-O-CUSTOMER-CODE.
+
+144449*    IF AGENT-PHONE-NUM = ATCR-PHONE-NUM AND  
+144449*          RSP50-I-COMPANY-CODE = ATCR-COMPANY-CODE   
+144449*       MOVE 12511011 TO DPP01-ERROR-NUMBER   
+144449*       FETCH CURRENT AGENT-TERMS-COMPANY-REC RECORD  
+144449*       FIND CURRENT AGENT-TERMS-COMPANY-REC RECORD   
+144449*       GO TO 1100-PROCESS-MAIN-AGENT-TERMS.  
+
+           MOVE AGENT-PHONE-NUM         TO ATCR-PHONE-NUM.  
+           MOVE RSP50-I-COMPANY-CODE    TO ATCR-COMPANY-CODE.   
+
+144449*    MOVE 12511012 TO DPP01-ERROR-NUMBER. 
+           FETCH AGENT-TERMS-COMPANY-REC RECORD 
+                 ON ERROR GO TO 10500-NO-MAIN-AGENT-TERMS.  
+
+       1100-PROCESS-MAIN-AGENT-TERMS.   
+           MOVE CURRENT-DBKEY            TO RSP50-O-ATCR-DBKEY. 
+           MOVE ATCR-ALT-COMM-IND        TO WS-ALT-COMM-IND.
+           MOVE ATCR-REGION-CODE         TO RSP50-O-REGION-CODE.
+           MOVE ATCR-SALES-REP-CODE      TO RSP50-O-SALES-REP-CODE. 
+           MOVE ATCR-TERRITORY-CODE      TO RSP50-O-TERRITORY-CODE. 
+           MOVE AGENT-COUNTRY-CODE       TO WS-MAIN-COUNTRY-CODE.   
+           MOVE AGENT-OWNER-CONTRACT-NUM TO WS-MAIN-OWNER-CONTRACT. 
+186084*    MOVE AGENT-CONTRACT-NUM       TO WS-MAIN-CONTRACT.   
+186084*    MOVE AGENT-SUPER-CONTRACT-NUM TO WS-MAIN-SUPER-CONTRACT. 
+186084     MOVE AGENT-MASTER-CONTRACT-NUM   
+                                         TO WS-MAIN-MASTER-CONTRACT.
+
+192660*    MOVE AGENT-NPC-NUM            TO WS-MAIN-NPC-NUM.
+192660     MOVE WS-AGENT-NPC-NUM         TO WS-MAIN-NPC-NUM.
+           MOVE ATCR-ASSOCIATION-TYPE    TO WS-MAIN-ASSOCIATION-TYPE.   
+150339*    MOVE ATCR-ALT-FAX-IND         TO WS-MAIN-ALT-FAX-IND.
+           MOVE ATCR-AGENCY-INDICATORS   TO WS-AGENCY-INDICATORS.   
+CCL-UK     MOVE AGENT-TTA-NUM            TO RSP50-O-TTA-NUM.
+CCL-UK     MOVE AGENT-ABTA-NUM           TO RSP50-O-ABTA-NUM.   
+156226     MOVE AGENT-ABN-NUMBER         TO RSP50-O-ABN-NUMBER. 
+
+
+123440     IF ATCR-WHOLESALE-IND <= SPACES  
+123440        MOVE 'N' TO ATCR-WHOLESALE-IND
+123440                    RSP50-O-WHOLESALE-IND 
+123440     ELSE 
+123440        MOVE ATCR-WHOLESALE-IND       TO RSP50-O-WHOLESALE-IND.   
+
+150339*    IF WS-MAIN-ALT-FAX-IND NOT > SPACES  
+150339*       MOVE 'P' TO WS-MAIN-ALT-FAX-IND.  
+
+           IF WS-TEST-AGENCY-FLG = 1
+              MOVE 'Y'  TO RSP50-O-TEST-AGENCY-IND  
+           ELSE 
+              MOVE 'N'  TO RSP50-O-TEST-AGENCY-IND. 
+
+           IF WS-SPILL-AGENCY-FLG = 1   
+              MOVE 'Y'  TO RSP50-O-SPILL-AGENCY-IND 
+           ELSE 
+              MOVE 'N'  TO RSP50-O-SPILL-AGENCY-IND.
+
+C85260     IF WS-NEW-BKG-FLG = 1
+C85260        MOVE 'Y' TO RSP50-O-ALLOW-NEW-BKG-IND 
+C85260     ELSE 
+C85260        MOVE 'N' TO RSP50-O-ALLOW-NEW-BKG-IND.
+
+C85260     IF WS-MODIFY-BKG-FLG = 1 
+C85260        MOVE 'Y' TO RSP50-O-ALLOW-MODIFY-BKG-IND  
+C85260     ELSE 
+C85260        MOVE 'N' TO RSP50-O-ALLOW-MODIFY-BKG-IND. 
+
+RE0511     IF WS-ALLOW-CHECK-FLG  = 1   
+RE0511        MOVE 'Y' TO RSP50-O-ALLOW-CHECK-IND   
+RE0511     ELSE 
+RE0511        MOVE 'N' TO RSP50-O-ALLOW-CHECK-IND.  
+CCL-UK  
+CCL-UK     IF WS-ALLOW-WIRE-PMT-FLG = 1 
+CCL-UK        MOVE 'Y' TO RSP50-O-ALLOW-WIRE-PMT-IND
+CCL-UK     ELSE 
+CCL-UK        MOVE 'N' TO RSP50-O-ALLOW-WIRE-PMT-IND
+CCL-UK     END-IF.  
+
+RE0511     IF WS-ALLOW-VOUCHER-FLG  = 1 
+RE0511        MOVE 'Y' TO RSP50-O-ALLOW-VOUCHER-IND 
+RE0511     ELSE 
+RE0511        MOVE 'N' TO RSP50-O-ALLOW-VOUCHER-IND.
+
+116627     IF WS-INTL-OPT-EXT-FLG = 1   
+116627        MOVE 'Y' TO RSP50-O-ALLOW-INTL-OPT-EXT-IND
+116627     ELSE 
+116627        MOVE 'N' TO RSP50-O-ALLOW-INTL-OPT-EXT-IND.   
+
+CCL-UK     IF WS-AUTO-VOUCHER-FLG = 1   
+CCL-UK        MOVE 'Y' TO RSP50-O-AUTO-VOUCHER-I-IND
+CCL-UK     ELSE 
+CCL-UK        MOVE 'N' TO RSP50-O-AUTO-VOUCHER-I-IND
+CCL-UK     END-IF.  
+
+
+CCL-UK*    IF RSP50-I-BROCHURE-TYPE <= SPACES   
+CCL-UK*       IF ATCR-BROCHURE-TYPE > SPACES
+CCL-UK*          MOVE ATCR-BROCHURE-TYPE TO RSP50-O-BROCHURE-TYPE.  
+
+PPC470*    IF  (RSP50-I-COUNTRY-CODE > SPACES)                 AND  
+PPC470*        (RSP50-I-COUNTRY-CODE NOT = AGENT-COUNTRY-CODE) AND  
+PPC470*        (AGENT-DIRECT-IND = 'Y')                        AND  
+PPC470*        (RSP50-I-GROUP-CONTRACT-IND = 'N')              AND  
+PPC470*        (RSP50-CHANGE-AGENT-FLG = 0) 
+PPC470*        CONTINUE 
+PPC470*    ELSE 
+PPC470*        IF  RSP50-I-BROCHURE-TYPE <= SPACES  
+PPC470*            IF  ATCR-BROCHURE-TYPE > SPACES  
+PPC470*                MOVE ATCR-BROCHURE-TYPE  
+PPC470*                                  TO RSP50-O-BROCHURE-TYPE   
+PPC470*            END-IF   
+PPC470*        END-IF   
+PPC470*    END-IF.  
+
+CCL-UK*    IF WS-EDOC-PREF = 1  
+CCL-UK     MOVE 'E' TO RSP50-O-DOC-PREF-CODE.   
+
+           IF RSP50-I-GRP-BOOK-NUM <= SPACES
+              GO TO 1200-CHECK-ATCR-WHOLESALE-IND.  
+
+RE0908     IF GBR1-WHOLESALE-IND = RSP50-O-WHOLESALE-IND
+RE0908        GO TO 1200-CHECK-ATCR-WHOLESALE-IND.  
+
+108267     IF RSP50-CHANGE-AGENT-FLG = 1 AND
+108267           RSP50-I-IBR-BOOK-NUM <= SPACES 
+108267        GO TO 1200-CHECK-ATCR-WHOLESALE-IND.  
+
+C68461     IF (GBR1-WHOLESALE-IND NOT = 'Y' AND 'G' AND 'O')
+RE0908        GO TO 1200-CHECK-ATCR-WHOLESALE-IND.  
+
+C68461     IF RSP50-O-WHOLESALE-IND = 'Y' OR 'G' OR 'O' 
+RE0908        GO TO 1200-CHECK-ATCR-WHOLESALE-IND.  
+
+214948*    IF GBR1-ALT-CUSTOMER-NUM > ZERO  
+214948     IF GBR1-ALT-CUSTOMER-NUM > SPACES
+RE0908        IF GBR1-CUSTOMER-NUM = GBR1-ALT-CUSTOMER-NUM  
+RE0908           GO TO 1200-CHECK-ATCR-WHOLESALE-IND
+RE0908        ELSE  
+C54333           MOVE 'Y'                TO WS-PROTECT-RELATIONSHIP-IND 
+RE0908           MOVE GBR1-WHOLESALE-IND TO RSP50-O-WHOLESALE-IND   
+RE0908           GO TO 1200-CHECK-ATCR-WHOLESALE-IND.   
+
+RE0908     IF GBR1-NUM-ADULTS = ZERO AND GBR1-NUM-CHILDREN = ZERO   
+RE0908        IF GBR1-BTH-DEPOSIT-AMT = ZERO
+RE0908           GO TO 1200-CHECK-ATCR-WHOLESALE-IND.   
+
+RE0908     IF GBR1-BERTHED-ALT-CUSTOMER-NUM = GBR1-CUSTOMER-NUM 
+RE0908        GO TO 1200-CHECK-ATCR-WHOLESALE-IND.  
+
+RE0908     MOVE GBR1-WHOLESALE-IND TO RSP50-O-WHOLESALE-IND.
+
+C54333     IF RSP50-I-IBR-BOOK-NUM > SPACES 
+C54333        MOVE 'Y'                TO WS-PROTECT-RELATIONSHIP-IND.   
+
+       1200-CHECK-ATCR-WHOLESALE-IND.   
+           IF RSP50-O-WHOLESALE-IND = 'N' OR
+                 (RSP50-O-WHOLESALE-IND = 'G' AND   
+                  RSP50-I-GROUP-CONTRACT-IND = 'N' AND  
+                  RSP50-I-GRP-BOOK-NUM <= SPACES)   
+              IF RSP50-I-ALT-PHONE-NUM > ZERO OR
+214948*             RSP50-I-ALT-CUSTOMER-NUM > ZERO OR  
+214948              RSP50-I-ALT-CUSTOMER-NUM > SPACE OR 
+                    RSP50-I-AAR-ALT-AGENCY-ID > SPACES  
+                 MOVE 16 TO DPP42-HOLD-MSG-INDEX
+                 IF RSP50-ALLOW-NON-WHOLESALE-FLG = 1 OR
+RE0408                 (RSP50-I-IBR-BOOK-NUM > SPACES AND   
+RE0408                 IBR-BOOK-TYPE = 'I' AND WS-AGENT-INFO-IND = 'Y') 
+                    PERFORM 9400-INFO-MSG   
+                 ELSE   
+                    GO TO 9200-EDIT-ERROR-MSG   
+                 END-IF 
+              END-IF
+              MOVE 'P' TO RSP50-O-ALT-COMM-CODE 
+150339*                   RSP50-O-ALT-FAX-CODE  
+                          RSP50-O-ALT-TKT-CODE  
+                          WS-ALT-COMM-IND   
+150339*                   WS-MAIN-ALT-FAX-IND   
+                          WS-MAIN-ALT-TKT-IND   
+              GO TO 1300-CHECK-RETAIL-IND.  
+
+           MOVE ATCR-ALT-COMM-IND       TO RSP50-O-ALT-COMM-CODE
+                                           WS-ALT-COMM-IND. 
+150339*    MOVE ATCR-ALT-FAX-IND        TO RSP50-O-ALT-FAX-CODE 
+150339*                                    WS-MAIN-ALT-FAX-IND. 
+           MOVE ATCR-ALT-TKT-IND        TO RSP50-O-ALT-TKT-CODE 
+                                           WS-MAIN-ALT-TKT-IND. 
+
+150339*    IF WS-MAIN-ALT-FAX-IND NOT > SPACES  
+150339*       MOVE 'P' TO WS-MAIN-ALT-FAX-IND.  
+C81658  
+           IF RSP50-I-ALT-PHONE-NUM = ZERO AND  
+214948*          RSP50-I-ALT-CUSTOMER-NUM = ZERO AND
+214948           RSP50-I-ALT-CUSTOMER-NUM = SPACES AND  
+                 RSP50-I-AAR-ALT-AGENCY-ID <= SPACES
+              NEXT SENTENCE 
+           ELSE 
+              GO TO 1600-OUTPUT-MAIN-AGENT-INFO.
+
+           IF ATCR-RETAIL-IND = 'Y' 
+              IF (RSP50-I-GRP-BOOK-NUM <= SPACES) AND   
+                    (RSP50-I-GROUP-CONTRACT-IND = 'N')  
+                 GO TO 1600-OUTPUT-MAIN-AGENT-INFO  
+              ELSE  
+                 IF RSP50-I-CALL-CENTER-IND = 'Y'   
+                    NEXT SENTENCE   
+                 ELSE   
+                    IF RSP50-O-CUSTOMER-NUM NOT = GBR1-CUSTOMER-NUM 
+                       IF (RSP50-I-GROUP-CONTRACT-IND NOT = 'Y') AND
+                             (RSP50-I-IBR-BOOK-NUM <= SPACES)   
+RE0208                    MOVE 'N' TO WS-INPUT-PASS-IND 
+                          GO TO 1325-SWITCH-TO-ALT  
+                       END-IF   
+RE0208              ELSE
+RE0208                 IF RSP50-I-GRP-BOOK-NUM > SPACES AND 
+RE0208                        (RSP50-I-IBR-BOOK-NUM <= SPACES) AND  
+RE0208                        (RSP50-I-GROUP-CONTRACT-IND NOT = 'Y') AND
+RE0208                        (GBR1-WHOLESALE-IND = 'Y' OR 'G') 
+RE0208                    IF RSP50-I-ALT-PHONE-NUM <= ZERO AND  
+214948*                         RSP50-I-ALT-CUSTOMER-NUM <= ZERO AND
+214948                          RSP50-I-ALT-CUSTOMER-NUM <= SPACES AND  
+RE0208                          RSP50-I-AAR-ALT-AGENCY-ID <= SPACES 
+RE0208                       MOVE 'N' TO WS-INPUT-PASS-IND  
+214948*                      IF GBR1-ALT-CUSTOMER-NUM = ZERO
+214948                       IF GBR1-ALT-CUSTOMER-NUM = SPACES  
+RE0208                          MOVE GBR1-CUSTOMER-NUM TO   
+RE0208                               RSP50-I-ALT-CUSTOMER-NUM   
+RE0208                       ELSE   
+RE0208                          MOVE GBR1-ALT-CUSTOMER-NUM TO   
+RE0208                               RSP50-I-ALT-CUSTOMER-NUM   
+RE0208                    END-IF
+RE0208                 END-IF   
+                    END-IF  
+                    GO TO 1600-OUTPUT-MAIN-AGENT-INFO.  
+
+           IF RSP50-I-GROUP-CONTRACT-IND = 'Y'  
+              IF ATCR-GROUP-ALT-REQ-IND = 'Y'   
+                 IF RSP50-I-CALL-CENTER-IND = 'Y'   
+                    MOVE 18 TO DPP42-HOLD-MSG-INDEX 
+                    PERFORM 9400-INFO-MSG   
+                 END-IF 
+              END-IF
+              GO TO 1600-OUTPUT-MAIN-AGENT-INFO.
+
+108267     IF (RSP50-I-GRP-BOOK-NUM > SPACES) AND   
+108267           (RSP50-CHANGE-AGENT-FLG = 0 OR 
+108267            RSP50-I-IBR-BOOK-NUM > SPACES)
+              IF RSP50-O-CUSTOMER-NUM = GBR1-CUSTOMER-NUM   
+C58653           IF (GBR1-WHOLESALE-IND = 'Y' OR 'G')   
+                    IF ATCR-WHOLESALE-IND = 'N' OR  
+                          (RSP50-I-CALL-CENTER-IND NOT = 'Y')   
+                       IF RSP50-I-ALT-PHONE-NUM <= ZERO AND 
+214948*                      RSP50-I-ALT-CUSTOMER-NUM <= ZERO AND   
+214948                       RSP50-I-ALT-CUSTOMER-NUM <= SPACES AND 
+                             RSP50-I-AAR-ALT-AGENCY-ID <= SPACES
+                          MOVE GBR1-CUSTOMER-NUM TO 
+                               RSP50-I-ALT-CUSTOMER-NUM 
+                          GO TO 1600-OUTPUT-MAIN-AGENT-INFO.
+
+           IF (RSP50-I-CALL-CENTER-IND NOT = 'Y')   
+              GO TO 1300-CHECK-RETAIL-IND.  
+
+           IF ATCR-RETAIL-IND = 'N' 
+              MOVE 17 TO DPP42-HOLD-MSG-INDEX   
+           ELSE 
+              MOVE 19 TO DPP42-HOLD-MSG-INDEX.  
+
+           IF RSP50-ALLOW-WHOLESALE-ONLY-FLG = 0
+              GO TO 9200-EDIT-ERROR-MSG 
+           ELSE 
+              PERFORM 9400-INFO-MSG.
+
+       1300-CHECK-RETAIL-IND.   
+           IF RSP50-ALLOW-RETAIL-ONLY-FLG = 1   
+              GO TO 1600-OUTPUT-MAIN-AGENT-INFO.
+
+           IF ATCR-RETAIL-IND = 'Y' 
+              GO TO 1600-OUTPUT-MAIN-AGENT-INFO.
+
+       1325-SWITCH-TO-ALT.  
+           MOVE RSP50-O-PHONE-NUM       TO RSP50-O-ALT-PHONE-NUM.   
+           MOVE RSP50-O-CUSTOMER-NUM    TO RSP50-O-ALT-CUSTOMER-NUM.
+           MOVE RSP50-O-AGENT-NAME      TO RSP50-O-ALT-AGENT-NAME.  
+           MOVE RSP50-O-AGENT-DBKEY     TO RSP50-O-ALT-AGENT-DBKEY. 
+           MOVE RSP50-O-ATCR-DBKEY      TO RSP50-O-ALT-ATCR-DBKEY.  
+150339*    MOVE RSP50-O-MAIN-FAX-NUM    TO RSP50-O-ALT-FAX-NUM. 
+           MOVE ZEROES                  TO RSP50-O-AGENT-DBKEY  
+                                           RSP50-O-ATCR-DBKEY.  
+150339*                                    RSP50-O-MAIN-FAX-NUM.
+
+           IF RSP50-I-GRP-BOOK-NUM > SPACES 
+              GO TO 1500-GET-WHOLESALER.
+
+           MOVE 'Y'                     TO ABR-WHOLESALE-IND.   
+
+144449*    MOVE 12581013 TO DPP01-ERROR-NUMBER. 
+           FETCH AGENT-BUSINESS-REC VIA AGENT-BUSINESS-SET  
+                 USING ABR-WHOLESALE-IND
+                 ON ERROR GO TO 10600-NO-BUSINESS-RELATION. 
+
+           IF ABR-COMPANY-CODE = RSP50-I-COMPANY-CODE   
+              GO TO 1500-GET-WHOLESALER.
+
+       1400-NEXT-BUSINESS-RELATION. 
+144449*    MOVE 12581014 TO DPP01-ERROR-NUMBER. 
+           FETCH NEXT DUPLICATE AGENT-BUSINESS-REC RECORD   
+                 WITHIN AGENT-BUSINESS-SET USING ABR-WHOLESALE-IND  
+                 ON ERROR GO TO 10600-NO-BUSINESS-RELATION. 
+
+           IF (ABR-COMPANY-CODE NOT = RSP50-I-COMPANY-CODE) 
+              GO TO 1400-NEXT-BUSINESS-RELATION.
+
+       1500-GET-WHOLESALER. 
+108267     IF RSP50-I-GRP-BOOK-NUM > SPACES 
+108267        IF RSP50-CHANGE-AGENT-FLG = 1 
+108267           IF RSP50-I-IBR-BOOK-NUM > SPACES   
+108267              MOVE GBR1-CUSTOMER-NUM       TO AAR-NUM 
+108267           ELSE   
+108267              MOVE ABR-MEMBER-CUSTOMER-NUM TO AAR-NUM 
+108267        ELSE  
+108267           MOVE GBR1-CUSTOMER-NUM          TO AAR-NUM 
+108267     ELSE 
+108267        MOVE ABR-MEMBER-CUSTOMER-NUM       TO AAR-NUM.
+
+           MOVE 'CM'                    TO AAR-TYPE.
+
+144449*    MOVE 12111015 TO DPP01-ERROR-NUMBER. 
+           FETCH AGENCY-ASSOCIATION-REC RECORD. 
+
+144449*    MOVE 12112316 TO DPP01-ERROR-NUMBER. 
+           FETCH OWNER WITHIN AGENCY-ASSOCIATION-SET SET.   
+
+201534     MOVE CURRENT-DBKEY           TO RSP50-O-AGENT-DBKEY. 
+
+192660     PERFORM 4100-FIND-ERF THRU   
+192660             4100-FIND-ERF-EXIT.  
+
+C85260*    IF RSP50-I-GRP-BOOK-NUM <= SPACES
+C85260*       IF AGENT-ACCT-COMMENT-CODE = 'A' OR 'F' OR 'O' OR 'Q' 
+C85260*          GO TO 1400-NEXT-BUSINESS-RELATION. 
+
+201534*    MOVE CURRENT-DBKEY           TO RSP50-O-AGENT-DBKEY. 
+           MOVE AGENT-PHONE-NUM         TO RSP50-O-PHONE-NUM.   
+           MOVE AGENT-CUSTOMER-NUM      TO RSP50-O-CUSTOMER-NUM.
+           MOVE AGENT-NAME              TO RSP50-O-AGENT-NAME.  
+           MOVE AGENT-CLIA-NUM          TO RSP50-O-CLIA-NUM.
+109247     MOVE AGENT-IATA-NUM          TO RSP50-O-IATA-NUM.
+           MOVE AGENT-ARC-NUM           TO RSP50-O-AGENT-ARC-NUM.   
+           MOVE AGENT-PHONE-NUM         TO ATCR-PHONE-NUM.  
+           MOVE RSP50-I-COMPANY-CODE    TO ATCR-COMPANY-CODE.   
+
+164663     IF AGENT-DIRECT-IND = 'Y'
+164663        MOVE SPACES               TO RSP50-O-ATOL-NUM 
+164663                                     RSP50-O-TRUE-NUM 
+164663                                     RSP50-O-BLN-NUM  
+164663                                     RSP50-O-SOT-NUM  
+164663     ELSE 
+164663        PERFORM VARYING SUB FROM 1 BY 1   
+164663                UNTIL SUB > AGENT-BIN-TABLE-COUNT 
+164663           EVALUATE AGENT-BUS-ID-NUM-TYP(SUB) 
+164663            WHEN 'ATOL'   
+164663              MOVE AGENT-BUS-ID-NUM-VAL (SUB) 
+164663                                  TO RSP50-O-ATOL-NUM 
+164663            WHEN 'TRUE'   
+164663              MOVE AGENT-BUS-ID-NUM-VAL (SUB) 
+164663                                  TO RSP50-O-TRUE-NUM 
+164663            WHEN 'BLN'
+164663              MOVE AGENT-BUS-ID-NUM-VAL (SUB) 
+164663                                  TO RSP50-O-BLN-NUM  
+164663            WHEN 'SOT'
+164663              MOVE AGENT-BUS-ID-NUM-VAL (SUB) 
+164663                                  TO RSP50-O-SOT-NUM  
+164663           END-EVALUATE   
+164663        END-PERFORM   
+164663     END-IF.  
+
+144449*    MOVE 12511017 TO DPP01-ERROR-NUMBER. 
+           FETCH AGENT-TERMS-COMPANY-REC RECORD 
+                 ON ERROR GO TO 10700-NO-WHOLESALER-TERMS.  
+
+123440     IF ATCR-WHOLESALE-IND <= SPACES  
+123440        MOVE 'N' TO ATCR-WHOLESALE-IND.   
+
+           IF ATCR-ALT-TKT-IND = 'P'
+              MOVE ATCR-AGENCY-INDICATORS TO WS-AGENCY-INDICATORS   
+              IF WS-EDOC-PREF = 1   
+                 MOVE 'E' TO RSP50-O-DOC-PREF-CODE. 
+
+           IF RSP50-I-GRP-BOOK-NUM <= SPACES
+              MOVE ATCR-WHOLESALE-IND       TO RSP50-O-WHOLESALE-IND.   
+
+           MOVE ATCR-ALT-COMM-IND        TO WS-ALT-COMM-IND.
+           MOVE CURRENT-DBKEY            TO RSP50-O-ATCR-DBKEY. 
+           MOVE AGENT-COUNTRY-CODE       TO WS-MAIN-COUNTRY-CODE.   
+           MOVE AGENT-OWNER-CONTRACT-NUM TO WS-MAIN-OWNER-CONTRACT. 
+186084*    MOVE AGENT-CONTRACT-NUM       TO WS-MAIN-CONTRACT.   
+186084*    MOVE AGENT-SUPER-CONTRACT-NUM TO WS-MAIN-SUPER-CONTRACT. 
+186084     MOVE AGENT-MASTER-CONTRACT-NUM   
+186084                                   TO WS-MAIN-MASTER-CONTRACT.
+192660*    MOVE AGENT-NPC-NUM            TO WS-MAIN-NPC-NUM.
+192660     MOVE WS-AGENT-NPC-NUM         TO WS-MAIN-NPC-NUM.
+           MOVE ATCR-ASSOCIATION-TYPE    TO WS-MAIN-ASSOCIATION-TYPE.   
+150339*    MOVE ATCR-ALT-FAX-IND         TO WS-MAIN-ALT-FAX-IND.
+           MOVE ATCR-ALT-COMM-IND        TO RSP50-O-ALT-COMM-CODE   
+                                            WS-ALT-COMM-IND.
+150339*    MOVE ATCR-ALT-FAX-IND         TO RSP50-O-ALT-FAX-CODE
+150339*                                     WS-MAIN-ALT-FAX-IND.
+           MOVE ATCR-ALT-TKT-IND         TO RSP50-O-ALT-TKT-CODE
+                                            WS-MAIN-ALT-TKT-IND.
+150339*    MOVE ATCR-FAX-CONF-IND        TO WS-MAIN-FAX-CONF-IND.   
+150339*    MOVE AGENT-FAX-NUM            TO RSP50-O-MAIN-FAX-NUM.   
+150339*    MOVE SPACES                   TO WS-MAIN-EMAIL-ADDR. 
+
+           IF WS-ALT-COMM-IND = 'P' 
+192660*       MOVE AGENT-NPC-NUM           TO RSP50-O-AGENT-NPC-NUM 
+192660        MOVE WS-AGENT-NPC-NUM        TO RSP50-O-AGENT-NPC-NUM 
+CCL-UK        MOVE AGENT-TTA-NUM           TO RSP50-O-TTA-NUM   
+156226        MOVE AGENT-ABN-NUMBER        TO RSP50-O-ABN-NUMBER
+CCL-UK        MOVE AGENT-ABTA-NUM          TO RSP50-O-ABTA-NUM. 
+
+150339*    IF WS-MAIN-ALT-FAX-IND NOT > SPACES  
+150339*       MOVE 'P' TO WS-MAIN-ALT-FAX-IND.  
+
+150339*    IF WS-MAIN-ALT-FAX-IND = 'P' 
+150339*       IF (ATCR-FAX-CONF-IND = 'Y' OR
+150339*             RSP50-OVERRIDE-EMAIL-FAX-FLG = 1)   
+150339*          MOVE AGENT-FAX-NUM         TO RSP50-O-FAX-NUM. 
+
+       1600-OUTPUT-MAIN-AGENT-INFO. 
+
+           IF RSP50-RATE-INFO-FLG > ZERO
+              PERFORM 8800-PROCESS-SELECT-RATE  
+                 THRU 8899-EXIT.
+
+192660     PERFORM 4100-FIND-ERF THRU   
+192660             4100-FIND-ERF-EXIT.  
+
+108267     IF RSP50-CHANGE-AGENT-FLG = 0
+108267        IF (WS-ALT-COMM-IND = 'P' ) OR
+108267              (RSP50-I-ALT-PHONE-NUM <= ZERO AND  
+214948*              RSP50-I-ALT-CUSTOMER-NUM <= ZERO AND   
+214948               RSP50-I-ALT-CUSTOMER-NUM <= SPACES AND 
+108267               RSP50-I-AAR-ALT-AGENCY-ID <= SPACES) OR
+108267              (WS-ALT-COMM-IND = 'A' AND  
+108267               RSP50-O-CUSTOMER-NUM = RSP50-I-ALT-CUSTOMER-NUM) OR
+108267              (WS-ALT-COMM-IND = 'A' AND  
+108267               RSP50-O-PHONE-NUM = RSP50-I-ALT-PHONE-NUM) 
+192660*          MOVE AGENT-NPC-NUM         TO RSP50-O-AGENT-NPC-NUM
+192660           MOVE WS-AGENT-NPC-NUM      TO RSP50-O-AGENT-NPC-NUM
+108267           MOVE 'P'                   TO WS-CURR-MAIN-ALT-CODE
+108267           PERFORM 8100-OUTPUT-AGENT-CURR 
+108267              THRU 8199-OUTPUT-AGENT-CURR-EXIT
+108267        END-IF
+108267        GO TO 1650-CHECK-EMAIL-REQUEST-FLG.   
+
+108267     IF WS-ALT-COMM-IND = 'P' 
+108267        IF RSP50-O-CUSTOMER-NUM NOT = WS-BOOK-CUSTOMER-NUM
+192660*          MOVE AGENT-NPC-NUM         TO RSP50-O-AGENT-NPC-NUM
+192660           MOVE WS-AGENT-NPC-NUM      TO RSP50-O-AGENT-NPC-NUM
+108267           MOVE 'P'                   TO WS-CURR-MAIN-ALT-CODE
+108267           PERFORM 8100-OUTPUT-AGENT-CURR 
+108267              THRU 8199-OUTPUT-AGENT-CURR-EXIT
+108267        END-IF
+108267     ELSE 
+108267        IF RSP50-O-CUSTOMER-NUM = RSP50-I-ALT-CUSTOMER-NUM OR 
+108267              RSP50-O-PHONE-NUM = RSP50-I-ALT-PHONE-NUM   
+108267           IF RSP50-O-CUSTOMER-NUM NOT = WS-BOOK-CUSTOMER-NUM 
+192660*             MOVE AGENT-NPC-NUM   TO RSP50-O-AGENT-NPC-NUM   
+192660              MOVE WS-AGENT-NPC-NUM   
+192660                                   TO RSP50-O-AGENT-NPC-NUM   
+108267              MOVE 'P'             TO WS-CURR-MAIN-ALT-CODE   
+108267              PERFORM 8100-OUTPUT-AGENT-CURR  
+108267                 THRU 8199-OUTPUT-AGENT-CURR-EXIT.
+
+108267 1650-CHECK-EMAIL-REQUEST-FLG.
+
+CCL-UK     IF WS-ALT-COMM-IND = 'P' 
+CCL-UK        IF WS-SPS-REGISTERED-FLG = 1 AND  
+144449           RSP86-O-DEFAULT-CURRENCY-CODE  
+CCL-UK           = RSP50-O-CURRENCY-CODE
+CCL-UK           MOVE 'Y' TO RSP50-O-SPS-REGISTERED-IND 
+CCL-UK        ELSE  
+CCL-UK           MOVE 'N' TO RSP50-O-SPS-REGISTERED-IND 
+CCL-UK        END-IF
+CCL-UK     END-IF.  
+
+           IF RSP50-GET-AGENT-CAPS-FLG = ZERO   
+              GO TO 1800-CHECK-MAIN-COMMISSION. 
+
+           MOVE AGENT-CUSTOMER-NUM      TO AGCR-CUSTOMER-NUM.   
+           MOVE ATCR-COMPANY-CODE       TO AGCR-COMPANY-CODE.   
+           MOVE WS-SYS-DATE-YYYY        TO AGCR-YEAR.   
+           MOVE ZERO                    TO WS-SUB.  
+
+       1700-FETCH-AGENT-CAPS.   
+           ADD 1 TO RSP50-O-GROUP-MAX-CNT.  
+
+           IF RSP50-O-GROUP-MAX-CNT > 10
+              MOVE 45 TO DPP42-HOLD-MSG-INDEX   
+144449*       PERFORM DPP42-EDIT-ERROR-MSG THRU DPP42-EXIT  
+144449*       GO TO DPP42-END-OF-JOB.   
+144449        GO TO 9200-EDIT-ERROR-MSG.
+
+           MOVE 'P' TO  
+                RSP50-O-GRP-MAX-AGENT-CODE (RSP50-O-GROUP-MAX-CNT). 
+           MOVE AGCR-YEAR TO
+                RSP50-O-GRP-MAX-YEAR (RSP50-O-GROUP-MAX-CNT).   
+           MOVE ATCR-GROUP-BKG-SAIL-MAX TO  
+                RSP50-O-GRP-SAIL-MAX (RSP50-O-GROUP-MAX-CNT).   
+
+144449*    MOVE 99999999 TO DPP01-ERROR-NUMBER. 
+           FETCH AGENT-GRP-CAPACITY-REC RECORD  
+                 ON ERROR GO TO 1720-USE-COMPANY-DEFAULTS.  
+
+           GO TO 1740-PROCESS-AGENT-COMPS.  
+
+       1720-USE-COMPANY-DEFAULTS.   
+163032     MOVE SSP05-O-GRP-HARD-MAX TO 
+                RSP50-O-GRP-YEAR-HARD-MAX (RSP50-O-GROUP-MAX-CNT).  
+163032     MOVE SSP05-O-GRP-SOFT-MAX TO 
+                RSP50-O-GRP-YEAR-SOFT-MAX (RSP50-O-GROUP-MAX-CNT).  
+           MOVE ZERO TO RSP50-O-GRP-YEAR-CNT (RSP50-O-GROUP-MAX-CNT).   
+
+           GO TO 1760-NEXT-GRP-CAP. 
+
+       1740-PROCESS-AGENT-COMPS.
+           MOVE AGCR-BKG-HARD-MAX TO
+                RSP50-O-GRP-YEAR-HARD-MAX (RSP50-O-GROUP-MAX-CNT).  
+           MOVE AGCR-BKG-SOFT-MAX TO
+                RSP50-O-GRP-YEAR-SOFT-MAX (RSP50-O-GROUP-MAX-CNT).  
+           MOVE AGCR-BKGS-SOLD-CNT TO   
+                RSP50-O-GRP-YEAR-CNT (RSP50-O-GROUP-MAX-CNT).   
+
+       1760-NEXT-GRP-CAP.   
+           IF WS-SUB < 4
+              ADD 1 TO AGCR-YEAR
+                       WS-SUB   
+              GO TO 1700-FETCH-AGENT-CAPS.  
+
+       1800-CHECK-MAIN-COMMISSION.  
+           IF RSP50-COMMISSION-FLG = ZERO   
+              GO TO 2100-CHECK-FOR-ALTERNATES.  
+
+CCL-UK*    MOVE ATCR-INDV-CRUO-COMM  TO RSP50-O-INDV-CRUISE-COMM.   
+CCL-UK*    MOVE ATCR-INDV-FLYA-COMM  TO RSP50-O-INDV-FLYA-COMM. 
+CCL-UK*    MOVE ATCR-INDV-ADDON-COMM TO RSP50-O-INDV-ADDON-COMM.
+CCL-UK*    MOVE ATCR-INDV-TOUR-COMM  TO RSP50-O-INDV-PACKAGE-COMM.  
+CCL-UK*    MOVE ATCR-INDV-INS-COMM   TO RSP50-O-INDV-INSURANCE-COMM.
+CCL-UK*    MOVE ATCR-INDV-CRUO-COMM  TO RSP50-O-INDV-CRUISE-SUPPL-COMM. 
+CCL-UK*    MOVE ATCR-INDV-ADDON-COMM TO RSP50-O-INDV-TRANS-SUPPL-COMM.  
+CCL-UK*    MOVE ATCR-GRP-CRUO-COMM   TO RSP50-O-GRP-CRUISE-COMM.
+CCL-UK*    MOVE ATCR-GRP-FLYA-COMM   TO RSP50-O-GRP-FLYA-COMM.  
+CCL-UK*    MOVE ATCR-GRP-ADDON-COMM  TO RSP50-O-GRP-ADDON-COMM. 
+CCL-UK*    MOVE ATCR-GRP-TOUR-COMM   TO RSP50-O-GRP-PACKAGE-COMM.   
+CCL-UK*    MOVE ATCR-GRP-INS-COMM    TO RSP50-O-GRP-INSURANCE-COMM. 
+CCL-UK*    MOVE ATCR-GRP-CRUO-COMM   TO RSP50-O-GRP-CRUISE-SUPPL-COMM.  
+CCL-UK*    MOVE ATCR-GRP-ADDON-COMM  TO RSP50-O-GRP-TRANS-SUPPL-COMM.   
+CCL-UK*    MOVE ZERO                 TO RSP50-O-INDV-TRANSFER-COMM  
+CCL-UK*                                 RSP50-O-GRP-TRANSFER-COMM.  
+
+166234     MOVE LOW-VALUES           TO RSP50-O-AGT-COMMISSION-ENTRY(1) 
+166234                                  RSP50-O-AGT-COMMISSION-ENTRY(2).
+166234     MOVE ZEROES               TO RSP50-O-COMMISSION-CNT. 
+
+CCL-UK     PERFORM 8400-GET-COMMISSION THRU 8449-GET-COMMISSION-EXIT
+CCL-UK             VARYING COMM-ATCR-SUB FROM 1 BY 1
+CCL-UK             UNTIL COMM-ATCR-SUB > ATCR-CONNECTION-CNT.   
+
+CCL-UK*    IF RSP50-I-IBR-BOOK-NUM <= SPACES
+CCL-UK*       GO TO 2100-CHECK-FOR-ALTERNATES.  
+
+CCL-UK*    MOVE IBR-INS-COMM-PCT         TO RSP50-O-BKG-INSURANCE-COMM. 
+CCL-UK*    MOVE IBR-CRUO-COMM-PCT        TO RSP50-O-BKG-CRUISE-COMM.
+CCL-UK*    MOVE IBR-FLYA-COMM-PCT        TO RSP50-O-BKG-FLYA-COMM.  
+CCL-UK*    MOVE IBR-ADDON-COMM-PCT       TO RSP50-O-BKG-ADDON-COMM. 
+CCL-UK*    MOVE IBR-PACKAGE-COMM-PCT     TO RSP50-O-BKG-PACKAGE-COMM.   
+CCL-UK*    MOVE IBR-TRANSFER-COMM-PCT    TO RSP50-O-BKG-TRANSFER-COMM.  
+CCL-UK*    MOVE IBR-CRUISE-SUPP-COMM-PCT TO 
+CCL-UK*         RSP50-O-BKG-CRUISE-SUPPL-COMM.  
+CCL-UK*    MOVE IBR-TRANS-SUPP-COMM-PCT  TO 
+CCL-UK*         RSP50-O-BKG-TRANS-SUPPL-COMM.   
+
+       2100-CHECK-FOR-ALTERNATES.   
+
+214948*    IF RSP50-I-ALT-CUSTOMER-NUM = ZERO   
+214948     IF RSP50-I-ALT-CUSTOMER-NUM = SPACES 
+              GO TO 2200-CHECK-ALT-PHONE-NUM.   
+
+           MOVE RSP50-I-ALT-CUSTOMER-NUM TO WS-CUSTOMER-NUM.
+           MOVE WS-CUSTOMER-NUM-DISP     TO AAR-NUM.
+           MOVE 'CM'                     TO AAR-TYPE.   
+
+144449*    MOVE 12111018 TO DPP01-ERROR-NUMBER. 
+           FETCH AGENCY-ASSOCIATION-REC RECORD  
+                 ON ERROR GO TO 10800-NO-ALT-AGENCY-ASSOC.  
+
+144449*    MOVE 12112119 TO DPP01-ERROR-NUMBER. 
+           FETCH OWNER RECORD WITHIN AGENCY-ASSOCIATION-SET SET.
+
+C87403     IF RSP50-I-IBR-BOOK-NUM > SPACES 
+C87403        IF RSP50-I-ALT-CUSTOMER-NUM = IBR-ALT-CUSTOMER-NUM
+C87403           MOVE AGENT-CUSTOMER-NUM TO IBR-ALT-CUSTOMER-NUM.   
+
+C87403     IF RSP50-I-GRP-BOOK-NUM > SPACES 
+C87403        IF RSP50-I-ALT-CUSTOMER-NUM = GBR1-ALT-CUSTOMER-NUM   
+C87403           MOVE AGENT-CUSTOMER-NUM TO GBR1-ALT-CUSTOMER-NUM.  
+
+C87403     MOVE AGENT-CUSTOMER-NUM TO RSP50-I-ALT-CUSTOMER-NUM. 
+
+           GO TO 2500-PROCESS-ALTERNATE-AGENT.  
+
+       2200-CHECK-ALT-PHONE-NUM.
+           IF RSP50-I-ALT-PHONE-NUM = ZERO  
+              GO TO 2300-CHECK-ALT-AGENCY-ID.   
+
+           MOVE RSP50-I-ALT-PHONE-NUM TO APR-PHONE-NUM. 
+CCLAUS     IF (RSP50-I-ALT-PHN-COUNTRY-CODE = 'US' OR 'CA' OR 'PR') 
+CCLAUS        OR (RSP50-I-ALT-PHN-COUNTRY-CODE <= SPACES)   
+CCLAUS        MOVE 1                    TO APR-COUNTRY-NUM  
+CCLAUS     ELSE 
+CCLAUS        MOVE RSP50-I-ALT-PHN-COUNTRY-CODE TO WS-APR-COUNTRY-CODE  
+CCLAUS        PERFORM 10000-SELECT-VALID-COUNTRY  THRU 10000-EXIT   
+CCLAUS        MOVE WS-COUNTRY-NUM       TO APR-COUNTRY-NUM  
+CCLAUS     END-IF.  
+144449*    MOVE 12011020 TO DPP01-ERROR-NUMBER  
+           FETCH AGENT-PHONE-REC RECORD 
+                 ON ERROR GO TO 10900-NO-ALT-AGENT-PHONE.   
+
+144449*    MOVE 12012121 TO DPP01-ERROR-NUMBER. 
+           FETCH OWNER RECORD WITHIN AGENT-PHONE-SET SET.   
+
+           GO TO 2500-PROCESS-ALTERNATE-AGENT.  
+
+       2300-CHECK-ALT-AGENCY-ID.
+           IF (RSP50-I-AAR-ALT-AGENCY-ID NOT > SPACES)  
+              GO TO 2400-CHECK-FOR-RETAILER.
+
+           MOVE RSP50-I-AAR-ALT-AGENCY-ID TO AAR-NUM.   
+           MOVE RSP50-I-AAR-TYPE          TO AAR-TYPE.  
+
+144449*    MOVE 12111022 TO DPP01-ERROR-NUMBER. 
+           FETCH AGENCY-ASSOCIATION-REC RECORD  
+                 ON ERROR GO TO 11000-NO-ALT-AGENCY-ID-ASSOC.   
+
+144449*    MOVE 12112123 TO DPP01-ERROR-NUMBER. 
+           FETCH OWNER RECORD WITHIN AGENCY-ASSOCIATION-SET SET.
+
+           GO TO 2500-PROCESS-ALTERNATE-AGENT.  
+
+       2400-CHECK-FOR-RETAILER. 
+214948*    IF RSP50-O-ALT-CUSTOMER-NUM = ZERO   
+214948     IF RSP50-O-ALT-CUSTOMER-NUM = SPACES 
+              GO TO 3700-CHECK-BOOKING-ACCESS.  
+
+144449*    MOVE 12112324 TO DPP01-ERROR-NUMBER. 
+144449     MOVE RSP50-O-ALT-AGENT-DBKEY TO GENERIC-DBK. 
+
+144449     FETCH AGENT-REC RECORD GENERIC-DBK.  
+
+144449*    MOVE 12511025 TO DPP01-ERROR-NUMBER. 
+144449     MOVE RSP50-O-ALT-ATCR-DBKEY TO GENERIC-DBK.  
+
+144449     FETCH AGENT-TERMS-COMPANY-REC RECORD GENERIC-DBK.
+
+           GO TO 2700-VALIDATE-ASSOCIATION. 
+
+       2500-PROCESS-ALTERNATE-AGENT.
+C85260*    IF AGENT-ACCT-COMMENT-CODE = 'A' OR 'F' OR 'O' OR 'Q'
+C85260*       MOVE 20 TO DPP42-HOLD-MSG-INDEX   
+C85260*       IF RSP50-OVR-AGT-CMT-CODE-FLG = 1 
+C85260*          PERFORM 9400-INFO-MSG  
+C85260*       ELSE  
+C85260*          GO TO 9200-EDIT-ERROR-MSG. 
+
+199240*    PERFORM 4100-FIND-ERF THRU   
+199240*            4100-FIND-ERF-EXIT.  
+
+           MOVE CURRENT-DBKEY           TO RSP50-O-ALT-AGENT-DBKEY. 
+
+199240     PERFORM 4100-FIND-ERF THRU   
+199240             4100-FIND-ERF-EXIT.  
+
+           MOVE AGENT-NAME              TO RSP50-O-ALT-AGENT-NAME.  
+           MOVE AGENT-PHONE-NUM         TO RSP50-O-ALT-PHONE-NUM
+                                           WS-PHONE-NUM.
+           MOVE WS-AREA-CODE            TO RSP50-O-AREA-CODE.   
+           MOVE AGENT-CUSTOMER-NUM      TO RSP50-O-ALT-CUSTOMER-NUM.
+           MOVE AGENT-STATE             TO RSP50-O-STATE.   
+CCL-UK*    MOVE AGENT-COUNTRY-CODE      TO RSP50-O-COUNTRY-CODE.
+           MOVE AGENT-ACCT-COMMENT-CODE TO RSP50-O-ACCT-COMMENT-CODE.   
+138466     MOVE AGENT-RES-COMMENT-CODE  TO RSP50-O-RES-COMMENT-CODE.
+           MOVE AGENT-COMMENT           TO RSP50-O-AGENT-COMMENT.   
+           MOVE AGENT-LANGUAGE-IND      TO RSP50-O-LANGUAGE-CODE.   
+           MOVE AGENT-INTL-SALES-IND    TO RSP50-O-AGENT-INTL-SALES-IND.
+           MOVE ATCR-AGENCY-INDICATORS  TO WS-AGENCY-INDICATORS.
+
+CCL-UK     IF ( RSP50-I-COUNTRY-CODE > SPACES) AND  
+CCL-UK        ( AGENT-DIRECT-IND = 'Y') AND 
+CCL-UK        ( RSP50-I-GROUP-CONTRACT-IND = 'N') AND   
+CCL-UK        ( RSP50-CHANGE-AGENT-FLG = 0) 
+CCL-UK        NEXT SENTENCE 
+CCL-UK     ELSE 
+CCL-UK        MOVE AGENT-COUNTRY-CODE      TO RSP50-O-COUNTRY-CODE. 
+
+           IF WS-ALT-COMM-IND = 'A' 
+192660*       MOVE AGENT-NPC-NUM           TO RSP50-O-AGENT-NPC-NUM 
+192660        MOVE WS-AGENT-NPC-NUM        TO RSP50-O-AGENT-NPC-NUM 
+CCL-UK        MOVE AGENT-TTA-NUM           TO RSP50-O-TTA-NUM   
+156226        MOVE AGENT-ABN-NUMBER        TO RSP50-O-ABN-NUMBER
+CCL-UK        MOVE AGENT-ABTA-NUM          TO RSP50-O-ABTA-NUM. 
+
+CCL-UK     IF ((RSP50-I-GRP-BOOK-NUM <= SPACES ) AND
+CCL-UK        (RSP50-I-IBR-BOOK-NUM <= SPACES )) OR 
+CCL-UK        (RSP50-CHANGE-AGENT-FLG = 1 ) OR  
+144449*       ((RSP86-O-LOCALITY-SUB <= ZEROES) AND 
+144449         (RSP50-I-IBR-BOOK-NUM <= SPACES) 
+CCL-UK        PERFORM 8350-CALL-RSC86GLD THRU 8399-EXIT 
+CCL-UK        PERFORM 8360-VALIDATE-AGENCY-LOCALITY THRU 8399-EXIT. 
+
+RE0208     IF WS-INPUT-PASS-IND = 'Y'   
+RE0208        MOVE AGENT-CUSTOMER-NUM TO WS-BKG-AGT-CUST-NUM.   
+
+           IF AGENT-DEFAULT-NATL-CODE > SPACES  
+              MOVE AGENT-DEFAULT-NATL-CODE TO RSP50-O-NATIONALITY-CODE. 
+
+           IF WS-TEST-AGENCY-FLG = 1
+              MOVE 'Y'  TO RSP50-O-TEST-AGENCY-IND  
+           ELSE 
+              MOVE 'N'  TO RSP50-O-TEST-AGENCY-IND. 
+
+           IF WS-SPILL-AGENCY-FLG = 1   
+              MOVE 'Y'  TO RSP50-O-SPILL-AGENCY-IND 
+           ELSE 
+              MOVE 'N'  TO RSP50-O-SPILL-AGENCY-IND.
+
+C85260     IF  WS-NEW-BKG-FLG = 1   
+C85260         MOVE 'Y' TO RSP50-O-ALLOW-NEW-BKG-IND
+C85260     ELSE 
+C85260         MOVE 'N' TO RSP50-O-ALLOW-NEW-BKG-IND
+C85260     END-IF.  
+C85260  
+C85260     IF  WS-MODIFY-BKG-FLG = 1
+C85260         MOVE 'Y' TO RSP50-O-ALLOW-MODIFY-BKG-IND 
+C85260     ELSE 
+C85260         MOVE 'N' TO RSP50-O-ALLOW-MODIFY-BKG-IND 
+C85260     END-IF.  
+
+RE0511     IF WS-ALLOW-CHECK-FLG  = 1   
+RE0511        MOVE 'Y' TO RSP50-O-ALLOW-CHECK-IND   
+RE0511     ELSE 
+RE0511        MOVE 'N' TO RSP50-O-ALLOW-CHECK-IND.  
+CCL-UK  
+CCL-UK     IF WS-ALLOW-WIRE-PMT-FLG = 1 
+CCL-UK        MOVE 'Y' TO RSP50-O-ALLOW-WIRE-PMT-IND
+CCL-UK     ELSE 
+CCL-UK        MOVE 'N' TO RSP50-O-ALLOW-WIRE-PMT-IND
+CCL-UK     END-IF.  
+
+RE0511     IF WS-ALLOW-VOUCHER-FLG  = 1 
+RE0511        MOVE 'Y' TO RSP50-O-ALLOW-VOUCHER-IND 
+RE0511     ELSE 
+RE0511        MOVE 'N' TO RSP50-O-ALLOW-VOUCHER-IND.
+116627  
+116627     IF WS-INTL-OPT-EXT-FLG = 1   
+116627        MOVE 'Y' TO RSP50-O-ALLOW-INTL-OPT-EXT-IND
+116627     ELSE 
+116627        MOVE 'N' TO RSP50-O-ALLOW-INTL-OPT-EXT-IND
+116627     END-IF.  
+
+           IF AGENT-DIRECT-IND = 'Y'
+              MOVE 'C' TO RSP50-O-CUSTOMER-CODE 
+           ELSE 
+              MOVE 'A' TO RSP50-O-CUSTOMER-CODE.
+
+CCL-UK     IF WS-AUTO-VOUCHER-FLG = 1   
+CCL-UK        MOVE 'Y' TO RSP50-O-AUTO-VOUCHER-I-IND
+CCL-UK     ELSE 
+CCL-UK        MOVE 'N' TO RSP50-O-AUTO-VOUCHER-I-IND.   
+CCL-UK*    IF WS-SPS-REGISTERED-FLG = 1 
+CCL-UK*       MOVE 'Y' TO RSP50-O-SPS-REGISTERED-IND
+CCL-UK*    ELSE 
+CCL-UK*       MOVE 'N' TO RSP50-O-SPS-REGISTERED-IND.   
+
+       2600-GET-ALT-TERMS.  
+           MOVE AGENT-PHONE-NUM         TO ATCR-PHONE-NUM.  
+           MOVE RSP50-I-COMPANY-CODE    TO ATCR-COMPANY-CODE.   
+
+144449*    MOVE 12511026 TO DPP01-ERROR-NUMBER. 
+           FETCH AGENT-TERMS-COMPANY-REC RECORD 
+                 ON ERROR GO TO 11100-NO-ALT-AGENT-TERMS.   
+
+           MOVE CURRENT-DBKEY           TO RSP50-O-ALT-ATCR-DBKEY.  
+           MOVE ATCR-REGION-CODE        TO RSP50-O-REGION-CODE. 
+           MOVE ATCR-SALES-REP-CODE     TO RSP50-O-SALES-REP-CODE.  
+           MOVE ATCR-TERRITORY-CODE     TO RSP50-O-TERRITORY-CODE.  
+150339*    MOVE AGENT-FAX-NUM           TO RSP50-O-ALT-FAX-NUM. 
+
+150339*    IF WS-MAIN-ALT-FAX-IND = 'A' 
+150339*       IF (ATCR-FAX-CONF-IND = 'Y' OR
+150339*             RSP50-OVERRIDE-EMAIL-FAX-FLG = 1) AND   
+150339*          (AGENT-FAX-NUM > ZERO) 
+150339*          MOVE AGENT-FAX-NUM        TO RSP50-O-FAX-NUM   
+150339*       ELSE  
+150339*          IF (WS-MAIN-FAX-CONF-IND = 'Y' OR  
+150339*                  RSP50-OVERRIDE-EMAIL-FAX-FLG = 1)  
+150339*             MOVE RSP50-O-MAIN-FAX-NUM TO RSP50-O-FAX-NUM.   
+
+CCL-UK*    IF RSP50-I-BROCHURE-TYPE <= SPACES   
+CCL-UK*       IF ATCR-BROCHURE-TYPE > SPACES
+CCL-UK*          MOVE ATCR-BROCHURE-TYPE TO RSP50-O-BROCHURE-TYPE.  
+
+PPC470*    IF  (RSP50-I-COUNTRY-CODE > SPACES)                 AND  
+
+PPC470*        (RSP50-I-COUNTRY-CODE NOT = AGENT-COUNTRY-CODE) AND  
+PPC470*        (AGENT-DIRECT-IND = 'Y')                        AND  
+PPC470*        (RSP50-I-GROUP-CONTRACT-IND = 'N')              AND  
+PPC470*        (RSP50-CHANGE-AGENT-FLG = 0) 
+PPC470*        CONTINUE 
+PPC470*    ELSE 
+PPC470*        IF  RSP50-I-BROCHURE-TYPE <= SPACES  
+PPC470*            IF  ATCR-BROCHURE-TYPE > SPACES  
+PPC470*                MOVE ATCR-BROCHURE-TYPE  
+PPC470*                                  TO RSP50-O-BROCHURE-TYPE   
+PPC470*            END-IF   
+PPC470*        END-IF   
+PPC470*    END-IF.  
+
+CCL-UK     IF WS-ALT-COMM-IND = 'A' 
+CCL-UK        MOVE ATCR-AGENCY-INDICATORS TO WS-AGENCY-INDICATORS   
+CCL-UK        IF WS-SPS-REGISTERED-FLG = 1 AND  
+144449           RSP86-O-DEFAULT-CURRENCY-CODE  
+CCL-UK           = RSP50-O-CURRENCY-CODE
+CCL-UK           MOVE 'Y' TO RSP50-O-SPS-REGISTERED-IND 
+CCL-UK        ELSE  
+CCL-UK           MOVE 'N' TO RSP50-O-SPS-REGISTERED-IND 
+CCL-UK        END-IF
+CCL-UK     END-IF.  
+
+           IF ATCR-ALT-TKT-IND = 'A'
+              MOVE ATCR-AGENCY-INDICATORS TO WS-AGENCY-INDICATORS   
+              IF WS-EDOC-PREF = 1   
+                 MOVE 'E' TO RSP50-O-DOC-PREF-CODE. 
+
+       2700-VALIDATE-ASSOCIATION.   
+           IF RSP50-O-CUSTOMER-NUM = RSP50-O-ALT-CUSTOMER-NUM   
+              MOVE 'P' TO RSP50-O-ALT-COMM-CODE 
+                          WS-ALT-COMM-IND   
+150339*                   RSP50-O-ALT-FAX-CODE  
+150339*                   WS-MAIN-ALT-FAX-IND   
+                          RSP50-O-ALT-TKT-CODE  
+                          WS-MAIN-ALT-TKT-IND   
+              GO TO 3400-APPLY-ALT-COMMISSION.  
+
+C54333     IF WS-PROTECT-RELATIONSHIP-IND = 'Y' 
+C54333        GO TO 3500-SEND-SELECTED-RATES.   
+
+214948*    IF RSP50-I-ALT-CUSTOMER-NUM = ZERO AND   
+214948     IF RSP50-I-ALT-CUSTOMER-NUM = SPACES AND 
+                 RSP50-I-ALT-PHONE-NUM = ZERO AND   
+                 RSP50-I-AAR-ALT-AGENCY-ID <= SPACES
+108267        IF (RSP50-I-GRP-BOOK-NUM <= SPACES) OR
+108267              (RSP50-I-GRP-BOOK-NUM > SPACES AND  
+108267               RSP50-I-IBR-BOOK-NUM <= SPACES AND 
+108267               RSP50-CHANGE-AGENT-FLG = 1)
+                 IF (WS-MAIN-ASSOCIATION-TYPE = 'BAR')  
+                    GO TO 3400-APPLY-ALT-COMMISSION 
+                 ELSE   
+                    GO TO 2800-RELATION-ERROR.  
+
+           EVALUATE WS-MAIN-ASSOCIATION-TYPE
+              WHEN 'BAR'
+                 GO TO 3000-FIND-BUSINESS-RELATION  
+              WHEN 'OWN'
+                 IF WS-MAIN-OWNER-CONTRACT = AGENT-OWNER-CONTRACT-NUM   
+                    GO TO 3400-APPLY-ALT-COMMISSION 
+                 END-IF 
+186084*       WHEN 'AFL'
+186084*          IF WS-MAIN-CONTRACT = AGENT-CONTRACT-NUM   
+186084*             GO TO 3400-APPLY-ALT-COMMISSION 
+186084*          END-IF 
+              WHEN 'MAC'
+186084*          IF WS-MAIN-SUPER-CONTRACT = AGENT-SUPER-CONTRACT-NUM   
+186084           IF WS-MAIN-MASTER-CONTRACT = AGENT-MASTER-CONTRACT-NUM 
+                    GO TO 3400-APPLY-ALT-COMMISSION 
+                 END-IF 
+              WHEN 'ASC'
+                 IF WS-MAIN-COUNTRY-CODE = AGENT-COUNTRY-CODE   
+                    GO TO 2900-CHECK-FOR-BOOKING-AGENT  
+                 END-IF 
+              WHEN 'NRR'
+                 GO TO 2900-CHECK-FOR-BOOKING-AGENT 
+           END-EVALUATE.
+
+       2800-RELATION-ERROR. 
+           MOVE 21 TO DPP42-HOLD-MSG-INDEX. 
+
+165711*    IF RSP50-OVR-RELATIONSHIP-FLG > ZERO OR  
+165711*          (RSP50-I-IBR-BOOK-NUM > SPACES AND IBR-BOOK-TYPE = 'I' 
+165711*           AND WS-AGENT-INFO-IND = 'Y' AND   
+165711*           RSP50-CHANGE-AGENT-FLG = 0)   
+165711*       PERFORM 9400-INFO-MSG 
+165711*       GO TO 3400-APPLY-ALT-COMMISSION   
+165711*    ELSE 
+165711*       GO TO 9200-EDIT-ERROR-MSG.
+
+165711     IF RSP50-OVR-RELATIONSHIP-FLG > ZERO 
+165711        MOVE 1  TO RSP90-OVR-RELATIONSHIP-FLG 
+165711        PERFORM 9400-INFO-MSG 
+165711        GO TO 3400-APPLY-ALT-COMMISSION   
+165711     END-IF.  
+
+165711     IF RSP50-I-IBR-BOOK-NUM > SPACES AND 
+165711        IBR-BOOK-TYPE = 'I' AND   
+165711        WS-AGENT-INFO-IND = 'Y' AND   
+165711        RSP50-CHANGE-AGENT-FLG = 0
+165711        PERFORM 9400-INFO-MSG 
+165711        GO TO 3400-APPLY-ALT-COMMISSION   
+165711     END-IF.  
+
+165711     GO TO 9200-EDIT-ERROR-MSG.   
+
+       2900-CHECK-FOR-BOOKING-AGENT.
+           IF RSP50-I-CALL-CENTER-IND = 'Y' 
+              MOVE 22 TO DPP42-HOLD-MSG-INDEX   
+              PERFORM 9400-INFO-MSG 
+              GO TO 3400-APPLY-ALT-COMMISSION.  
+
+RE0208     IF WS-INTL-EDIT-IND = 'N'
+RE0208        GO TO 3400-APPLY-ALT-COMMISSION.  
+
+           IF RSP50-I-ALT-PHONE-NUM > ZERO OR   
+214948*          RSP50-I-ALT-CUSTOMER-NUM > ZERO OR 
+214948           RSP50-I-ALT-CUSTOMER-NUM > SPACES OR   
+                 RSP50-I-AAR-ALT-AGENCY-ID > SPACES 
+              GO TO 3400-APPLY-ALT-COMMISSION.  
+
+RE0208     IF (WS-BKG-AGT-CUST-NUM NOT = RSP50-O-ALT-CUSTOMER-NUM)  
+RE0208        GO TO 3400-APPLY-ALT-COMMISSION.  
+
+           MOVE 23 TO DPP42-HOLD-MSG-INDEX. 
+
+           IF RSP50-OVR-BOOKING-AGENT-FLG > ZERO
+              PERFORM 9400-INFO-MSG 
+              GO TO 3400-APPLY-ALT-COMMISSION.  
+
+            GO TO 9200-EDIT-ERROR-MSG.  
+
+       3000-FIND-BUSINESS-RELATION. 
+           MOVE 'Y' TO ABR-WHOLESALE-IND.   
+
+144449*    MOVE 12581027 TO DPP01-ERROR-NUMBER. 
+           FETCH AGENT-BUSINESS-REC VIA AGENT-BUSINESS-SET  
+                 USING ABR-WHOLESALE-IND
+                 ON ERROR GO TO 3100-CHECK-ERROR-STATUS.
+
+           GO TO 3300-CHECK-BUSINESS-RELATION.  
+
+       3100-CHECK-ERROR-STATUS. 
+           IF ERROR-NUM = '0013' OR '0007'  
+              GO TO 2800-RELATION-ERROR 
+           ELSE 
+              GO TO 9100-DATABASE-ERROR.
+
+       3200-NEXT-BUSINESS-RELATION. 
+144449*    MOVE 12581028 TO DPP01-ERROR-NUMBER. 
+           FETCH NEXT DUPLICATE AGENT-BUSINESS-REC RECORD   
+                 WITHIN AGENT-BUSINESS-SET USING ABR-WHOLESALE-IND  
+                 ON ERROR GO TO 3100-CHECK-ERROR-STATUS.
+
+       3300-CHECK-BUSINESS-RELATION.
+           IF (ABR-COMPANY-CODE NOT = RSP50-I-COMPANY-CODE) 
+              GO TO 3200-NEXT-BUSINESS-RELATION.
+
+           MOVE ABR-MEMBER-CUSTOMER-NUM TO WS-CUSTOMER-NUM-DISP.
+
+           IF (WS-CUSTOMER-NUM NOT = RSP50-O-CUSTOMER-NUM)  
+              GO TO 3200-NEXT-BUSINESS-RELATION.
+
+       3400-APPLY-ALT-COMMISSION.   
+           IF RSP50-COMMISSION-FLG = ZERO   
+              GO TO 3500-SEND-SELECTED-RATES.   
+
+CCL-UK     IF (WS-ALT-COMM-IND NOT = 'A')   
+CCL-UK        IF RSP50-I-ALT-COMM-ONLY-IND = 0  
+CCL-UK           GO TO 3500-SEND-SELECTED-RATES.
+
+166234     MOVE LOW-VALUES           TO RSP50-O-AGT-COMMISSION-ENTRY(1) 
+166234                                  RSP50-O-AGT-COMMISSION-ENTRY(2).
+166234     MOVE ZEROES               TO RSP50-O-COMMISSION-CNT. 
+
+CCL-UK     PERFORM 8400-GET-COMMISSION THRU 8449-GET-COMMISSION-EXIT
+CCL-UK             VARYING COMM-ATCR-SUB FROM 1 BY 1
+CCL-UK             UNTIL COMM-ATCR-SUB > ATCR-CONNECTION-CNT.   
+
+       3500-SEND-SELECTED-RATES.
+           IF RSP50-RATE-INFO-FLG > ZERO
+              IF (RSP50-O-CUSTOMER-NUM NOT = RSP50-O-ALT-CUSTOMER-NUM)  
+                 PERFORM 8800-PROCESS-SELECT-RATE   
+                    THRU 8899-EXIT. 
+
+108267     IF RSP50-CHANGE-AGENT-FLG = 0
+108267        IF WS-ALT-COMM-IND = 'A'  
+108267           MOVE 'A' TO WS-CURR-MAIN-ALT-CODE  
+108267           PERFORM 8100-OUTPUT-AGENT-CURR 
+108267              THRU 8199-OUTPUT-AGENT-CURR-EXIT
+108267        END-IF
+108267     ELSE 
+108267        IF WS-ALT-COMM-IND = 'A'  
+108267           IF (RSP50-O-ALT-CUSTOMER-NUM NOT = 
+108267                 WS-BOOK-ALT-CUSTOMER-NUM)
+108267              MOVE 'A' TO WS-CURR-MAIN-ALT-CODE   
+108267              PERFORM 8100-OUTPUT-AGENT-CURR  
+108267                 THRU 8199-OUTPUT-AGENT-CURR-EXIT.
+
+           IF RSP50-GET-AGENT-CAPS-FLG = ZERO   
+              GO TO 3700-CHECK-BOOKING-ACCESS.  
+
+           MOVE AGENT-CUSTOMER-NUM      TO AGCR-CUSTOMER-NUM.   
+           MOVE ATCR-COMPANY-CODE       TO AGCR-COMPANY-CODE.   
+           MOVE WS-SYS-DATE-YYYY        TO AGCR-YEAR.   
+RE0707     MOVE ZERO                    TO WS-SUB.  
+
+       3600-FETCH-AGENT-CAPS.   
+           ADD 1 TO RSP50-O-GROUP-MAX-CNT.  
+
+           IF RSP50-O-GROUP-MAX-CNT > 10
+              MOVE 46 TO DPP42-HOLD-MSG-INDEX   
+144449*       PERFORM DPP42-EDIT-ERROR-MSG THRU DPP42-EXIT  
+144449*       GO TO DPP42-END-OF-JOB.   
+144449        GO TO 9200-EDIT-ERROR-MSG.
+
+           MOVE 'A' TO  
+                RSP50-O-GRP-MAX-AGENT-CODE (RSP50-O-GROUP-MAX-CNT). 
+           MOVE AGCR-YEAR TO
+                RSP50-O-GRP-MAX-YEAR (RSP50-O-GROUP-MAX-CNT).   
+           MOVE ATCR-GROUP-BKG-SAIL-MAX TO  
+                RSP50-O-GRP-SAIL-MAX (RSP50-O-GROUP-MAX-CNT).   
+
+144449*    MOVE 99999999 TO DPP01-ERROR-NUMBER. 
+           FETCH AGENT-GRP-CAPACITY-REC RECORD  
+                 ON ERROR GO TO 3620-USE-COMPANY-DEFAULTS.  
+
+           GO TO 3640-PROCESS-AGENT-COMPS.  
+
+       3620-USE-COMPANY-DEFAULTS.   
+163032     MOVE SSP05-O-GRP-HARD-MAX TO 
+                RSP50-O-GRP-YEAR-HARD-MAX (RSP50-O-GROUP-MAX-CNT).  
+163032     MOVE SSP05-O-GRP-SOFT-MAX TO 
+                RSP50-O-GRP-YEAR-SOFT-MAX (RSP50-O-GROUP-MAX-CNT).  
+           MOVE ZERO TO RSP50-O-GRP-YEAR-CNT (RSP50-O-GROUP-MAX-CNT).   
+
+           GO TO 3660-NEXT-GRP-CAP. 
+
+       3640-PROCESS-AGENT-COMPS.
+           MOVE AGCR-BKG-HARD-MAX TO
+                RSP50-O-GRP-YEAR-HARD-MAX (RSP50-O-GROUP-MAX-CNT).  
+           MOVE AGCR-BKG-SOFT-MAX TO
+                RSP50-O-GRP-YEAR-SOFT-MAX (RSP50-O-GROUP-MAX-CNT).  
+           MOVE AGCR-BKGS-SOLD-CNT TO   
+                RSP50-O-GRP-YEAR-CNT (RSP50-O-GROUP-MAX-CNT).   
+
+       3660-NEXT-GRP-CAP.   
+           IF WS-SUB < 4
+              ADD 1 TO AGCR-YEAR
+                       WS-SUB   
+              GO TO 3600-FETCH-AGENT-CAPS.  
+
+       3700-CHECK-BOOKING-ACCESS.   
+
+PRCCMB*    IF RSP50-RATE-INFO-FLG > ZERO
+PRCCMB*       PERFORM 8890-INSERT-ASIG THRU 8890-INSERT-ASIG-EXIT   
+PRCCMB*    END-IF.  
+
+           IF RSP50-I-GRP-BOOK-NUM <= SPACES
+              GO TO 3800-CHECK-INDV-ACCESS. 
+
+RE0208     IF RSP50-I-IBR-BOOK-NUM > SPACES 
+RE0208        GO TO 3800-CHECK-INDV-ACCESS. 
+
+108267     IF RSP50-CHANGE-AGENT-FLG = 1
+108267        GO TO 3800-CHECK-INDV-ACCESS. 
+
+           IF GBR1-CUSTOMER-NUM = RSP50-O-CUSTOMER-NUM  
+214948*       IF RSP50-O-ALT-CUSTOMER-NUM = ZERO
+214948        IF RSP50-O-ALT-CUSTOMER-NUM = SPACES  
+C71731           IF RSP50-I-GROUP-CONTRACT-IND = 'Y' AND
+214948*                GBR1-ALT-CUSTOMER-NUM > ZERO 
+214948                 GBR1-ALT-CUSTOMER-NUM > SPACES   
+C71731              MOVE GBR1-CUSTOMER-NUM  TO RSP50-I-CUSTOMER-NUM 
+C71731              MOVE GBR1-ALT-CUSTOMER-NUM TO   
+C71731                   RSP50-I-ALT-CUSTOMER-NUM   
+C71731              MOVE SPACES      TO RSP50-I-AAR-AGENCY-ID   
+C71731                                  RSP50-I-AAR-ALT-AGENCY-ID   
+C71731              MOVE ZERO        TO RSP50-I-PHONE-NUM   
+C71731                                  RSP50-I-ALT-PHONE-NUM   
+C71731              MOVE 'N'         TO WS-INPUT-PASS-IND   
+C71731              MOVE 0 TO RSP50-O-GROUP-MAX-CNT 
+C71731              GO TO 0050-RESTART-PROCESS  
+C71731           ELSE   
+C71731              GO TO 3800-CHECK-INDV-ACCESS
+              ELSE  
+                 IF GBR1-ALT-CUSTOMER-NUM = RSP50-O-ALT-CUSTOMER-NUM
+                    IF RSP50-O-ALT-CUSTOMER-NUM = RSP50-O-CUSTOMER-NUM  
+                       GO TO 3800-CHECK-INDV-ACCESS 
+                    ELSE
+                       IF RSP50-I-GROUP-CONTRACT-IND = 'Y'  
+                          GO TO 3750-GROUP-CHECK-INTL   
+                       ELSE 
+                          GO TO 3800-CHECK-INDV-ACCESS  
+                 ELSE   
+214948*             IF GBR1-ALT-CUSTOMER-NUM = ZERO 
+214948              IF GBR1-ALT-CUSTOMER-NUM = SPACES   
+                       IF RSP50-I-GROUP-CONTRACT-IND = 'Y'  
+                          MOVE 24 TO DPP42-HOLD-MSG-INDEX   
+                          GO TO 9200-EDIT-ERROR-MSG 
+                       ELSE 
+108149                    IF RSP50-I-CALL-CENTER-IND = 'Y'  
+108149                       GO TO 3800-CHECK-INDV-ACCESS   
+108149                    ELSE  
+C98892                       GO TO 3780-GCAB-CHECK-INTL 
+                    ELSE
+                       MOVE RSP50-O-ALT-PHONE-NUM TO WS-PHONE-NUM   
+                       MOVE GBR1-CUSTOMER-NUM   TO WS-BKG-CUSTOMER-NUM  
+                       PERFORM 8700-VALIDATE-OWNER-ACCESS   
+                          THRU 8799-EXIT
+RE0208                 MOVE GBR1-CUSTOMER-NUM  TO RSP50-I-CUSTOMER-NUM  
+RE0208                 MOVE GBR1-ALT-CUSTOMER-NUM TO
+RE0208                      RSP50-I-ALT-CUSTOMER-NUM
+RE0208                 MOVE SPACES      TO RSP50-I-AAR-AGENCY-ID
+RE0208                                     RSP50-I-AAR-ALT-AGENCY-ID
+RE0208                 MOVE ZERO        TO RSP50-I-PHONE-NUM
+RE0208                                     RSP50-I-ALT-PHONE-NUM
+RE0208                 MOVE 'N'         TO WS-INPUT-PASS-IND
+C71731                 MOVE 0 TO RSP50-O-GROUP-MAX-CNT  
+RE0208                 GO TO 0050-RESTART-PROCESS.  
+
+214948*    IF RSP50-O-ALT-CUSTOMER-NUM > ZERO   
+214948     IF RSP50-O-ALT-CUSTOMER-NUM > SPACES 
+              MOVE 47 TO DPP42-HOLD-MSG-INDEX   
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           MOVE GBR1-CUSTOMER-NUM   TO WS-BKG-CUSTOMER-NUM. 
+           MOVE RSP50-O-PHONE-NUM   TO WS-PHONE-NUM.
+
+RE0208     IF (RSP50-O-CUSTOMER-NUM NOT = GBR1-ALT-CUSTOMER-NUM)
+              PERFORM 8700-VALIDATE-OWNER-ACCESS THRU 8799-EXIT.
+
+           MOVE GBR1-CUSTOMER-NUM     TO RSP50-I-CUSTOMER-NUM.  
+           MOVE GBR1-ALT-CUSTOMER-NUM TO RSP50-I-ALT-CUSTOMER-NUM.  
+           MOVE SPACES                TO RSP50-I-AAR-AGENCY-ID  
+                                         RSP50-I-AAR-ALT-AGENCY-ID. 
+           MOVE ZERO                  TO RSP50-I-PHONE-NUM  
+                                         RSP50-I-ALT-PHONE-NUM. 
+RE0208     MOVE 'N'                   TO WS-INPUT-PASS-IND. 
+C71731     MOVE 0 TO RSP50-O-GROUP-MAX-CNT. 
+
+RE0208     GO TO 0050-RESTART-PROCESS.  
+
+       3750-GROUP-CHECK-INTL.   
+           MOVE SPACES TO WS-BKG-DEPOSIT-TYPE-1 
+                          WS-BKG-DEPOSIT-TYPE-2.
+
+           COMPUTE WS-BKG-TOTAL-PMT-AMT = GBR1-UNALLOC-CASH-PMT-AMT 
+                                        + GBR1-UNALLOC-UCC-PMT-AMT  
+                                        + GBR1-UNALLOC-OTHER-PMT-AMT
+                                        + GBR1-ALLOC-CASH-PMT-AMT   
+                                        + GBR1-ALLOC-UCC-PMT-AMT
+                                        + GBR1-ALLOC-OTHER-PMT-AMT  
+                                        + GBR1-CABIN-CASH-PMT-AMT   
+                                        + GBR1-CABIN-UCC-PMT-AMT
+                                        + GBR1-CABIN-OTHER-PMT-AMT. 
+
+           PERFORM 8600-CHECK-INTERNATIONAL THRU 8699-EXIT. 
+
+C98892 3780-GCAB-CHECK-INTL.
+RE0208     IF WS-INTL-EDIT-IND = 'Y'
+RE0208        IF RSP50-OVR-BOOKING-AGENT-FLG = ZERO 
+C98892*          IF (WS-BKG-AGT-CUST-NUM = GBR1-ALT-CUSTOMER-NUM)   
+PPC470*          IF (WS-BKG-AGT-CUST-NUM NOT = GBR1-CUSTOMER-NUM)   
+PPC470           IF (GBR1-ALT-CUSTOMER-NUM > SPACES AND 
+PPC470               WS-BKG-AGT-CUST-NUM NOT = GBR1-ALT-CUSTOMER-NUM) OR
+PPC470              (GBR1-ALT-CUSTOMER-NUM NOT > SPACES AND 
+PPC470               WS-BKG-AGT-CUST-NUM NOT = GBR1-CUSTOMER-NUM)   
+RE0208              IF WS-MAIN-ASSOCIATION-TYPE = 'ASC' OR 'NRR'
+RE0208                 MOVE 52 TO DPP42-HOLD-MSG-INDEX  
+RE0208                 GO TO 9200-EDIT-ERROR-MSG.   
+
+       3800-CHECK-INDV-ACCESS.  
+           IF RSP50-I-IBR-BOOK-NUM <= SPACES
+              GO TO 3900-VALIDATE-AGENT-USERID. 
+
+108267     IF RSP50-CHANGE-AGENT-FLG = 1
+108267        GO TO 3900-VALIDATE-AGENT-USERID. 
+
+           IF IBR-CUSTOMER-NUM = RSP50-O-CUSTOMER-NUM   
+214948*       IF RSP50-O-ALT-CUSTOMER-NUM = ZERO OR RSP50-O-CUSTOMER-NUM
+214948        IF RSP50-O-ALT-CUSTOMER-NUM = SPACES OR   
+214948                                      RSP50-O-CUSTOMER-NUM
+                 GO TO 3900-VALIDATE-AGENT-USERID   
+              ELSE  
+                 IF IBR-ALT-CUSTOMER-NUM = RSP50-O-ALT-CUSTOMER-NUM 
+                    GO TO 3850-INDV-CHECK-INTL  
+                 ELSE   
+                    MOVE 26 TO DPP42-HOLD-MSG-INDEX 
+                    GO TO 9200-EDIT-ERROR-MSG.  
+
+214948*    IF RSP50-O-ALT-CUSTOMER-NUM > ZERO   
+214948     IF RSP50-O-ALT-CUSTOMER-NUM > SPACES 
+              MOVE 27 TO DPP42-HOLD-MSG-INDEX   
+              GO TO 9200-EDIT-ERROR-MSG.
+
+RE0208     IF IBR-ALT-CUSTOMER-NUM = RSP50-O-CUSTOMER-NUM   
+RE0208        MOVE 'N' TO WS-INPUT-PASS-IND 
+RE0208        GO TO 1325-SWITCH-TO-ALT. 
+
+           MOVE IBR-CUSTOMER-NUM  TO WS-BKG-CUSTOMER-NUM.   
+           MOVE RSP50-O-PHONE-NUM TO WS-PHONE-NUM.  
+
+           PERFORM 8700-VALIDATE-OWNER-ACCESS THRU 8799-EXIT.   
+
+           MOVE IBR-CUSTOMER-NUM     TO RSP50-I-CUSTOMER-NUM.   
+           MOVE IBR-ALT-CUSTOMER-NUM TO RSP50-I-ALT-CUSTOMER-NUM.   
+           MOVE SPACES               TO RSP50-I-AAR-AGENCY-ID   
+                                        RSP50-I-AAR-ALT-AGENCY-ID.  
+           MOVE ZERO                 TO RSP50-I-PHONE-NUM   
+                                        RSP50-I-ALT-PHONE-NUM.  
+RE0208     MOVE 'N'                  TO WS-INPUT-PASS-IND.  
+           GO TO 0050-RESTART-PROCESS.  
+
+       3850-INDV-CHECK-INTL.
+           MOVE IBR-DEPOSIT-TYPE-1 TO WS-BKG-DEPOSIT-TYPE-1.
+           MOVE IBR-DEPOSIT-TYPE-2 TO WS-BKG-DEPOSIT-TYPE-2.
+
+           COMPUTE WS-BKG-TOTAL-PMT-AMT = IBR-ALLOC-CASH-PMT-AMT
+                                        + IBR-ALLOC-UCC-PMT-AMT 
+                                        + IBR-ALLOC-OTHER-PMT-AMT   
+                                        + IBR-CABIN-CASH-PMT-AMT
+                                        + IBR-CABIN-UCC-PMT-AMT 
+                                        + IBR-CABIN-OTHER-PMT-AMT.  
+
+           PERFORM 8600-CHECK-INTERNATIONAL THRU 8699-EXIT. 
+
+RE0208     IF WS-INTL-EDIT-IND = 'Y'
+RE0208        IF RSP50-OVR-BOOKING-AGENT-FLG = ZERO 
+C98892*          IF (WS-BKG-AGT-CUST-NUM = IBR-ALT-CUSTOMER-NUM)
+PPC470*          IF (WS-BKG-AGT-CUST-NUM NOT = IBR-CUSTOMER-NUM)
+PPC470           IF (IBR-ALT-CUSTOMER-NUM > SPACES AND  
+PPC470               WS-BKG-AGT-CUST-NUM NOT = IBR-ALT-CUSTOMER-NUM) OR 
+PPC470              (IBR-ALT-CUSTOMER-NUM NOT > SPACES AND  
+PPC470               WS-BKG-AGT-CUST-NUM NOT = IBR-CUSTOMER-NUM)
+RE0208              IF WS-MAIN-ASSOCIATION-TYPE = 'ASC' OR 'NRR'
+RE0208                 MOVE 53 TO DPP42-HOLD-MSG-INDEX  
+RE0208                 GO TO 9200-EDIT-ERROR-MSG.   
+
+       3900-VALIDATE-AGENT-USERID.  
+           IF RSP50-I-AGENT-USERID <= SPACES
+              GO TO 9000-END-OF-JOB.
+
+           IF RSP50-O-CUSTOMER-NUM = WS-USERID-CUSTOMER-NUM 
+              GO TO 9000-END-OF-JOB.
+
+           IF RSP50-O-ALT-CUSTOMER-NUM = WS-USERID-CUSTOMER-NUM 
+              GO TO 9000-END-OF-JOB.
+
+           GO TO 10000-AGENT-USERID-RESTRICTED. 
+
+131886 4000-GET-SAT-PHONE-NUMS. 
+131886     FETCH NEXT RECORD WITHIN AGENT-PHONE-SET SET 
+131886         AT END GO TO 4099-EXIT   
+131886         ON ERROR GO TO 9100-DATABASE-ERROR.  
+131886     IF APR-PHONE-NUM = AGENT-PHONE-NUM OR
+131886                        RSP50-O-SAT-PHONE-NUM (1) 
+131886        GO TO 4000-GET-SAT-PHONE-NUMS.
+131886     ADD 1 TO RSP50-O-SAT-PHONE-CNT.  
+131886     MOVE APR-PHONE-NUM TO
+131886          RSP50-O-SAT-PHONE-NUM (RSP50-O-SAT-PHONE-CNT).  
+CCLAUS     MOVE APR-COUNTRY-NUM TO  
+CCLAUS           RSP50-O-SAT-COUNTRY-NUM (RSP50-O-SAT-PHONE-CNT).   
+
+131886     IF RSP50-O-SAT-PHONE-CNT < 20
+131886        GO TO 4000-GET-SAT-PHONE-NUMS.
+131886 4099-EXIT.   
+131886     EXIT.
+
+192660 4100-FIND-ERF.   
+192660  
+192660     IF  AGENT-CUSTOMER-NUM NOT = ACURR-CUSTOMER-NUM  
+192660         MOVE AGENT-CUSTOMER-NUM  TO ACURR-CUSTOMER-NUM   
+192660         FETCH AGENT-CURRENCY-REC RECORD  
+192660             ON ERROR GO TO 10100-NO-AGENCY-CURRENCY  
+192660     END-IF.  
+192660  
+192660     MOVE ZEROES                  TO ACURR-SUB.   
+192660     MOVE SPACES                  TO WS-AGENT-NPC-NUM.
+192660  
+192660     PERFORM VARYING WS-SUB FROM 1 BY 1   
+192660         UNTIL WS-SUB > ACURR-CURRENCY-COUNT  
+192660         IF  ACURR-CURRENCY-CODE (WS-SUB) =   
+192660             RSP50-O-CURRENCY-CODE
+192660             MOVE WS-SUB          TO ACURR-SUB
+192660             MOVE ACURR-CURRENCY-COUNT
+192660                                  TO WS-SUB   
+192660         END-IF   
+192660     END-PERFORM. 
+192660  
+192660     IF  ACURR-SUB > ZEROES   
+192660         MOVE ACURR-ERF-NUM (ACURR-SUB)   
+192660                                  TO WS-AGENT-NPC-NUM 
+192660     END-IF.  
+192660  
+192660 4100-FIND-ERF-EXIT.  
+192660     EXIT.
+
+108267 8000-OUTPUT-NR-CURRENCY. 
+108267     IF RSP50-I-NATIONALITY-CODE <= SPACES
+144449        IF RSP86-O-DEFAULT-CURRENCY-CODE > SPACES 
+144449           IF (RSP50-O-CURRENCY-CODE NOT =
+144449                 RSP86-O-DEFAULT-CURRENCY-CODE)   
+145720              IF RSP50-ALLOW-NO-NATIONALITY-FLG = 1   
+145720                 GO TO 8099-OUTPUT-NR-CURRENCY-EXIT   
+145720              ELSE
+145720                 MOVE 60           TO DPP42-HOLD-MSG-INDEX
+145720                 GO TO 9200-EDIT-ERROR-MSG
+145720              END-IF  
+145720           ELSE   
+145720              GO TO 8099-OUTPUT-NR-CURRENCY-EXIT  
+145720        ELSE  
+163032          IF RSP50-O-CURRENCY-CODE NOT = SSP05-O-CURRENCY-CODE
+145720             IF RSP50-ALLOW-NO-NATIONALITY-FLG = 1
+145720                GO TO 8099-OUTPUT-NR-CURRENCY-EXIT
+145720             ELSE 
+145720                MOVE 60           TO DPP42-HOLD-MSG-INDEX 
+145720                GO TO 9200-EDIT-ERROR-MSG 
+145720             END-IF   
+145720          ELSE
+145720             GO TO 8099-OUTPUT-NR-CURRENCY-EXIT.  
+145720  
+
+108267     MOVE RSP50-I-NATIONALITY-CODE TO NR-NATIONALITY-CODE.
+108267  
+108267     FETCH NATIONALITY-REC RECORD 
+108267         ON ERROR GO TO 11800-NO-FIND-NATIONALITY.
+108267  
+108267     MOVE ZERO TO NR-SUB  
+108267                  RSP50-O-MULTI-CURRENCY-CNT. 
+
+108267 8010-NEXT-NR-CURR-CODE.  
+108267     ADD 1 TO NR-SUB. 
+
+108267     IF NR-SUB > 5
+108267        IF RSP50-O-MULTI-CURRENCY-CNT = ZERO  
+108267           MOVE 62                   TO DPP42-HOLD-MSG-INDEX  
+108267           GO TO 9200-EDIT-ERROR-MSG  
+108267        ELSE  
+108267           GO TO 8099-OUTPUT-NR-CURRENCY-EXIT.
+
+108267     IF RSP50-I-CURRENCY-CODE > SPACES
+108267        IF (RSP50-I-CURRENCY-CODE NOT = NR-CURRENCY-CODE (NR-SUB))
+108267           GO TO 8010-NEXT-NR-CURR-CODE.  
+
+108267     MOVE NR-CURRENCY-CODE (NR-SUB) TO WS-SEARCH-CURR-CODE.   
+108267  
+108267     PERFORM 8300-VALIDATE-CURRENY
+108267        THRU 8349-VALIDATE-CURRENY-EXIT.  
+
+108267     IF WS-ACTIVE-CURR-FOUND NOT = 'Y'
+108267        GO TO 8010-NEXT-NR-CURR-CODE. 
+
+108267     ADD 1 TO RSP50-O-MULTI-CURRENCY-CNT. 
+
+108267     MOVE NR-CURRENCY-CODE (NR-SUB) TO
+108267         RSP50-O-MULTI-CURRENCY-CODE (RSP50-O-MULTI-CURRENCY-CNT).
+
+108267     IF RSP50-O-MULTI-CURRENCY-CNT = 1
+108267        MOVE NR-CURRENCY-CODE (NR-SUB) TO RSP50-O-CURRENCY-CODE.  
+
+108267     GO TO 8010-NEXT-NR-CURR-CODE.
+
+108267 8099-OUTPUT-NR-CURRENCY-EXIT.
+108267     EXIT.
+108267  
+108267 8100-OUTPUT-AGENT-CURR.  
+108267     IF RSP50-CHANGE-AGENT-FLG = 0
+108267        IF RSP50-I-GRP-BOOK-NUM > SPACES OR   
+108267              RSP50-I-IBR-BOOK-NUM > SPACES   
+108267           MOVE 1 TO RSP50-OVERRIDE-CURRENCY-FLG  
+108267                     RSP50-OVR-CURRENCY-STATUS-FLG
+108267        END-IF
+108267     ELSE 
+108267        MOVE 1 TO RSP50-OVR-CURRENCY-STATUS-FLG.  
+
+108267     IF RSP50-I-CURRENCY-CODE > SPACES
+163032        IF (RSP50-I-CURRENCY-CODE NOT = SSP05-O-CURRENCY-CODE)
+108267           IF (AGENT-DIRECT-IND NOT = 'Y')
+CCL-UK              IF (WS-SPS-REGISTERED-FLG = 0) AND  
+CCL-UK                 (RSP50-O-AGENT-NPC-NUM = SPACES OR ZEROS)
+CCL-UK*             IF RSP50-O-AGENT-NPC-NUM = SPACES OR ZEROS  
+108267                 MOVE 63              TO DPP42-HOLD-MSG-INDEX 
+108267                 GO TO 9200-EDIT-ERROR-MSG.   
+
+CCL-UK     IF RSP50-I-CURRENCY-CODE > SPACES
+CCL-UK        IF AGENT-DIRECT-IND = 'Y' 
+CCL-UK           IF RSP50-I-GROUP-CONTRACT-IND = 'N'
+CCL-UK              IF RSP50-CHANGE-AGENT-FLG = 0   
+CCL-UK                 GO TO 8190-PROTECT-CURRENCY. 
+
+192660*    MOVE ZERO TO ATCR-SUB
+192660     MOVE ZERO TO ACURR-SUB   
+108267                  RSP50-O-MULTI-CURRENCY-CNT. 
+
+108267 8110-NEXT-ATCR-CURRENCY. 
+192660*    ADD 1 TO ATCR-SUB.   
+192660     ADD 1     TO ACURR-SUB.  
+
+
+192660*    IF ATCR-SUB > 5  
+192660     IF ACURR-SUB > ACURR-CURRENCY-COUNT  
+108267        IF RSP50-O-MULTI-CURRENCY-CNT = ZERO  
+108267           IF RSP50-OVERRIDE-CURRENCY-FLG = 1 
+108267              GO TO 8190-PROTECT-CURRENCY 
+108267           ELSE   
+108267              MOVE 65 TO DPP42-HOLD-MSG-INDEX 
+108267              GO TO 9200-EDIT-ERROR-MSG   
+108267        ELSE  
+108267           GO TO 8199-OUTPUT-AGENT-CURR-EXIT. 
+
+192660     IF (ACURR-CURRENCY-STATUS (ACURR-SUB) NOT = 'A') AND 
+192660        (RSP50-CHANGE-AGENT-FLG NOT = 1)  
+192660        GO TO 8110-NEXT-ATCR-CURRENCY 
+192660     END-IF.  
+192660  
+CCL-UK     IF RSP50-I-INTERFACE-CURR-CODE > SPACES  
+CCL-UK        IF (RSP50-I-INTERFACE-CURR-CODE NOT = 
+192660*                ATCR-CURRENCY-CODE (ATCR-SUB))   
+192660                 ACURR-CURRENCY-CODE (ACURR-SUB)) 
+CCL-UK           GO TO 8110-NEXT-ATCR-CURRENCY. 
+
+108267     IF (RSP50-I-CURRENCY-CODE > SPACES ) 
+108267           IF (RSP50-I-CURRENCY-CODE NOT =
+192660*             ATCR-CURRENCY-CODE (ATCR-SUB))  
+192660              ACURR-CURRENCY-CODE (ACURR-SUB))
+108267           GO TO 8110-NEXT-ATCR-CURRENCY. 
+
+192660     IF ACURR-CURRENCY-CODE (ACURR-SUB) <= SPACES 
+192660*    IF ATCR-CURRENCY-CODE (ATCR-SUB) <= SPACES   
+108267        GO TO 8110-NEXT-ATCR-CURRENCY.
+
+108267     IF RSP50-I-CURRENCY-CODE <= SPACES   
+192660*       IF (ATCR-CURRENCY-CODE (ATCR-SUB) NOT =   
+192660        IF ACURR-CURRENCY-CODE (ACURR-SUB) NOT =  
+163032              RSP86-O-DEFAULT-CURRENCY-CODE   
+108267           IF (AGENT-DIRECT-IND NOT = 'Y')
+CCL-UK              IF (WS-SPS-REGISTERED-FLG = 0) AND  
+CCL-UK                 (RSP50-O-AGENT-NPC-NUM = SPACES OR ZEROS)
+CCL-UK*             IF RSP50-O-AGENT-NPC-NUM = SPACES OR ZEROS  
+108267                 GO TO 8110-NEXT-ATCR-CURRENCY.   
+
+192660     MOVE ACURR-CURRENCY-CODE (ACURR-SUB) 
+192660                                TO WS-SEARCH-CURR-CODE.   
+192660*    MOVE ATCR-CURRENCY-CODE (ATCR-SUB) TO WS-SEARCH-CURR-CODE.   
+108267  
+108267     PERFORM 8300-VALIDATE-CURRENY
+108267        THRU 8349-VALIDATE-CURRENY-EXIT.  
+108267     IF WS-ACTIVE-CURR-FOUND = 'N'
+108267        IF RSP50-OVR-CURRENCY-STATUS-FLG = 0  
+108267           IF RSP50-I-CURRENCY-CODE > SPACES  
+108267              MOVE 64           TO DPP42-HOLD-MSG-INDEX   
+108267              GO TO 9200-EDIT-ERROR-MSG   
+108267           ELSE   
+108267              GO TO 8110-NEXT-ATCR-CURRENCY.  
+
+108267     ADD 1            TO RSP50-O-MULTI-CURRENCY-CNT.  
+
+192660     MOVE ACURR-CURRENCY-CODE (ACURR-SUB) 
+192660                                TO
+192660     RSP50-O-MULTI-CURRENCY-CODE (RSP50-O-MULTI-CURRENCY-CNT).
+192660*    MOVE ATCR-CURRENCY-CODE (ATCR-SUB) TO
+192660*    RSP50-O-MULTI-CURRENCY-CODE (RSP50-O-MULTI-CURRENCY-CNT).
+192660     MOVE ACURR-CURRENCY-STATUS (ACURR-SUB)   
+192660                                TO
+192660           RSP50-O-AGENT-CURR-STATUS (RSP50-O-MULTI-CURRENCY-CNT).
+
+108267     IF RSP50-O-MULTI-CURRENCY-CNT = 1
+192660*       MOVE ATCR-CURRENCY-CODE (ATCR-SUB) TO 
+192660        MOVE ACURR-CURRENCY-CODE (ACURR-SUB)  
+                                      TO
+108267             RSP50-O-CURRENCY-CODE.   
+
+108267     GO TO 8110-NEXT-ATCR-CURRENCY.   
+
+       8190-PROTECT-CURRENCY.   
+108267     IF (RSP50-I-CURRENCY-CODE <= SPACES )
+108267        MOVE 68 TO DPP42-HOLD-MSG-INDEX   
+108267        GO TO 9200-EDIT-ERROR-MSG.
+
+CCL-UK     IF RSP50-I-INTERFACE-CURR-CODE > SPACES  
+CCL-UK        IF (RSP50-I-INTERFACE-CURR-CODE NOT = 
+CCL-UK                 RSP50-O-CURRENCY-CODE)   
+CCL-UK            MOVE 74 TO DPP42-HOLD-MSG-INDEX   
+CCL-UK            GO TO 9200-EDIT-ERROR-MSG.
+
+108267     MOVE 1 TO RSP50-O-MULTI-CURRENCY-CNT.
+108267     MOVE RSP50-I-CURRENCY-CODE TO
+108267          RSP50-O-MULTI-CURRENCY-CODE (1) 
+108267          RSP50-O-CURRENCY-CODE.  
+
+108267 8199-OUTPUT-AGENT-CURR-EXIT. 
+108267     EXIT.
+
+108267 8200-BUILD-ACTIVE-CURR.  
+144449*    MOVE WS-SYS-DATE       TO RSP94-I-CURRENT-DATE.  
+144449     CALL 'RSO95-LIST-ACTIVE' USING DPP42-COMMON-DATA-FIELDS  
+108267                                    DPP01-COMMON-INFO 
+108267                                    RSP95-LIST-INPUT-PARAMS   
+108267                                    RSP95-LIST-OUTPUT-PARAMS. 
+
+144449*    IF DPP42-SUB-MSG-CTR > ZERO AND DPP42-SUB-MSG-STATUS (1) > 1 
+144449*       GO TO 9500-RETURN-SUBROUTINE-ERROR.   
+
+144449     IF DPP42-SUB-MSG-CTR > ZERO  
+144449        IF DPP42-SUB-MSG-STATUS (1) > 1   
+144449           GO TO 9500-RETURN-SUBROUTINE-ERROR 
+144449        ELSE  
+144449           PERFORM 9600-SAVE-SUBROUTINE-ERRORS.   
+
+144449*    MOVE 0 TO WS-CURR-CNT
+144449*              RSP94-SUB. 
+
+144449*8210-FETCH-NEXT-CURRENCY.
+144449*    ADD 1 TO RSP94-SUB.  
+
+144449*    IF RSP94-SUB > RSP94-CURRENCY-CNT
+144449*       IF WS-CURR-CNT > ZERO 
+144449*          GO TO 8299-BUILD-ACTIVE-CURR-EXIT  
+144449*       ELSE  
+144449*          GO TO 11900-NO-CURRENCY-REC.   
+
+144449*8220-PROCESS-CURR-REC.   
+144449*    IF RSP94-STATUS-CODE (RSP94-SUB) NOT = 'A'   
+144449*       GO TO 8210-FETCH-NEXT-CURRENCY.   
+
+144449*    IF RSP94-CURR-EXPIRE-DATE (RSP94-SUB) < WS-SYS-DATE  
+144449*       GO TO 8210-FETCH-NEXT-CURRENCY.   
+
+144449*    MOVE ZERO TO CURR-SUB.   
+
+144449*    PERFORM VARYING SUB FROM 1 BY 1 UNTIL SUB > WS-CURR-CNT  
+144449*       IF RSP94-PROD-CURRENCY-CODE (RSP94-SUB) = 
+144449*              WS-CURR-CODE (SUB) 
+144449*          MOVE SUB         TO CURR-SUB   
+144449*          MOVE WS-CURR-CNT TO SUB
+144449*       END-IF
+144449*    END-PERFORM. 
+
+144449*    IF CURR-SUB > ZERO   
+144449*       GO TO 8210-FETCH-NEXT-CURRENCY.   
+
+144449*    ADD 1 TO WS-CURR-CNT.
+
+144449*    MOVE RSP94-PROD-CURRENCY-CODE (RSP94-SUB) TO 
+144449*         WS-CURR-CODE (WS-CURR-CNT). 
+
+144449*    GO TO 8210-FETCH-NEXT-CURRENCY.  
+
+108267 8299-BUILD-ACTIVE-CURR-EXIT. 
+108267     EXIT.
+
+108267 8300-VALIDATE-CURRENY.   
+108267     MOVE 'N'                     TO WS-ACTIVE-CURR-FOUND.
+
+144449     PERFORM VARYING SUB FROM 1 BY 1  
+144449             UNTIL SUB > RSP95-O-CURR-CNT 
+144449        IF WS-SEARCH-CURR-CODE =  
+144449              RSP95-O-PROD-CURRENCY-CODE (SUB)
+144449           MOVE RSP95-O-CURR-CNT TO SUB   
+108267           MOVE 'Y'              TO WS-ACTIVE-CURR-FOUND  
+108267        END-IF
+108267     END-PERFORM. 
+
+108267 8349-VALIDATE-CURRENY-EXIT.  
+108267     EXIT.
+
+144449 8350-CALL-RSC86GLD.  
+
+CCL-UK     COPY RSP86INT.   
+
+CCL-UK     IF RSP50-I-LOCALITY-CODE > SPACES
+CCL-UK        MOVE RSP50-I-LOCALITY-CODE   TO RSP86-I-LOCALITY-CODE 
+CCL-UK     ELSE 
+CCL-UK        IF RSP50-I-COUNTRY-CODE > SPACES  
+CCL-UK           MOVE RSP50-I-COUNTRY-CODE TO RSP86-I-COUNTRY-CODE  
+CCL-UK        ELSE  
+CCL-UK           MOVE AGENT-COUNTRY-CODE   TO RSP86-I-COUNTRY-CODE. 
+
+CCL-UK     CALL 'RSC86GLD' USING DPP42-COMMON-DATA-FIELDS   
+CCL-UK                           DPP01-COMMON-INFO  
+CCL-UK                           RSP86-INPUT-PARAMS 
+CCL-UK                           RSP86-OUTPUT-PARAMS.   
+
+144449*    IF DPP42-SUB-MSG-CTR > ZERO AND DPP42-SUB-MSG-STATUS (1) > 1 
+144449*       GO TO 9500-RETURN-SUBROUTINE-ERROR.   
+
+144449     IF DPP42-SUB-MSG-CTR > ZERO  
+144449        IF DPP42-SUB-MSG-STATUS (1) > 1   
+144449           GO TO 9500-RETURN-SUBROUTINE-ERROR 
+144449        ELSE  
+144449           PERFORM 9600-SAVE-SUBROUTINE-ERRORS.   
+
+14449K     MOVE RSP86-O-LOCALITY-CODE TO
+CCL-UK          RSP50-O-LOCALITY-CODE.  
+
+144449     IF RSP86-O-ALLOW-DIFF-COMM-IND = 1   
+CCL-UK        MOVE 'Y' TO RSP50-O-ALLOW-DIFF-COMM-IND   
+CCL-UK     ELSE 
+CCL-UK        MOVE 'N' TO RSP50-O-ALLOW-DIFF-COMM-IND.  
+
+PPC470     IF RSP86-O-ALLOW-VPP-IND = 1 
+PPC470        MOVE 'Y' TO RSP50-O-ALLOW-VPP-IND 
+PPC470     ELSE 
+PPC470        MOVE 'N' TO RSP50-O-ALLOW-VPP-IND 
+PPC470     END-IF.  
+
+PPC470*    IF RSP50-O-BROCHURE-TYPE <= SPACES   
+PPC470*       MOVE RSP86-O-DEFAULT-BROCHURE-TYPE TO 
+PPC470*            RSP50-O-BROCHURE-TYPE.   
+
+CCL-UK     GO TO 8399-EXIT. 
+
+CCL-UK 8360-VALIDATE-AGENCY-LOCALITY.   
+144449     IF (AGENT-DIRECT-IND = 'Y')  
+144449        IF (RSP50-I-GROUP-CONTRACT-IND NOT = 'Y') 
+144449           IF (RSP50-CHANGE-AGENT-FLG = 0)
+144449              GO TO 8390-OUTPUT-LOCALITY. 
+
+144449     COPY RSP86INT.   
+
+144449     MOVE RSP86-O-LOCALITY-CODE     TO RSP86-I-LOCALITY-CODE. 
+144449     MOVE AGENT-COUNTRY-CODE        TO RSP86-I-COUNTRY-CODE.  
+
+CCL-UK     CALL 'RSC86GLD' USING DPP42-COMMON-DATA-FIELDS   
+CCL-UK                           DPP01-COMMON-INFO  
+CCL-UK                           RSP86-INPUT-PARAMS 
+CCL-UK                           RSP86-OUTPUT-PARAMS.   
+
+144449*    IF DPP42-SUB-MSG-CTR > ZERO AND DPP42-SUB-MSG-STATUS (1) > 1 
+144449*       GO TO 9500-RETURN-SUBROUTINE-ERROR.   
+
+144449     IF DPP42-SUB-MSG-CTR > ZERO  
+144449        IF DPP42-SUB-MSG-STATUS (1) > 1   
+144449           GO TO 9500-RETURN-SUBROUTINE-ERROR 
+144449        ELSE  
+144449           PERFORM 9600-SAVE-SUBROUTINE-ERRORS.   
+
+144449*       MOVE ZERO TO COUNTRY-SUB  
+144449*       PERFORM VARYING SUB FROM 1 BY 1 UNTIL SUB >   
+144449*               RSP86-O-COUNTRY-CNT   
+144449*          MOVE RSP86-LOCALITY-COUNTRY-SUB
+144449*                  (RSP86-O-LOCALITY-SUB SUB) TO RSP86-SUB
+144449*          IF AGENT-COUNTRY-CODE =
+144449*                RSP86-COUNTRY-CODE (RSP86-SUB)   
+144449*             MOVE SUB TO COUNTRY-SUB 
+144449*             MOVE RSP86-LR-COUNTRY-CNT (RSP86-O-LOCALITY-SUB) TO 
+144449*                  SUB
+144449*          END-IF 
+144449*       END-PERFORM   
+144449*       IF COUNTRY-SUB = ZERO 
+144449*          MOVE 69 TO DPP42-HOLD-MSG-INDEX
+144449*          GO TO 9200-EDIT-ERROR-MSG. 
+
+144449 8390-OUTPUT-LOCALITY.
+PPC470*    IF RSP50-CHANGE-AGENT-FLG = 1
+PPC470*       IF ATCR-BROCHURE-TYPE > SPACES
+PPC470*          IF ATCR-BROCHURE-TYPE NOT = RSP50-O-BROCHURE-TYPE  
+PPC470*             MOVE 72 TO DPP42-HOLD-MSG-INDEX 
+PPC470*             GO TO 9200-EDIT-ERROR-MSG.  
+
+144449     MOVE RSP86-O-LOCALITY-CODE TO RSP50-O-LOCALITY-CODE. 
+
+CCL-UK 8399-EXIT.   
+CCL-UK     EXIT.
+
+CCL-UK 8400-GET-COMMISSION. 
+186084*    IF (ATCR-W-R-CODE (COMM-ATCR-SUB) NOT = 'R') 
+186084*       GO TO 8449-GET-COMMISSION-EXIT.   
+CCL-UK  
+CCL-UK     MOVE ZERO TO COMM-RSP50-SUB. 
+CCL-UK     PERFORM VARYING WS-SUB FROM 1 BY 1 UNTIL WS-SUB >
+CCL-UK                                           RSP50-O-COMMISSION-CNT 
+CCL-UK       IF ATCR-CONNECTION-TYPE (COMM-ATCR-SUB) =  
+CCL-UK          RSP50-O-AGT-CONNECTION-TYPE (WS-SUB)
+CCL-UK          MOVE WS-SUB TO COMM-RSP50-SUB   
+CCL-UK       END-IF 
+CCL-UK     END-PERFORM. 
+CCL-UK  
+CCL-UK     IF COMM-RSP50-SUB = 0
+CCL-UK        ADD 1                        TO RSP50-O-COMMISSION-CNT
+CCL-UK        MOVE RSP50-O-COMMISSION-CNT  TO COMM-RSP50-SUB
+CCL-UK        MOVE ATCR-CONNECTION-TYPE (COMM-ATCR-SUB) TO  
+CCL-UK          RSP50-O-AGT-CONNECTION-TYPE (COMM-RSP50-SUB)
+CCL-UK     END-IF.  
+CCL-UK  
+CCL-UK     IF ATCR-BOOK-TYPE (COMM-ATCR-SUB) = 'G'  
+CCL-UK        MOVE ATCR-CRUO-COMM-PCT (COMM-ATCR-SUB) TO
+CCL-UK             RSP50-O-GRP-CRUISE-COMM (COMM-RSP50-SUB) 
+CCL-UK             RSP50-O-GRP-FLYA-COMM (COMM-RSP50-SUB)   
+CCL-UK             RSP50-O-GRP-CRUISE-SUPPL-COMM (COMM-RSP50-SUB)   
+CCL-UK        MOVE ATCR-ADDON-COMM-PCT (COMM-ATCR-SUB) TO   
+CCL-UK             RSP50-O-GRP-ADDON-COMM (COMM-RSP50-SUB)  
+CCL-UK             RSP50-O-GRP-TRANS-SUPPL-COMM (COMM-RSP50-SUB)
+CCL-UK        MOVE ATCR-PKG-COMM-PCT (COMM-ATCR-SUB) TO 
+CCL-UK             RSP50-O-GRP-PACKAGE-COMM (COMM-RSP50-SUB)
+CCL-UK        MOVE ATCR-INS-COMM-PCT (COMM-ATCR-SUB) TO 
+CCL-UK             RSP50-O-GRP-INSURANCE-COMM (COMM-RSP50-SUB)  
+CCL-UK        MOVE ATCR-TRANSFER-COMM-PCT (COMM-ATCR-SUB) TO
+CCL-UK             RSP50-O-GRP-TRANSFER-COMM (COMM-RSP50-SUB)   
+CCL-UK     ELSE 
+CCL-UK        MOVE ATCR-CRUO-COMM-PCT (COMM-ATCR-SUB) TO
+CCL-UK             RSP50-O-INDV-CRUISE-COMM (COMM-RSP50-SUB)
+CCL-UK             RSP50-O-INDV-FLYA-COMM (COMM-RSP50-SUB)  
+CCL-UK             RSP50-O-INDV-CRUISE-SUPPL-COMM (COMM-RSP50-SUB)  
+CCL-UK        MOVE ATCR-ADDON-COMM-PCT (COMM-ATCR-SUB) TO   
+CCL-UK             RSP50-O-INDV-ADDON-COMM (COMM-RSP50-SUB) 
+CCL-UK             RSP50-O-INDV-TRANS-SUPPL-COMM (COMM-RSP50-SUB)   
+CCL-UK        MOVE ATCR-PKG-COMM-PCT (COMM-ATCR-SUB) TO 
+CCL-UK             RSP50-O-INDV-PACKAGE-COMM (COMM-RSP50-SUB)   
+CCL-UK        MOVE ATCR-INS-COMM-PCT (COMM-ATCR-SUB) TO 
+CCL-UK             RSP50-O-INDV-INSURANCE-COMM (COMM-RSP50-SUB) 
+CCL-UK        MOVE ATCR-TRANSFER-COMM-PCT (COMM-ATCR-SUB) TO
+CCL-UK             RSP50-O-INDV-TRANSFER-COMM (COMM-RSP50-SUB). 
+CCL-UK  
+CCL-UK 8449-GET-COMMISSION-EXIT.
+CCL-UK        EXIT. 
+
+       8600-CHECK-INTERNATIONAL.
+           IF WS-INTL-EDIT-IND = 'N'
+              GO TO 8699-EXIT.  
+
+           IF RSP50-O-AGENT-INTL-SALES-IND NOT = 'Y'
+              GO TO 8699-EXIT.  
+
+           IF WS-OVR-INTL-BRANCH-FLG = 1
+              GO TO 8699-EXIT.  
+
+           IF WS-BKG-DEPOSIT-TYPE-1 > SPACES
+C87403        IF RSP50-OVR-BOOKING-AGENT-FLG = ZERO 
+                 GO TO 11600-BOOKING-ACCESS-ERROR.  
+
+           IF WS-BKG-DEPOSIT-TYPE-2 > SPACES
+C87403        IF RSP50-OVR-BOOKING-AGENT-FLG = ZERO 
+                 GO TO 11600-BOOKING-ACCESS-ERROR.  
+
+           IF WS-BKG-TOTAL-PMT-AMT > ZERO   
+C87403        IF RSP50-OVR-BOOKING-AGENT-FLG = ZERO 
+                 GO TO 11600-BOOKING-ACCESS-ERROR.  
+
+       8699-EXIT.   
+           EXIT.
+
+       8700-VALIDATE-OWNER-ACCESS.  
+           IF WS-MAIN-OWNER-CONTRACT = ZERO 
+              MOVE 48 TO DPP42-HOLD-MSG-INDEX   
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           MOVE WS-MAIN-OWNER-CONTRACT TO ACR-CONTRACT-NUM. 
+
+144449*    MOVE 99999999 TO DPP01-ERROR-NUMBER. 
+           FETCH AGENT-CONTRACT-REC RECORD  
+              ON ERROR GO TO 11600-BOOKING-ACCESS-ERROR.
+
+186084*    IF ACR-CONTRACT-CODE NOT = 'O'   
+186084     IF ACR-CONTRACT-TYPE NOT = 'O'   
+              MOVE 49 TO DPP42-HOLD-MSG-INDEX   
+              GO TO 9200-EDIT-ERROR-MSG.
+
+RE0208*    MOVE RSP50-O-PHONE-NUM TO WS-PHONE-NUM.  
+
+186084*    IF ACR-LOCATION (1:10) NOT = WS-PHONE-NUM-REDEF  
+186084     IF ACR-LOCATION  NOT = WS-PHONE-NUM  
+              MOVE 50 TO DPP42-HOLD-MSG-INDEX   
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           MOVE SPACES                  TO AAR-AGENCY-CONNECT-KEYS. 
+           MOVE WS-BKG-CUSTOMER-NUM     TO AAR-CUSTOMER-NUM.
+           MOVE 'CM'                    TO AAR-CUSTOMER-TYPE.   
+
+144449*    MOVE 00051059                TO DPP01-ERROR-NUMBER.  
+           FETCH AGENCY-ASSOCIATION-REC RECORD  
+              ON ERROR GO TO 11600-BOOKING-ACCESS-ERROR.
+
+144449*    MOVE 10012160                TO DPP01-ERROR-NUMBER.  
+           FETCH OWNER RECORD WITHIN AGENCY-ASSOCIATION-SET SET 
+              ON ERROR GO TO 11600-BOOKING-ACCESS-ERROR.
+
+           IF AGENT-OWNER-CONTRACT-NUM NOT = ACR-CONTRACT-NUM   
+              GO TO 11600-BOOKING-ACCESS-ERROR. 
+
+       8799-EXIT.   
+           EXIT.
+
+
+       8800-PROCESS-SELECT-RATE.
+186084     MOVE 'N'                TO WS-2ND-CON-RUN-IND.   
+           MOVE AGENT-CUSTOMER-NUM TO ARCDR-CUSTOMER-NUM.   
+           MOVE 'A'                TO ARCDR-KEY-TYPE.   
+
+       8820-INITIAL-FETCH-ARCDR.
+144449*    MOVE 12601029 TO DPP01-ERROR-NUMBER. 
+           FETCH AGENCY-RATE-CODE-DETAIL-REC RECORD 
+                 ON ERROR GO TO 8880-CHECK-ERROR-STATUS.
+
+       8840-PROCESS-ARCDR.  
+
+108267*    IF (RSP50-O-CURRENCY-CODE NOT = ARCDR-CURRENCY-CODE) 
+108267*       GO TO 8860-NEXT-SELECT-RATE.  
+
+186084     IF ARCDR-KEY-TYPE = 'A' OR   
+186084       ((ARCDR-COUNTRY-CODE = '~~' OR 
+186084         ARCDR-COUNTRY-CODE = AGENT-COUNTRY-CODE) AND 
+186084       ( ARCDR-COMM-COMPARE-SIGN =  SPACES OR 
+186084        (ARCDR-COMM-COMPARE-SIGN = '>' AND
+186084              ATCR-CRUO-COMM-PCT(1) > ARCDR-COMPARE-COMM-PCT) OR  
+186084        (ARCDR-COMM-COMPARE-SIGN = '<' AND
+186084              ATCR-CRUO-COMM-PCT(1) < ARCDR-COMPARE-COMM-PCT) OR  
+186084        (ARCDR-COMM-COMPARE-SIGN = '=' AND
+186084              ATCR-CRUO-COMM-PCT(1) = ARCDR-COMPARE-COMM-PCT)))   
+186084          CONTINUE
+186084     ELSE 
+186084        GO TO 8860-NEXT-SELECT-RATE.  
+
+           IF (RSP50-I-COMPANY-CODE NOT = ARCDR-COMPANY-CODE)   
+              GO TO 8860-NEXT-SELECT-RATE.  
+
+           IF ARCDR-BOOK-BEGIN-DATE > ZERO  
+CCLAUS        IF ARCDR-BASE-CURRENCY-CODE = 'AUD'   
+CCLAUS           MOVE 'USD'               TO DPP02-TMZ-FRM-BASE-CURRENCY
+CCLAUS           MOVE 'AUD'               TO DPP02-TMZ-TO-BASE-CURRENCY 
+CCLAUS           MOVE WS-SYS-DATE         TO DPP02-TMZ-INP-DATE 
+CCLAUS           MOVE WS-SYS-TIME-HH      TO DPP02-TMZ-INP-TIME-HH  
+CCLAUS           MOVE WS-SYS-TIME-MN      TO DPP02-TMZ-INP-TIME-MN  
+CCLAUS           MOVE WS-SYS-TIME-SS      TO DPP02-TMZ-INP-TIME-SS  
+CCLAUS           MOVE WS-SYS-TIME-MS      TO DPP02-TMZ-INP-TIME-MS  
+CCLAUS           PERFORM DPP10-CHANGE-TIMEZONE THRU 
+CCLAUS                   DPP10-CHANGE-TIMEZONE-EXIT 
+CCLAUS           IF DPP02-TMZ-ERROR-NUM > 0 
+CCLAUS              MOVE DPP02-TMZ-ERROR-NUM
+CCLAUS                                    TO DPP42-HOLD-MSG-INDEX   
+CCLAUS              MOVE 'DPP10TMZ'       TO DPP42-HOLD-MSG-SOURCE  
+CCLAUS              GO TO 9200-EDIT-ERROR-MSG   
+CCLAUS           END-IF 
+CCLAUS           IF ARCDR-BOOK-BEGIN-DATE > DPP02-TMZ-OUT-DATE OR   
+CCLAUS              ARCDR-BOOK-END-DATE   < DPP02-TMZ-OUT-DATE  
+CCLAUS              GO TO 8860-NEXT-SELECT-RATE 
+CCLAUS           END-IF 
+CCLAUS        ELSE  
+CCLAUS           IF ARCDR-BOOK-BEGIN-DATE > WS-SYS-DATE OR  
+CCLAUS              ARCDR-BOOK-END-DATE   < WS-SYS-DATE 
+CCLAUS              GO TO 8860-NEXT-SELECT-RATE 
+CCLAUS           END-IF 
+CCLAUS        END-IF
+CCLAUS     END-IF.  
+
+PPC470     EXEC SQL WHENEVER SQLERROR   
+PPC470           CONTINUE   
+PPC470     END-EXEC.
+PPC470  
+PPC470     EXEC SQL 
+PPC470         INSERT   AGENT_SELECT_GTT
+PPC470         COLUMNS (ENTITY_TYPE         = :ARCDR-ENTITY-TYPE,   
+PPC470                  ENTITY_CODE         = :ARCDR-ENTITY-CODE,   
+PPC470                  BASE_CURRENCY_CODE  = :ARCDR-BASE-CURRENCY-CODE)
+PPC470     END-EXEC.
+PPC470     IF SQLCODE < 0   
+195213*        IF (SQLCODE NOT = -6003) 
+195213        IF (SQLCODE NOT = -6003 AND -6012)
+PPC470            GO TO 9150-RDMS-ERROR 
+PPC470        ELSE  
+PPC470            MOVE ZERO TO SQLCODE  
+PPC470       END-IF 
+PPC470     END-IF.  
+
+       8860-NEXT-SELECT-RATE.   
+144449*    MOVE 12601230 TO DPP01-ERROR-NUMBER. 
+           FETCH NEXT DUPLICATE AGENCY-RATE-CODE-DETAIL-REC RECORD  
+                 ON ERROR GO TO 8880-CHECK-ERROR-STATUS.
+
+           GO TO 8840-PROCESS-ARCDR.
+
+       8880-CHECK-ERROR-STATUS. 
+           IF ERROR-NUM = '0013' OR '0007'  
+              IF ARCDR-KEY-TYPE = 'C'   
+186084           IF WS-2ND-CON-RUN-IND = 'N'
+186084              MOVE 'Y' TO WS-2ND-CON-RUN-IND  
+186084           ELSE   
+                    GO TO 8899-EXIT 
+186084           END-IF 
+              END-IF
+           ELSE 
+              MOVE 28 TO DPP42-HOLD-MSG-INDEX   
+              GO TO 9100-DATABASE-ERROR.
+
+186084*    IF AGENT-CONTRACT-NUM <= ZERO
+186084*       GO TO 8899-EXIT.  
+
+214948*    MOVE AGENT-CONTRACT-NUM TO ARCDR-CUSTOMER-NUM.   
+186084*    MOVE AGENT-CONTRACT-NUM TO WS-AGENT-CONT-NUM.
+
+186084     IF WS-2ND-CON-RUN-IND = 'Y'  
+186084        MOVE AGENT-OWNER-CONTRACT-NUM 
+186084                             TO WS-AGENT-CONT-NUM 
+186084     ELSE 
+186084        MOVE AGENT-MASTER-CONTRACT-NUM
+186084                             TO WS-AGENT-CONT-NUM 
+186084     END-IF.  
+
+214948     MOVE WS-AGENT-CONT-NUM  TO ARCDR-CUSTOMER-NUM.   
+           MOVE 'C' TO ARCDR-KEY-TYPE.  
+
+           GO TO 8820-INITIAL-FETCH-ARCDR.  
+
+       8899-EXIT.   
+           EXIT.
+
+PRCCMB*8890-INSERT-ASIG.
+
+PRCCMB*    EXEC SQL WHENEVER SQLERROR   
+PRCCMB*         CONTINUE
+PRCCMB*    END-EXEC.
+
+PRCCMB*    EXEC SQL 
+PRCCMB*      insert AGENT_SELECT_ID_GTT (   
+PRCCMB*         BASE_CURRENCY_CODE, 
+PRCCMB*         AGENT_SELECT_ID 
+PRCCMB*        )
+PRCCMB*      select 
+PRCCMB*         /* AGENT_SELECT_ID is a key to unique combination of
+PRCCMB*            entity codes on offers where each code must be in
+PRCCMB*            an agency's select list for that agency to have  
+PRCCMB*            access to it. */ 
+PRCCMB*         'USD',  
+PRCCMB*         OAS.AGENT_SELECT_ID 
+PRCCMB*      from      OFFER_AGENT_SELECT_ID               OAS  
+PRCCMB*      where  
+PRCCMB*            (OAS.AGENT_SELECT_ID > 0)
+PRCCMB*        and (   (OAS.ENTITY_TYPE_1 is null)  
+PRCCMB*            or  exists(  
+PRCCMB*                  select *   
+PRCCMB*                  from      AGENT_SELECT_GTT        A01  
+PRCCMB*                  where  
+PRCCMB*                        (A01.ENTITY_TYPE = OAS.ENTITY_TYPE_1)
+PRCCMB*                    and (A01.ENTITY_CODE = OAS.ENTITY_CODE_1)
+PRCCMB*                    AND (A01.BASE_CURRENCY_CODE = 'USD') 
+PRCCMB*            ))   
+PRCCMB*        and (   (OAS.ENTITY_TYPE_2 is null)  
+PRCCMB*            or  exists(  
+PRCCMB*                  select *   
+PRCCMB*                  from      AGENT_SELECT_GTT        A02  
+PRCCMB*                  where  
+PRCCMB*                        (A02.ENTITY_TYPE = OAS.ENTITY_TYPE_2)
+PRCCMB*                    and (A02.ENTITY_CODE = OAS.ENTITY_CODE_2)
+PRCCMB*                    AND (A02.BASE_CURRENCY_CODE = 'USD') 
+PRCCMB*            ))   
+PRCCMB*        and (   (OAS.ENTITY_TYPE_3 is null)  
+PRCCMB*            or  exists(  
+PRCCMB*                  select *   
+PRCCMB*                  from      AGENT_SELECT_GTT        A03  
+PRCCMB*                  where  
+PRCCMB*                        (A03.ENTITY_TYPE = OAS.ENTITY_TYPE_3)
+PRCCMB*                    and (A03.ENTITY_CODE = OAS.ENTITY_CODE_3)
+PRCCMB*                    AND (A03.BASE_CURRENCY_CODE = 'USD') 
+PRCCMB*            ))   
+PRCCMB*        and (   (OAS.ENTITY_TYPE_4 is null)  
+PRCCMB*            or  exists(  
+PRCCMB*                  select *   
+PRCCMB*                  from      AGENT_SELECT_GTT        A04  
+PRCCMB*                  where  
+PRCCMB*                        (A04.ENTITY_TYPE = OAS.ENTITY_TYPE_4)
+PRCCMB*                    and (A04.ENTITY_CODE = OAS.ENTITY_CODE_4)
+PRCCMB*                    AND (A04.BASE_CURRENCY_CODE = 'USD') 
+PRCCMB*            ))   
+PRCCMB*        and (   (OAS.ENTITY_TYPE_5 is null)  
+PRCCMB*            or  exists(  
+PRCCMB*                  select *   
+PRCCMB*                  from      AGENT_SELECT_GTT        A05  
+PRCCMB*                  where  
+PRCCMB*                        (A05.ENTITY_TYPE = OAS.ENTITY_TYPE_5)
+PRCCMB*                    and (A05.ENTITY_CODE = OAS.ENTITY_CODE_5)
+PRCCMB*                    AND (A05.BASE_CURRENCY_CODE = 'USD') 
+PRCCMB*            ))   
+PRCCMB*        and (   (OAS.ENTITY_TYPE_6 is null)  
+PRCCMB*            or  exists(  
+PRCCMB*                  select *   
+PRCCMB*                  from      AGENT_SELECT_GTT        A06  
+PRCCMB*                  where  
+PRCCMB*                        (A06.ENTITY_TYPE = OAS.ENTITY_TYPE_6)
+PRCCMB*                    and (A06.ENTITY_CODE = OAS.ENTITY_CODE_6)
+PRCCMB*                    AND (A06.BASE_CURRENCY_CODE = 'USD') 
+PRCCMB*            ))   
+PRCCMB*        and (   (OAS.ENTITY_TYPE_7 is null)  
+PRCCMB*            or  exists(  
+PRCCMB*                  select *   
+PRCCMB*                  from      AGENT_SELECT_GTT        A07  
+PRCCMB*                  where  
+PRCCMB*                        (A07.ENTITY_TYPE = OAS.ENTITY_TYPE_7)
+PRCCMB*                    and (A07.ENTITY_CODE = OAS.ENTITY_CODE_7)
+PRCCMB*                    AND (A07.BASE_CURRENCY_CODE = 'USD') 
+PRCCMB*            ))   
+PRCCMB*        and (   (OAS.ENTITY_TYPE_8 is null)  
+PRCCMB*            or  exists(  
+PRCCMB*                  select *   
+PRCCMB*                  from      AGENT_SELECT_GTT        A08  
+PRCCMB*                  where  
+PRCCMB*                        (A08.ENTITY_TYPE = OAS.ENTITY_TYPE_8)
+PRCCMB*                    and (A08.ENTITY_CODE = OAS.ENTITY_CODE_8)
+PRCCMB*                    AND (A08.BASE_CURRENCY_CODE = 'USD') 
+PRCCMB*            ))   
+PRCCMB*        and (   (OAS.ENTITY_TYPE_9 is null)  
+PRCCMB*            or  exists(  
+PRCCMB*                  select *   
+PRCCMB*                  from      AGENT_SELECT_GTT        A09  
+PRCCMB*                  where  
+PRCCMB*                        (A09.ENTITY_TYPE = OAS.ENTITY_TYPE_9)
+PRCCMB*                    and (A09.ENTITY_CODE = OAS.ENTITY_CODE_9)
+PRCCMB*                    AND (A09.BASE_CURRENCY_CODE = 'USD') 
+PRCCMB*            ))   
+PRCCMB*        and (   (OAS.ENTITY_TYPE_10 is null) 
+PRCCMB*            or  exists(  
+PRCCMB*                  select *   
+PRCCMB*                  from      AGENT_SELECT_GTT        A10  
+PRCCMB*                  where  
+PRCCMB*                        (A10.ENTITY_TYPE = OAS.ENTITY_TYPE_10)   
+PRCCMB*                    and (A10.ENTITY_CODE = OAS.ENTITY_CODE_10)   
+PRCCMB*                    AND (A10.BASE_CURRENCY_CODE = 'USD') 
+PRCCMB*            ))   
+PRCCMB*    END-EXEC.
+PRCCMB* 
+PRCCMB*    IF SQLCODE < 0   
+PRCCMB*       IF SQLCODE = -6003
+PRCCMB*          CONTINUE   
+PRCCMB*       ELSE  
+PRCCMB*          MOVE 77     TO DPP42-HOLD-MSG-INDEX
+PRCCMB*       END-IF
+PRCCMB*       GO TO 9150-RDMS-ERROR 
+PRCCMB*    END-IF.  
+PRCCMB* 
+PRCCMB*    EXEC SQL 
+PRCCMB*      insert AGENT_SELECT_ID_GTT (   
+PRCCMB*         BASE_CURRENCY_CODE, 
+PRCCMB*         AGENT_SELECT_ID 
+PRCCMB*        )
+PRCCMB*      select 
+PRCCMB*         /* AGENT_SELECT_ID is a key to unique combination of
+PRCCMB*            entity codes on offers where each code must be in
+PRCCMB*            an agency's select list for that agency to have  
+PRCCMB*            access to it. */ 
+PRCCMB*         'AUD',  
+PRCCMB*         OAS.AGENT_SELECT_ID 
+PRCCMB*      from      OFFER_AGENT_SELECT_ID               OAS  
+PRCCMB*      where  
+PRCCMB*            (OAS.AGENT_SELECT_ID > 0)
+PRCCMB*        and (   (OAS.ENTITY_TYPE_1 is null)  
+PRCCMB*            or  exists(  
+PRCCMB*                  select *   
+PRCCMB*                  from      AGENT_SELECT_GTT        A01  
+PRCCMB*                  where  
+PRCCMB*                        (A01.ENTITY_TYPE = OAS.ENTITY_TYPE_1)
+PRCCMB*                    and (A01.ENTITY_CODE = OAS.ENTITY_CODE_1)
+PRCCMB*                    AND (A01.BASE_CURRENCY_CODE = 'AUD') 
+PRCCMB*            ))   
+PRCCMB*        and (   (OAS.ENTITY_TYPE_2 is null)  
+PRCCMB*            or  exists(  
+PRCCMB*                  select *   
+PRCCMB*                  from      AGENT_SELECT_GTT        A02  
+PRCCMB*                  where  
+PRCCMB*                        (A02.ENTITY_TYPE = OAS.ENTITY_TYPE_2)
+PRCCMB*                    and (A02.ENTITY_CODE = OAS.ENTITY_CODE_2)
+PRCCMB*                    AND (A02.BASE_CURRENCY_CODE = 'AUD') 
+PRCCMB*            ))   
+PRCCMB*        and (   (OAS.ENTITY_TYPE_3 is null)  
+PRCCMB*            or  exists(  
+PRCCMB*                  select *   
+PRCCMB*                  from      AGENT_SELECT_GTT        A03  
+PRCCMB*                  where  
+PRCCMB*                        (A03.ENTITY_TYPE = OAS.ENTITY_TYPE_3)
+PRCCMB*                    and (A03.ENTITY_CODE = OAS.ENTITY_CODE_3)
+PRCCMB*                    AND (A03.BASE_CURRENCY_CODE = 'AUD') 
+PRCCMB*            ))   
+PRCCMB*        and (   (OAS.ENTITY_TYPE_4 is null)  
+PRCCMB*            or  exists(  
+PRCCMB*                  select *   
+PRCCMB*                  from      AGENT_SELECT_GTT        A04  
+PRCCMB*                  where  
+PRCCMB*                        (A04.ENTITY_TYPE = OAS.ENTITY_TYPE_4)
+PRCCMB*                    and (A04.ENTITY_CODE = OAS.ENTITY_CODE_4)
+PRCCMB*                    AND (A04.BASE_CURRENCY_CODE = 'AUD') 
+PRCCMB*            ))   
+PRCCMB*        and (   (OAS.ENTITY_TYPE_5 is null)  
+PRCCMB*            or  exists(  
+PRCCMB*                  select *   
+PRCCMB*                  from      AGENT_SELECT_GTT        A05  
+PRCCMB*                  where  
+PRCCMB*                        (A05.ENTITY_TYPE = OAS.ENTITY_TYPE_5)
+PRCCMB*                    and (A05.ENTITY_CODE = OAS.ENTITY_CODE_5)
+PRCCMB*                    AND (A05.BASE_CURRENCY_CODE = 'AUD') 
+PRCCMB*            ))   
+PRCCMB*        and (   (OAS.ENTITY_TYPE_6 is null)  
+PRCCMB*            or  exists(  
+PRCCMB*                  select *   
+PRCCMB*                  from      AGENT_SELECT_GTT        A06  
+PRCCMB*                  where  
+PRCCMB*                        (A06.ENTITY_TYPE = OAS.ENTITY_TYPE_6)
+PRCCMB*                    and (A06.ENTITY_CODE = OAS.ENTITY_CODE_6)
+PRCCMB*                    AND (A06.BASE_CURRENCY_CODE = 'AUD') 
+PRCCMB*            ))   
+PRCCMB*        and (   (OAS.ENTITY_TYPE_7 is null)  
+PRCCMB*            or  exists(  
+PRCCMB*                  select *   
+PRCCMB*                  from      AGENT_SELECT_GTT        A07  
+PRCCMB*                  where  
+PRCCMB*                        (A07.ENTITY_TYPE = OAS.ENTITY_TYPE_7)
+PRCCMB*                    and (A07.ENTITY_CODE = OAS.ENTITY_CODE_7)
+PRCCMB*                    AND (A07.BASE_CURRENCY_CODE = 'AUD') 
+PRCCMB*            ))   
+PRCCMB*        and (   (OAS.ENTITY_TYPE_8 is null)  
+PRCCMB*            or  exists(  
+PRCCMB*                  select *   
+PRCCMB*                  from      AGENT_SELECT_GTT        A08  
+PRCCMB*                  where  
+PRCCMB*                        (A08.ENTITY_TYPE = OAS.ENTITY_TYPE_8)
+PRCCMB*                    and (A08.ENTITY_CODE = OAS.ENTITY_CODE_8)
+PRCCMB*                    AND (A08.BASE_CURRENCY_CODE = 'AUD') 
+PRCCMB*            ))   
+PRCCMB*        and (   (OAS.ENTITY_TYPE_9 is null)  
+PRCCMB*            or  exists(  
+PRCCMB*                  select *   
+PRCCMB*                  from      AGENT_SELECT_GTT        A09  
+PRCCMB*                  where  
+PRCCMB*                        (A09.ENTITY_TYPE = OAS.ENTITY_TYPE_9)
+PRCCMB*                    and (A09.ENTITY_CODE = OAS.ENTITY_CODE_9)
+PRCCMB*                    AND (A09.BASE_CURRENCY_CODE = 'AUD') 
+PRCCMB*            ))   
+PRCCMB*        and (   (OAS.ENTITY_TYPE_10 is null) 
+PRCCMB*            or  exists(  
+PRCCMB*                  select *   
+PRCCMB*                  from      AGENT_SELECT_GTT        A10  
+PRCCMB*                  where  
+PRCCMB*                        (A10.ENTITY_TYPE = OAS.ENTITY_TYPE_10)   
+PRCCMB*                    and (A10.ENTITY_CODE = OAS.ENTITY_CODE_10)   
+PRCCMB*                    AND (A10.BASE_CURRENCY_CODE = 'AUD') 
+PRCCMB*            ))   
+PRCCMB*    END-EXEC.
+PRCCMB* 
+PRCCMB*    IF SQLCODE < 0   
+PRCCMB*       IF SQLCODE = -6003
+PRCCMB*          CONTINUE   
+PRCCMB*       ELSE  
+PRCCMB*          MOVE 78     TO DPP42-HOLD-MSG-INDEX
+PRCCMB*       END-IF
+PRCCMB*       GO TO 9150-RDMS-ERROR 
+PRCCMB*    END-IF.  
+PRCCMB* 
+PRCCMB* 
+PRCCMB*8890-INSERT-ASIG-EXIT.   
+PRCCMB*    EXIT.
+
+       8900-GET-AGENT-USERID.   
+           IF RSP50-I-AGENT-USERID <= SPACES
+214948*       MOVE ZERO TO WS-USERID-CUSTOMER-NUM   
+214948        MOVE SPACES TO WS-USERID-CUSTOMER-NUM 
+              GO TO 8999-EXIT.  
+
+           MOVE RSP50-I-AGENT-USERID TO AAR-AGENCY-CONNECT-KEYS.
+
+144449*    MOVE 12111031 TO DPP01-ERROR-NUMBER. 
+           FETCH AGENCY-ASSOCIATION-REC RECORD  
+                 ON ERROR GO TO 11300-INVALID-AGENT-USERID. 
+
+144449*    MOVE 12112132 TO DPP01-ERROR-NUMBER. 
+           FETCH OWNER RECORD WITHIN AGENCY-ASSOCIATION-SET SET.
+
+           MOVE AGENT-CUSTOMER-NUM TO WS-USERID-CUSTOMER-NUM.   
+
+       8999-EXIT.   
+           EXIT.
+CCLAUS  
+CCLAUS 10000-SELECT-VALID-COUNTRY.  
+CCLAUS  
+CCLAUS     EXEC SQL 
+CCLAUS        SELECT COUNTRY_NUM
+CCLAUS          INTO :WS-COUNTRY-NUM
+CCLAUS          FROM VALID_COUNTRY  
+CCLAUS          WHERE COUNTRY_CODE = :WS-APR-COUNTRY-CODE   
+CCLAUS     END-EXEC.
+CCLAUS  
+CCLAUS     IF SQLCODE = 100 
+CCLAUS        MOVE 76 TO DPP42-HOLD-MSG-INDEX   
+CCLAUS        GO TO 9200-EDIT-ERROR-MSG 
+CCLAUS     END-IF.  
+CCLAUS  
+CCLAUS 10000-EXIT.  
+CCLAUS     EXIT.
+
+       9000-END-OF-JOB. 
+           GO TO DPP42-END-OF-JOB.  
+
+       9100-DATABASE-ERROR. 
+           GO TO DPP42-DATABASE-ERROR.  
+
+PPC470 9150-RDMS-ERROR. 
+PPC470     GO TO DPP42-RDMS-ERROR.  
+
+       9200-EDIT-ERROR-MSG. 
+144449     PERFORM DPP42-EDIT-ERROR-MSG 
+144449        THRU DPP42-EDIT-ERROR-MSG-EXIT.   
+
+           GO TO DPP42-END-OF-JOB.  
+
+PPC470 9210-EDIT-CONTINUE-MSG.  
+PPC470     PERFORM DPP42-EDIT-ERROR-MSG 
+PPC470        THRU DPP42-EDIT-ERROR-MSG-EXIT.   
+PPC470  
+PPC470 9300-SEVERE-ERROR-MSG.   
+PPC470     GO TO DPP42-SEVERE-ERROR-MSG.
+
+       9400-INFO-MSG.   
+144449     PERFORM DPP42-INFO-MSG   
+
+144449        THRU DPP42-INFO-MSG-EXIT. 
+
+       9500-RETURN-SUBROUTINE-ERROR.
+           GO TO DPP42-RETURN-SUBROUTINE-ERROR. 
+
+144449 9600-SAVE-SUBROUTINE-ERRORS. 
+144449     PERFORM DPP42-SAVE-SUBROUTINE-MSGS   
+144449        THRU DPP42-SAVE-SUBROUTINE-MSGS-X.
+
+       10000-AGENT-USERID-RESTRICTED.   
+           MOVE 29 TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+163032*10100-INVALID-COMPANY-REC.   
+163032*    MOVE SPACES TO CMP-COMPANY-CODE. 
+163032*    MOVE 30     TO DPP42-HOLD-MSG-INDEX. 
+
+163032*    IF ERROR-NUM = '0013'
+163032*       GO TO 9200-EDIT-ERROR-MSG.
+
+163032*    GO TO 9100-DATABASE-ERROR.   
+
+192660 10100-NO-AGENCY-CURRENCY.
+214948*    MOVE ZEROES TO ACURR-CUSTOMER-NUM.   
+214948     MOVE SPACES TO ACURR-CUSTOMER-NUM.   
+192660     MOVE 75     TO DPP42-HOLD-MSG-INDEX. 
+192660  
+192660     IF ERROR-NUM = '0013'
+192660        GO TO 9200-EDIT-ERROR-MSG.
+192660  
+192660     GO TO 9100-DATABASE-ERROR.   
+
+       10200-NO-MAIN-AGENCY-ASSOC.  
+           MOVE SPACES TO AAR-AGENCY-CONNECT-KEYS.  
+           MOVE 31     TO DPP42-HOLD-MSG-INDEX. 
+
+           IF ERROR-NUM = '0013'
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       10300-NO-MAIN-AGENT-PHONE.   
+           MOVE ZERO TO APR-PHONE-NUM.  
+           MOVE 32   TO DPP42-HOLD-MSG-INDEX.   
+
+           IF ERROR-NUM = '0013'
+C88580        MOVE 'C' TO RSP50-O-CUSTOMER-CODE 
+122281        MOVE 'Y' TO RSP50-O-ALLOW-NEW-BKG-IND 
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       10400-NO-MAIN-AGENCY-ID-ASSOC.   
+           MOVE SPACES TO AAR-AGENCY-CONNECT-KEYS.  
+           MOVE 33     TO DPP42-HOLD-MSG-INDEX. 
+
+           IF ERROR-NUM = '0013'
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       10500-NO-MAIN-AGENT-TERMS.   
+           MOVE ZERO   TO ATCR-PHONE-NUM.   
+           MOVE SPACES TO ATCR-COMPANY-CODE.
+           MOVE 34     TO DPP42-HOLD-MSG-INDEX. 
+
+           IF ERROR-NUM = '0013'
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       10600-NO-BUSINESS-RELATION.  
+           MOVE 35 TO DPP42-HOLD-MSG-INDEX. 
+
+           IF ERROR-NUM = '0013' OR '0007'  
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       10700-NO-WHOLESALER-TERMS.   
+           MOVE ZERO   TO ATCR-PHONE-NUM.   
+           MOVE SPACES TO ATCR-COMPANY-CODE.
+           MOVE 36     TO DPP42-HOLD-MSG-INDEX. 
+
+           IF ERROR-NUM = '0013'
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       10800-NO-ALT-AGENCY-ASSOC.   
+           MOVE SPACES TO AAR-AGENCY-CONNECT-KEYS.  
+           MOVE 37     TO DPP42-HOLD-MSG-INDEX. 
+
+           IF ERROR-NUM = '0013'
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       10900-NO-ALT-AGENT-PHONE.
+           MOVE ZERO TO APR-PHONE-NUM.  
+           MOVE 38   TO DPP42-HOLD-MSG-INDEX.   
+
+           IF ERROR-NUM = '0013'
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       11000-NO-ALT-AGENCY-ID-ASSOC.
+           MOVE SPACES TO AAR-AGENCY-CONNECT-KEYS.  
+           MOVE 39     TO DPP42-HOLD-MSG-INDEX. 
+
+           IF ERROR-NUM = '0013'
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       11100-NO-ALT-AGENT-TERMS.
+           MOVE ZERO   TO ATCR-PHONE-NUM.   
+           MOVE SPACES TO ATCR-COMPANY-CODE.
+           MOVE 40     TO DPP42-HOLD-MSG-INDEX. 
+
+           IF ERROR-NUM = '0013'
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       11200-EXCEED-OUTPUT-TBL. 
+           MOVE 41 TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       11300-INVALID-AGENT-USERID.  
+           MOVE 42 TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+       11400-IBR-BOOK-NUM-NOT-FOUND.
+           MOVE 43 TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+       11500-GRP1-BOOK-NUM-NOT-FOUND.   
+           MOVE 44 TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+       11600-BOOKING-ACCESS-ERROR.  
+           MOVE 51 TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+C87403 11700-NO-FIND-SAIL1. 
+C87403     MOVE 56 TO DPP42-HOLD-MSG-INDEX. 
+
+C87403     GO TO 9200-EDIT-ERROR-MSG.   
+
+108267 11800-NO-FIND-NATIONALITY.   
+108267     MOVE 66 TO DPP42-HOLD-MSG-INDEX. 
+108267  
+108267     GO TO 9200-EDIT-ERROR-MSG.   
+
+108267 11900-NO-CURRENCY-REC.   
+108267     MOVE 67 TO DPP42-HOLD-MSG-INDEX. 
+108267  
+108267     GO TO 9200-EDIT-ERROR-MSG.   
+
+       COPY DPP42SER.   
+144449 COPY DPP42WDB.   
+CCLAUS COPY DPP10Y2K.   
+CCLAUS COPY DPP10TMZ.   

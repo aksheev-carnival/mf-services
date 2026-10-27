@@ -1,0 +1,176 @@
+************************************************************************
+163001* 26-FEB-14     HV0     TCS LTD.               CQ163001          *
+163001* ASB99TRF KEEPS ON TRYING TO CONNECT TO MSMQ WHENEVER THERE IS  *
+163001* SOME ISSUE WHILE COMMUNICATING WITH MSMQ                       *
+************************************************************************
+DPP12MQP PROC   
+       DPP12-CONNECT-MSMQ.  
+           MOVE LOW-VALUES              TO QI-CONNECT-CLEAR.
+           MOVE DPP01-DOMAIN            TO QI-DOMAIN.   
+           MOVE DPP01-USERNAME          TO QI-USERNAME. 
+           MOVE DPP01-PASSWORD          TO QI-PASSWORD. 
+           MOVE DPP01-TIMEOUT           TO QI-TIMEOUT.  
+           MOVE DPP01-ALTERNATE-ROUTING TO QI-ALTERNATE-ROUTING.
+           MOVE DPP01-AUTHENTICATE-MSG  TO QI-AUTHENTICATE-MSG. 
+           MOVE DPP01-SERVERINDEX       TO QI-SERVERINDEX.  
+
+           CALL 'QICONNECT' USING QI-CONNECTION,
+                                  QI-SESSION-ID,
+                                  QI-API-STATUS,
+                                  QI-API-AUXSTATUS, 
+                                  QI-STATUS-TEXT.   
+
+           IF QI-API-STATUS NOT = 0 
+              MOVE QI-API-STATUS    TO DPP01-MSMQ-STATUS
+              MOVE QI-API-AUXSTATUS TO DPP01-MSMQ-AUXSTATUS 
+              STRING '*** CONNECT ERROR : ' DPP01-MSMQ-STATUS '/'   
+                     DPP01-MSMQ-AUXSTATUS ' ***' DELIMITED BY SIZE  
+                     INTO DPP42-HOLD-MSG-DESC   
+              DISPLAY DPP42-HOLD-MSG-DESC UPON PRINTER  
+              DISPLAY QI-STATUS-TEXT1 UPON PRINTER  
+              DISPLAY QI-STATUS-TEXT2 UPON PRINTER  
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           MOVE 'Y' TO DPP01-MSMQ-CONNECT-IND.  
+
+       DPP12-CONNECT-MSMQ-EXIT. 
+           EXIT.
+
+       DPP12-DISCON-MSMQ.   
+           IF DPP01-MSMQ-CONNECT-IND = 'N'  
+              GO TO DPP12-DISCON-MSMQ-EXIT. 
+
+           PERFORM DPP12-CLOSE-QUEUE THRU DPP12-CLOSE-QUEUE-EXIT.   
+
+           CALL 'QIDISCONN' USING QI-SESSION-ID,
+                                  QI-COMMIT-INDICATOR,  
+                                  QI-API-STATUS,
+                                  QI-API-AUXSTATUS, 
+                                  QI-STATUS-TEXT.   
+
+           IF QI-API-STATUS NOT = 0 
+              MOVE QI-API-STATUS    TO DPP01-MSMQ-STATUS
+              MOVE QI-API-AUXSTATUS TO DPP01-MSMQ-AUXSTATUS 
+              STRING '*** DISCONNECT ERROR : ' DPP01-MSMQ-STATUS '/'
+                     DPP01-MSMQ-AUXSTATUS ' ***' DELIMITED BY SIZE  
+                     INTO DPP42-HOLD-MSG-DESC   
+              DISPLAY DPP42-HOLD-MSG-DESC UPON PRINTER  
+              DISPLAY QI-STATUS-TEXT1 UPON PRINTER  
+              DISPLAY QI-STATUS-TEXT2 UPON PRINTER  
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           MOVE 'N' TO DPP01-MSMQ-CONNECT-IND.  
+
+       DPP12-DISCON-MSMQ-EXIT.  
+           EXIT.
+
+       DPP12-OPEN-QUEUE.
+           MOVE LOW-VALUES           TO QI-QUEUE-CLEAR. 
+           MOVE DPP01-QUEUE-NAME     TO QI-QUEUE-NAME.  
+           MOVE DPP01-JOURNAL        TO QI-JOURNAL. 
+           MOVE DPP01-ACCESS         TO QI-ACCESS.  
+           MOVE DPP01-SHARE          TO QI-SHARE.   
+           MOVE DPP01-PATH-OR-FORMAT TO QI-PATH-OR-FORMAT.  
+
+           CALL 'QIOPENQ' USING QI-SESSION-ID,  
+                                QI-QUEUE,   
+                                QI-QUEUE-HANDLE,
+                                QI-API-STATUS,  
+                                QI-API-AUXSTATUS,   
+                                QI-STATUS-TEXT. 
+
+           IF QI-API-STATUS NOT = 0 
+              MOVE QI-API-STATUS    TO DPP01-MSMQ-STATUS
+              MOVE QI-API-AUXSTATUS TO DPP01-MSMQ-AUXSTATUS 
+              STRING '*** OPEN QUEUE ERROR : ' DPP01-MSMQ-STATUS '/'
+                     DPP01-MSMQ-AUXSTATUS ' ***' DELIMITED BY SIZE  
+                     INTO DPP42-HOLD-MSG-DESC   
+              DISPLAY DPP42-HOLD-MSG-DESC UPON PRINTER  
+              DISPLAY QI-STATUS-TEXT1 UPON PRINTER  
+              DISPLAY QI-STATUS-TEXT2 UPON PRINTER  
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           MOVE 'Y' TO DPP01-QUEUE-OPEN-IND.
+
+       DPP12-OPEN-QUEUE-EXIT.   
+           EXIT.
+
+       DPP12-CLOSE-QUEUE.   
+           IF DPP01-QUEUE-OPEN-IND = 'N'
+              GO TO DPP12-CLOSE-QUEUE-EXIT. 
+
+           CALL 'QICLOSEQ' USING QI-SESSION-ID, 
+                                 QI-QUEUE-HANDLE,   
+                                 QI-API-STATUS, 
+                                 QI-API-AUXSTATUS,  
+                                 QI-STATUS-TEXT.
+
+           IF QI-API-STATUS NOT = 0 
+              MOVE QI-API-STATUS    TO DPP01-MSMQ-STATUS
+              MOVE QI-API-AUXSTATUS TO DPP01-MSMQ-AUXSTATUS 
+              STRING '*** CLOSE QUEUE ERROR : ' DPP01-MSMQ-STATUS '/'   
+                     DPP01-MSMQ-AUXSTATUS ' ***' DELIMITED BY SIZE  
+                     INTO DPP42-HOLD-MSG-DESC   
+              DISPLAY DPP42-HOLD-MSG-DESC UPON PRINTER  
+              DISPLAY QI-STATUS-TEXT1 UPON PRINTER  
+              DISPLAY QI-STATUS-TEXT2 UPON PRINTER  
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           MOVE 'N' TO DPP01-QUEUE-OPEN-IND.
+163001     MOVE  0  TO DPP01-RESTART-CNT.   
+
+       DPP12-CLOSE-QUEUE-EXIT.  
+           EXIT.
+
+       DPP12-SEND-MSMQ-MESSAGE. 
+           MOVE LOW-VALUES                TO QI-SEND-CLEAR. 
+           MOVE DPP01-MSG-LENGTH          TO QI-S-BODY-LENGTH.  
+           MOVE DPP01-CORRELATION-ID      TO QI-CORRELATION-ID. 
+           MOVE DPP01-S-MSG-LABEL         TO QI-S-MSG-LABEL.
+           MOVE DPP01-ADMIN-Q             TO QI-ADMIN-Q.
+           MOVE DPP01-RSVP                TO QI-RSVP.   
+           MOVE DPP01-ACK                 TO QI-ACK.
+           MOVE DPP01-DELIVERY            TO QI-DELIVERY.   
+           MOVE DPP01-S-JOURNAL           TO QI-S-JOURNAL.  
+           MOVE DPP01-MAX-TIME-TO-Q       TO QI-MAX-TIME-TO-Q.  
+           MOVE DPP01-MAX-TIME-TO-RC      TO QI-MAX-TIME-TO-RC. 
+           MOVE DPP01-PRIORITY            TO QI-PRIORITY.   
+           MOVE DPP01-TRACE               TO QI-TRACE.  
+           MOVE DPP01-AUTHENTICATE        TO QI-AUTHENTICATE.   
+           MOVE DPP01-APPSPECIFIC         TO QI-APPSPECIFIC.
+           MOVE DPP01-S-PRIVLEVEL         TO QI-S-PRIVLEVEL.
+           MOVE DPP01-ENCRYPALGORITHM     TO QI-ENCRYPALGORITHM.
+
+           CALL 'QISEND' USING QI-SESSION-ID,   
+                               QI-QUEUE-HANDLE, 
+                               QI-SEND-MSG, 
+                               DPP01-MSG-BODY,  
+                               QI-MESSAGE-ID,   
+                               QI-API-STATUS,   
+                               QI-API-AUXSTATUS,
+                               QI-STATUS-TEXT.  
+
+BG4TST     IF QI-API-STATUS = 00000020009   
+BG4TST        DISPLAY 'MESSAGE SEND FAILED:ERROR STATUS : ' 
+BG4TST        QI-API-STATUS '/' QI-API-AUXSTATUS '/'  QI-STATUS-TEXT
+BG4TST        UPON PRINTER  
+BG4TST        GO TO DPP12-SEND-MSMQ-MESSAGE.
+
+           IF QI-API-STATUS NOT = 0 
+              MOVE QI-API-STATUS    TO DPP01-MSMQ-STATUS
+              MOVE QI-API-AUXSTATUS TO DPP01-MSMQ-AUXSTATUS 
+              STRING '*** SEND MESSAGE ERROR : ' DPP01-MSMQ-STATUS '/'  
+                     DPP01-MSMQ-AUXSTATUS ' ***' DELIMITED BY SIZE  
+                     INTO DPP42-HOLD-MSG-DESC   
+              DISPLAY DPP42-HOLD-MSG-DESC UPON PRINTER  
+              DISPLAY QI-STATUS-TEXT1 UPON PRINTER  
+              DISPLAY QI-STATUS-TEXT2 UPON PRINTER  
+BG4TST        DISPLAY 'ERROR DESCRIPTION *** '  
+BG4TST        QI-API-STATUS '/' QI-API-AUXSTATUS '/'  QI-STATUS-TEXT
+BG4TST        UPON PRINTER  
+              GO TO 9200-EDIT-ERROR-MSG.
+
+       DPP12-SEND-MSMQ-MESSAGE-EXIT.
+           EXIT.
+
+ END

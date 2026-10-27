@@ -1,0 +1,335 @@
+SXP99ESD-DATA  PROC 
+
+       01  SXP99-PRICING-HEADER.
+           03 FILLER                    PIC X(04) VALUE 'code'. 
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 FILLER                    PIC X(05) VALUE 'price'.
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 FILLER                    PIC X(08) VALUE 'ageGroup'. 
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 FILLER                    PIC X(10) VALUE 'priceAvail'.   
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 FILLER                    PIC X(16) VALUE 
+                                        'priceMaxCapacity'. 
+218508     03 FILLER                    PIC X(01) VALUE '|'.                                
+218508     03 FILLER                    PIC X(08) VALUE 'Currency'. 
+                                                
+       01  SXP99-INV-HEADER.
+           03 FILLER                    PIC X(04) VALUE 'code'. 
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 FILLER                    PIC X(13) VALUE 'presalesAlloc'.
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 FILLER                    PIC X(11) VALUE 'groupsAlloc'.  
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 FILLER                    PIC X(12) VALUE 'preSalesSold'. 
+
+       01  SXP99-VPS-HEADER.
+           03 FILLER                    PIC X(04) VALUE 'code'. 
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 FILLER                    PIC X(04) VALUE 'ship'. 
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 FILLER                    PIC X(11) VALUE 'baseProduct'.  
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 FILLER                    PIC X(13) VALUE 'excursionDate'.
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 FILLER                    PIC X(17) VALUE 
+                                        'excursionTimeSlot'.
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 FILLER                    PIC X(10) VALUE 'statusCode'.   
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 FILLER                    PIC X(10) VALUE 'excEndDate'.   
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 FILLER                    PIC X(10) VALUE 'excEndTime'.   
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 FILLER                    PIC X(08) VALUE 'sailDate'. 
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 FILLER                    PIC X(12) VALUE 'durationDays'. 
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 FILLER                    PIC X(17) VALUE 
+                                        'startTimeBuffType'.
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 FILLER                    PIC X(13) VALUE 'startTimeBuff'.
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 FILLER                    PIC X(15) VALUE 
+                                        'endTimeBuffType'.  
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 FILLER                    PIC X(11) VALUE 'endTimeBuff'.  
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 FILLER                    PIC X(18) VALUE 
+                                        'onArrivalIndicator'.   
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 FILLER                    PIC X(16) VALUE 
+                                        'leisureIndicator'. 
+
+       01  SXP99-PRICING-REC.   
+           03 SXP99-ESDR-CALC-KEY       PIC X(31).  
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 SXP99-ESDR-PRICE          PIC 9(05).99.   
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 SXP99-ESDR-PRICE-CODE     PIC X(01).  
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 SXP99-ESDR-PRICE-AVAIL    PIC X(01).  
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 SXP99-ESDR-PRICE-MAX-CAPACITY 
+                                        PIC 9(05).  
+218508     03 FILLER                    PIC X(01) VALUE '|'.    
+218508     03 SXP99-BASE-CURRENCY-CODE  PIC X(03).  
+
+       01  SXP99-INV-REC.   
+           03 SXP99-INV-ESDR-CALC-KEY   PIC X(31).  
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 SXP99-ESDR-PRESALES-ALLOC PIC 9(05).  
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 SXP99-ESDR-GROUPS-ALLOC   PIC 9(05).  
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 SXP99-ESDR-PRESALES-SOLD  PIC 9(05).  
+
+       01  SXP99-VPS-REC.   
+           03 SXP99-VPS-ESDR-CALC-KEY   PIC X(31).  
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 SXP99-ESDR-SHIP-CODE      PIC X(02).  
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 SXP99-ESDR-EXC-ID         PIC X(06).  
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 SXP99-ESDR-EXC-DATE       PIC 9(08).  
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 SXP99-ESDR-EXC-TIME       PIC 9(04).  
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 SXP99-ESDR-STATUS         PIC X(01).  
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 SXP99-ESDR-EXC-END-DATE   PIC 9(08).  
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 SXP99-ESDR-EXC-END-TIME   PIC 9(04).  
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 SXP99-ESDR-SAIL-DATE      PIC 9(08).  
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 SXP99-ESDR-DURATION-DAYS  PIC 9(03).  
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 SXP99-ESDR-STRT-TIME-BUFF-TYPE
+                                        PIC X(01).  
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 SXP99-ESDR-START-TIME-BUFF   PIC 9(03).   
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 SXP99-ESDR-END-TIME-BUFF-TYPE 
+                                        PIC X(01).  
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 SXP99-ESDR-END-TIME-BUFF  PIC 9(03).  
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 SXP99-ESDR-ON-ARRIVAL-IND PIC X(01).  
+           03 FILLER                    PIC X(01) VALUE '|'.
+           03 SXP99-ESDR-AT-YOUR-LEISURE-IND
+                                        PIC X(01).  
+
+       01  SXP99-MISC-VARIABLES.
+           03  SXP99-ETX                    PIC 9(05) BINARY.   
+           03  SXP99-SX-PRC-FILE-OPENED     PIC X(01) VALUE SPACES. 
+           03  SXP99-SX-INV-FILE-OPENED     PIC X(01) VALUE SPACES. 
+           03  SXP99-SX-VPS-FILE-OPENED     PIC X(01) VALUE SPACES. 
+           03  SXP99-DONT-WRITE-HEADER      PIC X(01) VALUE SPACES. 
+
+ END PROC   
+
+SXP99ESD-PRC PROC   
+
+************************************************************************
+218508* 05-FEB-20     TEK     TCS LTD.               CQ218508          *    
+218508* NEED TO SEND SAILING BASE CURRENCY CODE IN MF FEED TO HYBRIS   *    
+************************************************************************    
+       SXP99-WRITE-SX-PRC-FILE. 
+
+           IF ESDR-EXC-TYPE NOT = 'EX'  
+              GO TO SXP99-WRITE-SX-PRC-FILE-EXIT
+           END-IF.  
+
+           IF SXP99-SX-PRC-FILE-OPENED NOT = 'Y'
+              OPEN OUTPUT SHOREX-PRICING-FILE   
+              IF SXP99-DONT-WRITE-HEADER = 'Y'  
+                 CONTINUE   
+              ELSE  
+                 WRITE SHOREX-PRICING-REC   
+                                        FROM SXP99-PRICING-HEADER   
+              END-IF
+              MOVE 'Y'                  TO SXP99-SX-PRC-FILE-OPENED 
+           END-IF.  
+
+           MOVE SPACES                  TO SXP99-ESDR-CALC-KEY  
+                                           SXP99-ESDR-PRICE-CODE
+218508*                                    SXP99-ESDR-PRICE-AVAIL.  
+218508                                     SXP99-ESDR-PRICE-AVAIL   
+218508                                     SXP99-BASE-CURRENCY-CODE.    
+
+           MOVE ZEROES                  TO SXP99-ESDR-PRICE 
+                                          SXP99-ESDR-PRICE-MAX-CAPACITY.
+
+           STRING ESDR-CALC-KEY DELIMITED BY SIZE   
+                  ESDR-EXC-TIME DELIMITED BY SIZE   
+                  INTO SXP99-ESDR-CALC-KEY. 
+                    
+PPC470*    COPY SSP13INT.   
+PPC470*    MOVE ESDR-SHIP-CODE          TO SSP13-I-SHIP-CODE.   
+PPC470*    MOVE ESDR-SAIL-DATE          TO SSP13-I-SAIL-DATE.   
+PPC470*    MOVE ESDR-DURATION-DAYS      TO SSP13-I-DURATION-DAYS.   
+PPC470     MOVE ESDR-SHIP-CODE          TO TDP01-I-SHIP-CODE.   
+PPC470     MOVE ESDR-SAIL-DATE          TO TDP01-I-SAIL-DATE-YYYYMMDD.      
+PPC470     MOVE ESDR-DURATION-DAYS      TO TDP01-I-DUR-DAYS.    
+PPC470*    CALL 'SSC13GSD' USING DPP01-COMMON-DATA-FIELDS   
+PPC470*                          DPP01-COMMON-INFO  
+PPC470*                          SSP13-INPUT-PARAMS 
+PPC470*                          SSP13-OUTPUT-PARAMS.   
+PPC470* 
+PPC470*    IF  DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1   
+PPC470*        GO TO 9100-DATABASE-ERROR    
+PPC470*    END-IF.  
+PPC470*     
+PPC470*    MOVE SSP13-O-BASE-CURRENCY-CODE  
+PPC470*                                 TO SXP99-BASE-CURRENCY-CODE.
+PPC470     PERFORM TDP01-RET-SAIL-DETAILS THRU  
+PPC470                 TDP01-RET-SAIL-DETAILS-EXIT  
+PPC470     IF TDP01-SAIL-SQLERR OR  
+PPC470        TDP01-SAIL-NOTFND OR  
+PPC470        TDP01-PROC-ERROR > ZEROES 
+PPC470        GO TO 9100-DATABASE-ERROR             
+PPC470     END-IF.  
+    
+PPC470     MOVE TDP01-BASE-CURRENCY-CODE    
+PPC470                                  TO SXP99-BASE-CURRENCY-CODE.
+           PERFORM VARYING SXP99-ETX FROM 1 BY 1 UNTIL SXP99-ETX > 5
+              MOVE ESDR-PRICE (SXP99-ETX)  TO SXP99-ESDR-PRICE  
+              MOVE ESDR-PRICE-CODE (SXP99-ETX)  
+                                        TO SXP99-ESDR-PRICE-CODE
+              MOVE ESDR-PRICE-AVAIL (SXP99-ETX) 
+                                        TO SXP99-ESDR-PRICE-AVAIL   
+              MOVE ESDR-PRICE-MAX-CAPACITY (SXP99-ETX)  
+                                        TO SXP99-ESDR-PRICE-MAX-CAPACITY
+                                        
+              WRITE SHOREX-PRICING-REC  FROM SXP99-PRICING-REC  
+           END-PERFORM. 
+
+       SXP99-WRITE-SX-PRC-FILE-EXIT.
+           EXIT.
+
+ END PROC   
+
+SXP99ESD-INV PROC   
+
+       SXP99-WRITE-SX-INV-FILE. 
+
+           IF ESDR-EXC-TYPE NOT = 'EX'  
+              GO TO SXP99-WRITE-SX-INV-FILE-EXIT
+           END-IF.  
+
+           IF SXP99-SX-INV-FILE-OPENED NOT = 'Y'
+              OPEN OUTPUT SHOREX-INV-FILE   
+              IF SXP99-DONT-WRITE-HEADER = 'Y'  
+                 CONTINUE   
+              ELSE  
+                 WRITE SHOREX-INV-REC   FROM SXP99-INV-HEADER   
+              END-IF
+              MOVE 'Y'                  TO   SXP99-SX-INV-FILE-OPENED   
+           END-IF.  
+
+           MOVE SPACES                  TO SXP99-INV-ESDR-CALC-KEY. 
+
+           MOVE ZEROES                  TO SXP99-ESDR-PRESALES-ALLOC
+                                           SXP99-ESDR-GROUPS-ALLOC  
+                                           SXP99-ESDR-PRESALES-SOLD.
+
+           STRING ESDR-CALC-KEY DELIMITED BY SIZE   
+                  ESDR-EXC-TIME DELIMITED BY SIZE   
+                  INTO SXP99-INV-ESDR-CALC-KEY. 
+
+           PERFORM VARYING SXP99-ETX FROM 1 BY 1 UNTIL SXP99-ETX > 5
+              COMPUTE SXP99-ESDR-PRESALES-SOLD       =  
+                      ESDR-PRESALES-SOLD (SXP99-ETX) +  
+                      SXP99-ESDR-PRESALES-SOLD  
+           END-PERFORM. 
+
+           MOVE ESDR-PRESALES-ALLOC     TO SXP99-ESDR-PRESALES-ALLOC.   
+           MOVE ESDR-GROUPS-ALLOC       TO SXP99-ESDR-GROUPS-ALLOC. 
+
+           WRITE SHOREX-INV-REC         FROM SXP99-INV-REC. 
+
+       SXP99-WRITE-SX-INV-FILE-EXIT.
+            EXIT.   
+
+ END PROC   
+
+SXP99ESD-VPS PROC   
+
+************************************************************************
+217610* 08-OCT-19   BK4     TCS LTD.               CQ217610            *
+217610* IMPROVE MERCHANDISING OF "AT YOUR LEISURE" EXCURSIONS.         *
+************************************************************************
+
+       SXP99-WRITE-SX-VPS-FILE. 
+
+           IF ESDR-EXC-TYPE NOT = 'EX'  
+              GO TO SXP99-WRITE-SX-VPS-FILE-EXIT
+           END-IF.  
+
+           IF SXP99-SX-VPS-FILE-OPENED NOT = 'Y'
+              OPEN OUTPUT SHOREX-VPS-FILE   
+              IF SXP99-DONT-WRITE-HEADER = 'Y'  
+                 CONTINUE   
+              ELSE  
+                 WRITE SHOREX-VPS-REC   FROM SXP99-VPS-HEADER   
+              END-IF
+              MOVE 'Y'                  TO   SXP99-SX-VPS-FILE-OPENED   
+           END-IF.  
+
+           MOVE SPACES                  TO SXP99-VPS-ESDR-CALC-KEY  
+                                           SXP99-ESDR-SHIP-CODE 
+                                           SXP99-ESDR-EXC-ID
+                                           SXP99-ESDR-STATUS
+                                          SXP99-ESDR-STRT-TIME-BUFF-TYPE
+                                           SXP99-ESDR-END-TIME-BUFF-TYPE
+                                           SXP99-ESDR-ON-ARRIVAL-IND
+                                         SXP99-ESDR-AT-YOUR-LEISURE-IND.
+
+           MOVE ZEROES                  TO SXP99-ESDR-EXC-DATE  
+                                           SXP99-ESDR-EXC-TIME  
+                                           SXP99-ESDR-EXC-END-DATE  
+                                           SXP99-ESDR-EXC-END-TIME  
+                                           SXP99-ESDR-SAIL-DATE 
+                                           SXP99-ESDR-DURATION-DAYS 
+                                           SXP99-ESDR-START-TIME-BUFF   
+                                           SXP99-ESDR-END-TIME-BUFF.
+
+           STRING ESDR-CALC-KEY DELIMITED BY SIZE   
+                  ESDR-EXC-TIME DELIMITED BY SIZE   
+                  INTO SXP99-VPS-ESDR-CALC-KEY. 
+
+           MOVE ESDR-SHIP-CODE          TO SXP99-ESDR-SHIP-CODE.
+           MOVE ESDR-EXC-ID             TO SXP99-ESDR-EXC-ID.   
+           MOVE ESDR-EXC-DATE           TO SXP99-ESDR-EXC-DATE. 
+           MOVE ESDR-EXC-TIME           TO SXP99-ESDR-EXC-TIME. 
+           MOVE ESDR-STATUS             TO SXP99-ESDR-STATUS.   
+217610*    MOVE ESDR-EXC-END-DATE       TO SXP99-ESDR-EXC-END-DATE. 
+217610*    MOVE ESDR-EXC-END-TIME       TO SXP99-ESDR-EXC-END-TIME. 
+217610     IF ESDR-AT-YOUR-LEISURE-IND = 'Y'
+217610        MOVE ESDR-EXC-DATE        TO SXP99-ESDR-EXC-END-DATE  
+217610        MOVE ESDR-EXC-TIME        TO SXP99-ESDR-EXC-END-TIME  
+217610     ELSE 
+217610        MOVE ESDR-EXC-END-DATE    TO SXP99-ESDR-EXC-END-DATE  
+217610        MOVE ESDR-EXC-END-TIME    TO SXP99-ESDR-EXC-END-TIME  
+217610     END-IF.  
+           MOVE ESDR-SAIL-DATE          TO SXP99-ESDR-SAIL-DATE.
+           MOVE ESDR-DURATION-DAYS      TO SXP99-ESDR-DURATION-DAYS.
+           MOVE ESDR-START-TIME-BUFF-TYPE   
+                                        TO  
+                                        SXP99-ESDR-STRT-TIME-BUFF-TYPE. 
+           MOVE ESDR-START-TIME-BUFF    TO SXP99-ESDR-START-TIME-BUFF.  
+           MOVE ESDR-END-TIME-BUFF-TYPE TO  
+                                          SXP99-ESDR-END-TIME-BUFF-TYPE.
+           MOVE ESDR-END-TIME-BUFF      TO SXP99-ESDR-END-TIME-BUFF.
+           MOVE ESDR-ON-ARRIVAL-IND     TO SXP99-ESDR-ON-ARRIVAL-IND.   
+           MOVE ESDR-AT-YOUR-LEISURE-IND
+                                        TO  
+                                         SXP99-ESDR-AT-YOUR-LEISURE-IND.
+
+           WRITE SHOREX-VPS-REC         FROM SXP99-VPS-REC. 
+
+       SXP99-WRITE-SX-VPS-FILE-EXIT.
+            EXIT.   
+
+ END PROC   

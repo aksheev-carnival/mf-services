@@ -1,0 +1,1045 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.    PRU41EBC. 
+       DATE-WRITTEN.  JUNE 25, 2014.
+       DATE-COMPILED.   
+
+************************************************************************
+177363* 19-JAN-15     S0M                            CQ177363          *
+177363* OBC Department should be stored as spaces for ALL departments  *
+************************************************************************
+180769* 22-MAY-17     SK6     TCS LTD.               CQ180769          *
+180769* OPEN AREA AT ONE PLACE TO MAKE IT RTPS.                        *
+************************************************************************
+PPC470* 24-JAN-18     V2B     JAI BHIMANI            CQ000470          *
+PPC470* CHANGED DEPT CODE FROM OCCURS 10 TO ONLY 1 IN OBC DOMAIN       *
+************************************************************************
+CCLAUS* 22-AUG-19      F1K     TCS LTD.              CCLAUS            *
+CCLAUS* CHANGES TO REMOVE CURRENCY-CODE FROM OBC MAINTENANCE SCREEN    *
+CCLAUS* AS OBC-CURRENCY-CODE IS REMOVED FROM THE DATABASE .            *
+************************************************************************
+219497* 24-NOV-25      2QJ     TCS LTD.              ADO2194972        *
+219497* CHANGES DONE FOR OBC MASTERS DEPT UPDATE WHILE SAVING OBC      *
+************************************************************************
+187917* 16-FEB-26     HYY     TCS LTD.              ADO1879173         *
+187917* CHANGES DONE FOR UNIACCESS TO EPORTAL CONVERSION.              *
+************************************************************************
+242097* 16-FEB-26     UY9     TCS LTD.              ADO2420970         *
+242097* CHANGES ARE MADE TO STORE SPACES IN DEPT-CODE (OBC-MASTER-REC) *
+242097* WHEN FE SENDS 'ALL'. ALSO ADD VARIFICATION BEFORE MODIFY       *
+242097* DEPT-CODE                                                      *
+************************************************************************
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER. UNISYS. 
+       OBJECT-COMPUTER. UNISYS  MEMORY SIZE 3 MODULES.  
+       SPECIAL-NAMES.   
+           PRINTER IS PRT   
+           PRINTER IS PRINTER.  
+
+       DATA DIVISION.   
+       SUBSCHEMA SECTION.   
+       INVOKE SUBSCHEMA CDE100UCOBSU
+           IN FILE SUBSCHEMAS OF SCHEMA CDE100SCHEMA
+           COPYING RECORDS    INTO COMMON   
+           COPYING DATA-NAMES INTO COMMON   
+           OVERLAY PAX-REC WITH PAX-CXF-REC 
+169014*                         PAX-FUT-REC 
+                                PAX-VI-REC  
+           DMCA COMMON  
+           SAVE DATA INCLUDES DEFERRED-UPDATES  
+           ERROR RECOVERY IS 9100-DATABASE-ERROR
+           ROLLBACK       IS 9100-DATABASE-ERROR.   
+
+       WORKING-STORAGE SECTION. 
+       01  WS-PROG-ID            PIC X(8) VALUE 'PRU41EBC'. 
+       01  MCFLAG                            PIC 9(10) USAGE BINARY.
+       01  WS-WORK-AREA.
+           05  WS-SUB                      PIC 9(02) BINARY.
+           05  WS-MATCH                    PIC 9(1)  BINARY.
+           05  WS-SYS-DATETIME. 
+               07 WS-SYS-DATE              PIC 9(8).
+               07 WS-SYS-TIME              PIC 9(8).
+           05  FILLER                      PIC X.   
+187917 01  WS-SP-NAME                      PIC X(30) VALUE SPACES.  
+
+           COPY DPP01CIW.   
+           COPY DPP01DTA.   
+           COPY DPP01ERR.   
+187917 COPY DPP01EWS.   
+           COPY DPP01MCB.   
+           COPY DPP01SCO.   
+187917*    COPY DPP01UWS.   
+           COPY DPP12SCO.   
+           COPY DPP42ERR.   
+187917 COPY ECP75ERR.   
+187917 COPY PRP-R-DM-OBC-MST.   
+187917 COPY PRP-R-PR-OBC-LST.   
+187197 COPY PRP-R-PR-OBC-MST.   
+187917 COPY PRP-U-PR-OBC-MST.   
+           COPY RSP00DMS.   
+           COPY RSP32DMS.   
+           COPY RSP64DMS.   
+           COPY RSP77GMD.   
+           COPY SSP06UGT.   
+           COPY SLCPCOB.
+187917*    COPY UAP01MWS.   
+187917*    COPY OBCDM-W-1471.   
+187917*    COPY PDOBC-W-1470.   
+187917*    COPY OBCLST-W-1467.  
+187917*    COPY PLOBC-W-1465.   
+187917*    COPY OBCMST-W-1469.  
+187917*    COPY PMOBC-W-1468.   
+187917*    COPY PUOBC-W-1472.   
+
+       COMMON-STORAGE SECTION.  
+
+       PROCEDURE DIVISION.  
+       0000-MAIN-LINE.  
+           COPY DPP01INT.   
+
+187917*    COPY UAP05INT.   
+           MOVE WS-PROG-ID      TO TDPROGNAME.  
+
+      *  IF THE PROGRAM NEEDS TO PASS OFF OR USE MCB THEN   
+      *    PERFORM DPP12-UNIACCESS-CNCT-MCB 
+      *       THRU DPP12-UNIACCESS-CNCT-MCB-EXIT.   
+
+187917*    PERFORM DPP12-TDINIT THRU DPP12-TDINIT-EXIT. 
+
+187917     MOVE SPACES TO DPP01-MCB-INPUT-MESSAGE.  
+
+187917     MOVE 63 TO DPP01-AUX-LENGTH. 
+187917     MOVE FUNCTION LENGTH (DPP01-MCB-INPUT-MESSAGE)  TO   
+187917                           DPP01-INPUT-MSG-LENGTH.
+187917     PERFORM DPP12-MCB-RECIEVE-MSG
+187917        THRU DPP12-MCB-RECIEVE-MSG-EXIT.  
+
+           PERFORM DPP12-BEGIN-THREAD THRU DPP12-BEGIN-THREAD-EXIT. 
+
+           IF DPP01-SQL-ERROR-IND = 'Y' 
+              GO TO DPP12-THREAD-ERROR-EXIT.
+
+       0100-INIT-DATABASE.  
+      *  IF the program doesn't access the schema then the impart and   
+      *  opens are not necessary and DPP12NDB should be used instead of 
+      *  DPP12WDB, THE 0100-INIT-DATABASE PARA IS STILL REQUIRED.   
+
+           IMPART.  
+
+180769     OPEN OBCMASTER  USAGE-MODE UPDATE
+180769          ERROR-DESC. 
+
+      * Open database areas and Init required database entities 
+      * DEFFERED TO STORED PROCDURE ACTIVITY
+       0200-NEXT-MESSAGE.   
+TEMPPT*  The next perform will initialize the error routines in 
+TEMPPT*  working storage varaibles.  In addition it will do the 
+TEMPPT*  TDaccept and TDNUM parm calls. 
+
+           PERFORM DPP12-GET-NEXT-MESSAGE   
+              THRU DPP12-GET-NEXT-MESSAGE-EXIT. 
+187917     MOVE DPP01-MCB-INPUT-MESSAGE(103:30) TO WS-SP-NAME.  
+187917     EVALUATE WS-SP-NAME  
+187917         WHEN 'SP_R_PR_OBC_LST'   
+187917             MOVE DPP01-MCB-INPUT-MESSAGE 
+187917                                 TO X-INPUT-R-PRUOBC-LST-BUFFER   
+187917             PERFORM PRP00-R-PR-OBC-LST-INIT  
+187917                THRU PRP00-R-PR-OBC-LST-INIT-EXIT 
+187917         WHEN 'SP_R_PR_OBC_MST'   
+187917             MOVE DPP01-MCB-INPUT-MESSAGE 
+187917                                 TO X-INPUT-R-PRUOBC-MST-BUFFER   
+187917             PERFORM PRP00-R-PR-OBC-MST-INIT  
+187917                THRU PRP00-R-PR-OBC-MST-INIT-EXIT 
+187917         WHEN 'SP_R_DM_OBC_MST'   
+187917             MOVE DPP01-MCB-INPUT-MESSAGE 
+187917                                 TO X-INPUT-R-PRUOBC-DMMST-BUFFER 
+187917             PERFORM PRP00-R-DM-OBC-MST-INIT  
+187917                THRU PRP00-R-DM-OBC-MST-INIT-EXIT 
+187917         WHEN 'SP_U_PR_OBC_MST'   
+187917             MOVE DPP01-MCB-INPUT-MESSAGE 
+187917                                 TO X-INPUT-U-PRUOBC-MST-BUFFER   
+187917             PERFORM PRP00-U-PR-OBC-MST-INIT  
+187917                THRU PRP00-U-PR-OBC-MST-INIT-EXIT 
+187917         WHEN OTHER   
+187917             MOVE 9000           TO DPP42-HOLD-MSG-INDEX  
+187917             MOVE 'WRONG RPC NAME SENT, CONTACT HELP DESK!'   
+187917                                 TO DPP42-HOLD-MSG-DESC   
+187917             GO TO 9300-SEVERE-ERROR-MSG  
+187917     END-EVALUATE.
+187917     MOVE ZEROES TO DPP01-ISUB.   
+      * 
+      * Receive the Standard Input parameters.  If this program handles 
+      * more than one stored procedure select one for control purposes. 
+      * The selection does not matter at this point as there are 6  
+      * standard parameters passed for each stored procedure request.   
+      * Based on the Stored procedure load DPP01-EXPECTED-PARAMETERS
+      * with the number of parameters expected. 
+      * 
+       0300-INIT-PGM-TRANS-VARS.
+
+           MOVE LOW-VALUES             TO WS-WORK-AREA. 
+
+187917*0400-RECEIVE-CLIENT-REQUEST. 
+
+187917*    PERFORM PUOBC-RCV-STDINP.
+187917*    EVALUATE U-1472-PI-STORED-PROCEDURE-NAM  
+187917*        WHEN 'SP_R_PR_OBC_LST'   
+187917*            MOVE C-1465-NUMBER-OF-PARAMETERS 
+187917*                                TO DPP01-PARAMETERS-EXPECTED 
+187917*        WHEN 'SP_R_PR_OBC_MST'   
+187917*            MOVE C-1468-NUMBER-OF-PARAMETERS 
+187917*                                TO DPP01-PARAMETERS-EXPECTED 
+187917*        WHEN 'SP_R_DM_OBC_MST'   
+187917*            MOVE C-1470-NUMBER-OF-PARAMETERS 
+187917*                                TO DPP01-PARAMETERS-EXPECTED 
+187917*        WHEN 'SP_U_PR_OBC_MST'   
+CCLAUS*            MOVE 47             TO DPP01-PARAMETERS-EXPECTED 
+187917*            MOVE C-1472-NUMBER-OF-PARAMETERS 
+187917*                                TO DPP01-PARAMETERS-EXPECTED 
+187917*        WHEN OTHER   
+187917*            MOVE 9000           TO DPP42-HOLD-MSG-INDEX  
+187917*            MOVE 'WRONG RPC NAME SENT, CONTACT HELP DESK!'   
+187917*                                TO DPP42-HOLD-MSG-DESC   
+187917*            GO TO 9300-SEVERE-ERROR-MSG  
+187917*    END-EVALUATE.
+187917*0500-VALIDATE-NUMBER-PARAMS. 
+
+187917*    IF (SL-NUMBER-OF-PARMS NOT = DPP01-PARAMETERS-EXPECTED)  
+187917*       MOVE 9001               TO DPP42-HOLD-MSG-INDEX   
+187917*       MOVE SL-NUMBER-OF-PARMS TO DPP01-SIGNED   
+187917*       MOVE DPP01-UNSIGNED     TO DPP01-PARAMETERS-RECEIVED  
+187917*       STRING DPP01-PARAMETERS-EXPECTED ' Parameters required - '
+187917*              DPP01-PARAMETERS-RECEIVED ' Received, '
+187917*              'contact Help Desk!' DELIMITED BY SIZE 
+187917*             INTO DPP42-HOLD-MSG-DESC
+187917*       GO TO 9300-SEVERE-ERROR-MSG.  
+       0600-MAIN-PROCESS.   
+187917*    EVALUATE U-1472-PI-STORED-PROCEDURE-NAM  
+187917     EVALUATE WS-SP-NAME  
+               WHEN 'SP_R_PR_OBC_LST'   
+                     GO TO 1000-LIST-OBC
+               WHEN 'SP_R_PR_OBC_MST'   
+                     GO TO 2000-READ-OBC
+               WHEN 'SP_R_DM_OBC_MST'   
+                     GO TO 3000-DOMAIN-OBC  
+               WHEN 'SP_U_PR_OBC_MST'   
+                     GO TO 4000-UPDATE-OBC  
+           END-EVALUATE.
+
+      * 
+      *  At this point we should receive the parameters for the specific
+      *  stored procedure and the standard output parameters.   
+      * 
+       1000-LIST-OBC.   
+      * 
+      * Set the value for the standard output parameters and return its 
+      * value.  
+      * 
+180769*    OPEN OBCMASTER   
+180769*         ERROR-DESC. 
+
+187917*     PERFORM PLOBC-RCV-STDSEC.   
+187917*     PERFORM PLOBC-RCV-OBC-LST.  
+187917*     PERFORM PLOBC-RCV-STDOUT.   
+
+            MOVE DPP01-SYSTEM-DATETIME TO U-1465-PO-DATE-TIME.  
+
+187917*     PERFORM PLOBC-SET-STDOUT.   
+187917*     PERFORM OBCLST-DSC-OBC-LST. 
+      * 
+      * Initialize variables that need to be reset for each transaction 
+      * execution.  
+      * 
+      * Transaction specific processing should be defined by stored 
+      * procedure requuirements.
+      * 
+           MOVE 33011114 TO DPP01-ERROR-NUMBER. 
+
+           FETCH FIRST OBC-MASTER-REC WITHIN OBCMASTER  AREA
+           ON ERROR GO TO 1000-CHECK-STATUS.
+       1000-CHECK-STATUS.   
+
+           IF ERROR-STATUS NOT = ZEROS  
+              IF ERROR-NUM = '0013' OR '0007' THEN  
+                  GO TO 1000-DONE   
+              ELSE  
+                  GO TO 9100-DATABASE-ERROR.
+           IF U-1465-OBC-CODE > SPACES AND  
+              OBC-CODE NOT = U-1465-OBC-CODE
+             GO TO 1000-FETCH-NEXT-MASTER   
+           END-IF.  
+           IF U-1465-INTERFACE-TYPE > SPACES AND
+              OBC-INTERFACE-TYPE NOT = U-1465-INTERFACE-TYPE
+             GO TO 1000-FETCH-NEXT-MASTER   
+           END-IF.  
+           IF U-1465-STATUS-CODE   > SPACES AND 
+              OBC-STATUS-CODE NOT = U-1465-STATUS-CODE  
+             GO TO 1000-FETCH-NEXT-MASTER   
+           END-IF.  
+           IF U-1465-PAYMENT-TYPE > SPACES AND  
+              OBC-PAYMENT-TYPE NOT = U-1465-PAYMENT-TYPE
+             GO TO 1000-FETCH-NEXT-MASTER   
+           END-IF.  
+           IF U-1465-PAY-CALC-METHOD > SPACES AND   
+              OBC-PAY-CALC-METHOD NOT = U-1465-PAY-CALC-METHOD  
+             GO TO 1000-FETCH-NEXT-MASTER   
+           END-IF.  
+           MOVE 0 TO WS-MATCH   
+           IF U-1465-SEC-DEPT-CODE > SPACES 
+              PERFORM VARYING WS-SUB FROM 1 BY 1
+                              UNTIL WS-SUB > OBC-SEC-TABLE-CNT  
+                 IF U-1465-SEC-DEPT-CODE =  
+                    OBC-SEC-DEPT-CODE(WS-SUB)     AND   
+                    U-1465-SEC-FUNCTION-CODE =  
+                    OBC-SEC-FUNCTION-CODE(WS-SUB) AND   
+                    U-1465-SEC-LEVEL-CODE     = 
+                    OBC-SEC-LEVEL-CODE(WS-SUB)  
+                    MOVE 1 TO WS-MATCH  
+                    MOVE OBC-SEC-TABLE-CNT TO WS-SUB
+                 END-IF 
+              END-PERFORM   
+           ELSE 
+              MOVE 1 TO WS-MATCH
+           END-IF.  
+           IF WS-MATCH = 0  
+             GO TO 1000-FETCH-NEXT-MASTER   
+           END-IF.  
+187917     ADD 1 TO U-1467-SUB. 
+187917     IF U-1467-SUB > 300  
+187917        MOVE  WS-PROG-ID         TO DPP42-HOLD-MSG-SOURCE 
+187917        MOVE 'Output response buffer U-1467 reached max limit'
+187917              TO DPP42-HOLD-MSG-DESC  
+187917        GO TO 9200-EDIT-ERROR-MSG 
+187917     END-IF.  
+           MOVE OBC-CODE            TO U-1467-OBC-CODE (U-1467-SUB).
+           MOVE OBC-INTERFACE-TYPE  TO  
+                                   U-1467-INTERFACE-TYPE (U-1467-SUB).  
+           MOVE OBC-STATUS-CODE     TO U-1467-STATUS-CODE (U-1467-SUB). 
+           MOVE OBC-PAYMENT-TYPE    TO U-1467-PAYMENT-TYPE (U-1467-SUB).
+           MOVE OBC-PAY-CALC-METHOD TO  
+                                   U-1467-PAY-CALC-METHOD (U-1467-SUB). 
+           MOVE OBC-REFUND-IND      TO U-1467-REFUND-IND (U-1467-SUB).  
+           MOVE OBC-CREATION-DATE   TO U-1467-CREATION-DATE(U-1467-SUB).
+           MOVE OBC-CLOSED-DATE     TO U-1467-CLOSED-DATE (U-1467-SUB). 
+           MOVE OBC-USER-ID         TO U-1467-USER-ID (U-1467-SUB). 
+           MOVE OBC-TITLE           TO U-1467-OBC-TITLE (U-1467-SUB).   
+187917*    PERFORM OBCLST-NUL-OBC-LST.  
+187917*    PERFORM DPP12-SEND-ROW.  
+
+       1000-FETCH-NEXT-MASTER.  
+           MOVE 33011114 TO DPP01-ERROR-NUMBER. 
+
+           FETCH NEXT OBC-MASTER-REC WITHIN OBCMASTER  AREA 
+180769     ON ERROR GO TO 1000-CHECK-STATUS.
+
+180769     GO TO 1000-CHECK-STATUS. 
+
+180769*    ON ERROR GO TO 1000-CHECK-N-STATUS.  
+180769*1000-CHECK-N-STATUS. 
+180769*    IF ERROR-STATUS NOT = ZEROS  
+180769*       IF ERROR-NUM = '0013' OR '0007' THEN  
+180769*           GO TO 1000-DONE   
+180769*       ELSE  
+180769*           GO TO 9100-DATABASE-ERROR.
+180769*    IF U-1465-OBC-CODE > SPACES AND  
+180769*       OBC-CODE NOT = U-1465-OBC-CODE
+180769*      GO TO 1000-FETCH-NEXT-MASTER   
+180769*    END-IF.  
+180769*    IF U-1465-INTERFACE-TYPE > SPACES AND
+180769*       OBC-INTERFACE-TYPE NOT = U-1465-INTERFACE-TYPE
+180769*      GO TO 1000-FETCH-NEXT-MASTER   
+180769*    END-IF.  
+180769*    IF U-1465-STATUS-CODE  > SPACES AND  
+180769*       OBC-STATUS-CODE NOT = U-1465-STATUS-CODE  
+180769*      GO TO 1000-FETCH-NEXT-MASTER   
+180769*    END-IF.  
+180769*    IF U-1465-PAYMENT-TYPE > SPACES AND  
+180769*       OBC-PAYMENT-TYPE NOT = U-1465-PAYMENT-TYPE
+180769*      GO TO 1000-FETCH-NEXT-MASTER   
+180769*    END-IF.  
+180769*    IF U-1465-PAY-CALC-METHOD > SPACES AND   
+180769*       OBC-PAY-CALC-METHOD NOT = U-1465-PAY-CALC-METHOD  
+180769*      GO TO 1000-FETCH-NEXT-MASTER   
+180769*    END-IF.  
+180769*    MOVE 0 TO WS-MATCH   
+180769*    IF U-1465-SEC-DEPT-CODE > SPACES 
+180769*       PERFORM VARYING WS-SUB FROM 1 BY 1
+180769*                       UNTIL WS-SUB > OBC-SEC-TABLE-CNT  
+180769*          IF U-1465-SEC-DEPT-CODE =  
+180769*             OBC-SEC-DEPT-CODE(WS-SUB)     AND   
+180769*             U-1465-SEC-FUNCTION-CODE =  
+180769*             OBC-SEC-FUNCTION-CODE(WS-SUB) AND   
+180769*             U-1465-SEC-LEVEL-CODE     = 
+180769*             OBC-SEC-LEVEL-CODE(WS-SUB)  
+180769*             MOVE 1 TO WS-MATCH  
+180769*             MOVE OBC-SEC-TABLE-CNT TO WS-SUB
+180769*          END-IF 
+180769*       END-PERFORM   
+180769*    ELSE 
+180769*       MOVE 1 TO WS-MATCH
+180769*    END-IF.  
+180769*    IF WS-MATCH = 0  
+180769*      GO TO 1000-FETCH-NEXT-MASTER   
+180769*    END-IF.  
+180769*    MOVE OBC-CODE            TO  U-1467-OBC-CODE.
+180769*    MOVE OBC-INTERFACE-TYPE  TO  U-1467-INTERFACE-TYPE.  
+180769*    MOVE OBC-STATUS-CODE     TO  U-1467-STATUS-CODE. 
+180769*    MOVE OBC-PAYMENT-TYPE    TO  U-1467-PAYMENT-TYPE.
+180769*    MOVE OBC-PAY-CALC-METHOD TO  U-1467-PAY-CALC-METHOD. 
+180769*    MOVE OBC-REFUND-IND      TO  U-1467-REFUND-IND.  
+180769*    MOVE OBC-CREATION-DATE   TO  U-1467-CREATION-DATE.   
+180769*    MOVE OBC-CLOSED-DATE     TO  U-1467-CLOSED-DATE. 
+180769*    MOVE OBC-USER-ID         TO  U-1467-USER-ID. 
+180769*    MOVE OBC-TITLE           TO U-1467-OBC-TITLE.
+180769*    PERFORM OBCLST-NUL-OBC-LST.  
+180769*    PERFORM DPP12-SEND-ROW.  
+180769*    GO TO 1000-FETCH-NEXT-MASTER.
+
+       1000-DONE.   
+
+187917*    PERFORM DPP12-SEND-DONE-COUNT.   
+187917     PERFORM 10000-SEND-OUTPUT
+187917        THRU 10000-SEND-OUTPUT-EXIT   
+           GO TO 9000-END-OF-JOB.   
+
+       2000-READ-OBC.   
+      * 
+      * Set the value for the standard output parameters and return its 
+      * value.  
+      * 
+180769*    OPEN OBCMASTER   
+180769*         ERROR-DESC. 
+
+187917*    PERFORM PMOBC-RCV-STDSEC.
+187917*    PERFORM PMOBC-RCV-OBC-MST.   
+187917*    PERFORM PMOBC-RCV-STDOUT.
+           MOVE DPP01-SYSTEM-DATETIME TO U-1468-PO-DATE-TIME.   
+
+187917*    PERFORM PMOBC-SET-STDOUT.
+187917*    PERFORM OBCMST-DSC-OBC-MST.  
+           MOVE 33011114 TO DPP01-ERROR-NUMBER. 
+           MOVE U-1468-OBC-CODE TO OBC-CODE.
+           FETCH OBC-MASTER-REC RECORD  
+           ON ERROR GO TO 2000-CHECK-STATUS.
+       2000-CHECK-STATUS.   
+           IF ERROR-STATUS NOT = ZEROS  
+              IF ERROR-NUM = '0013' OR '0007' THEN  
+                 MOVE 9002               TO DPP42-HOLD-MSG-INDEX
+                 MOVE 'RECORD NOT FOUND '  TO DPP42-HOLD-MSG-DESC   
+                 GO TO 9200-EDIT-ERROR-MSG  
+              ELSE  
+                  GO TO 9100-DATABASE-ERROR.
+187917     ADD 1 TO U-1469-SUB. 
+187917     IF U-1469-SUB > 180  
+187917        MOVE  WS-PROG-ID         TO DPP42-HOLD-MSG-SOURCE 
+187917        MOVE 'Output response buffer U-1469 reached max limit'
+187917              TO DPP42-HOLD-MSG-DESC  
+187917        GO TO 9200-EDIT-ERROR-MSG 
+187917     END-IF.  
+           MOVE OBC-CODE            TO U-1469-OBC-CODE (U-1469-SUB).
+           MOVE OBC-INTERFACE-TYPE  TO  
+                                    U-1469-INTERFACE-TYPE (U-1469-SUB). 
+           MOVE OBC-STATUS-CODE     TO U-1469-STATUS-CODE (U-1469-SUB). 
+           MOVE OBC-PAYMENT-TYPE    TO U-1469-PAYMENT-TYPE (U-1469-SUB).
+           MOVE OBC-PAY-CALC-METHOD TO  
+                                    U-1469-PAY-CALC-METHOD (U-1469-SUB).
+           MOVE OBC-REFUND-IND      TO U-1469-REFUND-IND (U-1469-SUB).  
+           MOVE OBC-CREATION-DATE   TO U-1469-CREATION-DATE(U-1469-SUB).
+           MOVE OBC-CLOSED-DATE     TO U-1469-CLOSED-DATE (U-1469-SUB). 
+PPC470*    PERFORM VARYING WS-SUB FROM 1 BY 1 UNTIL WS-SUB > 10 
+PPC470*      MOVE OBC-DEPT-CODE(WS-SUB) TO U-1469-DEPT-CODE(WS-SUB) 
+PPC470*    END-PERFORM. 
+PPC470     MOVE OBC-DEPT-CODE(1)    TO U-1469-DEPT-CODE (U-1469-SUB).   
+           IF OBC-DEPT-CODE(1) <= SPACES
+PPC470*       MOVE 'ALL'            TO U-1469-DEPT-CODE(1)  
+PPC470        MOVE 'ALL'            TO U-1469-DEPT-CODE  (U-1469-SUB)   
+           END-IF.  
+           MOVE OBC-DESCRIPTION     TO U-1469-DESCRIPTION (U-1469-SUB). 
+           MOVE OBC-GL-ACCT-NUM     TO U-1469-GL-ACCT-NUM (U-1469-SUB). 
+           MOVE OBC-GL-CENTER-NUM   TO U-1469-GL-CENTER-NUM(U-1469-SUB).
+           MOVE OBC-GL-SUB-ACCT-NUM TO  
+                                  U-1469-GL-SUB-ACCT-NUM (U-1469-SUB).  
+           IF OBC-PAY-CALC-METHOD = 'D' 
+            PERFORM VARYING WS-SUB FROM 1 BY 1  
+                                   UNTIL WS-SUB > OBC-SEC-TABLE-CNT 
+             MOVE OBC-MAX-AMOUNT(WS-SUB) TO 
+                                  U-1469-MAX-AMOUNT(U-1469-SUB WS-SUB)  
+           END-PERFORM. 
+           IF OBC-PAY-CALC-METHOD = 'P' 
+            PERFORM VARYING WS-SUB FROM 1 BY 1  
+                                   UNTIL WS-SUB > OBC-SEC-TABLE-CNT 
+             MOVE OBC-MAX-PCT(WS-SUB) TO
+                                  U-1469-MAX-PCT(U-1469-SUB WS-SUB) 
+           END-PERFORM. 
+           MOVE OBC-MINIMUM-AGE     TO U-1469-MIN-AGE (U-1469-SUB). 
+           MOVE OBC-REVENUE-IND     TO U-1469-REVENUE-IND (U-1469-SUB). 
+           MOVE OBC-REASON-IND      TO U-1469-REASON-IND (U-1469-SUB).  
+           MOVE OBC-SEC-TABLE-CNT   TO U-1469-SEC-TABLE-CNT(U-1469-SUB).
+           PERFORM VARYING WS-SUB FROM 1 BY 1   
+                                  UNTIL WS-SUB > OBC-SEC-TABLE-CNT  
+            MOVE OBC-SEC-DEPT-CODE(WS-SUB) TO   
+                             U-1469-SEC-DEPT-CODE(U-1469-SUB WS-SUB)
+            MOVE OBC-SEC-FUNCTION-CODE(WS-SUB) TO   
+                             U-1469-SEC-FUNCTION-CODE(U-1469-SUB WS-SUB)
+            MOVE OBC-SEC-LEVEL-CODE(WS-SUB) TO  
+                             U-1469-SEC-LEVEL-CODE(U-1469-SUB WS-SUB)   
+           END-PERFORM. 
+           MOVE OBC-TICKET-IND      TO  U-1469-TICKET-IND (U-1469-SUB). 
+           MOVE OBC-TITLE           TO  U-1469-TITLE (U-1469-SUB).  
+           MOVE OBC-UPDATE-DATETIME TO  
+                                   DPP01-UPDATE-DATETIME.   
+           MOVE DPP01-U-UPDATE-DATETIME  TO 
+                                   U-1469-UPDATE-DATETIME (U-1469-SUB). 
+           MOVE OBC-USER-ID         TO  U-1469-USER-ID (U-1469-SUB).
+CCLAUS*    MOVE OBC-CURRENCY-CODE   TO  U-1469-CURRENCY-CODE.   
+           MOVE OBC-BV-ITEM-TYPE    TO U-1469-BV-ITEM-TYPE (U-1469-SUB).
+      * 
+      * Initialize variables that need to be reset for each transaction 
+      * execution.  
+      * 
+      * Transaction specific processing should be defined by stored 
+      * procedure requuirements.
+      * 
+187917*    PERFORM OBCMST-NUL-OBC-MST.  
+187917*    PERFORM DPP12-SEND-ROW.  
+
+187917*    PERFORM DPP12-SEND-DONE-COUNT.   
+187917     PERFORM 10000-SEND-OUTPUT
+187917        THRU 10000-SEND-OUTPUT-EXIT.  
+           GO TO 9000-END-OF-JOB.   
+
+       3000-DOMAIN-OBC. 
+      * 
+      * Set the value for the standard output parameters and return its 
+      * value.  
+      * 
+180769*    OPEN OBCMASTER   
+180769*         ERROR-DESC. 
+187917*     PERFORM PDOBC-RCV-STDSEC.   
+187917*     PERFORM PDOBC-RCV-OBC-MST.  
+187917*     PERFORM PDOBC-RCV-STDOUT.   
+
+            MOVE DPP01-SYSTEM-DATETIME TO U-1470-PO-DATE-TIME.  
+
+187917*     PERFORM PDOBC-SET-STDOUT.   
+187917*     PERFORM OBCDM-DSC-OBC-MST.  
+            IF U-1470-RE-ENTRY-DATA > SPACES
+               MOVE 33011114 TO DPP01-ERROR-NUMBER  
+               MOVE U-1470-RE-ENTRY-DATA TO DPP01-U-DBKEY   
+               MOVE DPP01-N-DBKEY    TO DPP01-DBK   
+               MOVE DPP01-DBK TO GENERIC-DBK
+               FETCH OBC-MASTER-REC RECORD GENERIC-DBK  
+               GO TO 3000-CHECK-STATUS. 
+            MOVE 33011114 TO DPP01-ERROR-NUMBER.
+
+            FETCH FIRST OBC-MASTER-REC WITHIN OBCMASTER  AREA   
+                  ON ERROR GO TO 3000-CHECK-STATUS. 
+       3000-CHECK-STATUS.   
+
+            IF ERROR-STATUS NOT = ZEROS 
+              IF ERROR-NUM = '0013' OR '0007' THEN  
+                  GO TO 3000-DONE   
+              ELSE  
+                  GO TO 9100-DATABASE-ERROR.
+187917     ADD 1 TO U-1471-SUB. 
+187917     IF U-1471-SUB > 200  
+187917        MOVE  WS-PROG-ID         TO DPP42-HOLD-MSG-SOURCE 
+187917        MOVE 'Output response buffer U-1471 reached max limit'
+187917              TO DPP42-HOLD-MSG-DESC  
+187917        GO TO 9200-EDIT-ERROR-MSG 
+187917     END-IF.  
+           MOVE OBC-CODE            TO  U-1471-OBC-CODE(U-1471-SUB).
+           MOVE OBC-INTERFACE-TYPE  TO  U-1471-INTERFACE-TYPE   
+                                        (U-1471-SUB).   
+           MOVE OBC-STATUS-CODE     TO  U-1471-STATUS-CODE(U-1471-SUB). 
+           MOVE OBC-PAYMENT-TYPE    TO  U-1471-PAYMENT-TYPE(U-1471-SUB).
+           MOVE OBC-PAY-CALC-METHOD TO  U-1471-PAY-CALC-METHOD  
+                                        (U-1471-SUB).   
+           MOVE OBC-REFUND-IND      TO  U-1471-REFUND-IND(U-1471-SUB).  
+           MOVE OBC-DESCRIPTION     TO  U-1471-DESCRIPTION(U-1471-SUB). 
+           MOVE OBC-MINIMUM-AGE     TO  U-1471-MIN-AGE(U-1471-SUB). 
+           MOVE OBC-REVENUE-IND     TO  U-1471-REVENUE-IND(U-1471-SUB). 
+           MOVE OBC-REASON-IND      TO  U-1471-REASON-IND(U-1471-SUB).  
+           MOVE OBC-TICKET-IND      TO  U-1471-TICKET-IND(U-1471-SUB).  
+           MOVE OBC-TITLE           TO  U-1471-TITLE(U-1471-SUB).   
+CCLAUS*    MOVE OBC-CURRENCY-CODE   TO  U-1471-CURRENCY-CODE.   
+PPC470*    PERFORM VARYING WS-SUB FROM 1 BY 1 UNTIL WS-SUB > 10 
+PPC470*      MOVE OBC-DEPT-CODE(WS-SUB) TO U-1471-DEPT-CODE(WS-SUB) 
+PPC470*    END-PERFORM. 
+PPC470     MOVE OBC-DEPT-CODE(1)    TO U-1471-DEPT-CODE(U-1471-SUB).
+           IF OBC-DEPT-CODE(1) <= SPACES
+PPC470*       MOVE 'ALL'            TO U-1471-DEPT-CODE(1)  
+PPC470        MOVE 'ALL'            TO U-1471-DEPT-CODE(U-1471-SUB) 
+           END-IF.  
+           MOVE OBC-GL-ACCT-NUM     TO  U-1471-GL-ACCT-NUM(U-1471-SUB). 
+           MOVE OBC-GL-CENTER-NUM   TO  U-1471-GL-CENTER-NUM(U-1471-SUB).   
+           MOVE OBC-GL-SUB-ACCT-NUM TO  U-1471-GL-SUB-ACCT-NUM  
+                                        (U-1471-SUB).   
+           MOVE OBC-BV-ITEM-TYPE    TO  U-1471-BV-ITEM-TYPE(U-1471-SUB).
+           MOVE OBC-SEC-TABLE-CNT   TO  U-1471-SEC-TABLE-CNT(U-1471-SUB).   
+           PERFORM VARYING WS-SUB FROM 1 BY 1   
+                                   UNTIL WS-SUB > 40
+            IF WS-SUB <= OBC-SEC-TABLE-CNT  
+             IF OBC-PAY-CALC-METHOD = 'D'   
+              MOVE OBC-MAX-AMOUNT(WS-SUB) TO U-1471-MAX-AMOUNT  
+                                             (U-1471-SUB WS-SUB)
+             END-IF 
+             IF OBC-PAY-CALC-METHOD = 'P'   
+              MOVE OBC-MAX-PCT(WS-SUB) TO U-1471-MAX-PCT
+                                          (U-1471-SUB WS-SUB)   
+             END-IF 
+             MOVE OBC-SEC-DEPT-CODE(WS-SUB) TO  
+                      U-1471-SEC-DEPT-CODE (U-1471-SUB WS-SUB)  
+             MOVE OBC-SEC-FUNCTION-CODE(WS-SUB) TO  
+                  U-1471-SEC-FUNCTION-CODE (U-1471-SUB WS-SUB)  
+             MOVE OBC-SEC-LEVEL-CODE(WS-SUB) TO 
+                  U-1471-SEC-LEVEL-CODE(U-1471-SUB WS-SUB)  
+            ELSE
+              MOVE ZEROS        TO U-1471-MAX-AMOUNT(U-1471-SUB WS-SUB) 
+                                   U-1471-MAX-PCT(U-1471-SUB WS-SUB)
+                                   U-1471-SEC-LEVEL-CODE
+                                               (U-1471-SUB WS-SUB)  
+              MOVE SPACES       TO U-1471-SEC-DEPT-CODE 
+                                               (U-1471-SUB WS-SUB)  
+                                   U-1471-SEC-FUNCTION-CODE 
+                                               (U-1471-SUB WS-SUB)  
+            END-IF  
+           END-PERFORM. 
+           MOVE CURRENT-DBKEY       TO  DPP01-DBK DPP01-N-DBKEY.
+           MOVE SPACES              TO  U-1471-RE-ENTRY-DATA
+                                                           (U-1471-SUB).
+187917*    PERFORM OBCDM-NUL-OBC-MST.   
+187917*    PERFORM DPP12-SEND-ROW.  
+
+       3000-FETCH-NEXT-MASTER.  
+           MOVE 33011114 TO DPP01-ERROR-NUMBER. 
+
+           FETCH NEXT OBC-MASTER-REC WITHIN OBCMASTER  AREA 
+180769     ON ERROR GO TO 3000-CHECK-STATUS.
+
+180769     GO TO 3000-CHECK-STATUS. 
+
+180769*    ON ERROR GO TO 3000-CHECK-N-STATUS.  
+180769*3000-CHECK-N-STATUS. 
+180769*    IF ERROR-STATUS NOT = ZEROS  
+180769*       IF ERROR-NUM = '0013' OR '0007' THEN  
+180769*           GO TO 3000-DONE   
+180769*       ELSE  
+180769*           GO TO 9100-DATABASE-ERROR.
+180769*    MOVE OBC-CODE            TO  U-1471-OBC-CODE.
+180769*    MOVE OBC-INTERFACE-TYPE  TO  U-1471-INTERFACE-TYPE.  
+180769*    MOVE OBC-STATUS-CODE     TO  U-1471-STATUS-CODE. 
+180769*    MOVE OBC-PAYMENT-TYPE    TO  U-1471-PAYMENT-TYPE.
+180769*    MOVE OBC-PAY-CALC-METHOD TO  U-1471-PAY-CALC-METHOD. 
+180769*    MOVE OBC-REFUND-IND      TO  U-1471-REFUND-IND.  
+180769*    MOVE OBC-DESCRIPTION     TO  U-1471-DESCRIPTION. 
+180769*    MOVE OBC-MINIMUM-AGE     TO  U-1471-MIN-AGE. 
+180769*    MOVE OBC-REVENUE-IND     TO  U-1471-REVENUE-IND. 
+180769*    MOVE OBC-REASON-IND      TO  U-1471-REASON-IND.  
+180769*    MOVE OBC-TICKET-IND      TO  U-1471-TICKET-IND.  
+180769*    MOVE OBC-TITLE           TO  U-1471-TITLE.   
+180769*    MOVE OBC-CURRENCY-CODE   TO  U-1471-CURRENCY-CODE.   
+180769*    PERFORM VARYING WS-SUB FROM 1 BY 1 UNTIL WS-SUB > 10 
+180769*      MOVE OBC-DEPT-CODE(WS-SUB) TO U-1471-DEPT-CODE(WS-SUB) 
+180769*    END-PERFORM. 
+180769*    IF OBC-DEPT-CODE(1) = SPACES 
+180769*      MOVE 'ALL'             TO U-1471-DEPT-CODE(1)  
+180769*    END-IF.  
+180769*    MOVE OBC-GL-ACCT-NUM     TO  U-1471-GL-ACCT-NUM. 
+180769*    MOVE OBC-GL-CENTER-NUM   TO  U-1471-GL-CENTER-NUM.   
+180769*    MOVE OBC-GL-SUB-ACCT-NUM TO  U-1471-GL-SUB-ACCT-NUM. 
+180769*    MOVE OBC-BV-ITEM-TYPE    TO  U-1471-BV-ITEM-TYPE.
+180769*    MOVE OBC-SEC-TABLE-CNT   TO  U-1471-SEC-TABLE-CNT.   
+180769*    PERFORM VARYING WS-SUB FROM 1 BY 1   
+180769*                            UNTIL WS-SUB > 40
+180769*     IF WS-SUB <= OBC-SEC-TABLE-CNT  
+180769*      IF OBC-PAY-CALC-METHOD = 'D'   
+180769*       MOVE OBC-MAX-AMOUNT(WS-SUB) TO U-1471-MAX-AMOUNT(WS-SUB)  
+180769*      END-IF 
+180769*      IF OBC-PAY-CALC-METHOD = 'P'   
+180769*       MOVE OBC-MAX-PCT(WS-SUB) TO U-1471-MAX-PCT(WS-SUB)
+180769*      END-IF 
+180769*      MOVE OBC-SEC-DEPT-CODE(WS-SUB) TO  
+180769*                                 U-1471-SEC-DEPT-CODE(WS-SUB)
+180769*      MOVE OBC-SEC-FUNCTION-CODE(WS-SUB) TO  
+180769*                                 U-1471-SEC-FUNCTION-CODE(WS-SUB)
+180769*      MOVE OBC-SEC-LEVEL-CODE(WS-SUB) TO 
+180769*                                 U-1471-SEC-LEVEL-CODE(WS-SUB)   
+180769*     ELSE
+180769*       MOVE ZEROS        TO U-1471-MAX-AMOUNT(WS-SUB)
+180769*                            U-1471-MAX-PCT(WS-SUB)   
+180769*                            U-1471-SEC-LEVEL-CODE(WS-SUB)
+180769*       MOVE SPACES       TO U-1471-SEC-DEPT-CODE(WS-SUB) 
+180769*                            U-1471-SEC-FUNCTION-CODE(WS-SUB) 
+180769*     END-IF  
+180769*    END-PERFORM. 
+180769*    MOVE CURRENT-DBKEY       TO  DPP01-DBK DPP01-N-DBKEY.
+180769*    MOVE DPP01-U-DBKEY       TO  U-1471-RE-ENTRY-DATA.   
+180769*    PERFORM OBCDM-NUL-OBC-MST.   
+180769*    PERFORM DPP12-SEND-ROW.  
+180769*    GO TO 3000-FETCH-NEXT-MASTER.
+      * 
+      * Initialize variables that need to be reset for each transaction 
+      * execution.  
+      * 
+      * Transaction specific processing should be defined by stored 
+      * procedure requuirements.
+      * 
+       3000-DONE.   
+187917*    PERFORM DPP12-SEND-DONE-COUNT.   
+187917     PERFORM 10000-SEND-OUTPUT
+187917        THRU 10000-SEND-OUTPUT-EXIT.  
+           GO TO 9000-END-OF-JOB.   
+
+       4000-UPDATE-OBC. 
+      * 
+      * Set the value for the standard output parameters and return its 
+      * value.  
+      * 
+180769*    OPEN OBCMASTER  USAGE-MODE UPDATE
+180769*         ERROR-DESC. 
+
+187917*    PERFORM PUOBC-RCV-STDSEC.
+187917*     PERFORM PUOBC-RCV-OBC-MST.  
+187917*     PERFORM PUOBC-RCV-STDOUT.   
+
+            MOVE DPP01-SYSTEM-DATETIME TO U-1472-PO-DATE-TIME   
+                                          WS-SYS-DATETIME.  
+187917*     PERFORM PUOBC-SET-STDOUT.   
+187917*     PERFORM OBCDM-DSC-OBC-MST.  
+            IF U-1472-ACTION-CODE NOT = 'A' AND 
+               U-1472-ACTION-CODE NOT = 'U' 
+              MOVE 'INVALID ACTION CODE - MUST BE A - ADD OR U - UPDATE'
+                      TO DPP42-HOLD-MSG-DESC
+              GO TO 9200-EDIT-ERROR-MSG.
+            IF U-1472-OBC-CODE NOT > SPACES 
+              MOVE 'OBC CODE NOT PRESENT'   
+                      TO DPP42-HOLD-MSG-DESC
+              GO TO 9200-EDIT-ERROR-MSG.
+            IF U-1472-TITLE    NOT > SPACES 
+              MOVE 'OBC TITLE NOT PRESENT'  
+                      TO DPP42-HOLD-MSG-DESC
+              GO TO 9200-EDIT-ERROR-MSG.
+            IF U-1472-INTERFACE-TYPE    NOT > SPACES
+              MOVE 'OBC INTERFACE TYPE NOT PRESENT' 
+                      TO DPP42-HOLD-MSG-DESC
+              GO TO 9200-EDIT-ERROR-MSG.
+            IF U-1472-INTERFACE-TYPE    NOT = 'C' AND   
+               U-1472-INTERFACE-TYPE    NOT = 'N' AND   
+               U-1472-INTERFACE-TYPE    NOT = 'P' AND   
+               U-1472-INTERFACE-TYPE    NOT = 'S'   
+              MOVE 'OBC INTERFACE TYPE SHOULD BE C,N,P OR S'
+                      TO DPP42-HOLD-MSG-DESC
+              GO TO 9200-EDIT-ERROR-MSG.
+
+            IF U-1472-PAY-CALC-METHOD NOT = 'D' AND 
+               U-1472-PAY-CALC-METHOD NOT = 'P' 
+              MOVE  
+           'INVALID PAY CALC METHOD MUST BE D - DOLLAR OR P - PERCENT'  
+                      TO DPP42-HOLD-MSG-DESC
+              GO TO 9200-EDIT-ERROR-MSG.
+            IF U-1472-STATUS-CODE NOT = 'O' AND 
+               U-1472-STATUS-CODE NOT = 'C' 
+              MOVE  
+              'INVALID STATUS CODE O - OPEN OR C - CLOSE'   
+                      TO DPP42-HOLD-MSG-DESC
+              GO TO 9200-EDIT-ERROR-MSG.
+           IF U-1472-PAYMENT-TYPE NOT = 'A' AND 
+              U-1472-PAYMENT-TYPE NOT = 'B' 
+              MOVE  
+           'INVALID PAYMENT TYPE MUST BE A - GL ACCOUNT OR B - BOOKING' 
+                      TO DPP42-HOLD-MSG-DESC
+              GO TO 9200-EDIT-ERROR-MSG.
+           IF U-1472-REFUND-IND NOT = 'Y' AND   
+              U-1472-REFUND-IND NOT = 'N'   
+              MOVE 'REFUND INDICATOR MUST BE Y OR N'
+                      TO DPP42-HOLD-MSG-DESC
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           IF U-1472-REVENUE-IND NOT = 'Y' AND  
+              U-1472-REVENUE-IND NOT = 'N'  
+              MOVE 'REVENUE INDICATOR MUST BE Y OR N'   
+                      TO DPP42-HOLD-MSG-DESC
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           IF U-1472-REASON-IND  NOT = 'Y' AND  
+              U-1472-REASON-IND  NOT = 'N'  
+              MOVE 'REASON INDICATOR MUST BE Y OR N'
+                      TO DPP42-HOLD-MSG-DESC
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           IF U-1472-TICKET-IND NOT = 'Y' AND   
+              U-1472-TICKET-IND NOT = 'N'   
+              MOVE 'TICKET INDICATOR MUST BE Y OR N'
+                      TO DPP42-HOLD-MSG-DESC
+              GO TO 9200-EDIT-ERROR-MSG.
+
+            MOVE U-1472-OBC-CODE TO  OBC-CODE.  
+            MOVE 33011114 TO DPP01-ERROR-NUMBER.
+
+            FETCH OBC-MASTER-REC RECORD 
+                  ON ERROR GO TO 4000-CHECK-STATUS. 
+       4000-CHECK-STATUS.   
+            IF ERROR-STATUS NOT = ZEROS 
+              IF ERROR-NUM = '0013' OR '0007'   
+                 IF U-1472-ACTION-CODE = 'A'
+                    CONTINUE
+                 ELSE   
+                  MOVE 'RECORD DOES NOT EXIST - CANNOT MODIFY'  
+                      TO DPP42-HOLD-MSG-DESC
+                   GO TO 9200-EDIT-ERROR-MSG
+              ELSE  
+                  GO TO 9100-DATABASE-ERROR 
+            ELSE
+              IF U-1472-ACTION-CODE = 'A'   
+                  MOVE 'RECORD ALREADY EXISTS - CANNOT ADD' 
+                      TO DPP42-HOLD-MSG-DESC
+                   GO TO 9200-EDIT-ERROR-MSG.   
+********* below temporarily commented out   
+*********     DISPLAY U-1472-UPDATE-DATETIME UPON PRINTER   
+
+              MOVE OBC-UPDATE-DATETIME TO  DPP01-UPDATE-DATETIME.   
+              IF U-1472-ACTION-CODE = 'U' AND   
+                 U-1472-UPDATE-DATETIME NOT = DPP01-UPDATE-DATETIME 
+            MOVE 'RECORD MODIFIED BY ANOTHER USER - PLEASE REFRESH' 
+                      TO DPP42-HOLD-MSG-DESC
+                   GO TO 9200-EDIT-ERROR-MSG.   
+
+           MOVE WS-SYS-DATETIME         TO    DPP01-UPDATE-DATETIME.
+           MOVE U-1472-INTERFACE-TYPE   TO    OBC-INTERFACE-TYPE.   
+           IF OBC-STATUS-CODE = 'O'  AND
+              U-1472-STATUS-CODE = 'C'  
+             MOVE DPP01-UPDATE-DATETIME(1:8)   TO  OBC-CLOSED-DATE. 
+           IF OBC-STATUS-CODE = 'C'  AND
+              U-1472-STATUS-CODE = 'O'  
+             MOVE ZEROS                   TO  OBC-CLOSED-DATE.  
+           MOVE U-1472-STATUS-CODE      TO    OBC-STATUS-CODE.  
+           MOVE U-1472-PAYMENT-TYPE     TO    OBC-PAYMENT-TYPE. 
+           MOVE U-1472-PAY-CALC-METHOD  TO    OBC-PAY-CALC-METHOD.  
+           MOVE  U-1472-REFUND-IND      TO    OBC-REFUND-IND.   
+           IF U-1472-ACTION-CODE = 'A'  
+             MOVE DPP01-UPDATE-DATETIME(1:8)   TO   
+                                              OBC-CREATION-DATE.
+           MOVE DPP01-UPDATE-DATETIME   TO    OBC-UPDATE-DATETIME . 
+           MOVE U-1472-SEC-TABLE-CNT    TO    OBC-SEC-TABLE-CNT.
+PPC470*    PERFORM VARYING WS-SUB FROM 1 BY 1   
+PPC470*                           UNTIL WS-SUB > 10 
+PPC470*       IF U-1472-DEPT-CODE(1) <= SPACES OR 'ALL' 
+PPC470*          MOVE SPACES            TO OBC-DEPT-CODE(WS-SUB)
+PPC470*       ELSE  
+PPC470*          MOVE U-1472-DEPT-CODE(WS-SUB) TO OBC-DEPT-CODE(WS-SUB) 
+PPC470*       END-IF
+PPC470*    END-PERFORM. 
+PPC470*    IF U-1472-DEPT-CODE <= SPACES OR 'ALL'   
+PPC470*       MOVE SPACES               TO OBC-DEPT-CODE(1) 
+PPC470*    ELSE 
+PPC470*       MOVE U-1472-DEPT-CODE     TO OBC-DEPT-CODE(1) 
+PPC470*    END-IF.  
+242097*    IF U-1472-DEPT-CODE(1) <= SPACES  
+
+242097     IF U-1472-DEPT-CODE(1) <= SPACES
+242097        MOVE SPACES               TO OBC-DEPT-CODE(1) 
+242097     ELSE
+242097        IF U-1472-DEPT-CODE(1) NOT = OBC-DEPT-CODE(1)
+242097           IF U-1472-DEPT-CODE(1) = 'ALL'
+242097              IF OBC-DEPT-CODE(1) NOT = SPACES
+242097                 MOVE SPACES               TO OBC-DEPT-CODE(1) 
+242097              END-IF
+242097           ELSE 
+219497                 MOVE U-1472-DEPT-CODE(1)     TO OBC-DEPT-CODE(1)  
+219497           END-IF 
+242097        END-IF  
+242097     END-IF.
+
+           PERFORM VARYING WS-SUB FROM 1 BY 1   
+                                  UNTIL WS-SUB > U-1472-SEC-TABLE-CNT   
+177363***    IF WS-SUB NOT > 10 
+177363***      MOVE U-1472-DEPT-CODE(WS-SUB) TO OBC-DEPT-CODE(WS-SUB)   
+177363***    END-IF 
+             MOVE U-1472-SEC-DEPT-CODE(WS-SUB) TO   
+                                              OBC-SEC-DEPT-CODE(WS-SUB) 
+             MOVE U-1472-SEC-FUNCTION-CODE(WS-SUB) TO   
+                                          OBC-SEC-FUNCTION-CODE(WS-SUB) 
+             MOVE U-1472-SEC-LEVEL-CODE(WS-SUB) TO  
+                                          OBC-SEC-LEVEL-CODE(WS-SUB)
+             IF U-1472-PAY-CALC-METHOD = 'D'
+                MOVE  U-1472-MAX-AMOUNT(WS-SUB) TO  
+                                              OBC-MAX-AMOUNT(WS-SUB)
+             END-IF 
+             IF U-1472-PAY-CALC-METHOD = 'P'
+               MOVE U-1472-MAX-PCT(WS-SUB) TO   
+                                              OBC-MAX-PCT(WS-SUB)   
+             END-IF 
+           END-PERFORM. 
+           MOVE  U-1472-DESCRIPTION      TO   OBC-DESCRIPTION.  
+           MOVE  U-1472-GL-ACCT-NUM      TO   OBC-GL-ACCT-NUM.  
+           MOVE  U-1472-GL-CENTER-NUM    TO   OBC-GL-CENTER-NUM.
+           MOVE  U-1472-GL-SUB-ACCT-NUM  TO   OBC-GL-SUB-ACCT-NUM.  
+           MOVE  U-1472-MIN-AGE          TO   OBC-MINIMUM-AGE.  
+           MOVE  U-1472-REVENUE-IND      TO   OBC-REVENUE-IND.  
+           MOVE  U-1472-REASON-IND       TO   OBC-REASON-IND.   
+           MOVE  U-1472-SEC-TABLE-CNT    TO   OBC-SEC-TABLE-CNT.
+           MOVE  U-1472-TICKET-IND       TO   OBC-TICKET-IND.   
+           MOVE  U-1472-TITLE            TO   OBC-TITLE.
+           MOVE  U-1472-PI-USERID        TO   OBC-USER-ID.  
+CCLAUS*    MOVE  U-1472-CURRENCY-CODE    TO   OBC-CURRENCY-CODE.
+           MOVE  U-1472-BV-ITEM-TYPE     TO   OBC-BV-ITEM-TYPE. 
+
+           IF U-1472-ACTION-CODE = 'A'  
+              STORE OBC-MASTER-REC  
+           ELSE 
+              MODIFY OBC-MASTER-REC RECORD. 
+*********Create GPTRF   
+           MOVE SPACES                 TO SSP06-I-OLD-GEN-PURP-TRF-REC. 
+           MOVE LOW-VALUES             TO SSP06-I-GEN-PURPOSE-TRF-REC.  
+           MOVE 'S'                    TO SSP06-CONTROL-CODE.   
+           MOVE WS-SYS-DATE            TO SSP06-I-ACTIVITY-DATE.
+           MOVE WS-SYS-TIME            TO SSP06-I-ACTIVITY-TIME.
+           MOVE 'OBCU'                 TO SSP06-I-ACTIVITY-CODE.
+           MOVE U-1472-PI-USERID       TO SSP06-I-USERID.   
+           MOVE SPACES                 TO SSP06-I-COMMENT1. 
+           STRING U-1472-OBC-CODE   
+                  ' - OBC Master updated' DELIMITED BY SIZE 
+                  INTO                    SSP06-I-COMMENT1. 
+           MOVE 'C'                    TO SSP06-I-COMPANY-CODE. 
+
+           CALL 'SSO06-UPDATE-GPTRF' USING DPP01-COMMON-DATA-FIELDS 
+                                           DPP01-COMMON-INFO
+                                           SSP06-UPDATE-INPUT-PARAMS.   
+
+           IF  DPP01-SUB-MSG-CTR > ZERO AND DPP01-SUB-MSG-STATUS (1) > 1
+               GO TO 9500-RETURN-SUBROUTINE-ERROR   
+           END-IF.  
+      * 
+      * Initialize variables that need to be reset for each transaction 
+      * execution.  
+      * 
+      * Transaction specific processing should be defined by stored 
+      * procedure requuirements.
+      * 
+
+       9000-END-OF-JOB. 
+           GO TO DPP12-END-OF-JOB.  
+
+       9100-DATABASE-ERROR. 
+           GO TO DPP12-DATABASE-ERROR.  
+
+       9200-EDIT-ERROR-MSG. 
+           PERFORM DPP12-EDIT-ERROR-MSG THRU
+                   DPP12-EDIT-ERROR-MSG-EXIT.   
+
+           GO TO DPP12-END-OF-JOB.  
+
+       9300-SEVERE-ERROR-MSG.   
+           GO TO DPP12-SEVERE-ERROR-MSG.
+
+187917*9300-UASL-ERROR. 
+187917*      GO TO DPP12-UASL-ERROR.
+
+       9500-RETURN-SUBROUTINE-ERROR.
+           GO TO DPP12-RETURN-SUBROUTINE-ERROR. 
+
+187917 10000-SEND-OUTPUT.   
+
+187917     PERFORM DPP12-OUTPUT-INFOMSG-TABLE   
+187917        THRU DPP12-OUTPUT-INFOMSG-TABLE-X.
+187917     IF DPP01-ISUB > 0
+187917        PERFORM VARYING DPP01-SUB FROM 1 BY 1 
+187917                UNTIL DPP01-SUB > DPP01-ISUB  
+187917           IF WS-SP-NAME = 'SP_R_DM_OBC_MST'  
+187917              MOVE DPP01-INFO-MSG-SOURCE (DPP01-SUB)  
+187917                          TO U-1470-INFMSG-MSG-SOURCE (DPP01-SUB) 
+187917              MOVE DPP01-INFO-MSG-DESC (DPP01-SUB)
+187917                          TO U-1470-INFMSG-MSG-DESC (DPP01-SUB)   
+187917              MOVE DPP01-INFO-MSG-STATUS (DPP01-SUB)  
+187917                          TO U-1470-INFMSG-MSG-STATUS (DPP01-SUB) 
+187917              MOVE DPP01-INFO-MSG-INDEX (DPP01-SUB)   
+187917                          TO U-1470-INFMSG-MSG-NUM (DPP01-SUB)
+187917              MOVE DPP01-INFO-MSG-BOOK-NUM (DPP01-SUB)
+187917                          TO U-1470-INFMSG-BOOK-NUM (DPP01-SUB)   
+187917           END-IF 
+187917           IF WS-SP-NAME = 'SP_R_PR_OBC_LST'  
+187917              MOVE DPP01-INFO-MSG-SOURCE (DPP01-SUB)  
+187917                          TO U-1465-INFMSG-MSG-SOURCE (DPP01-SUB) 
+187917              MOVE DPP01-INFO-MSG-DESC (DPP01-SUB)
+187917                          TO U-1465-INFMSG-MSG-DESC (DPP01-SUB)   
+187917              MOVE DPP01-INFO-MSG-STATUS (DPP01-SUB)  
+187917                          TO U-1465-INFMSG-MSG-STATUS (DPP01-SUB) 
+187917              MOVE DPP01-INFO-MSG-INDEX (DPP01-SUB)   
+187917                          TO U-1465-INFMSG-MSG-NUM (DPP01-SUB)
+187917              MOVE DPP01-INFO-MSG-BOOK-NUM (DPP01-SUB)
+187917                          TO U-1465-INFMSG-BOOK-NUM (DPP01-SUB)   
+187917           END-IF 
+187917           IF WS-SP-NAME = 'SP_R_PR_OBC_MST'  
+187917              MOVE DPP01-INFO-MSG-SOURCE (DPP01-SUB)  
+187917                          TO U-1468-INFMSG-MSG-SOURCE (DPP01-SUB) 
+187917              MOVE DPP01-INFO-MSG-DESC (DPP01-SUB)
+187917                          TO U-1468-INFMSG-MSG-DESC (DPP01-SUB)   
+187917              MOVE DPP01-INFO-MSG-STATUS (DPP01-SUB)  
+187917                          TO U-1468-INFMSG-MSG-STATUS (DPP01-SUB) 
+187917              MOVE DPP01-INFO-MSG-INDEX (DPP01-SUB)   
+187917                          TO U-1468-INFMSG-MSG-NUM (DPP01-SUB)
+187917              MOVE DPP01-INFO-MSG-BOOK-NUM (DPP01-SUB)
+187917                          TO U-1468-INFMSG-BOOK-NUM (DPP01-SUB)   
+187917           END-IF 
+187917           IF WS-SP-NAME = 'SP_U_PR_OBC_MST'  
+187917              MOVE DPP01-INFO-MSG-SOURCE (DPP01-SUB)  
+187917                          TO U-1472-INFMSG-MSG-SOURCE (DPP01-SUB) 
+187917              MOVE DPP01-INFO-MSG-DESC (DPP01-SUB)
+187917                          TO U-1472-INFMSG-MSG-DESC (DPP01-SUB)   
+187917              MOVE DPP01-INFO-MSG-STATUS (DPP01-SUB)  
+187917                          TO U-1472-INFMSG-MSG-STATUS (DPP01-SUB) 
+187917              MOVE DPP01-INFO-MSG-INDEX (DPP01-SUB)   
+187917                          TO U-1472-INFMSG-MSG-NUM (DPP01-SUB)
+187917              MOVE DPP01-INFO-MSG-BOOK-NUM (DPP01-SUB)
+187917                          TO U-1472-INFMSG-BOOK-NUM (DPP01-SUB)   
+187917           END-IF 
+187917        END-PERFORM   
+187917     END-IF.  
+
+187917     EVALUATE WS-SP-NAME  
+187917         WHEN 'SP_R_DM_OBC_MST'   
+187917            MOVE FUNCTION LENGTH (X-OUTPUT-R-PRUOBC-DMMST-BUFFER) 
+187917                                  TO DPP01-PLENGHT
+187917            MOVE X-OUTPUT-R-PRUOBC-DMMST-BUFFER   
+187917                                  TO DPP01-MCB-OUTPUT-MESSAGE 
+187917         WHEN 'SP_R_PR_OBC_LST'   
+187917            MOVE FUNCTION LENGTH (X-OUTPUT-R-PRUOBC-LST-BUFFER)   
+187917                                  TO DPP01-PLENGHT
+187917            MOVE X-OUTPUT-R-PRUOBC-LST-BUFFER 
+187917                                  TO DPP01-MCB-OUTPUT-MESSAGE 
+187917         WHEN 'SP_R_PR_OBC_MST'   
+187917            MOVE FUNCTION LENGTH (X-OUTPUT-R-PRUOBC-MST-BUFFER)   
+187917                                  TO DPP01-PLENGHT
+187917            MOVE X-OUTPUT-R-PRUOBC-MST-BUFFER 
+187917                                  TO DPP01-MCB-OUTPUT-MESSAGE 
+187917         WHEN 'SP_U_PR_OBC_MST'   
+187917            MOVE FUNCTION LENGTH (X-OUTPUT-U-PRUOBC-MST-BUFFER)   
+187917                                  TO DPP01-PLENGHT
+187917            MOVE X-OUTPUT-U-PRUOBC-MST-BUFFER 
+187917                                  TO DPP01-MCB-OUTPUT-MESSAGE 
+187917     END-EVALUATE.
+187917     PERFORM ECP75-SEND-OUTPUT
+187917        THRU ECP75-SEND-OUTPUT-EXIT.  
+
+187917 10000-SEND-OUTPUT-EXIT.  
+187917     EXIT.
+
+187917 COPY DPP12EER.   
+       COPY DPP12ERR.   
+187917 COPY DPP12MMI.   
+187917*    COPY DPP12UER.   
+187917*    COPY DPP12UMI.   
+           COPY DPP12WDB.   
+187917 COPY ECP75MSG.   
+187917*    COPY OBCDM-R-1471.   
+187917*    COPY OBCLST-R-1467.  
+187917*    COPY OBCMST-R-1469.  
+187917*    COPY PDOBC-P-1470.   
+187917*    COPY PLOBC-P-1465.   
+187917*    COPY PMOBC-P-1468.   
+187917*    COPY PUOBC-P-1472.   
+187917 COPY PRP-R-DM-OBC-MST-INT.   
+187917 COPY PRP-R-PR-OBC-LST-INT.   
+187917 COPY PRP-R-PR-OBC-MST-INT.   
+187917 COPY PRP-U-PR-OBC-MST-INT.   

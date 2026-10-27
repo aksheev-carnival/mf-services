@@ -1,0 +1,2267 @@
+IRP04CBW PROC   
+
+      ******************************************************************
+      * PROC WRITTEN FOR CABIN CONF REDESIGN PROJECT. IT WILL BE USED  *
+      * BY IRB57CNF & IRR70FAX, SO THAT REQUIRED DATA CAN BE SENT TO   *
+      * WM2OT LISTENER.                                                *
+      ******************************************************************
+
+       01  IRP04-INPUT-DATA.
+           03 IRP04-I-INDV-BOOK-NUM                   PIC X(06).
+           03 IRP04-I-VIEW-TYPE                       PIC X(01).
+
+       01  IRP04-OUTPUT-DATA.   
+           03 IRP04-O-SAIL-DATE                       PIC 9(08).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-SHIP-CODE                       PIC X(02).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-SAIL-DURATION-DAYS              PIC 9(02).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-SAIL-CAT-CNT                    PIC S9(5).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-EMPARK-PORT-CODE                PIC X(03).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-ITINERARY-CODE                  PIC X(03).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-PPGRATS-APPLY-CODE              PIC X(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-APPLY-SPOILAGE-IND              PIC X(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-CUBA-SAIL-IND                   PIC X(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-AGE-RESTRICTION                 PIC 9(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-EARLY-CABIN-ACC-IND             PIC X(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-US-PORT-IND                     PIC X(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-COUNTRY-CODE                    PIC X(02).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-UK-LOCALITY                     PIC X(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-ABTA-NUM                        PIC X(06).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-TTA-NUM                         PIC X(06).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-ATOL-NUM                        PIC X(16).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-META-CATEGORY-CODE              PIC X(02).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-META-CATEGORY-NAME              PIC X(60).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-CATEGORY-MATCH-IND              PIC X(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-ACTUAL-CABIN-FLAG               PIC 9(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-CABIN-TYPE                      PIC X(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-CABIN-NUM                       PIC X(05).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-AVL-CAB-VIEW-IND                PIC X(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-AVL-BED-TYPE-CODE               PIC X(02).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-AVL-CAB-WHEELCHAIR-IND          PIC X(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-AVL-CAB-NBR-SCOOTERS            PIC 9(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-CAB-DISABILITY-IND              PIC X(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-LOCALITY-CODE                   PIC X(04).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-CURRENCY-CODE                   PIC X(03).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-FINANCIAL-COMP-CODE             PIC X(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-NUM-ROLLAWAYS                   PIC 9(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-RAB-CRIB-NUM                    PIC 9(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-INSTALLMENTS-PROCESSED          PIC 9(02).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-INSTALLMENTS-OPTED              PIC 9(02).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-PLAN-START-DATE                 PIC 9(08).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-LAST-INSTALLMENT-DATE           PIC 9(08).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-PENALTY-ITEM-CODE               PIC X(08).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-ITEM-CODE                       PIC X(08).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-AUTOPAY-REQUEST-CODE            PIC X(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-FINAL-DATE                      PIC 9(08).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-BKG-COMMENT1                    PIC X(45).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-BKG-COMMENT2                    PIC X(45).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-PAY-COMMENT                     PIC X(45).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-GTEE-CATEGORY-CODE              PIC X(03).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-PST-PKG-NUM                     PIC X(06).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-PRE-PKG-NUM                     PIC X(06).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-DINING-CONFIRMED                PIC X(35).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-DINING-WAITISTED                PIC X(35).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-TRVL-WITH-NUM                   PIC 9(06).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-MSG-OPT-PKG-IND                 PIC X(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-AIR-PAX-CNT                     PIC 9(02).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-TOTAL-PAX-COUNT                 PIC 9(02).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-VPP-PAX-CNT                     PIC 9(02).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-PKG-DAYS                        PIC 9(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-PACKAGE-DESC                    PIC X(30).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-NUM-CAR                         PIC 9(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-NUM-XFR                         PIC 9(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-EMAIL-FAX-TYPE                  PIC X(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-SEND-NOTES                      PIC X(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-FLY-XFR-SW                      PIC X(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-CFR-COND                        PIC X(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-BOOKED-BY.
+              05 IRP04-O-AGENCY-GUEST-NAME            PIC X(30).
+              05 FILLER VALUE '|'                     PIC X(01).
+              05 IRP04-O-AGENT-CONTACT                PIC X(30).
+              05 FILLER VALUE '|'                     PIC X(01).
+              05 IRP04-O-PHONE-NUM                    PIC 9(10).
+              05 FILLER VALUE '|'                     PIC X(01).
+              05 IRP04-O-ADDRESS-1                    PIC X(30).
+              05 FILLER VALUE '|'                     PIC X(01).
+              05 IRP04-O-ADDRESS-2                    PIC X(30).
+              05 FILLER VALUE '|'                     PIC X(01).
+              05 IRP04-O-ADDRESS-3. 
+                 07 IRP04-O-CITY                      PIC X(20).
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-STATE                     PIC X(02).
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-ZIP-CODE                  PIC X(05).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-AGENT-DIRECT-IND                PIC X(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-AGENT-ABN-NUM                   PIC X(11).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-AGENT-INTL-SALES-IND            PIC X(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-AGENT-COUNTRY-CODE              PIC X(02).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-PP-GRATS-AVAIL-IND              PIC X(01).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-PENALTY-DATE                    PIC 9(08).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-FAX-INFO                        PIC X(256).   
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-DEPOSIT-DUE-DATE                PIC 9(08).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-DEPOSIT-DUE-TIME                PIC 9(04).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-FINAL-DUE-DATE                  PIC 9(08).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-FINAL-DUE-TIME                  PIC 9(06).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-TIME-ZONE-CODE                  PIC X(04).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-CRUISE-FARE                     PIC -9(8).99. 
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-REQ-CRUISE-FEES-EXP             PIC -9(8).99. 
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-GOVT-TAXES-FEES                 PIC -9(8).99. 
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-NON-COMM-RATE                   PIC -9(8).99. 
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-CRUISE-CHARGES                  PIC -9(8).99. 
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-TOTAL-CRUISE-CHARGES            PIC -9(8).99. 
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-TOTAL-PAYMENT                   PIC -9(8).99. 
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-GUEST-BALANCE-DUE               PIC -9(8).99. 
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-GST-COMMISION                   PIC -9(8).99. 
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-NET-COMMISION                   PIC -9(8).99. 
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-TOTAL-COMMISION                 PIC -9(8).99. 
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-NET-BALANCE-DUE                 PIC -9(8).99. 
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-DEPOSIT-AMT                     PIC -9(8).99. 
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-DEPOSIT-BAL-DUE                 PIC -9(8).99. 
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-VPP-AMT                         PIC -9(8).99. 
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-NET-FARE-AMT                    PIC -9(8).99. 
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-OBC-AMOUNT                      PIC -9(8).99. 
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-PP-GRATS-AMOUNT                 PIC -9(8).99. 
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-DINING-BKG-NUMBERS              PIC X(160).   
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-AGENCY-ID                       PIC X(07).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-CREDITS                         PIC -9(8).99. 
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-TOTAL-PAYMENT-CREDITS           PIC -9(8).99. 
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-DESTINATION-CODE                PIC X(02).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-DESTINATION-NAME                PIC X(30).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-PENALTY-AMT                     PIC -9(8).99. 
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-ADDON-AMT                       PIC -9(8).99. 
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-PRE-XFR-AMT                     PIC -9(8).99. 
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-PST-XFR-AMT                     PIC -9(8).99. 
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-TOTAL-TRANS-CHARGES             PIC -9(8).99. 
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-O-AS-AGREED-IND                   PIC X(04).
+           03 IRP04-O-PAX-TABLE OCCURS 5 TIMES. 
+              05 FILLER VALUE '?'                     PIC X(10).
+              05 IRP04-O-PAX-FIRST-NAME               PIC X(10).
+              05 FILLER VALUE '|'                     PIC X(01).
+              05 IRP04-O-PAX-LAST-NAME                PIC X(15).
+              05 FILLER VALUE '|'                     PIC X(01).
+              05 IRP04-O-PAX-CVP-IND                  PIC X(01).
+              05 FILLER VALUE '|'                     PIC X(01).
+              05 IRP04-O-PAX-VIP-IND                  PIC X(01).
+              05 FILLER VALUE '|'                     PIC X(01).
+              05 IRP04-O-PAX-VIFP-NUM                 PIC X(10).
+              05 FILLER VALUE '|'                     PIC X(01).
+              05 IRP04-O-PAX-VIFP-LEVEL               PIC X(20).
+              05 FILLER VALUE '|'                     PIC X(01).
+              05 IRP04-O-PAX-DINING-PREF              PIC X(01).
+              05 FILLER VALUE '|'                     PIC X(01).
+              05 IRP04-O-PAX-DINING-CNF               PIC X(01).
+              05 FILLER VALUE '|'                     PIC X(01).
+              05 IRP04-O-PAX-PPGRATS-IND              PIC X(01).
+              05 FILLER VALUE '|'                     PIC X(01).
+              05 IRP04-O-PAX-OFFER-CODE               PIC X(08).
+              05 FILLER VALUE '|'                     PIC X(01).
+              05 IRP04-O-PAX-AIR-TYPE                 PIC X(01).
+              05 FILLER VALUE '|'                     PIC X(01).
+              05 IRP04-O-PAX-DEPARTING                PIC X(20).
+              05 IRP04-O-PAX-COMMENT-TABLE OCCURS 5 TIMES.  
+                 07 FILLER VALUE '^'                  PIC X(17).
+                 07 IRP04-O-PAX-COMMENT-CODE          PIC X(01).
+              05 IRP04-O-PAX-OFFER-QUAL OCCURS 20 TIMES.
+                 07 FILLER VALUE '~'                  PIC X(16).
+                 07 IRP04-O-PAX-QUALIFICATION-CODE    PIC X(02).
+              05 IRP04-O-PPHOR-PHONE-TABLE OCCURS 2 TIMES.  
+                 07 FILLER VALUE '!'                  PIC X(19).
+                 07 IRP04-O-PPHOR-EXIST-IND           PIC X(01).
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-PPHOR-PHONE-NUM           PIC X(10).
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-PPHOR-SEND-TXT-PRF-IND    PIC X(01).
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-PPHOR-SAIL-TXT-OPT-IND    PIC 1 BINARY-1.   
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-PPHOR-PAYM-TXT-OPT-IND    PIC 1 BINARY-1.   
+              05 IRP04-O-PAX-FLT-TABLE OCCURS 6 TIMES.  
+                 07 FILLER VALUE '*'                  PIC X(13).
+                 07 IRP04-O-FLT-PAX-ID                PIC 9(05).
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-FLT-DEP-DATE              PIC 9(08).
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-FLT-ARR-DATE              PIC 9(08).
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-FLT-DEPART-CITY           PIC X(03).
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-FLT-ARRIVE-CITY           PIC X(03).
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-FLT-AIRLINE-NAME          PIC X(20).
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-FLT-NUMBER                PIC X(06).
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-FLT-CLASS-OF-SERVICE      PIC X(01).
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-FLT-DEPART-TIME           PIC 9(04).
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-FLT-ARRIVAL-TIME          PIC 9(04).
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-FLT-ITN-STATUS            PIC X(01).
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-FLT-TKT-TYPE-FLAG         PIC X(01).
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-FLT-TICKET-DATE           PIC 9(08).
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-FLT-TICKET-TIME           PIC 9(04).
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-FLT-ALT-RECORD-LOC        PIC X(15).
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-FLT-CABIN-CLASS           PIC X(20).
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-FLT-OPER-AIRLINE-CODE     PIC X(05).
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-FLT-OPER-AIRLINE-NAME     PIC X(50).
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-FLT-DEP-DAY               PIC X(03).
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-FLT-AIRLINE-REC-LOC       PIC X(15).
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-FLT-SEAT-ASSIGNED         PIC X(03).
+                 07 FILLER VALUE '|'                  PIC X(01).
+                 07 IRP04-O-FLT-TICKET-NUM            PIC X(13).
+                 07 FILLER VALUE '|'                  PIC X(01).
+           03 IRP04-O-ITINERARY-DETAILS OCCURS 55 TIMES.
+              05 FILLER VALUE '&'                     PIC X(18).
+              05 IRP04-O-ITR-DAY-OF-WEEK              PIC X(19).
+              05 FILLER VALUE '|'                     PIC X(01).
+              05 IRP04-O-ITR-PORT-OF-CALL             PIC X(35).
+              05 FILLER VALUE '|'                     PIC X(01).
+              05 IRP04-O-ITR-ARRIVE-TIME              PIC X(08).
+              05 FILLER VALUE '|'                     PIC X(01).
+              05 IRP04-O-ITR-DEPART-TIME              PIC X(08).
+              05 FILLER VALUE '|'                     PIC X(01).
+              05 IRP04-O-ITR-TENDER-CODE              PIC X(01).
+              05 FILLER VALUE '|'                     PIC X(01).
+              05 IRP04-O-ITR-FOOTNOTE-CODE            PIC X(02).
+           03 FILLER VALUE '|'                        PIC X(01).
+           03 IRP04-EOF-FILLER                        PIC X(22).
+
+       01  IRP04-MISC-NUM-VAR.  
+           03 IRP04-ITN-SUB                           PIC 9(02).
+           03 IRP04-PPG-SUB                           PIC 9(02).
+           03 IRP04-TDP-SUB                           PIC 9(02).
+           03 IRP04-PEN-SUB                           PIC 9(02).
+           03 IRP04-PEN-SUB2                          PIC 9(02).
+           03 IRP04-PEN-CSUB                          PIC 9(02).
+           03 IRP04-DIN-SUB                           PIC 9(02).
+           03 IRP04-TWR-SUB                           PIC 9(02).
+           03 IRP04-FARE-SUB                          PIC 9(02).
+           03 IRP04-PAX-SUB                           PIC 9(02).
+           03 IRP04-QUAL-SUB                          PIC 9(02).
+           03 IRP04-PPHOR-SUB                         PIC 9(02).
+           03 IRP04-FLT-SUB                           PIC 9(02).
+           03 IRP04-CNT-SUB                           PIC 9(02).
+           03 IRP04-ATOL-SUB                          PIC 9(02).
+           03 IRP04-XFER-SUB                          PIC 9(02).
+           03 IRP04-PTFR-SUB                          PIC 9(02).
+           03 IRP04-COMM-SUB                          PIC 9(02).
+           03 IRP04-VPP-CNT                           PIC 9(01).
+           03 IRP04-AIR-PAX-CNT                       PIC 9(01).
+           03 IRP04-DAY-NUM                           PIC 9(02).
+           03 IRP04-GBR-BERTH-BY-DATE                 PIC 9(16).
+           03 IRP04-IBR-FINAL-TIME                    PIC 9(06).
+           03 IRP04-INSTALMENTS-OPTED                 PIC 9(02).
+           03 IRP04-INSTALLMENTS-PROCESSED            PIC 9(03).
+           03 IRP04-CRUISE-RATE                       PIC S9(8)V99. 
+           03 IRP04-CRUISE-FARE                       PIC S9(8)V99. 
+           03 IRP04-GST-COMM                          PIC S9(8)V99. 
+           03 IRP04-DEPOSIT-BAL-DUE                   PIC S9(8)V99. 
+           03 IRP04-TOTAL-CRUISE-CHARGES              PIC S9(8)V99. 
+           03 IRP04-PRE-XFR-AMT                       PIC S9(8)V99. 
+           03 IRP04-PST-XFR-AMT                       PIC S9(8)V99. 
+           03 IRP04-TOTAL-TRANS-CHARGES               PIC S9(8)V99. 
+           03 IRP04-COMM-AMT                          PIC S9(8)V99. 
+           03 IRP04-GBDU-AMT                          PIC S9(8)V99. 
+           03 IRP04-GRSS-AMT                          PIC S9(8)V99. 
+           03 IRP04-GRSS-PMT                          PIC S9(8)V99. 
+           03 IRP04-GRSS-BAL-DUE                      PIC S9(8)V99. 
+
+       01  IRP04-MISC-ALPHA-VAR.
+           03 IRP04-CFR-PAY-IND                       PIC X(01).
+           03 IRP04-CFR-BK-IND                        PIC X(01).
+           03 IRP04-PP-GRATS-AVAIL-IND                PIC X(01).
+           03 IRP04-PS-TRANSFER-IND                   PIC X(01).
+           03 IRP04-END-OF-CURSOR-IND                 PIC X(01).
+           03 IRP04-CATEGORY-CODE                     PIC X(03).
+           03 IRP04-PORT-NAME                         PIC X(30).
+           03 IRP04-COMPANY-CODE                      PIC X(01).
+           03 IRP04-FIN-COMP-CODE                     PIC X(01).
+           03 IRP04-CABIN-NUM                         PIC X(05).
+           03 IRP04-META-CATEGORY-CODE                PIC X(02).
+           03 IRP04-META-CATEGORY-NAME                PIC X(60).
+           03 IRP04-CPA-CAT-CODE                      PIC X(02).
+           03 IRP04-PAX-DINING-PREF                   PIC X(01).
+           03 IRP04-PAX-DINING-CNF                    PIC X(01).
+           03 IRP04-DINING-CODE                       PIC X(01).
+           03 IRP04-DINING-DESCRIPTION                PIC X(20).
+           03 IRP04-DINING-OPT                        PIC X(01).
+           03 IRP04-CUSTOMER-CODE                     PIC X(01).
+           03 IRP04-SKIP-INSTALMENTS-DONE             PIC X(01).
+           03 IRP04-ITEM-CODE                         PIC X(08).
+           03 IRP04-FAX-INFO                          PIC X(256).   
+           03 IRP04-SEND-NOTES                        PIC X(01).
+           03 IRP04-CRUO-XFR-SW                       PIC X(01).
+           03 IRP04-FLY-XFR-SW                        PIC X(01).
+           03 IRP04-ITN-PORT-CODE                     PIC X(03).
+           03 IRP04-DEST-CODE                         PIC X(02).
+           03 IRP04-DEST-NAME                         PIC X(30).
+           03 IRP04-PAX-CITY-NAME                     PIC X(20).
+           03 IRP04-BKG-COMMENT1                      PIC X(45).
+           03 IRP04-BKG-COMMENT2                      PIC X(45).
+           03 IRP04-PAY-COMMENT                       PIC X(45).
+
+       01  IRP04-LAST-INSTALLMENT-DATE                PIC 9(08).
+       01  IRP04-LAST-DATE REDEFINES IRP04-LAST-INSTALLMENT-DATE.   
+           03 IRP04-LAST-INSTALLMENT-YYYY             PIC 9(04).
+           03 IRP04-LAST-INSTALLMENT-MM               PIC 9(02).
+           03 IRP04-LAST-INSTALLMENT-DD               PIC 9(02).
+       01  IRP04-PLAN-START-DATE                      PIC 9(08).
+       01  IRP04-PLAN-DATE REDEFINES IRP04-PLAN-START-DATE. 
+           03 IRP04-PLAN-INSTALLMENT-YYYY             PIC 9(04).
+           03 IRP04-PLAN-INSTALLMENT-MM               PIC 9(02).
+           03 IRP04-PLAN-INSTALLMENT-DD               PIC 9(02).
+       01  IRP04-FINAL-PAYMENT-DATE                   PIC 9(08).
+       01  IRP04-FINAL-DATE REDEFINES IRP04-FINAL-PAYMENT-DATE. 
+           03 IRP04-FINAL-DATE-YYYY                   PIC 9(04).
+           03 IRP04-FINAL-DATE-MM                     PIC 9(02).
+           03 IRP04-FINAL-DATE-DD                     PIC 9(02).
+
+       01  IRP04-LOOP-SWITCH                          PIC X(01).
+           88 NOT-END-OF-LOOP                         VALUE 'N'.
+           88 END-OF-LOOP                             VALUE 'Y'.
+       01  IRP04-AS-AGREED-IND                        PIC X(01) 
+                                                      VALUE 'N'.
+           88 AS-AGREED                               VALUE 'Y'.
+
+       01  IRP04-PENALTY-INFO.  
+           03 IRP04-PENALTY-AMOUNT                    PIC X(14).
+           03 IRP04-AMOUNT                            PIC $(11).99. 
+           03 IRP04-PEN-DATE                          PIC 9(08).
+           03 IRP04-PEN-DATE-R REDEFINES IRP04-PEN-DATE.
+              05 IRP04-YY                             PIC 9(04).
+              05 IRP04-MM                             PIC 9(02).
+              05 IRP04-DD                             PIC 9(02).
+           03 IRP04-TEMP                              PIC X(14).
+
+       01  IRP04-NULL-IND.  
+           03 IRP04-ARRIVAL-TIME-NI                   PIC S9(01)
+                                          SIGN LEADING SEPARATE.
+           03 IRP04-DEPART-TIME-NI                    PIC S9(01)
+                                          SIGN LEADING SEPARATE.
+           03 IRP04-PORT-CODE-NI                      PIC S9(01)
+                                          SIGN LEADING SEPARATE.
+           03 IRP04-FOOTNOTE-CODE-NI                  PIC S9(01)
+                                          SIGN LEADING SEPARATE.
+
+       01  IRP04-ITR-DAY-WEEK.  
+           03 IRP04-ITR-DAY                           PIC X(09).
+           03 IRP04-ITR-DAY-COMMA                     PIC X(02).
+           03 IRP04-ITR-DATE                          PIC 9(08).
+
+       01  IRP04-DINING-BKG-NUMBERS.
+           03 IRP04-DINING-BKG-NOS OCCURS 20 TIMES. 
+              05 IRP04-DINING-BKG-NUM                 PIC X(06).
+              05 IRP04-DINING-BKG-COMMA               PIC X(01).
+              05 IRP04-FILLER                         PIC X(01) 
+                                                      VALUE 'SPACES'.   
+
+ END PROC   
+
+
+IRP04CBC PROC   
+
+       IRP04-GET-PASSOFF-DATA.  
+
+           EXEC SQL WHENEVER SQLERROR  CONTINUE END-EXEC.   
+           EXEC SQL WHENEVER NOT FOUND CONTINUE END-EXEC.   
+
+           MOVE SPACES                  TO IRP04-MISC-ALPHA-VAR.
+
+           MOVE ZEROES                  TO IRP04-MISC-NUM-VAR.  
+
+           MOVE 'N'                     TO IRP04-CRUO-XFR-SW
+                                           IRP04-FLY-XFR-SW 
+                                           IRP04-AS-AGREED-IND  
+                                           IRP04-PS-TRANSFER-IND
+                                           IRP04-PP-GRATS-AVAIL-IND 
+                                           IRP04-SKIP-INSTALMENTS-DONE. 
+
+           MOVE 'N'                     TO IRP04-O-AS-AGREED-IND
+                                           IRP04-O-SEND-NOTES   
+                                           IRP04-O-US-PORT-IND  
+                                           IRP04-O-UK-LOCALITY  
+                                           IRP04-O-CUBA-SAIL-IND
+                                           IRP04-O-AGE-RESTRICTION  
+                                           IRP04-O-MSG-OPT-PKG-IND  
+                                           IRP04-O-AVL-CAB-VIEW-IND 
+                                           IRP04-O-AGENT-DIRECT-IND 
+                                           IRP04-O-CATEGORY-MATCH-IND   
+                                           IRP04-O-CAB-DISABILITY-IND   
+                                           IRP04-O-APPLY-SPOILAGE-IND   
+                                           IRP04-O-PP-GRATS-AVAIL-IND   
+                                           IRP04-O-EARLY-CABIN-ACC-IND  
+                                           IRP04-O-AGENT-INTL-SALES-IND.
+
+           MOVE LOW-VALUES              TO IRP04-PENALTY-INFO.  
+           COPY SSP09INT.   
+
+           IF  IRP04-I-INDV-BOOK-NUM NOT > SPACES   
+               GO TO IRP04-GET-PASSOFF-DATA-EXIT
+           END-IF.  
+
+           IF  IRP04-I-VIEW-TYPE NOT = 'A' AND 'C'  
+               GO TO IRP04-GET-PASSOFF-DATA-EXIT
+           END-IF.  
+
+       IRP04-CALL-RSO23RGC. 
+
+           COPY RSP06INT.   
+           COPY RSP23INT.   
+           INITIALIZE RSP06-GUEST-CABIN-INFO.   
+           MOVE ZEROES                  TO DPP01-SUB-MSG-CTR.   
+           MOVE 'A'                     TO RSP23-I-BOOK-TYPE.   
+           MOVE 'Y'                     TO RSP23-I-READ-PAX-IND 
+                                           RSP23-I-READ-IBR-IND 
+                                           RSP23-I-READ-PICF-IND
+                                           RSP23-I-READ-PPHOR-IND   
+                                           RSP23-I-READ-PXFR-IND
+                                           RSP23-I-READ-POBC-IND
+                                           RSP23-I-READ-CIF-IND 
+                                           RSP23-I-READ-GST-OFR-QUL-IND.
+           MOVE IRP04-I-INDV-BOOK-NUM   TO RSP23-I-INDV-BOOK-NUM.   
+
+           CALL 'RSO23RGC' USING DPP01-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 RSP23-RGC-INPUT
+                                 RSP06-GUEST-CABIN-INFO.
+
+           IF  DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1   
+               DISPLAY 'ERROR FROM RSO23RGC : ' RSP23-I-INDV-BOOK-NUM   
+                        UPON PRINTER
+               DISPLAY 'DPP01-SUB-MSG-STATUS: ' DPP01-SUB-MSG-STATUS (1)
+                      '/DPP01-SUB-MSG-SOURCE: ' DPP01-SUB-MSG-SOURCE (1)
+                      '/DPP01-SUB-MSG-INDEX: '  DPP01-SUB-MSG-INDEX  (1)
+                        UPON PRINTER
+               GO TO DPP12-RETURN-SUBROUTINE-ERROR  
+           END-IF.  
+
+       IRP04-FETCH-SAIL.
+
+           MOVE RSP06-IBR-SHIP-CODE     TO TDP01-I-SHIP-CODE.   
+           MOVE RSP06-IBR-SAIL-DATE     TO TDP01-I-SAIL-DATE-YYYYMMDD.  
+           MOVE RSP06-IBR-DURATION-DAYS TO TDP01-I-DUR-DAYS.
+
+           PERFORM TDP01-RET-SAIL-DETAILS   
+              THRU TDP01-RET-SAIL-DETAILS-EXIT. 
+
+           IF  TDP01-SAIL-SQLERR OR 
+               TDP01-PROC-ERROR > ZEROES
+               GO TO 9150-RDMS-ERROR
+           END-IF.  
+
+           IF  TDP01-SAIL-NOTFND OR 
+               TDP01-PROC-ERROR > ZEROES
+               GO TO 9150-RDMS-ERROR
+           END-IF.  
+
+           IF  TDP01-SCAT-SAIL-ID = TDP01-SAIL-ID AND   
+               TDP01-SAIL-CAT-CNT > 1   
+               CONTINUE 
+           ELSE 
+               PERFORM TDP01-RET-ALL-SCAT   
+                  THRU TDP01-RET-ALL-SCAT-EXIT  
+           END-IF.  
+
+           IF  TDP01-SCAT-SQLERR
+               GO TO 9150-RDMS-ERROR
+           END-IF.  
+
+           MOVE TDP01-SAIL-DATE-YYYYMMDD
+                                        TO IRP04-O-SAIL-DATE.   
+           MOVE TDP01-SHIP-CODE         TO IRP04-O-SHIP-CODE.   
+           MOVE TDP01-DUR-DAYS          TO IRP04-O-SAIL-DURATION-DAYS.  
+           MOVE TDP01-SAIL-CAT-CNT      TO IRP04-O-SAIL-CAT-CNT.
+           MOVE TDP01-COMPANY-CODE      TO IRP04-COMPANY-CODE.  
+           MOVE TDP01-FINANCIAL-COMPANY-CODE
+                                        TO IRP04-FIN-COMP-CODE. 
+           MOVE TDP01-EMBARK-PORT-CODE  TO PORT-CODE.   
+           FETCH PORT-NAME-REC RECORD   
+                 ON ERROR GO TO IRP04-PORT-ERROR.   
+
+           IF  PORT-COUNTRY-CODE = 'US' OR 'PR' OR 'BB' 
+               MOVE 'Y'                 TO IRP04-O-US-PORT-IND  
+           END-IF.  
+
+           MOVE PORT-COUNTRY-CODE       TO IRP04-O-COUNTRY-CODE.
+
+           GO TO IRP04-GET-LOCALITY.
+
+       IRP04-PORT-ERROR.
+
+           IF  ERROR-NUM = '0006' OR '0007' OR '0013'   
+               CONTINUE 
+           ELSE 
+               GO TO 9100-DATABASE-ERROR
+           END-IF.  
+
+      * Call RSC86GLD for locality data.
+       IRP04-GET-LOCALITY.  
+
+           COPY RSP86INT.   
+           MOVE RSP06-IBR-LOCALITY-CODE TO RSP86-I-LOCALITY-CODE.   
+
+           CALL 'RSC86GLD' USING DPP01-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 RSP86-INPUT-PARAMS 
+                                 RSP86-OUTPUT-PARAMS.   
+
+           IF  DPP01-SUB-MSG-CTR > ZEROES   
+               IF  DPP01-SUB-MSG-STATUS (1) > 1 
+                   GO TO 9500-RETURN-SUBROUTINE-ERROR   
+               END-IF   
+           END-IF.  
+
+           IF  RSP86-O-INCL-ATOL-ABTA-INF-IND = 1   
+               MOVE 'Y'                 TO IRP04-O-UK-LOCALITY  
+           END-IF.  
+
+           MOVE RSP86-O-TIME-ZONE-CODE  TO IRP04-O-TIME-ZONE-CODE.  
+
+       IRP04-PROCESS-CFR-RECORDS.   
+
+           MOVE 'N'                     TO IRP04-CFR-BK-IND 
+                                           IRP04-CFR-PAY-IND.   
+
+           MOVE RSP06-IBR-BOOK-NUM      TO CFR-BOOK-NUM.
+           FETCH CONFIRMATION-REC RECORD
+                 ON ERROR GO TO IRP04-CFR-ERROR.
+
+           IF  CFR-ACTIVITY-CODE = 'CRC'
+               MOVE 'Y'                 TO IRP04-CFR-PAY-IND
+           ELSE 
+               IF  CFR-ACTIVITY-CODE = 'ACB' OR 'NBK' OR 'PNI' OR 'PNA' 
+                   MOVE 'Y'             TO IRP04-CFR-BK-IND 
+               ELSE 
+                   CONTINUE 
+               END-IF   
+           END-IF.  
+
+           IF  IRP04-CFR-PAY-IND = 'Y' AND IRP04-CFR-BK-IND = 'Y'   
+               MOVE 'B'                 TO IRP04-O-CFR-COND 
+           ELSE 
+               IF  IRP04-CFR-PAY-IND = 'Y' AND IRP04-CFR-BK-IND = 'N'   
+                   MOVE 'P'             TO IRP04-O-CFR-COND 
+               ELSE 
+                   IF  IRP04-CFR-PAY-IND = 'N' AND  
+                                               IRP04-CFR-BK-IND = 'Y'   
+                       MOVE 'N'         TO IRP04-O-CFR-COND 
+                   END-IF   
+               END-IF   
+           END-IF.  
+
+           GO TO IRP04-FETCH-AGENT-DETAILS. 
+
+      * Display any errors relating to processing confirmation records  
+       IRP04-CFR-ERROR. 
+
+           IF  ERROR-NUM = '0006' OR '0007' OR '0013'   
+               CONTINUE 
+           ELSE 
+               GO TO 9100-DATABASE-ERROR
+           END-IF.  
+
+       IRP04-FETCH-AGENT-DETAILS.   
+
+      * Fetch Agent related records.
+
+           MOVE SPACES                  TO AAR-CUSTOMER-KEY.
+           IF  RSP06-IBR-ALT-CUSTOMER-NUM > SPACES  
+               MOVE RSP06-IBR-ALT-CUSTOMER-NUM  
+                                        TO AAR-CUSTOMER-NUM 
+           ELSE 
+               MOVE RSP06-IBR-CUSTOMER-NUM  
+                                        TO AAR-CUSTOMER-NUM 
+           END-IF.  
+           MOVE 'CM'                    TO AAR-CUSTOMER-TYPE.   
+
+           FETCH AGENCY-ASSOCIATION-REC RECORD  
+                 ON ERROR GO TO IRP04-AGENT-ERROR.  
+
+           FETCH OWNER RECORD WITHIN AGENCY-ASSOCIATION-SET SET 
+                 ON ERROR GO TO IRP04-AGENT-ERROR.  
+
+           IF  AGENT-DIRECT-IND = 'Y'   
+               PERFORM VARYING IRP04-PPG-SUB FROM 1 BY 1
+                         UNTIL IRP04-PPG-SUB > RSP06-PAX-CNT
+                  IF  RSP06-PAX-PP-GRATS-IND (IRP04-PPG-SUB) = 'Y'  
+                      MOVE 'Y'          TO IRP04-PP-GRATS-AVAIL-IND 
+                      MOVE RSP06-PAX-CNT
+                                        TO IRP04-PPG-SUB
+                  END-IF
+               END-PERFORM  
+               MOVE IRP04-PP-GRATS-AVAIL-IND
+                                        TO IRP04-O-PP-GRATS-AVAIL-IND   
+               MOVE 'KHSCAS'            TO IRP04-O-AGENCY-ID
+               MOVE RSP06-IBR-AGENT-CONTACT 
+                                        TO IRP04-O-AGENCY-GUEST-NAME
+           ELSE 
+               MOVE AGENT-NAME          TO IRP04-O-AGENCY-GUEST-NAME
+               MOVE AGENT-ABN-NUMBER    TO IRP04-O-AGENT-ABN-NUM
+               MOVE AGENT-CUSTOMER-NUM  TO IRP04-O-AGENCY-ID
+               MOVE AGENT-INTL-SALES-IND
+                                        TO IRP04-O-AGENT-INTL-SALES-IND 
+               MOVE AGENT-COUNTRY-CODE  TO IRP04-O-AGENT-COUNTRY-CODE   
+               MOVE AGENT-ABTA-NUM      TO IRP04-O-ABTA-NUM 
+               MOVE AGENT-TTA-NUM       TO IRP04-O-TTA-NUM  
+               PERFORM VARYING IRP04-ATOL-SUB FROM 1 BY 1   
+                         UNTIL IRP04-ATOL-SUB > AGENT-BIN-TABLE-COUNT   
+                  IF  AGENT-BUS-ID-NUM-TYP (IRP04-ATOL-SUB) = 'ATOL'
+                      MOVE AGENT-BUS-ID-NUM-VAL (IRP04-ATOL-SUB)
+                                        TO IRP04-O-ATOL-NUM 
+                  END-IF
+               END-PERFORM  
+           END-IF.  
+
+           MOVE AGENT-DIRECT-IND        TO IRP04-O-AGENT-DIRECT-IND.
+           MOVE AGENT-PHONE-NUM         TO IRP04-O-PHONE-NUM.   
+           MOVE AGENT-ADDRESS1          TO IRP04-O-ADDRESS-1.   
+           MOVE AGENT-ADDRESS2          TO IRP04-O-ADDRESS-2.   
+           MOVE AGENT-CITY              TO IRP04-O-CITY.
+           MOVE AGENT-STATE             TO IRP04-O-STATE.   
+           MOVE AGENT-ZIP               TO IRP04-O-ZIP-CODE.
+           MOVE RSP06-IBR-AGENT-CONTACT TO IRP04-O-AGENT-CONTACT.   
+
+           GO TO IRP04-GET-PACKAGES.
+
+       IRP04-AGENT-ERROR.   
+
+           IF  ERROR-NUM = '0006' OR '0007' OR '0013'   
+               CONTINUE 
+           ELSE 
+               GO TO 9100-DATABASE-ERROR
+           END-IF.  
+
+       IRP04-GET-PACKAGES.  
+
+      * Logic for booking with packages.
+           IF  RSP06-IBR-PRE-PKG-NUM > SPACES   
+               MOVE RSP06-IBR-PRE-PKG-NUM   
+                                        TO TPR-PKG-NUM  
+               FETCH TOUR-PACKAGE-REC RECORD
+                     ON ERROR GO TO IRP04-TPR-ERROR 
+               MOVE TPR-NUM-CAR         TO IRP04-O-NUM-CAR  
+               MOVE TPR-PKG-DAYS        TO IRP04-O-PKG-DAYS 
+               MOVE TPR-NUM-XFR         TO IRP04-O-NUM-XFR  
+               PERFORM DPP20-UNLOAD-TPR-DATES   
+                  THRU DPP20-EXIT   
+               MOVE TPR-PKG-CODE        TO DPP30-PKG-CODE   
+               MOVE ZEROES              TO DPP30-PKG-PHASE-NUM  
+               PERFORM DPP30-FETCH-PDR-REC  
+                  THRU DPP30-EXIT   
+               MOVE PDR1-DESCRIPTION    TO IRP04-O-PACKAGE-DESC 
+               MOVE 'Y'                 TO IRP04-O-MSG-OPT-PKG-IND  
+           END-IF.  
+
+           IF  RSP06-IBR-PST-PKG-NUM > SPACES   
+               MOVE RSP06-IBR-PST-PKG-NUM   
+                                        TO TPR-PKG-NUM  
+               FETCH TOUR-PACKAGE-REC RECORD
+                     ON ERROR GO TO IRP04-TPR-ERROR 
+               MOVE TPR-NUM-CAR         TO IRP04-O-NUM-CAR  
+               MOVE TPR-PKG-DAYS        TO IRP04-O-PKG-DAYS 
+               MOVE TPR-NUM-XFR         TO IRP04-O-NUM-XFR  
+               PERFORM DPP20-UNLOAD-TPR-DATES   
+                  THRU DPP20-EXIT   
+               MOVE TPR-PKG-CODE        TO DPP30-PKG-CODE   
+               MOVE ZEROES              TO DPP30-PKG-PHASE-NUM  
+               PERFORM DPP30-FETCH-PDR-REC  
+                  THRU DPP30-EXIT   
+               MOVE PDR1-DESCRIPTION    TO IRP04-O-PACKAGE-DESC 
+           END-IF.  
+
+           GO TO IRP04-BUILD-FIELDS.
+
+       IRP04-TPR-ERROR. 
+
+           IF  ERROR-NUM = '0006' OR '0007' OR '0013'   
+               CONTINUE 
+           ELSE 
+               GO TO 9100-DATABASE-ERROR
+           END-IF.  
+
+       IRP04-BUILD-FIELDS.  
+
+           MOVE 'E'                     TO IRP04-O-EMAIL-FAX-TYPE.  
+           MOVE TDP01-PP-GRATS-APPLY-CODE   
+                                        TO IRP04-O-PPGRATS-APPLY-CODE.  
+           MOVE TDP01-CUBA-SAIL-IND     TO IRP04-O-CUBA-SAIL-IND.   
+           MOVE TDP01-EARLY-CABIN-ACC-IND   
+                                        TO IRP04-O-EARLY-CABIN-ACC-IND. 
+           MOVE TDP01-ITINERARY-CODE    TO IRP04-O-ITINERARY-CODE.  
+           MOVE TDP01-EMBARK-PORT-CODE  TO IRP04-O-EMPARK-PORT-CODE.
+
+           MOVE RSP06-IBR-LOCALITY-CODE TO IRP04-O-LOCALITY-CODE.   
+           MOVE RSP06-PAX-CNT           TO IRP04-O-TOTAL-PAX-COUNT. 
+           MOVE RSP06-IBR-CURRENCY-CODE TO IRP04-O-CURRENCY-CODE.   
+           MOVE RSP06-IBR-FINANCIAL-COMP-CODE   
+                                        TO IRP04-O-FINANCIAL-COMP-CODE. 
+           COMPUTE IRP04-O-DEPOSIT-AMT = RSP06-IBR-DEPOSIT-AMT +
+                                         RSP06-IBR-INS-PREMIUM-AMT. 
+           MOVE RSP06-IBR-NET-FARE-AMT  TO IRP04-O-NET-FARE-AMT.
+           MOVE RSP06-IBR-AUTOPAY-REQUEST-CODE  
+                                        TO IRP04-O-AUTOPAY-REQUEST-CODE.
+           MOVE RSP06-IBR-FINAL-DATE    TO IRP04-O-FINAL-DATE.  
+           MOVE RSP06-IBR-CABIN-NUM     TO IRP04-CABIN-NUM. 
+           MOVE RSP06-IBR-CABIN-NUM(1:1)
+                                        TO IRP04-O-CABIN-TYPE.  
+           MOVE RSP06-IBR-NUM-ROLLAWAYS TO IRP04-O-NUM-ROLLAWAYS.   
+           MOVE RSP06-IBR-NUM-CRIBS     TO IRP04-O-RAB-CRIB-NUM.
+           MOVE RSP06-IBR-BKG-COMMENT1  TO IRP04-BKG-COMMENT1.  
+           MOVE RSP06-IBR-BKG-COMMENT2  TO IRP04-BKG-COMMENT2.  
+           MOVE RSP06-IBR-PAY-COMMENT   TO IRP04-PAY-COMMENT.   
+           PERFORM VARYING IRP04-COMM-SUB FROM 1 BY 1   
+                     UNTIL IRP04-COMM-SUB > 45  
+              IF  IRP04-BKG-COMMENT1(IRP04-COMM-SUB:1) = '|'
+                  MOVE ' '              TO IRP04-BKG-COMMENT1   
+                                                      (IRP04-COMM-SUB:1)
+              END-IF
+              IF  IRP04-BKG-COMMENT2(IRP04-COMM-SUB:1) = '|'
+                  MOVE ' '              TO IRP04-BKG-COMMENT2   
+                                                      (IRP04-COMM-SUB:1)
+              END-IF
+              IF  IRP04-PAY-COMMENT(IRP04-COMM-SUB:1) = '|' 
+                  MOVE ' '              TO IRP04-PAY-COMMENT
+                                                      (IRP04-COMM-SUB:1)
+              END-IF
+           END-PERFORM. 
+           MOVE IRP04-BKG-COMMENT1      TO IRP04-O-BKG-COMMENT1.
+           MOVE IRP04-BKG-COMMENT2      TO IRP04-O-BKG-COMMENT2.
+           MOVE IRP04-PAY-COMMENT       TO IRP04-O-PAY-COMMENT. 
+           MOVE RSP06-IBR-PST-PKG-NUM   TO IRP04-O-PST-PKG-NUM. 
+           MOVE RSP06-IBR-PRE-PKG-NUM   TO IRP04-O-PRE-PKG-NUM. 
+           MOVE RSP06-IBR-GTEE-CATEGORY-CODE
+                                        TO IRP04-O-GTEE-CATEGORY-CODE.  
+           MOVE RSP06-IBR-PENALTY-ITEM-CODE 
+                                        TO IRP04-O-PENALTY-ITEM-CODE.   
+           MOVE RSP06-IBR-TRVL-WITH-NUM TO IRP04-O-TRVL-WITH-NUM.   
+
+           MOVE SPACES                  TO IRP04-LOOP-SWITCH
+                                           IRP04-CATEGORY-CODE  
+                                           IRP04-META-CATEGORY-CODE 
+                                           IRP04-META-CATEGORY-NAME.
+
+           IF  RSP06-IBR-GTEE-CATEGORY-CODE > SPACES AND
+               IRP04-O-CABIN-TYPE NOT = 'W' 
+               MOVE RSP06-IBR-GTEE-CATEGORY-CODE
+                                        TO IRP04-CATEGORY-CODE  
+           ELSE 
+               MOVE RSP06-IBR-CATEGORY-CODE 
+                                        TO IRP04-CATEGORY-CODE  
+           END-IF.  
+
+           IF  NOT AS-AGREED AND RSP06-IBR-GROUP-BOOK-NUM > SPACES  
+               MOVE RSP06-IBR-GROUP-BOOK-NUM
+                                        TO GBR1-BOOK-NUM
+               FETCH GRP1-BOOKING-REC RECORD
+               IF  GBR1-AS-AGREED-IND > 0   
+                   MOVE 'Y'             TO IRP04-AS-AGREED-IND  
+               END-IF   
+           END-IF   
+
+           EXEC SQL 
+                SELECT AS_AGREED_IND
+                  INTO :IRP04-AS-AGREED-IND 
+                  FROM RATE_MASTER  
+                 WHERE PRP_OWNER_ID = :RSP06-PAX-RATE-OWNER-ID(1)   
+                   AND PRP_OWNER_CODE = 'RTE'   
+           END-EXEC.
+
+           IF  SQLCODE < 0  
+               GO TO 9150-RDMS-ERROR
+           END-IF.  
+
+           IF  AS-AGREED
+               MOVE 'Y'                 TO IRP04-O-AS-AGREED-IND
+           END-IF.  
+
+           PERFORM VARYING IRP04-TDP-SUB FROM 1 BY 1
+                    UNTIL IRP04-TDP-SUB > TDP01-SAIL-CAT-CNT
+                    OR END-OF-LOOP  
+              IF  TDP01-CATEGORY-CODE (IRP04-TDP-SUB) = 
+                                           IRP04-CATEGORY-CODE  
+                  MOVE TDP01-META-CODE (IRP04-TDP-SUB)  
+                                        TO IRP04-META-CATEGORY-CODE 
+                  MOVE 'Y'              TO IRP04-O-CATEGORY-MATCH-IND   
+                  IF  TDP01-AGE-RESTRICTION  (IRP04-TDP-SUB) > 0
+                      MOVE TDP01-AGE-RESTRICTION  (IRP04-TDP-SUB)   
+                                        TO IRP04-O-AGE-RESTRICTION  
+                  END-IF
+                  IF  TDP01-APPLY-SPOILAGE-IND (IRP04-TDP-SUB) = 'Y'
+                      MOVE TDP01-APPLY-SPOILAGE-IND (IRP04-TDP-SUB) 
+                                        TO IRP04-O-APPLY-SPOILAGE-IND   
+                  END-IF
+                  MOVE 'Y'              TO IRP04-LOOP-SWITCH
+              END-IF
+           END-PERFORM. 
+
+           MOVE IRP04-META-CATEGORY-CODE
+                                        TO IRP04-O-META-CATEGORY-CODE.  
+
+           EXEC SQL SELECT DESCRIPTION  
+                      INTO :IRP04-META-CATEGORY-NAME
+                      FROM VALID_META_CODE  
+                     WHERE META_CODE = :IRP04-META-CATEGORY-CODE
+           END-EXEC.
+
+           IF  SQLCODE < 0  
+               GO TO 9150-RDMS-ERROR
+           ELSE 
+               IF  SQLCODE = 100
+                   MOVE SPACES          TO IRP04-META-CATEGORY-NAME 
+               END-IF   
+           END-IF.  
+
+           MOVE IRP04-META-CATEGORY-NAME
+                                        TO IRP04-O-META-CATEGORY-NAME.  
+
+           IF  IRP04-CABIN-NUM(1:1) = 'T' OR 'C' OR 'W' OR 'Q'  
+               GO TO IRP04-DINING-INFO  
+           END-IF.  
+
+           MOVE IRP04-CABIN-NUM         TO DPP34-CABIN-NUM  
+                                           IRP04-O-CABIN-NUM.   
+
+           PERFORM DPP33-FETCH-CABIN
+              THRU DPP33-EXIT.  
+
+           IF  DPP34-ERROR-SUB > ZEROES 
+               IF  DPP34-ERROR-SUB = 1  
+                   GO TO IRP04-DINING-INFO  
+               ELSE 
+                   GO TO 9100-DATABASE-ERROR
+               END-IF   
+           END-IF.  
+
+           IF  RSP06-IBR-CABIN-NUM = AVL-CAB-CABIN-NUM  
+               MOVE 'Y'                 TO IRP04-O-ACTUAL-CABIN-FLAG
+           END-IF.  
+
+           MOVE AVL-CAB-VIEW-IND        TO IRP04-O-AVL-CAB-VIEW-IND.
+           MOVE AVL-CAB-BED-TYPE-CODE   TO IRP04-O-AVL-BED-TYPE-CODE.   
+           MOVE AVL-CAB-WHEELCHAIR-IND  TO  
+                                        IRP04-O-AVL-CAB-WHEELCHAIR-IND. 
+           MOVE AVL-CAB-NBR-SCOOTERS    TO IRP04-O-AVL-CAB-NBR-SCOOTERS.
+           IF  AVL-CAB-NBR-SCOOTERS > 0 
+               MOVE 'Y'                 TO  IRP04-O-CAB-DISABILITY-IND  
+           END-IF.  
+
+***********BUILD DINING FIELDS******************************************
+
+       IRP04-DINING-INFO.   
+
+           MOVE RSP06-PAX-DINING-PREF (1)   
+                                        TO IRP04-PAX-DINING-PREF.   
+           MOVE RSP06-PAX-DINING-CNF  (1)   
+                                        TO IRP04-PAX-DINING-CNF.
+
+           IF  IRP04-PAX-DINING-PREF > SPACES   
+               MOVE IRP04-PAX-DINING-PREF   
+                                        TO IRP04-DINING-CODE
+               MOVE 'W'                 TO IRP04-DINING-OPT 
+               IF  IRP04-PAX-DINING-CNF > SPACES
+                   MOVE IRP04-PAX-DINING-CNF
+                                        TO IRP04-DINING-CODE
+                   MOVE 'B'             TO IRP04-DINING-OPT 
+               END-IF   
+           ELSE 
+               IF  IRP04-PAX-DINING-CNF > SPACES
+                   MOVE IRP04-PAX-DINING-CNF
+                                        TO IRP04-DINING-CODE
+                   MOVE 'C'             TO IRP04-DINING-OPT 
+               END-IF   
+           END-IF.  
+
+           EXEC SQL 
+                SELECT DESCRIPTION  
+                  INTO :IRP04-DINING-DESCRIPTION
+                  FROM COMPANY_DINING   
+                 WHERE COMPANY_CODE = :IRP04-COMPANY-CODE   
+                   AND FINANCIAL_COMPANY_CODE = :IRP04-FIN-COMP-CODE
+                   AND DINING_CODE = :IRP04-DINING-CODE 
+                 FETCH FIRST 1 ROW ONLY 
+           END-EXEC.
+
+           IF  SQLCODE < 0  
+               GO TO 9150-RDMS-ERROR
+           ELSE 
+               IF  SQLCODE = 100
+                   MOVE SPACES          TO IRP04-DINING-DESCRIPTION 
+               END-IF   
+           END-IF.  
+
+           IF  IRP04-DINING-OPT = 'W'   
+               MOVE IRP04-DINING-DESCRIPTION
+                                        TO IRP04-O-DINING-WAITISTED 
+           ELSE 
+               MOVE IRP04-DINING-DESCRIPTION
+                                        TO IRP04-O-DINING-CONFIRMED 
+           END-IF.  
+
+***********BUILD TRAVEL WITH TABLE**************************************
+
+       IRP04-TRAVEL-WITH.   
+
+           MOVE RSP06-IBR-TRVL-WITH-NUM TO TWR-TRVL-WITH-NUM.   
+           MOVE RSP06-IBR-SHIP-CODE     TO TWR-SHIP-CODE.   
+           MOVE RSP06-IBR-SAIL-DATE     TO TWR-SAIL-DATE.   
+           MOVE RSP06-IBR-DURATION-DAYS TO TWR-DURATION-DAYS.   
+           MOVE SPACES                  TO IRP04-DINING-BKG-NUMBERS 
+                                           IRP04-O-DINING-BKG-NUMBERS.  
+           MOVE 1                       TO IRP04-DIN-SUB.   
+
+           FETCH TRAVEL-WITH-REC RECORD 
+                 ON ERROR GO TO IRP04-TRAVEL-WITH-ERROR.
+
+           PERFORM VARYING IRP04-TWR-SUB FROM 1 BY 1
+                     UNTIL IRP04-TWR-SUB > TWR-ENTRY-CTR
+              IF  TWR-BOOK-STATUS (IRP04-TWR-SUB) NOT = SPACES  
+                  CONTINUE  
+              ELSE  
+                  IF  TWR-BOOK-NUM (IRP04-TWR-SUB) = RSP06-IBR-BOOK-NUM 
+                      CONTINUE  
+                  ELSE  
+                      MOVE TWR-BOOK-NUM (IRP04-TWR-SUB) 
+                                        TO IRP04-DINING-BKG-NUM 
+                                                         (IRP04-DIN-SUB)
+                      MOVE ','          TO IRP04-DINING-BKG-COMMA   
+                                                         (IRP04-DIN-SUB)
+                      ADD 1             TO IRP04-DIN-SUB
+                  END-IF
+              END-IF
+           END-PERFORM. 
+
+           MOVE IRP04-DINING-BKG-NUMBERS
+                                        TO IRP04-O-DINING-BKG-NUMBERS.  
+
+           GO TO IRP04-CALL-RSO22PAY.   
+
+       IRP04-TRAVEL-WITH-ERROR. 
+
+           IF  ERROR-NUM = '0006' OR '0007' OR '0013'   
+               CONTINUE 
+           ELSE 
+               GO TO 9100-DATABASE-ERROR
+           END-IF.  
+
+       IRP04-CALL-RSO22PAY. 
+
+           COPY RSP21PENINT.
+           COPY RSP22INT.   
+           MOVE SPACES                  TO IRP04-ITEM-CODE  
+                                           IRP04-CUSTOMER-CODE. 
+
+           IF  RSP06-IBR-DIRECT-IND = 'Y'   
+               MOVE 'C'                 TO IRP04-CUSTOMER-CODE  
+           ELSE 
+               MOVE 'A'                 TO IRP04-CUSTOMER-CODE  
+           END-IF.  
+
+           MOVE RSP06-IBR-SHIP-CODE     TO RSP22-I-SHIP-CODE
+                                           RSP21-I-SHIP-CODE.   
+
+           IF  RSP06-IBR-CPA-CATEGORY-CODE > SPACES 
+               MOVE RSP06-IBR-CPA-CATEGORY-CODE 
+                                        TO RSP22-I-CATEGORY-CODE
+                                           RSP21-I-CATEGORY-CODE
+           ELSE 
+               MOVE RSP06-IBR-CATEGORY-CODE 
+                                        TO RSP22-I-CATEGORY-CODE
+                                           RSP21-I-CATEGORY-CODE
+           END-IF.  
+
+           IF  RSP06-IBR-BOOK-TYPE = 'I'
+               MOVE SPACES              TO RSP22-I-POLICY-CODE  
+                                           RSP22-I-POLICY-PROMO-CODE
+               MOVE ZEROES              TO RSP22-I-POLICY-OWNER-ID  
+                                           RSP22-I-POLICY-PROMO-OWNER-ID
+           END-IF.  
+
+           IF  RSP06-IBR-BOOK-TYPE = 'G'
+               MOVE GBR1-POLICY-TYPE    TO RSP22-I-POLICY-CODE  
+                                           RSP21-I-POLICY-CODE  
+               MOVE GBR1-POL-PROMO-CODE TO RSP22-I-POLICY-PROMO-CODE
+               MOVE GBR1-POLICY-OWNER-ID
+                                        TO RSP22-I-POLICY-OWNER-ID  
+                                           RSP21-I-POLICY-OWNER-ID  
+               MOVE GBR1-POL-PROMO-OWNER-ID 
+                                        TO RSP22-I-POLICY-PROMO-OWNER-ID
+           END-IF.  
+
+           MOVE 'B'                     TO RSP22-I-REQ-CAB-CODE 
+                                           RSP21-I-REQ-CAB-CODE.
+
+           MOVE RSP06-IBR-AGENCY-CONN-CODE  
+                                        TO RSP22-I-CONNECTION-CODE  
+                                           RSP21-I-CONNECTION-CODE. 
+
+           IF  RSP06-IBR-DIRECT-IND = 'Y'   
+               MOVE 'C'                 TO RSP22-I-CUSTOMER-CODE
+                                           RSP21-I-CUSTOMER-CODE
+           ELSE 
+               MOVE 'A'                 TO RSP22-I-CUSTOMER-CODE
+                                           RSP21-I-CUSTOMER-CODE
+           END-IF.  
+
+           MOVE RSP06-IBR-LOCALITY-CODE TO RSP22-I-LOCALITY-CODE
+                                           RSP21-I-LOCALITY-CODE.   
+           MOVE RSP06-IBR-CURRENCY-CODE TO RSP22-I-CURRENCY-CODE
+                                           RSP21-I-CURRENCY-CODE.   
+           MOVE ZEROES                  TO IRP04-GBR-BERTH-BY-DATE. 
+           MOVE GBR1-BERTH-BY-DATETIME  TO IRP04-GBR-BERTH-BY-DATE. 
+           MOVE IRP04-GBR-BERTH-BY-DATE(1:4)
+                                        TO RSP22-I-BERTH-BY-DATE(1:4).  
+           MOVE '-'                     TO RSP22-I-BERTH-BY-DATE(5:1).  
+           MOVE IRP04-GBR-BERTH-BY-DATE(5:2)
+                                        TO RSP22-I-BERTH-BY-DATE(6:2).  
+           MOVE '-'                     TO RSP22-I-BERTH-BY-DATE(8:1).  
+           MOVE IRP04-GBR-BERTH-BY-DATE(7:2)
+                                        TO RSP22-I-BERTH-BY-DATE(9:2).  
+           MOVE RSP06-IBR-DEPOSIT-TYPE-1
+                                        TO RSP22-I-DEPOSIT-TYPE-1.  
+           MOVE RSP06-IBR-DEPOSIT-TYPE-2
+                                        TO RSP22-I-DEPOSIT-TYPE-2.  
+           MOVE 'N'                     TO RSP22-I-EXTEND-CODE. 
+
+           IF  RSP06-IBR-CABIN-NUM(1:1) = 'W'   
+               MOVE 'Y'                 TO RSP22-I-CABIN-WAITLIST-IND   
+           ELSE 
+               MOVE 'N'                 TO RSP22-I-CABIN-WAITLIST-IND   
+           END-IF.  
+
+           MOVE 'N'                     TO RSP22-I-BERTH-BY-DATE-IND.   
+           MOVE RSP06-IBR-PRC-XCHG-RATE TO RSP22-I-PRC-XCHG-RATE
+                                           RSP21-I-PRC-XCHG-RATE.   
+           MOVE RSP06-IBR-BOOK-DATE(1:4)
+                                        TO RSP22-I-BOOK-DATE(1:4)   
+                                           RSP21-I-BOOK-DATE(1:4).  
+           MOVE '-'                     TO RSP22-I-BOOK-DATE(5:1)   
+                                           RSP21-I-BOOK-DATE(5:1).  
+           MOVE RSP06-IBR-BOOK-DATE(5:2)
+                                        TO RSP22-I-BOOK-DATE(6:2)   
+                                           RSP21-I-BOOK-DATE(6:2).  
+           MOVE '-'                     TO RSP22-I-BOOK-DATE(8:1)   
+                                           RSP21-I-BOOK-DATE(8:1).  
+           MOVE RSP06-IBR-BOOK-DATE(7:2)
+                                        TO RSP22-I-BOOK-DATE(9:2)   
+                                           RSP21-I-BOOK-DATE(9:2).  
+           MOVE RSP06-IBR-PAYMENT-ITEM-CODE 
+                                        TO RSP22-I-PAYMENT-ITEM-CODE.   
+           MOVE RSP06-IBR-PENALTY-ITEM-CODE 
+                                        TO RSP21-I-PENALTY-ITEM-CODE.   
+           MOVE TDP01-SAIL-ID           TO RSP22-I-SAIL-ID  
+                                           RSP21-I-SAIL-ID  
+           MOVE RSP06-PAX-OFFER-ID (1)  TO RSP22-I-OFFER-ID 
+                                           RSP21-I-OFFER-ID.
+           MOVE RSP06-PAX-CNT           TO RSP22-I-OCCUPANCY
+                                           RSP21-I-OCCUPANCY.   
+           MOVE RSP06-IBR-FINAL-DATE(1:4)   
+                                        TO RSP21-I-FINAL-PMT-DATE(1:4). 
+           MOVE '-'                     TO RSP21-I-FINAL-PMT-DATE(5:1). 
+           MOVE RSP06-IBR-FINAL-DATE(5:2)   
+                                        TO RSP21-I-FINAL-PMT-DATE(6:2). 
+           MOVE '-'                     TO RSP21-I-FINAL-PMT-DATE(8:1). 
+           MOVE RSP06-IBR-FINAL-DATE(7:2)   
+                                        TO RSP21-I-FINAL-PMT-DATE(9:2). 
+
+           MOVE ZEROES                  TO IRP04-IBR-FINAL-TIME.
+           MOVE RSP06-IBR-FINAL-TIME    TO IRP04-IBR-FINAL-TIME.
+           MOVE IRP04-IBR-FINAL-TIME(1:2)   
+                                        TO RSP21-I-FINAL-PMT-TIME(1:2). 
+           MOVE ':'                     TO RSP21-I-FINAL-PMT-TIME(3:1). 
+           MOVE IRP04-IBR-FINAL-TIME(3:2)   
+                                        TO RSP21-I-FINAL-PMT-TIME(4:2). 
+           MOVE ':'                     TO RSP21-I-FINAL-PMT-TIME(6:1). 
+           MOVE IRP04-IBR-FINAL-TIME(5:2)   
+                                        TO RSP21-I-FINAL-PMT-TIME(7:2). 
+
+           MOVE RSP06-IBR-BOOK-TIME(1:2)
+                                        TO RSP22-I-BOOK-TIME(1:2)   
+                                           RSP21-I-BOOK-TIME(1:2).  
+           MOVE ':'                     TO RSP22-I-BOOK-TIME(3:1)   
+                                           RSP21-I-BOOK-TIME(3:1).  
+           MOVE RSP06-IBR-BOOK-TIME(3:2)
+                                        TO RSP22-I-BOOK-TIME(4:2)   
+                                           RSP21-I-BOOK-TIME(4:2).  
+           MOVE ':'                     TO RSP22-I-BOOK-TIME(6:1)   
+                                           RSP21-I-BOOK-TIME(6:1).  
+           MOVE RSP06-IBR-BOOK-TIME(5:2)
+                                        TO RSP22-I-BOOK-TIME(7:2)   
+                                           RSP21-I-BOOK-TIME(7:2).  
+
+           MOVE RSP06-PAX-SAIL-MST-OWNER-ID (1) 
+                                        TO RSP22-I-SAIL-OWNER-ID
+                                           RSP21-I-SAIL-OWNER-ID.   
+           MOVE RSP06-IBR-BOOK-TYPE     TO RSP22-I-BOOK-TYPE
+                                           RSP21-I-BOOK-TYPE.   
+           MOVE RSP06-IBR-CUSTOMER-NUM  TO RSP22-I-CUSTOMER-NUM.
+           MOVE RSP06-IBR-SINGLES-PCT   TO RSP22-I-SINGLES-PCT. 
+
+           PERFORM VARYING IRP04-FARE-SUB FROM 1 BY 1   
+                     UNTIL IRP04-FARE-SUB > 5   
+              IF  IRP04-FARE-SUB > RSP06-PAX-CNT
+                  MOVE 0                TO RSP22-I-FARE-AMT 
+                                                      (IRP04-FARE-SUB)  
+              ELSE  
+                  COMPUTE RSP22-I-FARE-AMT (IRP04-FARE-SUB) =   
+                          RSP06-PDI-CRUISE-AMT (IRP04-FARE-SUB) +   
+                          RSP06-PAX-PTCHG-AMT (IRP04-FARE-SUB)  +   
+                          RSP06-PDI-TOTAL-FEE-OTH-AMT (IRP04-FARE-SUB)  
+              END-IF
+           END-PERFORM. 
+
+           CALL 'RSO22PAY' USING DPP01-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 RSP22-INPUT-PARAMS 
+                                 RSP22-OUTPUT-PARAMS
+                                 RSP90-OVERRIDE-FLAGS-INFO. 
+
+           IF  DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1   
+               GO TO 9500-RETURN-SUBROUTINE-ERROR   
+           END-IF.  
+
+           CALL 'RSO21PEN' USING DPP01-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 RSP21-INPUT-PARAMS 
+                                 RSP21-OUTPUT-PARAMS
+                                 RSP22-OUTPUT-PARAMS.   
+
+           IF  DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1   
+               GO TO 9500-RETURN-SUBROUTINE-ERROR   
+           END-IF.  
+
+           EXEC SQL 
+                SELECT  ITEM_TYPE,  
+                        ITEM_CODE   
+                  INTO :RSP21-O-ITEM-TYPE,  
+                       :RSP21-O-ITEM-CODE   
+                  FROM  SAIL_PENALTY_ITEM   
+                 WHERE SHIP_CODE = :RSP21-I-SHIP-CODE   
+                   AND SAIL_ID = :RSP21-I-SAIL-ID   
+                   AND PRP_OWNER_CODE = 'SAL'   
+                   AND PRP_OWNER_ID = :RSP06-PAX-SAIL-MST-OWNER-ID(1)   
+                   AND TERM_LEVEL_CODE IN ('~',:TDP01-TERMS-LEVEL-CODE) 
+                   AND REQUEST_CABIN_CODE = :RSP21-I-REQ-CAB-CODE   
+                   AND LOCALITY_CODE IN ('~',:RSP21-I-LOCALITY-CODE)
+                   AND CURRENCY_CODE IN ('~',:RSP21-I-CURRENCY-CODE)
+                   AND AGENT_CONSUMER_CODE IN ('~', 
+                                                :RSP21-I-CUSTOMER-CODE) 
+                   AND CONNECTION_CODE IN ('~', 
+                                            :RSP21-I-CONNECTION-CODE)   
+                 FETCH FIRST 1 ROW ONLY 
+           END-EXEC.
+
+           IF  SQLCODE < 0  
+               GO TO 9150-RDMS-ERROR
+           END-IF.  
+
+           MOVE RSP21-O-ITEM-CODE       TO IRP04-O-ITEM-CODE.   
+
+           IF RSP06-IBR-PENALTY-ITEM-CODE = RSP21-O-ITEM-CODE   
+              MOVE 1                    TO DPP02-NUMBER-DAYS
+              MOVE RSP21-O-PEN-DATE (1) TO DPP02-YYYYMMDD-DATE  
+              PERFORM DPP10-DEMINISH-YYYYMMDD-DATE  
+              IF  IRP04-O-UK-LOCALITY = 'N' 
+                  IF  RSP86-O-TIME-ZONE-CODE = 'AET' AND
+                      DPP02-YYYYMMDD-DATE > ZEROES  
+                      PERFORM DPP10-INIT-TMZ-VARS   
+                         THRU DPP10-INIT-TMZ-VARS-EXIT  
+                      MOVE 'USD'        TO DPP02-TMZ-FRM-BASE-CURRENCY  
+                      MOVE 'AUD'        TO DPP02-TMZ-TO-BASE-CURRENCY   
+                      MOVE DPP02-YYYYMMDD-DATE  
+                                        TO DPP02-TMZ-INP-DATE   
+                      MOVE RSP21-O-PEN-TIME (1) 
+                                        TO DPP02-TMZ-INP-TIME8  
+                      PERFORM DPP10-CHANGE-TIMEZONE 
+                         THRU DPP10-CHANGE-TIMEZONE-EXIT
+                      IF  DPP02-TMZ-ERROR-NUM > 0   
+                          MOVE DPP02-TMZ-ERROR-NUM  
+                                        TO DPP42-HOLD-MSG-INDEX 
+                          MOVE 'DPP10TMZ'   
+                                        TO DPP42-HOLD-MSG-SOURCE
+                          GO TO 9200-EDIT-ERROR-MSG 
+                      END-IF
+                      MOVE DPP02-TMZ-OUT-DATE   
+                                        TO DPP02-YYYYMMDD-DATE  
+                  END-IF
+              END-IF
+              MOVE DPP02-YYYYMMDD-DATE  TO IRP04-O-PENALTY-DATE 
+           ELSE 
+              IF  RSP06-IBR-CPA-CATEGORY-CODE > SPACES  
+                  MOVE RSP06-IBR-CPA-CATEGORY-CODE  
+                                        TO IRP04-CPA-CAT-CODE   
+              ELSE  
+                  MOVE RSP06-IBR-CATEGORY-CODE  
+                                        TO IRP04-CPA-CAT-CODE   
+              END-IF
+
+              PERFORM VARYING IRP04-CNT-SUB FROM 1 BY 1 
+                        UNTIL IRP04-CNT-SUB > RSP21-O-CATEGORY-CNT  
+                 IF  RSP21-O-CATEGORY-CODE (IRP04-CNT-SUB) =
+                     IRP04-CPA-CAT-CODE 
+                     MOVE IRP04-CNT-SUB TO IRP04-PEN-CSUB   
+                     MOVE RSP21-O-CATEGORY-CNT  
+                                        TO IRP04-CNT-SUB
+                 END-IF 
+              END-PERFORM   
+
+              PERFORM VARYING IRP04-PEN-SUB2 FROM 1 BY 1
+                        UNTIL IRP04-PEN-SUB2 > RSP21-O-TERM-CNT 
+                 IF  RSP21-O-PEN-DATE (IRP04-PEN-SUB2) > ZEROES 
+                    PERFORM VARYING IRP04-PEN-SUB FROM 1 BY 1   
+                              UNTIL IRP04-PEN-SUB > 5   
+                       IF  RSP21-O-AMT-PCT-CODE (IRP04-PEN-SUB2) = 'A'  
+                           MOVE RSP21-O-POS-EFF-PEN-AMT 
+                           (IRP04-PEN-CSUB IRP04-PEN-SUB2 IRP04-PEN-SUB)
+                                        TO IRP04-AMOUNT 
+                       ELSE 
+                           COMPUTE IRP04-AMOUNT = (100 *
+                                       RSP21-O-POS-EFF-PEN-AMT  
+                          (IRP04-PEN-CSUB IRP04-PEN-SUB2 IRP04-PEN-SUB))
+                       END-IF   
+                    END-PERFORM 
+                     IF  RSP86-O-TIME-ZONE-CODE = 'AET' AND 
+                         RSP21-O-PEN-DATE(IRP04-PEN-SUB2) > ZEROES  
+                         PERFORM DPP10-INIT-TMZ-VARS
+                            THRU DPP10-INIT-TMZ-VARS-EXIT   
+                         MOVE 'USD'     TO DPP02-TMZ-FRM-BASE-CURRENCY  
+                         MOVE 'AUD'     TO DPP02-TMZ-TO-BASE-CURRENCY   
+                         MOVE RSP21-O-PEN-DATE (IRP04-PEN-SUB2) 
+                                        TO DPP02-TMZ-INP-DATE   
+                         MOVE RSP21-O-PEN-TIME(IRP04-PEN-SUB2)  
+                                        TO DPP02-TMZ-INP-TIME8  
+                         PERFORM DPP10-CHANGE-TIMEZONE  
+                            THRU DPP10-CHANGE-TIMEZONE-EXIT 
+                         IF  DPP02-TMZ-ERROR-NUM > 0
+                             GO TO 9200-EDIT-ERROR-MSG  
+                         END-IF 
+                         MOVE DPP02-TMZ-OUT-DATE
+                                        TO IRP04-PEN-DATE   
+                     ELSE   
+                         MOVE RSP21-O-PEN-DATE (IRP04-PEN-SUB2) 
+                                        TO IRP04-PEN-DATE   
+                     END-IF 
+                     MOVE IRP04-PEN-DATE
+                                        TO DPP02-YYYYMMDD-DATE  
+                     PERFORM DPP10-YYYYMMDD-TO-MMDDYY   
+                     PERFORM DPP10-MMDDYY-TO-DD-MMM-YY  
+                     MOVE IRP04-AMOUNT  TO IRP04-PENALTY-AMOUNT 
+                     UNSTRING IRP04-PENALTY-AMOUNT  
+                              DELIMITED BY "$"  
+                              INTO IRP04-TEMP, IRP04-PENALTY-AMOUNT 
+                     IF  IRP04-PEN-SUB2 < RSP21-O-TERM-CNT  
+                         STRING IRP04-FAX-INFO      DELIMITED BY SPACES 
+                                ';@'                DELIMITED BY SIZE   
+                                INTO IRP04-FAX-INFO 
+                     END-IF 
+                     STRING IRP04-FAX-INFO          DELIMITED BY SPACES 
+                            DPP02-DD-MMM-YY-DD  '-' DELIMITED BY SIZE   
+                            DPP02-DD-MMM-YY-MMM '-' DELIMITED BY SIZE   
+                            DPP02-YYYYMMDD-CC       DELIMITED BY SIZE   
+                            DPP02-DD-MMM-YY-YY      DELIMITED BY SIZE   
+                            '@-@'                   DELIMITED BY SIZE   
+                            INTO IRP04-FAX-INFO 
+                     IF  RSP21-O-AMT-PCT-CODE (IRP04-PEN-SUB2) = 'A'
+                         STRING IRP04-FAX-INFO      DELIMITED BY SPACES 
+                                RSP06-IBR-CURRENCY-CODE 
+                                                    DELIMITED BY SIZE   
+                                IRP04-PENALTY-AMOUNT
+                                                    DELIMITED BY SPACES 
+                                '@(pp)'             DELIMITED BY SIZE   
+                                INTO IRP04-FAX-INFO 
+                     ELSE   
+                         IF  RSP21-O-AMT-PCT-CODE (IRP04-PEN-SUB2) = 'P'
+                             STRING IRP04-FAX-INFO  DELIMITED BY SPACES 
+                                    IRP04-PENALTY-AMOUNT
+                                                    DELIMITED BY SPACES 
+                                    '%@of@total@fare@(pp)'  
+                                                    DELIMITED BY SIZE   
+                                    INTO IRP04-FAX-INFO 
+                         END-IF 
+                     END-IF 
+                 END-IF 
+              END-PERFORM   
+
+              STRING IRP04-FAX-INFO     DELIMITED BY SPACES 
+                     '.'                DELIMITED BY SIZE   
+                     INTO IRP04-FAX-INFO
+
+              INSPECT IRP04-FAX-INFO REPLACING ALL '@' BY ' '   
+           END-IF.  
+
+           MOVE IRP04-FAX-INFO          TO IRP04-O-FAX-INFO.
+
+           PERFORM VARYING IRP04-XFER-SUB FROM 1 BY 1   
+                     UNTIL IRP04-XFER-SUB > RSP06-PAX-CNT   
+              PERFORM IRP04-PROCESS-PS-TRANSFERS
+                 THRU IRP04-PROCESS-PS-TRANSFERS-EXT
+              IF  IRP04-PS-TRANSFER-IND = 'N' AND   
+                  RSP06-PAX-FARE-TYPE (IRP04-XFER-SUB) = 'C'
+                  MOVE 'Y'              TO IRP04-CRUO-XFR-SW
+              END-IF
+              IF  RSP06-PAX-FARE-TYPE (IRP04-XFER-SUB) = 'F' AND
+                  IRP04-PS-TRANSFER-IND = 'Y'   
+                  MOVE 'Y'              TO IRP04-FLY-XFR-SW 
+              END-IF
+              IF  IRP04-CRUO-XFR-SW = 'Y' AND IRP04-FLY-XFR-SW = 'Y'
+                  MOVE RSP06-PAX-CNT    TO IRP04-XFER-SUB   
+              END-IF
+           END-PERFORM. 
+
+           MOVE IRP04-FLY-XFR-SW        TO IRP04-O-FLY-XFR-SW.  
+
+***********BUILD PAX LEVEL FIELDS***************************************
+
+           MOVE 'N'                     TO IRP04-SEND-NOTES.
+           MOVE ZEROES                  TO IRP04-VPP-CNT
+                                           IRP04-AIR-PAX-CNT.   
+
+           PERFORM VARYING IRP04-PAX-SUB FROM 1 BY 1
+                     UNTIL IRP04-PAX-SUB > 5
+              MOVE 'N'                  TO IRP04-O-PAX-VIP-IND  
+                                                         (IRP04-PAX-SUB)
+                                           IRP04-O-PAX-PPGRATS-IND  
+                                                         (IRP04-PAX-SUB)
+              MOVE RSP06-PAX-INSURANCE-IND (IRP04-PAX-SUB)  
+                                        TO IRP04-O-PAX-CVP-IND  
+                                                         (IRP04-PAX-SUB)
+              IF  RSP06-PAX-INSURANCE-IND (IRP04-PAX-SUB) = 'Y' 
+                  ADD 1                 TO IRP04-VPP-CNT
+              END-IF
+              IF  RSP06-PAX-FARE-TYPE (IRP04-PAX-SUB) = 'F' 
+                  ADD 1                 TO IRP04-AIR-PAX-CNT
+              END-IF
+              MOVE RSP06-PAX-FIRST-NAME                  (IRP04-PAX-SUB)
+                                        TO IRP04-O-PAX-FIRST-NAME   
+                                                         (IRP04-PAX-SUB)
+              MOVE RSP06-PAX-LAST-NAME                   (IRP04-PAX-SUB)
+                                        TO IRP04-O-PAX-LAST-NAME
+                                                         (IRP04-PAX-SUB)
+              MOVE RSP06-PAX-VIP-IND                     (IRP04-PAX-SUB)
+                                        TO IRP04-O-PAX-VIP-IND  
+                                                         (IRP04-PAX-SUB)
+              MOVE RSP06-PAX-PAST-GUEST-NUM              (IRP04-PAX-SUB)
+                                        TO IRP04-O-PAX-VIFP-NUM 
+                                                         (IRP04-PAX-SUB)
+              MOVE RSP06-PDI-SAIL-TIER-NAME              (IRP04-PAX-SUB)
+                                        TO IRP04-O-PAX-VIFP-LEVEL   
+                                                         (IRP04-PAX-SUB)
+              MOVE RSP06-PAX-DINING-PREF                 (IRP04-PAX-SUB)
+                                        TO IRP04-O-PAX-DINING-PREF  
+                                                         (IRP04-PAX-SUB)
+              MOVE RSP06-PAX-DINING-CNF                  (IRP04-PAX-SUB)
+                                        TO IRP04-O-PAX-DINING-CNF   
+                                                         (IRP04-PAX-SUB)
+              MOVE RSP06-PAX-COMMENT-CODE              (IRP04-PAX-SUB 1)
+                                        TO IRP04-O-PAX-COMMENT-CODE 
+                                                       (IRP04-PAX-SUB 1)
+              MOVE RSP06-PAX-COMMENT-CODE              (IRP04-PAX-SUB 2)
+                                        TO IRP04-O-PAX-COMMENT-CODE 
+                                                       (IRP04-PAX-SUB 2)
+              MOVE RSP06-PAX-COMMENT-CODE              (IRP04-PAX-SUB 3)
+                                        TO IRP04-O-PAX-COMMENT-CODE 
+                                                       (IRP04-PAX-SUB 3)
+              MOVE RSP06-PAX-COMMENT-CODE              (IRP04-PAX-SUB 4)
+                                        TO IRP04-O-PAX-COMMENT-CODE 
+                                                       (IRP04-PAX-SUB 4)
+              MOVE RSP06-PAX-COMMENT-CODE              (IRP04-PAX-SUB 5)
+                                        TO IRP04-O-PAX-COMMENT-CODE 
+                                                       (IRP04-PAX-SUB 5)
+              MOVE RSP06-PAX-PP-GRATS-IND                (IRP04-PAX-SUB)
+                                        TO IRP04-O-PAX-PPGRATS-IND  
+                                                         (IRP04-PAX-SUB)
+              MOVE RSP06-PAX-OFFER-CODE            (IRP04-PAX-SUB) (1:3)
+                                        TO IRP04-O-PAX-OFFER-CODE   
+                                                         (IRP04-PAX-SUB)
+              MOVE RSP06-PAX-AIR-TYPE                    (IRP04-PAX-SUB)
+                                        TO IRP04-O-PAX-AIR-TYPE 
+                                                         (IRP04-PAX-SUB)
+              IF  RSP06-PAX-FARE-TYPE (IRP04-PAX-SUB)  = 'F'
+                  EXEC SQL  
+                       SELECT CITY_NAME 
+                         INTO :IRP04-PAX-CITY-NAME  
+                         FROM CITY  
+                        WHERE CITY_CODE = :RSP06-PAX-CITY-CODE  
+                                                         (IRP04-PAX-SUB)
+                       FETCH FIRST 1 ROW ONLY   
+                  END-EXEC  
+                  IF  SQLCODE < 0   
+                      GO TO 9150-RDMS-ERROR 
+                  END-IF
+                  MOVE SPACES           TO IRP04-O-PAX-DEPARTING
+                                                         (IRP04-PAX-SUB)
+                  MOVE IRP04-PAX-CITY-NAME  
+                                        TO IRP04-O-PAX-DEPARTING
+                                                         (IRP04-PAX-SUB)
+              ELSE  
+                  IF  RSP06-PAX-FARE-TYPE (IRP04-PAX-SUB) = 'C' 
+                      MOVE 'CRUISE ONLY'
+                                        TO IRP04-O-PAX-DEPARTING
+                                                         (IRP04-PAX-SUB)
+                  ELSE  
+                      MOVE SPACES       TO IRP04-O-PAX-DEPARTING
+                                                         (IRP04-PAX-SUB)
+                  END-IF
+              END-IF
+
+              ADD RSP06-PDI-TOTAL-COMM-GST-AMT           (IRP04-PAX-SUB)
+                                        TO IRP04-GST-COMM   
+              PERFORM VARYING IRP04-QUAL-SUB FROM 1 BY 1
+                        UNTIL IRP04-QUAL-SUB > RSP06-GUEST-QUAL-CNT 
+                 MOVE RSP06-QUALIFICATION-CODE  
+                                          (IRP04-QUAL-SUB IRP04-PAX-SUB)
+                                        TO  
+                      IRP04-O-PAX-QUALIFICATION-CODE
+                                          (IRP04-PAX-SUB IRP04-QUAL-SUB)
+              END-PERFORM   
+              PERFORM VARYING IRP04-PPHOR-SUB FROM 1 BY 1   
+                        UNTIL IRP04-PPHOR-SUB > 2   
+                 MOVE 'N'               TO IRP04-O-PPHOR-EXIST-IND  
+                                         (IRP04-PAX-SUB IRP04-PPHOR-SUB)
+                                          IRP04-O-PPHOR-SEND-TXT-PRF-IND
+                                         (IRP04-PAX-SUB IRP04-PPHOR-SUB)
+
+                 IF  RSP06-PPHOR-EXIST-IND (IRP04-PAX-SUB) = 'Y'
+                     MOVE RSP06-PPHOR-PHONE-NUM 
+                                         (IRP04-PAX-SUB IRP04-PPHOR-SUB)
+                                        TO IRP04-O-PPHOR-PHONE-NUM  
+                                         (IRP04-PAX-SUB IRP04-PPHOR-SUB)
+                     MOVE RSP06-PPHOR-EXIST-IND (IRP04-PAX-SUB) 
+                                        TO IRP04-O-PPHOR-EXIST-IND  
+                                         (IRP04-PAX-SUB IRP04-PPHOR-SUB)
+                     MOVE RSP06-PPHOR-SEND-TXT-PREF-IND 
+                                         (IRP04-PAX-SUB IRP04-PPHOR-SUB)
+                                        TO  
+                          IRP04-O-PPHOR-SEND-TXT-PRF-IND
+                                         (IRP04-PAX-SUB IRP04-PPHOR-SUB)
+                     MOVE RSP06-PPHOR-SAIL-TXT-OPT-FLG  
+                                         (IRP04-PAX-SUB IRP04-PPHOR-SUB)
+                                        TO  
+                          IRP04-O-PPHOR-SAIL-TXT-OPT-IND
+                                         (IRP04-PAX-SUB IRP04-PPHOR-SUB)
+                     MOVE RSP06-PPHOR-PAYM-TXT-OPT-FLG  
+                                         (IRP04-PAX-SUB IRP04-PPHOR-SUB)
+                                        TO  
+                          IRP04-O-PPHOR-PAYM-TXT-OPT-IND
+                                         (IRP04-PAX-SUB IRP04-PPHOR-SUB)
+
+                     IF  RSP06-PPHOR-SEND-TXT-PREF-IND  
+                               (IRP04-PAX-SUB IRP04-PPHOR-SUB) = 'Y' AND
+                         (RSP06-PPHOR-SAIL-TXT-OPT-FLG  
+                               (IRP04-PAX-SUB IRP04-PPHOR-SUB) = 1   OR 
+                          RSP06-PPHOR-PAYM-TXT-OPT-FLG  
+                               (IRP04-PAX-SUB IRP04-PPHOR-SUB) = 1) 
+                         MOVE 'Y'       TO IRP04-SEND-NOTES 
+                     END-IF 
+                 END-IF 
+              END-PERFORM   
+              MOVE IRP04-SEND-NOTES     TO IRP04-O-SEND-NOTES   
+
+              PERFORM VARYING IRP04-FLT-SUB FROM 1 BY 1 UNTIL   
+                 RSP06-PICF-FLIGHT-NUM (IRP04-PAX-SUB IRP04-FLT-SUB) =  
+                                                          SPACES
+                 MOVE 'N'               TO IRP04-O-FLT-TKT-TYPE-FLAG
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                 MOVE IRP04-PAX-SUB       TO IRP04-O-FLT-PAX-ID 
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                 MOVE RSP06-PICF-DEPART-DATE
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                        TO IRP04-O-FLT-DEP-DATE 
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                           DPP02-YYYYMMDD-DATE  
+                 PERFORM DPP10-YYYYMMDD-WEEK-DAY
+                 MOVE DPP02-DAY-OF-WEEK(1:3)
+                                        TO IRP04-O-FLT-DEP-DAY  
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                 MOVE RSP06-PICF-ARRIVE-DATE
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                        TO IRP04-O-FLT-ARR-DATE 
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                 MOVE RSP06-PICF-FROM-CITY (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                        TO IRP04-O-FLT-DEPART-CITY  
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                 MOVE RSP06-PICF-TO-CITY   (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                        TO IRP04-O-FLT-ARRIVE-CITY  
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                 MOVE RSP06-PICF-AIRLINE-CODE   
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                        TO IRP04-O-FLT-AIRLINE-NAME 
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                 MOVE RSP06-PICF-FLIGHT-NUM 
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                        TO IRP04-O-FLT-NUMBER   
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                 MOVE RSP06-PICF-FLIGHT-CLASS   
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                        TO IRP04-O-FLT-CLASS-OF-SERVICE 
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                 MOVE RSP06-PICF-DEPART-TIME
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                        TO IRP04-O-FLT-DEPART-TIME  
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                 MOVE RSP06-PICF-ARRIVE-TIME
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                        TO IRP04-O-FLT-ARRIVAL-TIME 
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                 MOVE RSP06-PICF-SEGMENT-STATUS 
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                        TO IRP04-O-FLT-ITN-STATUS   
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                 MOVE RSP06-PICF-AIR-TICKET-TYPE
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                        TO IRP04-O-FLT-TKT-TYPE-FLAG
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                 MOVE RSP06-PICF-TICKET-DATE
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                        TO IRP04-O-FLT-TICKET-DATE  
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                 MOVE RSP06-PICF-TICKET-TIME
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                        TO IRP04-O-FLT-TICKET-TIME  
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                 MOVE RSP06-PICF-AIRLINE-RECORD-LOC 
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                        TO IRP04-O-FLT-ALT-RECORD-LOC   
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                 MOVE RSP06-PICF-CABIN-CLASS
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                        TO IRP04-O-FLT-CABIN-CLASS  
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                 MOVE RSP06-PICF-OPER-AIRLINE-CODE  
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                        TO IRP04-O-FLT-OPER-AIRLINE-CODE
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                 MOVE RSP06-PICF-OPER-AIRLINE-NAME  
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                        TO IRP04-O-FLT-OPER-AIRLINE-NAME
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                 MOVE RSP06-PICF-AIRLINE-RECORD-LOC 
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                        TO IRP04-O-FLT-AIRLINE-REC-LOC  
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                 MOVE RSP06-PICF-SEAT-ASSIGNED  
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                        TO IRP04-O-FLT-SEAT-ASSIGNED
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                 MOVE RSP06-PICF-TICKET-NUM 
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                        TO IRP04-O-FLT-TICKET-NUM   
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+              END-PERFORM   
+           END-PERFORM. 
+
+           MOVE IRP04-VPP-CNT           TO IRP04-O-VPP-PAX-CNT. 
+           MOVE IRP04-AIR-PAX-CNT       TO IRP04-O-AIR-PAX-CNT. 
+
+***********BUILD PAYMENT RELATED FIELDS*********************************
+
+           IF  RSP86-O-TIME-ZONE-CODE = 'AET'   
+               PERFORM DPP10-INIT-TMZ-VARS  
+                  THRU DPP10-INIT-TMZ-VARS-EXIT 
+               MOVE 'USD'               TO DPP02-TMZ-FRM-BASE-CURRENCY  
+               MOVE 'AUD'               TO DPP02-TMZ-TO-BASE-CURRENCY   
+               MOVE RSP06-IBR-OPTION-DATE   
+                                        TO DPP02-TMZ-INP-DATE   
+               MOVE RSP06-IBR-OPTION-TIME   
+                                        TO DPP02-TMZ-INP-TIME8 (1:4)
+               PERFORM DPP10-CHANGE-TIMEZONE
+                  THRU DPP10-CHANGE-TIMEZONE-EXIT   
+               IF  DPP02-TMZ-ERROR-NUM > 0  
+                   GO TO 9200-EDIT-ERROR-MSG
+               END-IF   
+               MOVE DPP02-TMZ-OUT-DATE  TO IRP04-O-DEPOSIT-DUE-DATE 
+               MOVE DPP02-TMZ-OUT-TIME8 (1:4)   
+                                        TO IRP04-O-DEPOSIT-DUE-TIME 
+           ELSE 
+               MOVE RSP06-IBR-OPTION-DATE   
+                                        TO IRP04-O-DEPOSIT-DUE-DATE 
+               MOVE RSP06-IBR-OPTION-TIME   
+                                        TO IRP04-O-DEPOSIT-DUE-TIME 
+           END-IF.  
+
+           IF  RSP86-O-TIME-ZONE-CODE = 'AET'   
+               PERFORM DPP10-INIT-TMZ-VARS  
+                  THRU DPP10-INIT-TMZ-VARS-EXIT 
+               MOVE 'USD'               TO DPP02-TMZ-FRM-BASE-CURRENCY  
+               MOVE 'AUD'               TO DPP02-TMZ-TO-BASE-CURRENCY   
+               MOVE RSP06-IBR-FINAL-DATE
+                                        TO DPP02-TMZ-INP-DATE   
+               MOVE RSP06-IBR-FINAL-TIME
+                                        TO DPP02-TMZ-INP-TIME8 (1:6)
+               PERFORM DPP10-CHANGE-TIMEZONE
+                  THRU DPP10-CHANGE-TIMEZONE-EXIT   
+               IF  DPP02-TMZ-ERROR-NUM > 0  
+                   GO TO 9200-EDIT-ERROR-MSG
+               END-IF   
+               MOVE DPP02-TMZ-OUT-DATE  TO IRP04-O-FINAL-DUE-DATE   
+               MOVE DPP02-TMZ-OUT-TIME8 (1:6)   
+                                        TO IRP04-O-FINAL-DUE-TIME   
+           ELSE 
+               MOVE RSP06-IBR-FINAL-DATE
+                                        TO IRP04-O-FINAL-DUE-DATE   
+               MOVE RSP06-IBR-FINAL-TIME
+                                        TO IRP04-O-FINAL-DUE-TIME   
+           END-IF.  
+
+           COMPUTE IRP04-CRUISE-RATE = RSP06-IBR-CRUISE-AMT +   
+                                       RSP06-IBR-PTCHG-AMT. 
+           MOVE IRP04-CRUISE-RATE       TO IRP04-CRUISE-FARE.   
+           IF  IRP04-I-VIEW-TYPE = 'C'  
+               MOVE IRP04-CRUISE-RATE   TO IRP04-O-CRUISE-FARE  
+           ELSE 
+               MOVE RSP06-IBR-CRUISE-AMT
+                                        TO IRP04-O-CRUISE-FARE  
+               MOVE RSP06-IBR-PTCHG-AMT TO IRP04-O-NON-COMM-RATE
+           END-IF.  
+           COMPUTE IRP04-TOTAL-CRUISE-CHARGES = 
+                         RSP06-IBR-CRUISE-AMT + 
+                         RSP06-IBR-PTCHG-AMT  + 
+                         RSP06-IB-TOTAL-FEE-OTH-AMT  +  
+                         RSP06-IB-TOTAL-FEE-GOVT-AMT +  
+                         RSP06-IBR-PP-GRATS-AMT      +  
+                         RSP06-IBR-INS-PREMIUM-AMT   +  
+                         RSP06-IBR-ADMIN-FEE-AMT     +  
+                         RSP06-IBR-PENALTY-AMT. 
+           COMPUTE IRP04-O-CRUISE-CHARGES = IRP04-CRUISE-FARE + 
+                                            RSP06-IB-TOTAL-FEE-OTH-AMT +
+                                            RSP06-IB-TOTAL-FEE-GOVT-AMT.
+           MOVE RSP06-IB-TOTAL-FEE-OTH-AMT  
+                                        TO IRP04-O-REQ-CRUISE-FEES-EXP. 
+           MOVE RSP06-IB-TOTAL-FEE-GOVT-AMT 
+                                        TO IRP04-O-GOVT-TAXES-FEES. 
+           COMPUTE IRP04-COMM-AMT = RSP06-IBR-PACKAGE-COMM-AMT  +   
+                                    RSP06-IBR-CRUISE-COMM-AMT   +   
+                                    RSP06-IBR-ADDON-COMM-AMT    +   
+                                    RSP06-IBR-TRANSFER-COMM-AMT +   
+                                    RSP06-IBR-PENALTY-COMM-AMT  +   
+                                    RSP06-IBR-INS-COMM-AMT. 
+           MOVE IRP04-COMM-AMT          TO IRP04-O-TOTAL-COMMISION. 
+           MOVE RSP06-IB-TOTAL-PAYMENT-AMT  
+                                        TO IRP04-O-TOTAL-PAYMENT.   
+           MOVE RSP06-IBR-CREDIT-AMT    TO IRP04-O-CREDITS. 
+           COMPUTE IRP04-O-TOTAL-PAYMENT-CREDITS =  
+                                        RSP06-IB-TOTAL-PAYMENT-AMT +
+                                        RSP06-IBR-CREDIT-AMT.   
+           MOVE RSP06-IB-BALANCE-DUE    TO IRP04-O-NET-BALANCE-DUE. 
+
+           COMPUTE IRP04-GBDU-AMT = ((RSP06-IBR-GROSS-FARE-AMT    + 
+                                      RSP06-IBR-MISC-AMT          + 
+                                      RSP06-IBR-PENALTY-AMT       + 
+                                      RSP06-IBR-TOTAL-FEES-AMT    + 
+                                      RSP06-IBR-ADMIN-FEE-AMT     + 
+                                      RSP06-IB-COURTESY-ORDER-AMT + 
+                                      RSP06-IBR-PP-GRATS-AMT      + 
+                                      RSP06-IBR-OBC-CHARGE-AMT    + 
+                                      RSP06-IBR-NSF-AMT)          - 
+                                     (RSP06-IBR-PROGRAM-FEE-AMT   + 
+                                      RSP06-IBR-CREDIT-AMT)       - 
+                                     (RSP06-IB-TOTAL-PAYMENT-AMT)). 
+           COMPUTE IRP04-GRSS-AMT = RSP06-IBR-GROSS-FARE-AMT    +   
+                                    RSP06-IBR-MISC-AMT          +   
+                                    RSP06-IBR-PENALTY-AMT       +   
+                                    RSP06-IBR-TOTAL-FEES-AMT    +   
+                                    RSP06-IBR-ADMIN-FEE-AMT     +   
+                                    RSP06-IB-COURTESY-ORDER-AMT +   
+                                    RSP06-IBR-PP-GRATS-AMT      +   
+                                    RSP06-IBR-NSF-AMT           +   
+                                    RSP06-IBR-OBC-CHARGE-AMT    -   
+                                    RSP06-IBR-CREDIT-AMT.   
+
+           COMPUTE IRP04-GRSS-PMT = IRP04-GRSS-AMT -
+                                    IRP04-COMM-AMT. 
+
+           COMPUTE IRP04-GRSS-BAL-DUE = IRP04-GRSS-AMT -
+                                        RSP06-IB-TOTAL-PAYMENT-AMT. 
+
+           IF  RSP06-IBR-LOCALITY-CODE = '7'
+               COMPUTE IRP04-O-GUEST-BALANCE-DUE =  
+                            RSP06-IB-BALANCE-DUE +  
+                            IRP04-COMM-AMT       +  
+                            IRP04-GST-COMM  
+           ELSE 
+               IF  IRP04-GBDU-AMT <= 0 AND  
+                   (RSP06-IB-TOTAL-PAYMENT-AMT = IRP04-GRSS-PMT)
+                   MOVE ZEROES          TO IRP04-O-GUEST-BALANCE-DUE
+               ELSE 
+                   IF  IRP04-GRSS-AMT <= RSP06-IB-TOTAL-PAYMENT-AMT 
+                       MOVE ZEROES      TO IRP04-O-GUEST-BALANCE-DUE
+                   ELSE 
+                       MOVE IRP04-GRSS-BAL-DUE  
+                                        TO IRP04-O-GUEST-BALANCE-DUE
+                   END-IF   
+               END-IF   
+           END-IF.  
+
+           IF  RSP06-IB-BALANCE-DUE = 0 
+               MOVE ZEROES              TO IRP04-O-GUEST-BALANCE-DUE
+           END-IF.  
+
+           IF  RSP06-IB-BALANCE-DUE < 0 AND 
+               IRP04-I-VIEW-TYPE = 'A'  
+               MOVE ZEROES              TO IRP04-O-GUEST-BALANCE-DUE
+           END-IF.  
+
+           MOVE RSP06-IBR-OBC-SAILING-AMT   
+                                        TO IRP04-O-OBC-AMOUNT.  
+           MOVE RSP06-IB-TOTAL-COMM-AMT TO IRP04-O-NET-COMMISION.   
+           MOVE RSP06-IBR-PP-GRATS-AMT  TO IRP04-O-PP-GRATS-AMOUNT. 
+           MOVE RSP06-IBR-INS-PREMIUM-AMT   
+                                        TO IRP04-O-VPP-AMT. 
+           COMPUTE IRP04-DEPOSIT-BAL-DUE = RSP06-IBR-DEPOSIT-AMT +  
+                                           RSP06-IBR-INS-PREMIUM-AMT -  
+                                           RSP06-IB-TOTAL-PAYMENT-AMT.  
+           MOVE IRP04-GST-COMM          TO IRP04-O-GST-COMMISION.   
+           IF  IRP04-DEPOSIT-BAL-DUE > 0
+               MOVE IRP04-DEPOSIT-BAL-DUE   
+                                        TO IRP04-O-DEPOSIT-BAL-DUE  
+           ELSE 
+               MOVE ZEROES              TO IRP04-O-DEPOSIT-BAL-DUE  
+           END-IF.  
+           MOVE RSP06-IBR-PENALTY-AMT   TO IRP04-O-PENALTY-AMT. 
+           MOVE RSP06-IBR-ADDON-AMT     TO IRP04-O-ADDON-AMT.   
+           MOVE IRP04-PRE-XFR-AMT       TO IRP04-O-PRE-XFR-AMT. 
+           MOVE IRP04-PST-XFR-AMT       TO IRP04-O-PST-XFR-AMT. 
+           COMPUTE IRP04-TOTAL-TRANS-CHARGES = RSP06-IBR-ADDON-AMT +
+                                               IRP04-PRE-XFR-AMT +  
+                                               IRP04-PST-XFR-AMT.   
+           MOVE IRP04-TOTAL-TRANS-CHARGES   
+                                        TO IRP04-O-TOTAL-TRANS-CHARGES. 
+           COMPUTE IRP04-O-TOTAL-CRUISE-CHARGES =   
+                   IRP04-TOTAL-CRUISE-CHARGES   +   
+                   IRP04-TOTAL-TRANS-CHARGES.   
+
+***********BUILD ITINERARY DETAILS**************************************
+
+           EXEC SQL 
+                SELECT IFNULL(SUBREGION_CODE, ' '), 
+                       NBK_DESCRIPTION  
+                  INTO :IRP04-DEST-CODE,
+                       :IRP04-DEST-NAME 
+                  FROM ITINERARY
+                 WHERE EMBARK_PORT_CODE = :TDP01-EMBARK-PORT-CODE   
+                  AND  DURATION_DAYS    = :TDP01-DURATION-DAYS  
+                  AND  ITINERARY_CODE   = :TDP01-ITINERARY-CODE 
+           END-EXEC.
+
+           IF  SQLCODE < 0  
+               GO TO 9150-RDMS-ERROR
+           ELSE 
+               IF  SQLCODE = 100
+                   MOVE SPACES          TO IRP04-DEST-CODE  
+                                           IRP04-DEST-NAME  
+               END-IF   
+           END-IF.  
+
+           MOVE IRP04-DEST-CODE         TO IRP04-O-DESTINATION-CODE.
+           MOVE IRP04-DEST-NAME         TO IRP04-O-DESTINATION-NAME.
+
+           EXEC SQL 
+                DECLARE ITNDET_TBL_CSR CURSOR   
+                FOR RETENTION   
+                SELECT ARRIVAL_TIME ,   
+                       DAY_NUMBER , 
+                       DEPART_TIME ,
+                       PORT_CODE,   
+                       TENDER_CODE, 
+                       FOOTNOTE_CODE
+                  FROM ITINERARY_DETAILS
+                 WHERE EMBARK_PORT_CODE = :TDP01-EMBARK-PORT-CODE   
+                  AND  DURATION_DAYS    = :TDP01-DURATION-DAYS  
+                  AND  ITINERARY_CODE   = :TDP01-ITINERARY-CODE 
+           END-EXEC.
+
+           EXEC SQL 
+                OPEN ITNDET_TBL_CSR 
+           END-EXEC.
+
+           IF  SQLCODE < 0  
+               GO TO 9150-RDMS-ERROR
+           END-IF.  
+
+           MOVE 'N'                     TO IRP04-END-OF-CURSOR-IND. 
+           PERFORM VARYING IRP04-ITN-SUB FROM 1 BY 1
+                     UNTIL IRP04-END-OF-CURSOR-IND = 'Y'
+              MOVE SPACES               TO IRP04-PORT-NAME  
+                                           IRP04-ITR-DAY-WEEK   
+              MOVE ZEROES               TO IRP04-DAY-NUM
+              EXEC SQL FETCH NEXT ITNDET_TBL_CSR
+                   INTO :IRP04-O-ITR-ARRIVE-TIME(IRP04-ITN-SUB) 
+                        :IRP04-ARRIVAL-TIME-NI, 
+                        :IRP04-DAY-NUM, 
+                        :IRP04-O-ITR-DEPART-TIME(IRP04-ITN-SUB) 
+                        :IRP04-DEPART-TIME-NI,  
+                        :IRP04-ITN-PORT-CODE :IRP04-PORT-CODE-NI,   
+                        :IRP04-O-ITR-TENDER-CODE(IRP04-ITN-SUB),
+                        :IRP04-O-ITR-FOOTNOTE-CODE(IRP04-ITN-SUB)   
+                        :IRP04-FOOTNOTE-CODE-NI 
+              END-EXEC  
+              IF  SQLCODE < 0   
+                  GO TO 9150-RDMS-ERROR 
+              ELSE  
+                  IF  SQLCODE = 100 
+                      MOVE 'Y'          TO IRP04-END-OF-CURSOR-IND  
+                  ELSE  
+                      IF  IRP04-ARRIVAL-TIME-NI = TDP01-NULL-IND
+                          MOVE SPACES   TO IRP04-O-ITR-ARRIVE-TIME  
+                                                         (IRP04-ITN-SUB)
+                      END-IF
+                      IF  IRP04-DEPART-TIME-NI = TDP01-NULL-IND 
+                          MOVE SPACES   TO IRP04-O-ITR-DEPART-TIME  
+                                                         (IRP04-ITN-SUB)
+                      END-IF
+                      IF  IRP04-PORT-CODE-NI = TDP01-NULL-IND   
+                          MOVE SPACES   TO IRP04-O-ITR-PORT-OF-CALL 
+                                                         (IRP04-ITN-SUB)
+                      END-IF
+                      PERFORM IRP04-ITN-PORT-NAME   
+                         THRU IRP04-ITN-PORT-NAME-EXIT  
+                      MOVE IRP04-PORT-NAME  
+                                        TO IRP04-O-ITR-PORT-OF-CALL 
+                                                         (IRP04-ITN-SUB)
+                      MOVE TDP01-SAIL-DATE-YYYYMMDD 
+                                        TO DPP02-YYYYMMDD-DATE  
+                      MOVE IRP04-DAY-NUM
+                                        TO DPP02-NUMBER-DAYS
+                      PERFORM DPP10-ADVANCE-YYYYMMDD-DATE   
+                      PERFORM DPP10-YYYYMMDD-WEEK-DAY   
+                      PERFORM DPP10-YYYYMMDD-TO-MMDDYYYY
+                      MOVE DPP02-DAY-OF-WEEK
+                                        TO IRP04-ITR-DAY
+                      MOVE DPP02-MMDDYYYY-DATE  
+                                        TO IRP04-ITR-DATE   
+                      MOVE ', '         TO IRP04-ITR-DAY-COMMA  
+
+                      STRING IRP04-ITR-DAY       DELIMITED BY SPACES
+                             IRP04-ITR-DAY-COMMA DELIMITED BY SIZE  
+                             IRP04-ITR-DATE      DELIMITED BY SIZE  
+                        INTO IRP04-O-ITR-DAY-OF-WEEK (IRP04-ITN-SUB)
+                      IF  IRP04-FOOTNOTE-CODE-NI = TDP01-NULL-IND   
+                          MOVE SPACES   TO IRP04-O-ITR-FOOTNOTE-CODE
+                                                     (IRP04-ITN-SUB)
+                      END-IF
+                  END-IF
+              END-IF
+           END-PERFORM. 
+
+           MOVE '3FA7B9C2D85FA7B9C2D8C3' TO IRP04-EOF-FILLER.   
+
+       IRP04-CLOSE-ITN-CURSOR.  
+
+           EXEC SQL 
+                CLOSE ITNDET_TBL_CSR
+           END-EXEC.
+
+           IF  SQLCODE < 0  
+               GO TO 9150-RDMS-ERROR
+           END-IF.  
+
+***********BUILD SPLITPAYMENT*******************************************
+
+       IRP04-SPLITPAY-START.
+
+           IF  (RSP06-IBR-AUTOPAY-REQUEST-CODE NOT > SPACES) OR 
+               (RSP06-IBR-AUTOPAY-REQUEST-CODE  = 'C' OR 'N')   
+               GO TO IRP04-SPLITPAY-FINISH-EXIT 
+           END-IF.  
+
+           MOVE 'SPLITPAYMENT'          TO SSP09-I-CODE.
+           STRING 'OPT' RSP06-IBR-AUTOPAY-REQUEST-CODE  
+                        DELIMITED BY SIZE INTO SSP09-I-TYPE.
+
+           CALL 'SSC09GCD' USING DPP01-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 SSP09-INPUT-PARAMS 
+                                 SSP09-OUTPUT-PARAMS.   
+
+           IF  DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1   
+               IF  (DPP01-SUB-MSG-SOURCE (1) = 'SSC09GCD' AND   
+                       DPP01-SUB-MSG-INDEX (1) = 2) OR  
+                         (DPP01-SUB-MSG-SOURCE (1) = 'SSC10LCD' AND 
+                             DPP01-SUB-MSG-INDEX (1) = 5)   
+                    GO TO IRP04-SPLITPAY-FINISH-EXIT
+               ELSE 
+                    GO TO 9500-RETURN-SUBROUTINE-ERROR  
+               END-IF   
+           END-IF.  
+
+           IF  RSP06-IBR-AUTOPAY-REQUEST-CODE = 'M' 
+               GO TO IRP04-SPLITPAY-BOOKING 
+           END-IF.  
+
+           MOVE FUNCTION NUMVAL (SSP09-O-DESCRIPTION)   
+                                        TO IRP04-INSTALMENTS-OPTED. 
+
+       IRP04-SPLITPAY-BOOKING.  
+
+           MOVE RSP06-IBR-BOOK-NUM      TO PHR-PRODUCT-NUM. 
+
+           MOVE 'PMTHDR-'               TO PMTHDR-CALCAREA(1:7).
+
+           IF  RSP06-IBR-BOOK-NUM(6:1) NOT NUMERIC  
+               MOVE 'S'                 TO PMTHDR-CALCAREA(8:1) 
+           ELSE 
+               MOVE RSP06-IBR-BOOK-NUM(6:1) 
+                                        TO PMTHDR-CALCAREA(8:1) 
+           END-IF.  
+
+           FETCH PAYMENT-HEADER-REC RECORD  
+                 ON ERROR GO TO IRP04-PAYMENT-ERROR.
+
+           MOVE 0                       TO IRP04-INSTALLMENTS-PROCESSED.
+
+       IRP04-CHECK-INSTALLMENTS.
+
+           FETCH NEXT PAYMENT-REC WITHIN PMT-SET SET
+                 ON ERROR GO TO IRP04-INSTALLMENTS-PENDING. 
+
+           IF  PYDR-AUTOPAY-REQUEST-CODE = 'T'  
+               MOVE 'Y'                 TO IRP04-SKIP-INSTALMENTS-DONE  
+               MOVE ZEROES              TO IRP04-INSTALLMENTS-PROCESSED 
+               GO TO IRP04-CHECK-INSTALLMENTS   
+           END-IF.  
+
+           IF  (RSP06-IBR-AUTOPAY-REQUEST-CODE  
+                                      = PYDR-AUTOPAY-REQUEST-CODE) OR   
+               (PYDR-AUTOPAY-REQUEST-CODE = 'Z')
+               MOVE 'N'                 TO IRP04-SKIP-INSTALMENTS-DONE  
+               IF  IRP04-PLAN-START-DATE NOT > 0
+                   MOVE PYDR-PAYMENT-DATE   
+                                        TO IRP04-PLAN-START-DATE
+                   IF  RSP06-IBR-AUTOPAY-REQUEST-CODE = 'M' 
+                       MOVE IBR-FINAL-DATE  
+                                        TO IRP04-FINAL-PAYMENT-DATE 
+                       COMPUTE IRP04-INSTALMENTS-OPTED  
+                             = ((IRP04-FINAL-DATE-YYYY  
+                             -  IRP04-PLAN-INSTALLMENT-YYYY)* 12)   
+                             +  IRP04-FINAL-DATE-MM 
+                             -  IRP04-PLAN-INSTALLMENT-MM   
+                   IF (IRP04-FINAL-DATE-DD <= IRP04-PLAN-INSTALLMENT-DD)
+                       AND (IRP04-FINAL-DATE-DD NOT = 29 AND 30 AND 31) 
+                       SUBTRACT 1 FROM IRP04-INSTALMENTS-OPTED  
+                                  GIVING IRP04-INSTALMENTS-OPTED
+                   END-IF   
+                   END-IF   
+               END-IF   
+           END-IF.  
+
+           IF  (IRP04-SKIP-INSTALMENTS-DONE = 'N')  AND 
+               (PYDR-AUTOPAY-REQUEST-CODE = 'I' OR 'O') 
+               CONTINUE 
+           ELSE 
+               GO TO IRP04-CHECK-INSTALLMENTS   
+           END-IF.  
+
+           ADD 1                        TO IRP04-INSTALLMENTS-PROCESSED.
+
+           IF  IRP04-INSTALLMENTS-PROCESSED = IRP04-INSTALMENTS-OPTED   
+               MOVE PYDR-PAYMENT-DATE   TO IRP04-LAST-INSTALLMENT-DATE  
+               GO TO IRP04-SPLITPAY-FINISH  
+           END-IF.  
+
+           GO TO IRP04-CHECK-INSTALLMENTS.  
+
+       IRP04-PAYMENT-ERROR. 
+
+           IF  ERROR-NUM NOT = '0007' AND '0013'
+               GO TO 9100-DATABASE-ERROR
+           END-IF.  
+
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+       IRP04-INSTALLMENTS-PENDING.  
+
+           IF  ERROR-NUM = '0006' OR '0007' OR '0013'   
+               CONTINUE 
+           ELSE 
+               GO TO 9100-DATABASE-ERROR
+           END-IF.  
+
+       IRP04-SPLITPAY-FINISH.   
+
+           MOVE IRP04-INSTALLMENTS-PROCESSED
+                                      TO IRP04-O-INSTALLMENTS-PROCESSED.
+           MOVE IRP04-INSTALMENTS-OPTED 
+                                      TO IRP04-O-INSTALLMENTS-OPTED.
+           MOVE IRP04-PLAN-START-DATE TO IRP04-O-PLAN-START-DATE.   
+           MOVE IRP04-LAST-INSTALLMENT-DATE 
+                                      TO IRP04-O-LAST-INSTALLMENT-DATE. 
+
+       IRP04-SPLITPAY-FINISH-EXIT.  
+
+           GO TO IRP04-GET-PASSOFF-DATA-EXIT.   
+
+       IRP04-ITN-PORT-NAME. 
+
+           EXEC SQL 
+                SELECT  NAME
+                  INTO  :IRP04-PORT-NAME
+                  FROM  PORT
+                  WHERE PORT_CODE = :IRP04-ITN-PORT-CODE
+                  FETCH FIRST 1 ROW ONLY
+           END-EXEC.
+
+           IF  SQLCODE < 0  
+               GO TO 9150-RDMS-ERROR
+           ELSE 
+               IF  SQLCODE = 100
+                   GO TO IRP04-ITN-PORT-NAME-EXIT   
+               END-IF   
+           END-IF.  
+
+       IRP04-ITN-PORT-NAME-EXIT.
+           EXIT.
+
+       IRP04-PROCESS-PS-TRANSFERS.  
+
+           MOVE 'Y'                     TO IRP04-PS-TRANSFER-IND.   
+           IF  RSP06-PAX-BOOK-TYPE (IRP04-XFER-SUB) = 'I'   
+               MOVE RSP06-PAX-BOOK-NUM (IRP04-XFER-SUB) 
+                                        TO PTFR-BOOK-NUM
+           ELSE 
+               MOVE RSP06-PAX-CABIN-BOOK-NUM (IRP04-XFER-SUB)   
+                                        TO PTFR-BOOK-NUM
+           END-IF.  
+           MOVE RSP06-PAX-SEQ-NUM (IRP04-XFER-SUB)  
+                                        TO PTFR-PAX-SEQ-NUM.
+
+           PERFORM DPP17-FETCH-PTFR.
+
+      * IF PTFR RECORD EXISTS AND PURCHASE SOURCE IS 'S' IT SIGNIFIES   
+      * TRANSFER IS BOOKED FROM PRE-SALES.  
+           IF  DPP03-PTFR-WAS-FETCHED   
+               PERFORM VARYING IRP04-PTFR-SUB FROM 1 BY 1   
+                         UNTIL IRP04-PTFR-SUB > PTFR-TRANSFER-CNT   
+                  IF  PTFR-CANCEL-DATE (IRP04-PTFR-SUB) NOT > ZEROES
+                      MOVE 'Y'          TO IRP04-PS-TRANSFER-IND
+                      IF  PTFR-PRE-POST-CODE (IRP04-PTFR-SUB) = 'I' 
+                          COMPUTE IRP04-PRE-XFR-AMT =   
+                                  IRP04-PRE-XFR-AMT +   
+                                  PTFR-AMT (IRP04-PTFR-SUB) 
+                      ELSE  
+                          COMPUTE IRP04-PST-XFR-AMT =   
+                                  IRP04-PST-XFR-AMT +   
+                                  PTFR-AMT (IRP04-PTFR-SUB) 
+                      END-IF
+                  END-IF
+               END-PERFORM  
+           ELSE 
+               MOVE 'N'                 TO IRP04-PS-TRANSFER-IND
+           END-IF.  
+
+       IRP04-PROCESS-PS-TRANSFERS-EXT.  
+           EXIT.
+
+       IRP04-GET-PASSOFF-DATA-EXIT. 
+           EXIT.
+
+ END PROC   
+
+
+IRP04INT PROC   
+
+           MOVE LOW-VALUES              TO IRP04-OUTPUT-DATA.   
+           PERFORM VARYING IRP04-PAX-SUB FROM 1 BY 1
+                     UNTIL IRP04-PAX-SUB > 5
+              MOVE SPACES   TO IRP04-O-PAX-FIRST-NAME   (IRP04-PAX-SUB) 
+                               IRP04-O-PAX-LAST-NAME    (IRP04-PAX-SUB) 
+                               IRP04-O-PAX-CVP-IND      (IRP04-PAX-SUB) 
+                               IRP04-O-PAX-VIP-IND      (IRP04-PAX-SUB) 
+                               IRP04-O-PAX-VIFP-NUM     (IRP04-PAX-SUB) 
+                               IRP04-O-PAX-VIFP-LEVEL   (IRP04-PAX-SUB) 
+                               IRP04-O-PAX-DINING-PREF  (IRP04-PAX-SUB) 
+                               IRP04-O-PAX-DINING-CNF   (IRP04-PAX-SUB) 
+                               IRP04-O-PAX-PPGRATS-IND  (IRP04-PAX-SUB) 
+                               IRP04-O-PAX-OFFER-CODE   (IRP04-PAX-SUB) 
+                               IRP04-O-PAX-AIR-TYPE     (IRP04-PAX-SUB) 
+                               IRP04-O-PAX-DEPARTING    (IRP04-PAX-SUB) 
+                               IRP04-O-PAX-COMMENT-CODE(IRP04-PAX-SUB 1)
+                               IRP04-O-PAX-COMMENT-CODE(IRP04-PAX-SUB 2)
+                               IRP04-O-PAX-COMMENT-CODE(IRP04-PAX-SUB 3)
+                               IRP04-O-PAX-COMMENT-CODE(IRP04-PAX-SUB 4)
+                               IRP04-O-PAX-COMMENT-CODE(IRP04-PAX-SUB 5)
+                   PERFORM VARYING IRP04-QUAL-SUB FROM 1 BY 1   
+                             UNTIL IRP04-QUAL-SUB > 20  
+                      MOVE SPACES       TO  
+                                          IRP04-O-PAX-QUALIFICATION-CODE
+                                          (IRP04-PAX-SUB IRP04-QUAL-SUB)
+                   END-PERFORM  
+                   PERFORM VARYING IRP04-PPHOR-SUB FROM 1 BY 1  
+                             UNTIL IRP04-PPHOR-SUB > 2  
+                      MOVE SPACES      TO IRP04-O-PPHOR-EXIST-IND   
+                                         (IRP04-PAX-SUB IRP04-PPHOR-SUB)
+                                          IRP04-O-PPHOR-PHONE-NUM   
+                                         (IRP04-PAX-SUB IRP04-PPHOR-SUB)
+                                          IRP04-O-PPHOR-SEND-TXT-PRF-IND
+                                         (IRP04-PAX-SUB IRP04-PPHOR-SUB)
+                      MOVE ZEROES      TO IRP04-O-PPHOR-SAIL-TXT-OPT-IND
+                                         (IRP04-PAX-SUB IRP04-PPHOR-SUB)
+                                          IRP04-O-PPHOR-PAYM-TXT-OPT-IND
+                                         (IRP04-PAX-SUB IRP04-PPHOR-SUB)
+                   END-PERFORM  
+                   PERFORM VARYING IRP04-FLT-SUB FROM 1 BY 1
+                             UNTIL IRP04-FLT-SUB > 6
+                      MOVE ZEROES       TO IRP04-O-FLT-PAX-ID   
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                           IRP04-O-FLT-DEPART-TIME  
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                           IRP04-O-FLT-ARRIVAL-TIME 
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                           IRP04-O-FLT-TICKET-TIME  
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+
+                      MOVE SPACES       TO IRP04-O-FLT-DEPART-CITY  
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                           IRP04-O-FLT-ARRIVE-CITY  
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                           IRP04-O-FLT-AIRLINE-NAME 
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                           IRP04-O-FLT-NUMBER   
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                           IRP04-O-FLT-CLASS-OF-SERVICE 
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                           IRP04-O-FLT-ITN-STATUS   
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                           IRP04-O-FLT-TKT-TYPE-FLAG
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                           IRP04-O-FLT-ALT-RECORD-LOC   
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                           IRP04-O-FLT-CABIN-CLASS  
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                           IRP04-O-FLT-OPER-AIRLINE-CODE
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                           IRP04-O-FLT-OPER-AIRLINE-NAME
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                           IRP04-O-FLT-DEP-DAY  
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                           IRP04-O-FLT-AIRLINE-REC-LOC  
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                           IRP04-O-FLT-SEAT-ASSIGNED
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                                           IRP04-O-FLT-TICKET-NUM   
+                                           (IRP04-PAX-SUB IRP04-FLT-SUB)
+                   END-PERFORM  
+           END-PERFORM. 
+           PERFORM VARYING IRP04-ITN-SUB FROM 1 BY 1
+                   UNTIL IRP04-ITN-SUB > 55 
+              MOVE SPACES TO IRP04-O-ITR-DAY-OF-WEEK   (IRP04-ITN-SUB)  
+                             IRP04-O-ITR-PORT-OF-CALL  (IRP04-ITN-SUB)  
+                             IRP04-O-ITR-ARRIVE-TIME   (IRP04-ITN-SUB)  
+                             IRP04-O-ITR-DEPART-TIME   (IRP04-ITN-SUB)  
+                             IRP04-O-ITR-TENDER-CODE   (IRP04-ITN-SUB)  
+                             IRP04-O-ITR-FOOTNOTE-CODE (IRP04-ITN-SUB)  
+           END-PERFORM. 
+
+ END PROC   

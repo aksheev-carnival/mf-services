@@ -1,0 +1,1028 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.       CCB14ILD.  
+       AUTHOR.           TCS LTD.   
+       DATE-WRITTEN.     15 SEP 2006.   
+       DATE-COMPILED.    15 SEP 2006.   
+      * REMARKS.  This Batch program reads the file exported from the   
+      *           excel file CCBILD01D.xls and loads COPMPANY-REC,  
+      *           ITIN-SPECIFIC-CODE-XREF-REC & ITIN-SPECIFIC-REQ-REC.  
+      * 
+      * INPUT FILES   :  CCBILD01D  
+      * 
+      * OUTPUT FILES  :  CCBILD01P  
+      * 
+      ******************************************************************
+154125* 25-SEP-13     PJ1     TCS LTD.               CQ154125          *
+154125* INTORDUCTION OF NEW FIELD ISRR-DOC-TO-EXP-IN-MONTHS AND        *
+154125* COMMENTING OUT SOME VALIDATIONS                                *
+************************************************************************
+188688* 08-FEB-16     RV3     TCS LTD.                  CQ188688       *
+188688* CONVERT EXISTING BATCH AND TRANSACTION PROGRAMS TO USE         *
+188688* EXPLICIT THREAD CONTROL                                        *
+************************************************************************
+       ENVIRONMENT DIVISION.
+
+       CONFIGURATION SECTION.   
+
+C69990*SOURCE-COMPUTER. UNISYS. 
+C69990 SOURCE-COMPUTER. UNISYS. 
+       OBJECT-COMPUTER. UNISYS. 
+       SPECIAL-NAMES.   
+              PRINTER IS PRINTER
+              CONSOLE IS CONSOLE
+              SWITCH-24 IS ERROR-SW, ON STATUS IS IN-ERROR, 
+                                     OFF STATUS IS NO-ERROR.
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+             SELECT IP-LOAD-FILE   ASSIGN TO DISC CCBILD01D 
+                                FILE STATUS IS WS-IL-FILE-STATUS.   
+             SELECT FINAL-REP-FILE  ASSIGN TO DISC CCBILD01P
+                                FILE STATUS IS WS-FR-FILE-STATUS.   
+
+       DATA DIVISION.   
+       SUBSCHEMA SECTION.   
+       INVOKE SUBSCHEMA PRD100UCOBSU
+              IN FILE SUBSCHEMAS OF SCHEMA PRD100SCHEMA 
+              COPYING RECORDS    INTO COMMON
+              COPYING DATA-NAMES INTO COMMON
+              OVERLAY PAX-REC WITH PAX-CXF-REC  
+169014*                            PAX-FUT-REC  
+                                   PAX-VI-REC   
+              SAVE DATA INCLUDES DEFERRED-UPDATES   
+              DMCA  COMMON  
+              ERROR RECOVERY IS 9100-DATABASE-ERROR 
+              ROLLBACK       IS 9100-DATABASE-ERROR.
+
+       FILE SECTION.
+       FD IP-LOAD-FILE  
+           LABEL RECORDS ARE STANDARD   
+           DATA RECORD IS EXCEL-REC.
+       01 EXCEL-REC                             PIC X(150). 
+
+       FD FINAL-REP-FILE
+           LABEL RECORDS ARE STANDARD.  
+       01 FINAL-REP-FILE-REC.   
+          03 FR-RECORD                          PIC X(50).  
+          03 FILLER-1                           PIC X(2).   
+          03 FR-COMMENT                         PIC X(50).  
+
+      ***************************************************************   
+      *   Flags & miscellaneous variables are defined here          *   
+      ***************************************************************   
+
+       WORKING-STORAGE SECTION. 
+144449 01  WS-PROG-ID            PIC X(8) VALUE 'CCB14ILD'. 
+
+       01  MCFLAG                            PIC 9(10) USAGE BINARY.
+       01  WS-SYSTEM-DATE                    PIC 9(8).  
+       01  WS-SYSTEM-TIME                    PIC 9(8).  
+       01  WS-RECORDS-WRITE                  PIC 9(6).  
+       01  WS-RECORDS-READ                   PIC 9(6).  
+       01  WS-I                              PIC 9(2).  
+       01  WS-J                              PIC 9(2).  
+       01  WS-K                              PIC 9(2).  
+       01  WS-DAY-OF-WEEK                    PIC 1(9)   BINARY-1.   
+       01  WS-EOF-FLAG                       PIC X(1) VALUE SPACES. 
+           88 WS-EOF-FILE                             VALUE "Y".
+           88 WS-EOF-NOT                              VALUE "N".
+       01  WS-DB-CNT                         PIC 9(3).  
+
+       01  WS-FILE-STATUS                    VALUE ZERO.
+           03  WS-IL-FILE-STATUS             PIC X(2).  
+               88  IL-FILE-AT-END            VALUE '10'.
+               88  IL-FILE-OK                VALUE '00',
+                                                   '04'.
+           03  WS-FR-FILE-STATUS             PIC X(2).  
+               88  FR-FILE-AT-END            VALUE '10'.
+               88  FR-FILE-OK                VALUE '00'.
+
+       01  WS-COMMENT                        PIC X(50). 
+
+SIZE32 01  WS-ITIN-SPECIFIC-CODE-XREF-REC.  
+           03  WS-ISCXR-RECORD-TYPE          PIC X(5).  
+           03  WS-ISCXR-MODE                 PIC X(3).  
+           03  WS-ISCXR-CODE                 PIC X(3).  
+           03  WS-ISCXR-DESCRIPTION          PIC X(20). 
+           03  WS-ISCXR-DOCUMENT-TYPE        PIC X. 
+
+SIZE13 01  WS-COMPANY-REC.  
+           03  WS-CMP-RECORD-TYPE            PIC X(5).  
+           03  WS-CMP-MODE                   PIC X(3).  
+           03  WS-CMP-COMPANY-CODE           PIC X. 
+           03  WS-CMP-ALL-GUEST-REQ-CODE     PIC X(3).  
+           03  WS-CMP-ALL-GUEST-OPT-CODE     PIC X. 
+
+S 102  01  WS-ITIN-SPECIFIC-REQ-REC.
+           03  WS-ISRR-RECORD-TYPE           PIC X(5).  
+           03  WS-ISRR-MODE                  PIC X(3).  
+           03  WS-ISRR-COUNTRY-CODE          PIC X(2).  
+           03  WS-ISRR-PORT-CODE             PIC X(3).  
+           03  WS-ISRR-GUEST-TYPE            PIC X. 
+           03  WS-ISRR-REQ-CODE              PIC X(3).  
+           03  WS-ISRR-EFF-DATE-TABLE OCCURS 5 TIMES.   
+               05  WS-ISRR-EFF-BEGIN-DATE    PIC 9(8).  
+               05  WS-ISRR-EFF-END-DATE      PIC 9(8).  
+               05  WS-ISRR-REQ-OR-OPT-IND    PIC X. 
+154125     03  WS-ISRR-DOC-TO-EXP-IN-MONTHS  PIC 9(02). 
+
+       01  WS-ISCXR-UPD-FLAG                 PIC X VALUE SPACES.
+       01  WS-ISCXR-DEL-FLAG                 PIC X VALUE SPACES.
+       01  WS-CMP-CODE-FOUND                 PIC X VALUE SPACES.
+       01  WS-CMP-UPD-FLAG                   PIC X VALUE SPACES.
+       01  WS-CMP-DEL-FLAG                   PIC X VALUE SPACES.
+       01  WS-ISRR-CODE-FOUND                PIC X VALUE SPACES.
+       01  WS-ISSR-STORE-IND                 PIC X VALUE SPACES.
+       01  WS-ISRR-UPD-FLAG                  PIC X VALUE SPACES.
+
+      ***************************************************************   
+      *   Copy libraries are defined here                           *   
+      ***************************************************************   
+
+        COPY DPP02Y2K.  
+144449* COPY DPP01BWS.  
+144449 COPY DPP01DTA.   
+144449 COPY DPP01ERR.   
+144449 COPY DPP01MCB.   
+144449 COPY DPP12SCO.   
+144449 COPY DPP42ERR.   
+144449 COPY RSP00DMS.   
+144449 COPY RSP32DMS.   
+144449 COPY RSP64DMS.   
+144449 COPY RSP77GMD.   
+        COPY DPP01CIW.  
+        COPY DPP01SCO.  
+163032 COPY SSP05GCD.   
+163032 COPY SSP15UCD.   
+
+       COMMON-STORAGE SECTION.  
+
+      ***************************************************************   
+      *   Procedure Division Starts  here                           *   
+      ***************************************************************   
+
+       PROCEDURE DIVISION.  
+
+      *-----------------------------------------------------------------
+       0000-INITIALIZE. 
+      *-----------------------------------------------------------------
+      *   Temparary variables are intialised here   
+
+      D    MOVE 1 TO MCFLAG.
+144449     COPY DPP01INT.   
+           MOVE 'N'                   TO  WS-EOF-FLAG.  
+           MOVE 1                     TO  WS-I. 
+           MOVE 1                     TO  WS-J. 
+           MOVE 1                     TO  WS-K. 
+           MOVE ZERO                  TO  WS-RECORDS-WRITE. 
+           MOVE ZERO                  TO  WS-RECORDS-READ.  
+           MOVE ZERO                  TO  WS-DB-CNT.
+           SET ERROR-SW               TO  OFF.  
+           ACCEPT WS-SYSTEM-DATE  FROM DATE YYYYMMDD.   
+           ACCEPT WS-SYSTEM-TIME  FROM TIME.
+           DISPLAY 'START-TIME  '  WS-SYSTEM-TIME UPON PRINTER. 
+           DISPLAY 'START-DATE  '  WS-SYSTEM-DATE UPON PRINTER. 
+           MOVE SPACES                TO  WS-COMMENT.   
+
+188688     PERFORM DPP12-BEGIN-THREAD THRU DPP12-BEGIN-THREAD-EXIT. 
+188688  
+188688     IF DPP01-SQL-ERROR-IND = 'Y' 
+188688        GO TO DPP12-THREAD-ERROR-EXIT.
+
+      *   Database Areas are opened here
+
+           MOVE 0101010               TO  DPP01-ERROR-NUMBER.   
+           IMPART.  
+
+           OPEN ITINSPEC USAGE-MODE IS UPDATE   
+163032*         COMPANY  USAGE-MODE IS UPDATE.  
+
+           MOVE 1 TO PAGE-NUM   OF ITINSPEC-AREA-KEY.   
+           MOVE 1 TO RECORD-NUM OF ITINSPEC-AREA-KEY.   
+           MOVE 'ITINSPEC'      TO ITINSPEC-AREA-NAME.  
+163032*    MOVE 'COMPANY'       TO COMPANY-CALCAREA.
+           MOVE 'ITINSPEC'      TO ITINSPEC-CALCAREA.   
+
+      * Fetch ITIN-SPECIFIC-CODE-XREF-REC record.   
+
+154125*    FETCH ITIN-SPECIFIC-CODE-XREF-REC RECORD.
+154125     FETCH ITIN-SPECIFIC-CODE-XREF-REC RECORD 
+154125           ON ERROR GO TO 1000-STORE-ISCXR.   
+154125  
+154125     GO TO 1000-OPEN-FILE.
+154125  
+154125 1000-STORE-ISCXR.
+154125  
+154125     IF  ERROR-NUM NOT = '0013' AND '0006' AND '0007' 
+154125         GO TO 9100-DATABASE-ERROR
+154125     ELSE 
+154125         MOVE  0          TO ISCXR-ISCXR-NUM-ENTRIES  
+154125         STORE ITIN-SPECIFIC-CODE-XREF-REC
+154125     END-IF.  
+154125  
+154125 1000-OPEN-FILE.  
+
+      *  Files are opened here  
+
+           OPEN INPUT IP-LOAD-FILE. 
+           IF IL-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY "I-O ERROR " " " "CCBILD01D FILE STATUS = "   
+                      WS-IL-FILE-STATUS UPON PRINTER
+              GO TO 9100-I-O-FILE-ERROR.
+
+           OPEN OUTPUT FINAL-REP-FILE.  
+           IF FR-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY "I-O ERROR " " " "CCBILD01P FILE STATUS = "   
+                      WS-FR-FILE-STATUS UPON PRINTER
+              GO TO 9100-I-O-FILE-ERROR.
+
+      * Write header for final-report   
+           MOVE '*****  CCB14ILD LOAD FINAL-REPORT   *****' 
+                                         TO  FINAL-REP-FILE-REC.
+           WRITE FINAL-REP-FILE-REC.
+              IF NOT FR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "CCBILD01P FILE STATUS = "
+                      WS-FR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+           MOVE '-----------------------------------------' 
+                                        TO  FINAL-REP-FILE-REC. 
+           WRITE FINAL-REP-FILE-REC.
+              IF NOT FR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "CCBILD01P FILE STATUS = "
+                      WS-FR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+           MOVE SPACES TO FINAL-REP-FILE-REC.   
+           MOVE 'RECORD-CONTENT'        TO FR-RECORD.   
+           MOVE 'COMMENTS'              TO FR-COMMENT.  
+           WRITE FINAL-REP-FILE-REC.
+              IF NOT FR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "CCBILD01P FILE STATUS = "
+                      WS-FR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+           MOVE SPACES TO FINAL-REP-FILE-REC.   
+           MOVE '----------------------------------' TO FR-RECORD.  
+           MOVE '-------------------------------'    TO FR-COMMENT. 
+           WRITE FINAL-REP-FILE-REC.
+              IF NOT FR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "CCBILD01P FILE STATUS = "
+                      WS-FR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+
+      *   Input file is read  here                                  *   
+      *-----------------------------------------------------------------
+       1000-READ-PARA.  
+      *-----------------------------------------------------------------
+
+           READ IP-LOAD-FILE  AT END
+                MOVE 'Y' TO WS-EOF-FLAG.
+           ADD 1 TO WS-RECORDS-READ.
+           IF IL-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              IF IL-FILE-AT-END 
+                 MOVE 'Y' TO WS-EOF-FLAG
+              ELSE  
+                 DISPLAY "I-O ERROR " " " "CCBILD01D FILE STATUS = "
+                         WS-IL-FILE-STATUS UPON PRINTER 
+                 GO TO 9100-I-O-FILE-ERROR. 
+
+           DISPLAY 'WS-EOF-FLAG: ' WS-EOF-FLAG   UPON PRINTER.  
+
+      *  Stores/updates of records are done here
+      *-----------------------------------------------------------------
+       2000-PROCESS-MAIN-PARA.  
+      *-----------------------------------------------------------------
+           IF WS-EOF-FILE   
+                GO TO 2000-PROCESS-MAIN-EXIT
+           END-IF.  
+
+
+           IF EXCEL-REC (1:1) = ',' OR ' '  
+              GO TO 2000-PROCESS-MAIN-EXIT  
+           END-IF.  
+
+           IF EXCEL-REC NOT > SPACES
+             GO TO 1000-READ-PARA   
+           END-IF.  
+
+           INITIALIZE FINAL-REP-FILE-REC.   
+           MOVE EXCEL-REC(1:50)         TO FR-RECORD.   
+           MOVE SPACES                  TO FR-COMMENT.  
+
+      D    MOVE 1 TO MCFLAG.
+
+           EVALUATE EXCEL-REC(1:5)  
+               WHEN 'ISCXR' 
+                  PERFORM 3000-PROCESS-ISCXR THRU   
+                          3999-PROCESS-ISCXR-EXIT   
+               WHEN 'ISRR-' 
+                  PERFORM 4000-PROCESS-ISRR THRU
+                          4999-PROCESS-ISRR-EXIT
+               WHEN 'COMP-' 
+                  PERFORM 5000-PROCESS-COMP THRU
+                          5999-PROCESS-COMP-EXIT
+               WHEN OTHER   
+                  MOVE 'INVALID RECORD TYPE' TO WS-COMMENT  
+                  GO TO 6000-WRITE-REP-PARA 
+           END-EVALUATE.
+
+           MOVE 'RECORD PROCESSED SUCCESSFULLY !' TO WS-COMMENT.
+           ADD 1 TO WS-RECORDS-WRITE.   
+
+           PERFORM 6000-WRITE-REP-PARA THRU 
+                   6000-WRITE-REP-PARA-EXIT.
+
+       2000-PROCESS-MAIN-EXIT.  
+            GO TO 9000-TERMINATE.   
+
+      *-----------------------------------------------------------------
+       3000-PROCESS-ISCXR.  
+      *-----------------------------------------------------------------
+      * Unstring the data.  
+
+           INITIALIZE WS-ITIN-SPECIFIC-CODE-XREF-REC.   
+           UNSTRING EXCEL-REC   
+154125*                DELIMITED BY ',' OR '   ' INTO   
+154125                 DELIMITED BY ','          INTO   
+                         WS-ISCXR-RECORD-TYPE   
+                         WS-ISCXR-MODE  
+                         WS-ISCXR-CODE  
+                         WS-ISCXR-DESCRIPTION   
+                         WS-ISCXR-DOCUMENT-TYPE.
+
+      * Validate data.  
+
+           IF WS-ISCXR-MODE = 'ADD' OR 'UPD' OR 'DEL'   
+               NEXT SENTENCE
+           ELSE 
+               MOVE 'INPUT MODE IS INVALID' TO WS-COMMENT   
+               GO TO 6000-WRITE-REP-PARA.   
+
+           IF WS-ISCXR-CODE = SPACES
+               MOVE 'ISCXR-CODE IS BLANK'   TO WS-COMMENT   
+               GO TO 6000-WRITE-REP-PARA
+           END-IF.  
+
+           IF ( WS-ISCXR-DESCRIPTION = SPACES ) AND 
+              ( WS-ISCXR-MODE = 'ADD' OR 'UPD' )
+               MOVE 'DESCRIPTION IS BLANK'   TO WS-COMMENT  
+               GO TO 6000-WRITE-REP-PARA
+           END-IF.  
+
+           IF WS-ISCXR-DOCUMENT-TYPE = 'G' OR 'C' OR 'I'
+               NEXT SENTENCE
+           ELSE 
+               IF WS-ISCXR-MODE = 'ADD' OR 'UPD'
+                  MOVE 'DOCUMENT-TYPE IS INVALID' TO WS-COMMENT 
+                  GO TO 6000-WRITE-REP-PARA.
+
+           EVALUATE WS-ISCXR-MODE   
+      * Add Mode.   
+             WHEN 'ADD' 
+               IF ISCXR-ISCXR-NUM-ENTRIES > 0   
+                 PERFORM VARYING WS-I FROM 1 BY 1 UNTIL 
+                   WS-I > ISCXR-ISCXR-NUM-ENTRIES   
+                     IF WS-ISCXR-CODE = ISCXR-CODE(WS-I)
+                       MOVE 'ISCXR-CODE ALREADY EXISTS'  TO WS-COMMENT  
+                       GO TO 6000-WRITE-REP-PARA
+                     END-IF 
+                 END-PERFORM
+               END-IF   
+               ADD 1                        TO ISCXR-ISCXR-NUM-ENTRIES  
+               MOVE WS-ISCXR-CODE           TO  
+                                     ISCXR-CODE(ISCXR-ISCXR-NUM-ENTRIES)
+               MOVE WS-ISCXR-DESCRIPTION    TO  
+                              ISCXR-DESCRIPTION(ISCXR-ISCXR-NUM-ENTRIES)
+               MOVE WS-ISCXR-DOCUMENT-TYPE  TO  
+                            ISCXR-DOCUMENT-TYPE(ISCXR-ISCXR-NUM-ENTRIES)
+               GO TO 3100-MODIFY-ISCXR  
+      * Update Mode.
+               WHEN 'UPD'   
+                  IF ISCXR-ISCXR-NUM-ENTRIES > 0
+                    MOVE 'N' TO WS-ISCXR-UPD-FLAG   
+                    PERFORM VARYING WS-I FROM 1 BY 1 UNTIL  
+                      WS-I > ISCXR-ISCXR-NUM-ENTRIES OR 
+                        WS-ISCXR-UPD-FLAG = 'Y' 
+                          IF WS-ISCXR-CODE = ISCXR-CODE(WS-I)   
+                             MOVE WS-ISCXR-DESCRIPTION    TO
+                                                 ISCXR-DESCRIPTION(WS-I)
+                             MOVE WS-ISCXR-DOCUMENT-TYPE  TO
+                                               ISCXR-DOCUMENT-TYPE(WS-I)
+                             MOVE 'Y' TO WS-ISCXR-UPD-FLAG  
+                          END-IF
+                    END-PERFORM 
+                    IF WS-ISCXR-UPD-FLAG = 'N'  
+                       MOVE 'ISCXR-CODE NOT FOUND FOR UPD' TO WS-COMMENT
+                       GO TO 6000-WRITE-REP-PARA
+                    END-IF  
+                  END-IF
+                  GO TO 3100-MODIFY-ISCXR   
+      * Delete Mode.
+               WHEN 'DEL'   
+                  MOVE 'N' TO WS-ISCXR-DEL-FLAG 
+                  MOVE 0   TO WS-J WS-K.
+                  PERFORM VARYING WS-I FROM 1 BY 1 UNTIL
+                    WS-I > ISCXR-ISCXR-NUM-ENTRIES OR   
+                      WS-ISCXR-DEL-FLAG = 'Y'   
+                        IF WS-ISCXR-CODE = ISCXR-CODE(WS-I) 
+                            MOVE SPACES TO ISCXR-CODE-TABLE(WS-I)   
+                            MOVE WS-I   TO WS-J 
+                            MOVE 'Y'    TO WS-ISCXR-DEL-FLAG
+                        END-IF  
+                  END-PERFORM   
+                  IF WS-ISCXR-DEL-FLAG = 'Y'
+                    PERFORM VARYING WS-I FROM WS-J BY 1 UNTIL   
+                      WS-I > ISCXR-ISCXR-NUM-ENTRIES
+                        COMPUTE WS-K = WS-I + 1 
+                        MOVE ISCXR-CODE-TABLE(WS-K) TO  
+                                                  ISCXR-CODE-TABLE(WS-I)
+                        MOVE SPACES TO ISCXR-CODE-TABLE(WS-K)   
+                    END-PERFORM 
+                  ELSE  
+                    MOVE 'ISCXR-CODE NOT FOUND FOR DEL' TO WS-COMMENT   
+                    GO TO 6000-WRITE-REP-PARA   
+                  END-IF.   
+
+       3100-MODIFY-ISCXR.   
+
+           MODIFY ITIN-SPECIFIC-CODE-XREF-REC RECORD.   
+
+       3999-PROCESS-ISCXR-EXIT. 
+           EXIT.
+      *-----------------------------------------------------------------
+       4000-PROCESS-ISRR.   
+      *-----------------------------------------------------------------
+      * Unstring Data.  
+
+           INITIALIZE WS-ITIN-SPECIFIC-REQ-REC. 
+           UNSTRING EXCEL-REC   
+154125*                DELIMITED BY ',' OR '   ' INTO   
+154125                 DELIMITED BY ','          INTO   
+                         WS-ISRR-RECORD-TYPE
+                         WS-ISRR-MODE   
+                         WS-ISRR-COUNTRY-CODE   
+                         WS-ISRR-PORT-CODE  
+                         WS-ISRR-GUEST-TYPE 
+                         WS-ISRR-REQ-CODE   
+                         WS-ISRR-EFF-BEGIN-DATE (1) 
+                         WS-ISRR-EFF-END-DATE (1)   
+                         WS-ISRR-REQ-OR-OPT-IND (1) 
+                         WS-ISRR-EFF-BEGIN-DATE (2) 
+                         WS-ISRR-EFF-END-DATE (2)   
+                         WS-ISRR-REQ-OR-OPT-IND (2) 
+                         WS-ISRR-EFF-BEGIN-DATE (3) 
+                         WS-ISRR-EFF-END-DATE (3)   
+                         WS-ISRR-REQ-OR-OPT-IND (3) 
+                         WS-ISRR-EFF-BEGIN-DATE (4) 
+                         WS-ISRR-EFF-END-DATE (4)   
+                         WS-ISRR-REQ-OR-OPT-IND (4) 
+                         WS-ISRR-EFF-BEGIN-DATE (5) 
+                         WS-ISRR-EFF-END-DATE (5)   
+                         WS-ISRR-REQ-OR-OPT-IND (5) 
+154125                   WS-ISRR-DOC-TO-EXP-IN-MONTHS.  
+
+           PERFORM VARYING WS-I FROM 1 BY 1 UNTIL WS-I > 5  
+              INSPECT WS-ISRR-EFF-BEGIN-DATE (WS-I) 
+                                         REPLACING ALL ' ' BY '0'   
+              INSPECT WS-ISRR-EFF-END-DATE (WS-I)   
+                                         REPLACING ALL ' ' BY '0'   
+           END-PERFORM. 
+
+      * Validate the data.  
+           IF WS-ISRR-MODE = 'ADD' OR 'UPD' 
+               NEXT SENTENCE
+           ELSE 
+               MOVE 'ISRR MODE IS INVALID' TO WS-COMMENT
+               GO TO 6000-WRITE-REP-PARA.   
+
+           IF WS-ISRR-COUNTRY-CODE(1:1) = SPACES OR 
+              WS-ISRR-COUNTRY-CODE(2:1) = SPACES
+                MOVE 'COUNTRY CODE IS INVALID' TO WS-COMMENT
+                GO TO 6000-WRITE-REP-PARA   
+           END-IF.  
+
+154125*    IF WS-ISRR-PORT-CODE(1:1) = SPACES OR
+154125*       WS-ISRR-PORT-CODE(2:1) = SPACES   
+154125*        MOVE 'PORT CODE IS INVALID' TO WS-COMMENT
+154125*         GO TO 6000-WRITE-REP-PARA   
+154125*    END-IF.  
+
+           IF WS-ISRR-GUEST-TYPE = 'A' OR 'C' OR 'R' OR 'F' 
+               NEXT SENTENCE
+           ELSE 
+               MOVE 'GUEST TYPE IS INVALID'    TO WS-COMMENT
+               GO TO 6000-WRITE-REP-PARA.   
+
+154125*    IF WS-ISRR-REQ-CODE = SPACES 
+154125*        MOVE 'ISRR-REQ CODE IS BLANK'   TO WS-COMMENT
+154125*        GO TO 6000-WRITE-REP-PARA
+154125*    END-IF.  
+154125* 
+154125*    IF WS-ISRR-EFF-BEGIN-DATE (1) <= 0   
+154125*        MOVE 'BEGIN DATE IS INVALID OR ZERO' TO WS-COMMENT   
+154125*        GO TO 6000-WRITE-REP-PARA
+154125*    END-IF.  
+
+      * Validate the dates and the req-or-opt indicators.   
+           PERFORM VARYING WS-I FROM 1 BY 1 UNTIL WS-I > 5  
+             IF ( WS-ISRR-EFF-BEGIN-DATE (WS-I) > 0 )   
+               IF WS-ISRR-REQ-OR-OPT-IND (WS-I) = 'R' OR 'O' OR 'F' 
+                 CONTINUE   
+               ELSE 
+                 MOVE 'REQ-OPT-IND IS MISSING' TO WS-COMMENT
+                 GO TO 6000-WRITE-REP-PARA  
+               END-IF   
+             END-IF 
+      *      IF WS-ISRR-EFF-BEGIN-DATE (WS-I) < WS-SYSTEM-DATE  
+      *         MOVE 'BEGIN-DATE CANNOT BE < CURRENT DATE' TO WS-COMMENT
+      *         GO TO 6000-WRITE-REP-PARA   
+      *      END-IF 
+             IF ( WS-ISRR-EFF-BEGIN-DATE (WS-I) >   
+               WS-ISRR-EFF-END-DATE (WS-I) ) AND
+                ( WS-ISRR-EFF-END-DATE (WS-I) > 0 ) 
+                 MOVE 'BEGIN-DATE CANNOT BE > END-DATE' TO WS-COMMENT   
+                 GO TO 6000-WRITE-REP-PARA  
+             END-IF 
+             IF WS-I > 1
+               COMPUTE WS-J = WS-I - 1  
+               IF WS-ISRR-EFF-BEGIN-DATE (WS-I) > 0 
+                  IF ( WS-ISRR-EFF-END-DATE (WS-J) > 0 )
+                     IF WS-ISRR-EFF-BEGIN-DATE (WS-I) < 
+                       WS-ISRR-EFF-END-DATE (WS-J)  
+                         MOVE 'DATE RANGES CANNOT OVERLAP' TO WS-COMMENT
+                         GO TO 6000-WRITE-REP-PARA  
+                     END-IF 
+                  ELSE  
+                   MOVE 'PREV END-DATE REQD FOR NEW RANGE' TO WS-COMMENT
+                   GO TO 6000-WRITE-REP-PARA
+                  END-IF
+               END-IF   
+               IF WS-ISRR-REQ-OR-OPT-IND (WS-I) NOT = SPACES
+                IF WS-ISRR-REQ-OR-OPT-IND (WS-I) =  
+                 WS-ISRR-REQ-OR-OPT-IND (WS-J)  
+                  MOVE 'CONSECUTIVE OPT-IND CANT BE SAME' TO WS-COMMENT 
+                  GO TO 6000-WRITE-REP-PARA 
+                END-IF  
+               END-IF   
+             END-IF 
+           END-PERFORM. 
+
+      * Validate the WS-ISRR-REQ-CODE from ISCXR.   
+
+154125*    MOVE 'N' TO WS-ISRR-CODE-FOUND.  
+154125*    PERFORM VARYING WS-I FROM 1 BY 1 UNTIL   
+154125*      WS-I > ISCXR-ISCXR-NUM-ENTRIES OR  
+154125*        WS-ISRR-CODE-FOUND = 'Y' 
+154125*          IF WS-ISRR-REQ-CODE = ISCXR-CODE (WS-I)
+154125*            MOVE 'Y' TO WS-ISRR-CODE-FOUND   
+154125*          END-IF 
+154125*    END-PERFORM. 
+154125*    IF WS-ISRR-CODE-FOUND = 'N'  
+154125*        MOVE 'REQ CODE NOT FOUND IN ISCXR RECORD' TO WS-COMMENT  
+154125*        GO TO 6000-WRITE-REP-PARA
+154125*    END-IF.  
+
+      * Fetch the ITIN-SPECIFIC-REQ-REC.
+
+           MOVE 'N'                  TO WS-ISSR-STORE-IND.  
+           MOVE WS-ISRR-COUNTRY-CODE TO ISRR-COUNTRY-CODE.  
+           IF WS-ISRR-PORT-CODE = 'ALL' 
+              MOVE SPACES            TO ISRR-PORT-CODE  
+           ELSE 
+              MOVE WS-ISRR-PORT-CODE TO ISRR-PORT-CODE  
+           END-IF.  
+           FETCH ITIN-SPECIFIC-REQ-REC RECORD ON ERROR  
+               GO TO 4005-ISRR-FETCH-ERROR. 
+           GO TO 4010-MOVE-DATA.
+
+       4005-ISRR-FETCH-ERROR.   
+
+           IF  ERROR-STATUS NOT = '000000'  
+              IF  ERROR-NUM IS = '0006' OR '0013' OR '0007' 
+                IF WS-ISRR-MODE = 'ADD' 
+                  MOVE 'Y'           TO WS-ISSR-STORE-IND   
+                  PERFORM VARYING WS-I FROM 1 BY 1 UNTIL WS-I > 4   
+                     INITIALIZE ISRR-GUEST-TYPE-TABLE (WS-I)
+                  END-PERFORM   
+                ELSE
+                  MOVE 'ISRR RECORD NOT FOUND FOR UPDATE' TO WS-COMMENT 
+                  GO TO 6000-WRITE-REP-PARA 
+                END-IF  
+              ELSE  
+                  GO TO 9100-DATABASE-ERROR 
+              END-IF
+           ELSE 
+              IF WS-ISRR-MODE = 'ADD'   
+                 MOVE 'CANT ADD AS RECORD ALREADY EXISTS' TO WS-COMMENT 
+                 GO TO 6000-WRITE-REP-PARA  
+              END-IF
+           END-IF.  
+
+       4010-MOVE-DATA.  
+
+           MOVE 0 TO WS-I WS-J WS-K.
+           EVALUATE WS-ISRR-GUEST-TYPE  
+               WHEN 'A' 
+                  MOVE 1        TO WS-I 
+               WHEN 'C' 
+                  MOVE 2        TO WS-I 
+               WHEN 'R' 
+                  MOVE 3        TO WS-I 
+               WHEN 'F' 
+                  MOVE 4        TO WS-I 
+           END-EVALUATE.
+
+           MOVE 'N'             TO WS-ISRR-UPD-FLAG.
+           PERFORM VARYING WS-J FROM 1 BY 1 UNTIL   
+            ( WS-J > 20 ) OR ( WS-ISRR-UPD-FLAG = 'Y' ) 
+               IF ( WS-ISRR-REQ-CODE = ISRR-REQ-CODE (WS-I, WS-J) ) OR  
+                ( ISRR-REQ-CODE (WS-I, WS-J) <= SPACES )
+                  MOVE WS-ISRR-REQ-CODE TO ISRR-REQ-CODE (WS-I, WS-J)   
+                  PERFORM VARYING WS-K FROM 1 BY 1 UNTIL WS-K > 5   
+                    MOVE  WS-ISRR-EFF-BEGIN-DATE (WS-K) 
+                               TO ISRR-EFF-BEGIN-DATE (WS-I, WS-J, WS-K)
+                    MOVE  WS-ISRR-EFF-END-DATE (WS-K)   
+                               TO ISRR-EFF-END-DATE (WS-I, WS-J, WS-K)  
+                    MOVE  WS-ISRR-REQ-OR-OPT-IND (WS-K) 
+                               TO ISRR-REQ-OR-OPT-IND (WS-I, WS-J, WS-K)
+                  END-PERFORM   
+                  MOVE 'Y'       TO WS-ISRR-UPD-FLAG
+               END-IF   
+           END-PERFORM. 
+
+           IF WS-ISRR-UPD-FLAG = 'N'
+              MOVE 'NO SPACE LEFT OR REQ-CODE NOT FOUND' TO WS-COMMENT  
+              GO TO 6000-WRITE-REP-PARA 
+           END-IF.  
+154125     MOVE WS-ISRR-DOC-TO-EXP-IN-MONTHS TO 
+154125          ISRR-DOC-TO-EXP-IN-MONTHS.  
+
+           IF WS-ISSR-STORE-IND = 'Y'   
+              STORE ITIN-SPECIFIC-REQ-REC   
+           ELSE 
+              MODIFY ITIN-SPECIFIC-REQ-REC RECORD   
+           END-IF.  
+
+       4999-PROCESS-ISRR-EXIT.  
+           EXIT.
+
+      *-----------------------------------------------------------------
+       5000-PROCESS-COMP.   
+      *-----------------------------------------------------------------
+      * Unstring the data.  
+
+           INITIALIZE WS-COMPANY-REC.   
+           UNSTRING EXCEL-REC   
+                       DELIMITED BY ',' OR '   ' INTO   
+                         WS-CMP-RECORD-TYPE 
+                         WS-CMP-MODE
+                         WS-CMP-COMPANY-CODE
+                         WS-CMP-ALL-GUEST-REQ-CODE  
+                         WS-CMP-ALL-GUEST-OPT-CODE. 
+
+      * Validate Data.  
+
+           IF WS-CMP-MODE = 'ADD' OR 'UPD' OR 'DEL' 
+               NEXT SENTENCE
+           ELSE 
+               MOVE 'CMP INPUT MODE IS INVALID' TO WS-COMMENT   
+               GO TO 6000-WRITE-REP-PARA.   
+
+           IF WS-CMP-COMPANY-CODE = 'C' OR 'F'  
+              NEXT SENTENCE 
+           ELSE 
+               MOVE 'COMPANY-CODE IS INVALID'   TO WS-COMMENT   
+               GO TO 6000-WRITE-REP-PARA.   
+
+           IF WS-CMP-ALL-GUEST-REQ-CODE = SPACES
+               MOVE 'GUEST REQ CODE IS BLANK'   TO WS-COMMENT   
+               GO TO 6000-WRITE-REP-PARA
+           END-IF.  
+
+           IF WS-CMP-ALL-GUEST-OPT-CODE = 'R' OR 'O' OR 'F' 
+               NEXT SENTENCE
+           ELSE 
+               IF WS-CMP-MODE = 'ADD' OR 'UPD'  
+                  MOVE 'GUEST OPTION IS INVALID' TO WS-COMMENT  
+                  GO TO 6000-WRITE-REP-PARA.
+
+      * Validate the WS-CMP-ALL-GUEST-REQ-CODE from ISCXR.  
+
+           MOVE 'N' TO WS-CMP-CODE-FOUND.   
+           PERFORM VARYING WS-I FROM 1 BY 1 UNTIL   
+             WS-I > ISCXR-ISCXR-NUM-ENTRIES OR  
+               WS-CMP-CODE-FOUND = 'Y'  
+                 IF WS-CMP-ALL-GUEST-REQ-CODE = ISCXR-CODE (WS-I)   
+                   MOVE 'Y' TO WS-CMP-CODE-FOUND
+                 END-IF 
+           END-PERFORM. 
+           IF WS-CMP-CODE-FOUND = 'N'   
+               MOVE 'GUEST CODE NOT FOUND IN ISCXR RECORD' TO WS-COMMENT
+               GO TO 6000-WRITE-REP-PARA
+           END-IF.  
+
+      * Fetch the COMPANY-REC.  
+
+163032 COPY SSP05INT.   
+
+163032     MOVE WS-CMP-COMPANY-CODE   TO  SSP05-I-COMPANY-CODE. 
+
+163032     CALL 'SSC05GCD' USING DPP01-COMMON-DATA-FIELDS   
+163032                           DPP01-COMMON-INFO  
+163032                           SSP05-INPUT-PARAMS 
+163032                           SSP05-OUTPUT-PARAMS.   
+
+163032     IF DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1
+163032        GO TO 9500-RETURN-SUBROUTINE-ERROR.   
+
+163032     MOVE SSP05-O-COMPANY-REC TO SSP15-I-COMPANY-REC  
+163032                                 SSP15-I-OLD-COMPANY-REC. 
+163032     MOVE 'M'                 TO SSP15-CONTROL-CODE.  
+
+            EVALUATE WS-CMP-MODE
+      * Add Mode.   
+             WHEN 'ADD' 
+               MOVE 0 TO WS-J   
+               PERFORM VARYING WS-I FROM 1 BY 1 UNTIL WS-I > 30 
+                 IF WS-CMP-ALL-GUEST-REQ-CODE = 
+163032             SSP15-I-ALL-GUEST-REQ-CODE (WS-I)
+                     MOVE 'GUEST-REQ-CODE ALREADY EXISTS'  TO WS-COMMENT
+                     GO TO 6000-WRITE-REP-PARA  
+                 END-IF 
+163032           IF ( SSP15-I-ALL-GUEST-REQ-CODE (WS-I) <= SPACES ) AND 
+                    ( WS-J = 0 )
+                      MOVE WS-I TO WS-J 
+                 END-IF 
+               END-PERFORM  
+               IF WS-J > 0  
+                 MOVE WS-CMP-ALL-GUEST-REQ-CODE TO  
+163032                         SSP15-I-ALL-GUEST-REQ-CODE (WS-J)
+                 MOVE WS-CMP-ALL-GUEST-OPT-CODE TO  
+163032                         SSP15-I-ALL-GUEST-OPT-CODE (WS-J)
+               ELSE 
+                 MOVE 'NO SPACE LEFT FOR ADDING COMP-CODE' TO WS-COMMENT
+                 GO TO 6000-WRITE-REP-PARA  
+               END-IF   
+               GO TO 5100-MODIFY-COMP   
+      * Update Mode.
+             WHEN 'UPD' 
+                  MOVE 'N' TO WS-CMP-UPD-FLAG   
+                  PERFORM VARYING WS-I FROM 1 BY 1 UNTIL
+                    WS-I > 30 OR WS-CMP-UPD-FLAG = 'Y'  
+                        IF WS-CMP-ALL-GUEST-REQ-CODE =  
+163032                    SSP15-I-ALL-GUEST-REQ-CODE (WS-I) 
+                             MOVE WS-CMP-ALL-GUEST-OPT-CODE TO  
+163032                            SSP15-I-ALL-GUEST-OPT-CODE (WS-I) 
+                             MOVE 'Y' TO WS-CMP-UPD-FLAG
+                        END-IF  
+                  END-PERFORM   
+                  IF WS-CMP-UPD-FLAG = 'N'  
+                     MOVE 'CMP-CODE NOT FOUND FOR UPD' TO WS-COMMENT
+                     GO TO 6000-WRITE-REP-PARA  
+                  END-IF
+                  GO TO 5100-MODIFY-COMP
+      * Delete Mode.
+             WHEN 'DEL' 
+                MOVE 'N' TO WS-CMP-DEL-FLAG 
+                MOVE 0   TO WS-J WS-K.  
+                PERFORM VARYING WS-I FROM 1 BY 1 UNTIL  
+                  WS-I > 30 OR WS-CMP-DEL-FLAG = 'Y'
+                      IF WS-CMP-ALL-GUEST-REQ-CODE =
+163032                  SSP15-I-ALL-GUEST-REQ-CODE (WS-I)   
+                          MOVE SPACES TO
+163032                       SSP15-I-ALL-GUEST-REQ-DATA-TBL (WS-I)  
+                          MOVE WS-I   TO WS-J   
+                          MOVE 'Y'    TO WS-CMP-DEL-FLAG
+                      END-IF
+                END-PERFORM 
+                IF WS-CMP-DEL-FLAG = 'Y'
+                  PERFORM VARYING WS-I FROM WS-J BY 1 UNTIL 
+                    WS-I > 30   
+                      COMPUTE WS-K = WS-I + 1   
+163032                MOVE SSP15-I-ALL-GUEST-REQ-DATA-TBL (WS-K)
+163032                  TO SSP15-I-ALL-GUEST-REQ-DATA-TBL (WS-I)
+163032                MOVE SPACES TO
+163032                     SSP15-I-ALL-GUEST-REQ-DATA-TBL (WS-K)
+                  END-PERFORM   
+                ELSE
+                  MOVE 'GUEST-REQ-CODE NOT FOUND FOR DEL' TO WS-COMMENT 
+                  GO TO 6000-WRITE-REP-PARA 
+                END-IF. 
+
+      * Modify the COMPANY-REC. 
+       5100-MODIFY-COMP.
+163032     CALL 'SSO15-UPDATE-CMP' USING DPP01-COMMON-DATA-FIELDS   
+163032                                   DPP01-COMMON-INFO  
+163032                                   SSP15-UPDATE-INPUT-PARAMS. 
+
+163032     IF DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1
+163032        GO TO 9500-RETURN-SUBROUTINE-ERROR.   
+
+       5999-PROCESS-COMP-EXIT.  
+           EXIT.
+      *-----------------------------------------------------------------
+       6000-WRITE-REP-PARA. 
+      *-----------------------------------------------------------------
+
+           MOVE WS-COMMENT  TO  FR-COMMENT. 
+           WRITE FINAL-REP-FILE-REC.
+              IF NOT FR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "CCBILD01P FILE STATUS = "
+                      WS-FR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF
+              GO TO 1000-READ-PARA. 
+
+       6000-WRITE-REP-PARA-EXIT.
+           EXIT.
+
+      ************************************************************* 
+      *   Normal end of routine                                   * 
+      ************************************************************* 
+
+       9000-TERMINATE.  
+           IF WS-RECORDS-READ = 0   
+              SET ERROR-SW TO  ON   
+      D       DISPLAY 'No Records found in CCBILD01D' UPON PRINTER  
+           END-IF.  
+           ACCEPT WS-SYSTEM-DATE  FROM DATE YYYYMMDD.   
+           ACCEPT WS-SYSTEM-TIME  FROM TIME.
+           DISPLAY 'END-TIME : '  WS-SYSTEM-TIME UPON PRINTER.  
+           DISPLAY 'END-DATE : '  WS-SYSTEM-DATE UPON PRINTER.  
+
+144449*    IF IMPART-DEPART = 1 
+144449*       CLOSE ALL ON ERROR  GO TO 9100-DATABASE-ERROR 
+144449*       DEPART    ON ERROR  GO TO 9100-DATABASE-ERROR 
+144449*       DEPART WITH ROLLBACK ON ERROR  GO TO 9100-DATABASE-ERROR  
+144449*    END-IF.  
+144449*    GO TO 9900-FINISH-PARA.  
+144449     GO TO 9000-END-OF-JOB.   
+
+
+      ******************************************************
+      *        DATABASE ERROR ROUTINES                     *
+      ******************************************************
+
+       9100-DATABASE-ERROR. 
+           DISPLAY 'ERROR FROM PROGRAM - CCB14ILD'   UPON PRINTER.  
+           DISPLAY 'ERROR STATUS = ' ERROR-STATUS    UPON PRINTER.  
+           DISPLAY 'ERROR NUMBER = ' ERROR-NUM       UPON PRINTER.  
+           DISPLAY 'ERROR AREA   = ' ERROR-AREA      UPON PRINTER.  
+           DISPLAY 'ERROR RECORD = ' ERROR-RECORD    UPON PRINTER.  
+           DISPLAY 'ERROR SET    = ' ERROR-SET       UPON PRINTER.  
+
+144449     GO TO DPP12-DATABASE-ERROR.  
+144449*    IF IMPART-DEPART = 1 
+144449*       CLOSE ALL ON ERROR GO TO 9900-FINISH-PARA 
+144449*       DEPART ON ERROR GO 9900-FINISH-PARA   
+144449*    END-IF.  
+144449*    GO TO 9900-FINISH-PARA.  
+
+
+      ******************************************************
+      *        ROLLBACK ERROR ROUTINES                     *
+      ******************************************************
+
+144449*9100-ROLLBACK-ERROR. 
+144449*    DISPLAY 'RB ERROR FROM PROGRAM- CCB14ILD' UPON PRINTER.  
+144449*    DISPLAY 'ERROR STATUS = ' ERROR-STATUS    UPON PRINTER.  
+144449*    DISPLAY 'ERROR NUMBER = ' ERROR-NUM       UPON PRINTER.  
+144449*    DISPLAY 'ERROR AREA   = ' ERROR-AREA      UPON PRINTER.  
+144449*    DISPLAY 'ERROR RECORD = ' ERROR-RECORD    UPON PRINTER.  
+144449*    DISPLAY 'ERROR SET    = ' ERROR-SET       UPON PRINTER.  
+144449* 
+144449*    IF IMPART-DEPART = 1 
+144449*       CLOSE ALL ON ERROR GO TO 9900-FINISH-PARA 
+144449*       DEPART WITH ROLLBACK ON ERROR GO 9900-FINISH-PARA 
+144449*    END-IF.  
+144449* 
+144449*    GO TO 9900-FINISH-PARA.  
+      ******************************************************
+      *        I-O ERROR ROUTINES                     * 
+      ******************************************************
+
+       9100-I-O-FILE-ERROR. 
+           SET ERROR-SW TO ON.  
+144449     GO TO DPP12-DATABASE-ERROR.  
+144449*    IF IMPART-DEPART = 1 
+144449*       CLOSE ALL ON ERROR GO TO 9100-DATABASE-ERROR  
+144449*       DEPART WITH ROLLBACK ON ERROR GO 9100-DATABASE-ERROR  
+144449*    END-IF.  
+
+      ******************************************************
+      *       Finish program                               *
+      ******************************************************
+
+144449*9900-FINISH-PARA.
+144449 9000-END-OF-JOB. 
+           CLOSE IP-LOAD-FILE.  
+           IF IL-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY "I-O ERROR " " " "CCBILD01D FILE STATUS = "   
+                      WS-IL-FILE-STATUS UPON PRINTER.   
+
+      * Write Summary before closing file.  
+
+           SUBTRACT 1 FROM WS-RECORDS-READ. 
+           MOVE SPACES TO FINAL-REP-FILE-REC.   
+           MOVE '-------------------------------------------------------
+      -         '-------' TO  FINAL-REP-FILE-REC.   
+           WRITE FINAL-REP-FILE-REC.
+              IF NOT FR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "CCBILD01P FILE STATUS = "
+                      WS-FR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+           MOVE SPACES TO FINAL-REP-FILE-REC.   
+           STRING 'SUMMARY : ' WS-RECORDS-WRITE ' OUT OF '  
+           WS-RECORDS-READ ' RECORDS WERE PROCESSED SUCCESSFULLY !' 
+           DELIMITED BY SIZE INTO FINAL-REP-FILE-REC.   
+           WRITE FINAL-REP-FILE-REC.
+              IF NOT FR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "CCBILD01P FILE STATUS = "
+                      WS-FR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF
+
+           CLOSE FINAL-REP-FILE.
+           IF FR-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY "I-O ERROR " " " "CCBILD01P FILE STATUS = "   
+                      WS-FR-FILE-STATUS UPON PRINTER.   
+
+      * CLEAR CCBILD01D.
+           MOVE 'N' TO WS-EOF-FLAG. 
+           OPEN OUTPUT IP-LOAD-FILE.
+           IF IL-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY "I-O ERROR " " " "CCBILD01D FILE STATUS = "   
+                      WS-IL-FILE-STATUS UPON PRINTER
+              GO TO 9100-I-O-FILE-ERROR.
+           MOVE SPACES TO EXCEL-REC.
+           WRITE EXCEL-REC. 
+           IF IL-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              IF IL-FILE-AT-END 
+                 MOVE 'Y' TO WS-EOF-FLAG
+              ELSE  
+                 DISPLAY "I-O ERROR " " " "CCBILD01D FILE STATUS = "
+                         WS-IL-FILE-STATUS UPON PRINTER 
+                 GO TO 9100-I-O-FILE-ERROR. 
+           CLOSE IP-LOAD-FILE.  
+           IF IL-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY "I-O ERROR " " " "CCBILD01D FILE STATUS = "   
+                      WS-IL-FILE-STATUS UPON PRINTER.   
+144449*    STOP RUN.
+144449     GO TO DPP12-END-OF-JOB.  
+
+163032 9500-RETURN-SUBROUTINE-ERROR.
+163032     GO TO DPP12-RETURN-SUBROUTINE-ERROR. 
+
+188688 9200-EDIT-ERROR-MSG. 
+188688     PERFORM DPP12-EDIT-ERROR-MSG 
+188688        THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+188688  
+188688     GO TO DPP12-END-OF-JOB.  
+188688  
+188688 9210-EDIT-CONTINUE-MSG.  
+188688     PERFORM DPP12-EDIT-ERROR-MSG 
+188688        THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+188688  
+188688 9300-SEVERE-ERROR-MSG.   
+188688     GO TO DPP12-SEVERE-ERROR-MSG.
+188688  
+188688 9400-INFO-MSG.   
+188688     PERFORM DPP12-INFO-MSG   
+188688        THRU DPP12-INFO-MSG-EXIT. 
+188688  
+188688 9600-SAVE-SUBROUTINE-ERRORS. 
+188688     PERFORM DPP12-SAVE-SUBROUTINE-MSGS   
+188688        THRU DPP12-SAVE-SUBROUTINE-MSGS-X.
+
+      ***************************************************************   
+      *   Copy libraries for procedure division are defined here    *   
+      ***************************************************************   
+
+           COPY DPP10Y2K.   
+144449     COPY DPP12BER.   
+144449     COPY DPP12ERR.   
+144449     COPY DPP12WDB.   
+
+      ******************************************************
+      *                PROGRAM END HERE                    *
+      ******************************************************
+

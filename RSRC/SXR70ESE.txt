@@ -1,0 +1,1487 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.    SXR70ESE. 
+       AUTHOR.        Tata Infotech Ltd.
+       DATE-WRITTEN.  Jul 2004. 
+       DATE-COMPILED.   
+
+      * Description:  This is a new online program SXR70ESE from which  
+      * the user chooses to maintain Shore Excursion Records. Shore 
+      * Excursion Maintenance will display a screen that provides the   
+      * user with the options to:   
+      * > Search for Shore Excursions based on combination  
+      *   of ShoreExId or Port or Operator Code .   
+      * 
+      * The system will provide the user with search options for
+      * locating Excursion(s).  
+      * The user will have the following options:   
+      * > Find Shore Excursion using Shore Excursion ID.
+      * > List Shore Excursions by specific Port Name (system defaults  
+      *   to All Ports) and/or Tour Operator.   
+      * > Also from Shore Excursion Management Screen if a particular   
+      *   Shore Ex is selected then this program will give the detail   
+      *   for that Shore Ex.
+      * The possible values for Shorexid, port_of_call and vendor_id are
+      * either "Blank" or "Some value". 
+      * 
+      * So we have 8 cases for searching a shore excurion (Listing):
+      * ---|-----------|--------------|-----------|---------------------
+      * Sr.| ShoreExID | Port_of_Call | Vendor_id | Show records
+      * ---|-----------|--------------|-----------|---------------------
+      * 1) |   Blank   |    Blank     |   Blank   | All 
+      * 2) |   Blank   |    Value     |   Blank   | Specific Port   
+      * 3) |   Blank   |    Value     |   Value   | Specific Port & Vend
+      * 4) |   Value   |    Blank     |   Blank   | Specific ShoreExID  
+      * 5) |   Value   |    Value     |   Blank   | Specific ShoreExID  
+      * 6) |   Value   |    Blank     |   Value   | Specific ShoreExID  
+      * 7) |   Value   |    Value     |   Value   | Specific ShoreExID  
+      * 8) |   Blank   |    Blank     |   Value   | Specific Vendor-ID  
+      * ----------------------------------------------------------------
+      * 
+      * Modification:   
+      * 
+      * Input Parameters:   
+      * 
+      *        IP-PROCESS-MODE              PIC X(3).   
+      *        IP-OPERATOR                  PIC S9(10) BINARY.  
+      *        IP-EXC-ID                    PIC X(6).   
+149439*        IP-PORT-CODE                 PIC X(3).   
+      * 
+      * Return Rows:
+      *    First result set.
+      *        RR1-EXC-ID                   PIC X(6).   
+      *        RR1-LOCATION-CODE            PIC X(3).   
+      *        RR1-ABBREV-NAME              PIC X(20).  
+      *        RR1-BEGIN-DATE               PIC S9(10) BINARY VALUE 8.  
+      *        RR1-END-DATE                 PIC S9(10) BINARY VALUE 8.  
+      *        RR1-CREATION-DATE            PIC S9(10) BINARY VALUE 8.  
+      *        RR1-VENDOR-ID                PIC S9(10) BINARY VALUE 7.  
+PSSSPA*        RR1-EXC-TYPE                 PIC X(2).   
+PSSSPA*        RR1-VENDOR-REF-NUM           PIC X(20).  
+      *    Second result set.   
+      *        RR2-EXC-ID                  PIC X(6).
+      *        RR2-EXC-NAME                PIC X(50).   
+      *        RR2-ABBREV-NAME             PIC X(20).   
+      *        RR2-VENDOR-ID               PIC S9(10) BINARY VALUE 7.   
+      *        RR2-ADVISORY.
+      *            RR2-ADVISORY-TABLE OCCURS 72 TIMES.  
+      *                RR2-ADVISORY-BITS   PIC 1(9)      BINARY-1.  
+      *        RR2-ACTIVITY.
+      *            RR2-ACTIVITY-TABLE OCCURS 72 TIMES.  
+      *                RR2-ACTIVITY-BITS   PIC 1(9)      BINARY-1.  
+      *        RR2-LOCATION-CODE           PIC X(3).
+      *        RR2-MIN-PORT-TIME-DURATION  PIC S9(8)V99 BINARY. 
+      *        RR2-MIN-PORT-TIME-DUR-TYPE  PIC X.   
+      *        RR2-EXC-DURATION            PIC S9(8)V99 BINARY. 
+      *        RR2-DURATION-TYPE           PIC X.   
+      *        RR2-MIN-AGE                 PIC S9(5) BINARY VALUE 2.
+      *        RR2-MIN-AGE-TYPE            PIC X.   
+      *        RR2-BOOK-TYPE               PIC X.   
+      *        RR2-CREATION-DATE           PIC S9(10) BINARY VALUE 8.   
+      *        RR2-DEFAULT-PS-CUTOFF-DAYS  PIC S9(5) BINARY VALUE 2.
+      *        RR2-SHIPBOARD-CUTOFF-HRS    PIC S9(5) BINARY VALUE 2.
+      *        RR2-1099-IND                PIC X.   
+      *        RR2-PRESALES-SOLD-IND       PIC X.   
+      *        RR2-TKT-DETAIL.  
+      *            RR2-TKT-DETAIL-TBL OCCURS 5 TIMES.   
+      *                RR2-TKT-NUM         PIC S9(10)    BINARY.
+      *                RR2-TKT-DESC        PIC X(20).   
+      *        RR2-TAX-IND                 PIC X.   
+      *        RR2-TAX-DESC                PIC X(20).   
+      *        RR2-TAX-PCT                 PIC S9(7)V999 BINARY.
+      *        RR2-COMM-IND                PIC X.   
+      *        RR2-COMM-DETAIL-DESC        PIC X(20).   
+      *        RR2-COMM-PCT                PIC S9(7)V999 BINARY.
+      *        RR2-GRATUITY-IND            PIC X.   
+      *        RR2-GRATUITY-DESC           PIC X(20).   
+      *        RR2-GRATUITY-PCT            PIC S9(7)V999 BINARY.
+      *        RR2-COST-TAB.
+      *            RR2-COST-TABLE OCCURS 5 TIMES.   
+      *                RR2-MIN-VOL         PIC S9(10)    BINARY.
+      *                RR2-MAX-VOL         PIC S9(10)    BINARY.
+      *                RR2-COST-TYPE OCCURS 5 TIMES.
+      *                    RR2-COST-CODE   PIC X(01).   
+      *                    RR2-COST        PIC S9(8)V99  BINARY.
+      *        RR2-DESCRIPTION-TEXT        PIC X(200).  
+      *        RR2-DISCLAIMER-TEXT         PIC X(200).  
+PSSSPA*        RR2-EXC-TYPE                PIC X(2).
+PSSSPA*        RR2-VENDOR-REF-NUM          PIC X(20).   
+      * 
+      * ---------------------------------------------------------------*
+C50693* 27 MARCH 2006         TCS LIMITED                    CQ50693   *
+C50693* Added validation of matching the input vendor-id to the emr-   *
+C50693* vendor-id.                                                     *
+      ******************************************************************
+      * ---------------------------------------------------------------*
+PSSSPA* 16-JUL-07     V8P     TCS LTD.    PSSSPA                       *
+PSSSPA* Added two more field EXC TYPE and VENDOR REF NUM to be         *
+PSSSPA* displayed in the listing of all/filtered Shore Ex Master       *
+PSSSPA* records, or the details of one master record.                  *
+************************************************************************
+C92439* 30-SEP-09     P4K     TCS LTD.               CQ92439           *
+C92439* CODE ADDED TO DISPLAY NEW ONBOARD PRICING SHEET DESCRIPTION(NEW*
+C92439*  EPR RECORD) NEW ACTIVITY HEADER AND NEW NOTES TEXT BOX        *
+C92439* (ENR-TYPE = 'H' AND ENR-TYPE = 'N') VIA ADMIN TOOL.            *
+************************************************************************
+SCRUM * 15-OCT-10     GS9     SHERLOCK TECHNOLOGY    CQ96793 - SCRUM   *
+SCRUM * Adding Status and Poularity indicator in the ouput.            *
+************************************************************************
+145635* 14-JAN-13     DOB     TCS LTD.               CQ145635          *
+145635* INCREASE CHARACTER COUNT CAPACITY OF SES' "ONBOARD PRICING     *
+145635* SHEET DESCRIPTION" FIELD IN ADMIN TOOL FROM 1000 TO 2000.      *
+************************************************************************
+144449* 01-MAR-2013   M3E     CCL   Standardization  CQ144449   
+144449* 
+144449* Converted to new flow and error handling standards. 
+144449* 
+144449******************************************************************
+149439* 01-MAR-2013   M3E     CCL   RPCMan convert   CQ149439   
+149439* 
+149439* Converted to use RPCMan instead of custom UniAccess code.   
+149439* Most lines are not marked due to non-RPCMan code being imported 
+149349* into a RPCMan based template.   
+149439* 
+149439******************************************************************
+P62525******************************************************************
+P62525* 04-NOV-2014   MCA     CCL   PRICING          P62525            *
+P62525* Exception pricing                                              *
+P62525******************************************************************
+196410* 03-AUG-16     9RG     TCS LTD.               CQ196410          *
+196410* ADDED NEW FIELD TO SEND THE POPULAR INDICATOR IN RESULT SET    *
+196410* RS_SX_SEL.                                                     *
+************************************************************************
+208566* 01-NOV-18     V0V     TCS LTD.               CQ208566          *
+208566* CHANGES RELATED TO SHORE EX MASTER FILE.                       *
+************************************************************************
+187917* 07-JAN-26     2WN     TCS LTD.              ADO1879173         *
+187917* CHANGES DONE FOR UNIACCESS TO EPORTAL CONVERSION.              *
+************************************************************************
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER. UNISYS. 
+       OBJECT-COMPUTER. UNISYS  MEMORY SIZE 3 MODULES.  
+       SPECIAL-NAMES.   
+           PRINTER IS PRT   
+           PRINTER IS PRINTER.  
+
+       DATA DIVISION.   
+       SUBSCHEMA SECTION.   
+       INVOKE SUBSCHEMA PRD200UCOBSU
+           IN FILE SUBSCHEMAS OF SCHEMA PRD200SCHEMA
+           COPYING RECORDS    INTO COMMON   
+           COPYING DATA-NAMES INTO COMMON   
+           DMCA COMMON  
+           SAVE DATA INCLUDES DEFERRED-UPDATES  
+           ERROR RECOVERY IS 9100-DATABASE-ERROR
+           ROLLBACK       IS 9100-DATABASE-ERROR.   
+
+       WORKING-STORAGE SECTION. 
+144449 01  WS-PROG-ID              PIC X(8) VALUE 'SXR70ESE'.   
+
+149349 01  WS-SYSTEM-ID            PIC X(05).   
+
+      * Misc Variables  
+
+       01  WS-END-OF-REC           PIC 9 VALUE ZEROES.  
+           88  END-OF-REC          VALUE 1. 
+       01  WS-I                    PIC 9(10)   BINARY.  
+       01  WS-J                    PIC 9(10)   BINARY.  
+149439 01  WS-K                    PIC 9(10)   BINARY.  
+149439 01  WS-L                    PIC 9(10)   BINARY.  
+P62525 01  SUB                     PIC 9(10)   BINARY.  
+       01  WS-RR2-COST-TAB. 
+           02  WS-RR2-COST-TABLE OCCURS 5 TIMES.
+               05  WS-RR2-MIN-VOL         PIC 9(5). 
+               05  WS-RR2-MAX-VOL         PIC 9(5). 
+               05  WS-RR2-COST-TYPE OCCURS 5 TIMES. 
+                   10  WS-RR2-COST-CODE   PIC X.
+                   10  WS-RR2-COST        PIC 9(5)V99.  
+
+149439 01  WS-TEXT-FETCHED-FLAGS.   
+149439     05 WS-DESCRIPTION-FLG       PIC 1.   
+149439     05 WS-DISCLAIMER-FLG        PIC 1.   
+149439     05 WS-NOTES-FLG             PIC 1.   
+149439     05 WS-ACTIVITY-HEADER-FLG   PIC 1.   
+149439     05 WS-PRICING-DESC-FLG      PIC 1.   
+149439     05 FILLER                   PIC 1(31).   
+
+       01  WS-DURATION             PIC 9(5).
+       01  WS-DURATION-X REDEFINES WS-DURATION. 
+           05  WS-DURATION-2       PIC 9(3).
+           05  WS-DURATION-3       PIC 9(2).
+
+       01  WS-DURATION-Y.   
+           05 WS-DURATION-Y-A      PIC 9(3).
+           05 WS-DURATION-Y-B      PIC 9(2).
+       01  WS-DURATION-Z REDEFINES WS-DURATION-Y
+                                   PIC 9(3)V99. 
+       01  WS-EMR-EXCEPT-PRICING-CODES. 
+           05 WS-EMR-BEGIN-AGE             PIC 9(3).
+           05 WS-EMR-END-AGE               PIC 9(3).
+           05 WS-EMR-AGE-TYPE              PIC X.   
+           05 WS-EMR-PRICING-CODE          PIC X.   
+           05 WS-EMR-PRICING-CODE-DESC     PIC X(20).   
+
+208566 01  WS-VENDOR-ID                    PIC 9(11).   
+208566 01  WS-ENR-REC.  
+208566     05 WS-ENR-TYPE                  PIC X(01).   
+208566     05 WS-ENR-TEXT                  PIC X(200).  
+
+208566 01  WS-EPD-REC.  
+208566     05 WS-EPD-LONG-DESC             PIC X(2000). 
+
+187917 01  WS-EMR-OUT-CNT          PIC 9(07).   
+187917 01  WS-EOM-LOC-VALUE.
+187917     03 WS-EOM-EMR-CNT       PIC 9(07).   
+187917     03 WS-FILLER            PIC X(05) VALUE SPACES.  
+      *===== PROCS =====================================================
+
+      *    Proc to parse PI-APPLICATION-ID from RPCMan standard input.  
+
+149439     COPY GRP00AWS.   
+
+      *----- RPCMan generated procs -----   
+
+149439*    RPCMan generated working storage for input parameters
+149439  
+187917*    COPY SXSEL-W-1404.   
+149439  
+149439*    RPCMan generated working storage for result sets 
+149439  
+187917*    COPY SXSEDR-W-1405.  
+187917*    COPY SXSELR-W-1411.  
+      *----- Common Procs ---------------   
+
+           COPY DPP01CIW.   
+           COPY DPP01DTA.   
+           COPY DPP01ERR.   
+187917     COPY DPP01EWS.   
+144449     COPY DPP01MCB.   
+           COPY DPP01SCO.   
+187917*    COPY DPP01UWS.   
+           COPY DPP12SCO.   
+           COPY DPP42ERR.   
+187917     COPY ECP75ERR.   
+           COPY RSP00DMS.   
+           COPY RSP32DMS.   
+           COPY RSP64DMS.   
+           COPY RSP77GMD.   
+           COPY SLCPCOB.
+187917     COPY SXP-R-SX-SEL.   
+187917*    COPY UAP01MWS.   
+
+144449*    COPY UAP01DWS.   
+144449*    COPY UAP01EWS.   
+
+       COMMON-STORAGE SECTION.  
+
+       PROCEDURE DIVISION.  
+       0000-MAIN-LINE.  
+           COPY DPP01INT.   
+187917*    COPY UAP05INT.   
+
+144449     MOVE WS-PROG-ID   TO TDPROGNAME. 
+
+187917*    PERFORM DPP12-TDINIT THRU DPP12-TDINIT-EXIT. 
+
+187917     MOVE SPACES       TO DPP01-MCB-INPUT-MESSAGE.
+
+187917     MOVE 63 TO DPP01-AUX-LENGTH. 
+187917     MOVE FUNCTION LENGTH (DPP01-MCB-INPUT-MESSAGE)  TO   
+187917                           DPP01-INPUT-MSG-LENGTH.
+187917     PERFORM DPP12-MCB-RECIEVE-MSG
+187917        THRU DPP12-MCB-RECIEVE-MSG-EXIT.  
+
+           PERFORM DPP12-BEGIN-THREAD THRU DPP12-BEGIN-THREAD-EXIT. 
+
+           IF DPP01-SQL-ERROR-IND = 'Y' 
+              GO TO DPP12-THREAD-ERROR-EXIT.
+
+208566     EXEC SQL 
+208566          USE DEFAULT SCHEMA PRDRDMS  
+208566     END-EXEC.
+208566  
+208566     EXEC SQL WHENEVER SQLERROR   
+208566          CONTINUE
+208566     END-EXEC.
+208566  
+208566     EXEC SQL WHENEVER NOT FOUND  
+208566          CONTINUE
+208566     END-EXEC.
+
+       0100-INIT-DATABASE.  
+
+           IMPART.  
+
+144449     OPEN  EXCURSION. 
+
+       0200-NEXT-MESSAGE.   
+
+144449*    This is the multiple-initial return point expected the   
+144499*    standard termination routines.   
+144449  
+144449*    Besides getting the next message, the following will do  
+144449*    nice things such as accepting a new DPP01-SYSTEM-DATETIME.   
+
+           PERFORM DPP12-GET-NEXT-MESSAGE   
+              THRU DPP12-GET-NEXT-MESSAGE-EXIT. 
+187917     MOVE DPP01-MCB-INPUT-MESSAGE TO  X-INPUT-R-SXSEL-BUFFER. 
+187917     PERFORM SXP00-R-SX-SEL-INIT  
+187917        THRU SXP00-R-SX-SEL-INIT-EXIT.
+187917     MOVE ZEROES TO DPP01-ISUB.   
+187917     MOVE ZEROES TO WS-EOM-EMR-CNT
+187917                    WS-EMR-OUT-CNT.   
+187917     IF U-1404-PI-EOM-LOCATOR > SPACES
+187917        MOVE U-1404-PI-EOM-LOCATOR TO WS-EOM-LOC-VALUE
+187917     END-IF.  
+
+       0300-INIT-PGM-TRANS-VARS.
+
+      *    Perform variable initializations that are needed before  
+      *    processing a new input message.  
+
+           MOVE 0                    TO WS-END-OF-REC.  
+
+187917*0500-RECEIVE-CLIENT-REQUEST. 
+
+      * 
+      * Receive the Standard Input parameters.  
+      * 
+187917*     PERFORM SXSEL-RCV-STD-IN.   
+
+187917*    EVALUATE U-1404-PI-STORED-PROCEDURE-NAM  
+187917*       WHEN 'SP_R_SX_SEL'
+187917*            MOVE 12 TO DPP01-PARAMETERS-EXPECTED 
+187917*       WHEN OTHER
+187917*           MOVE 1 TO DPP42-HOLD-MSG-INDEX
+187917*           GO TO 9300-SEVERE-ERROR-MSG   
+187917*    END-EVALUATE.
+
+187917*0600-VALIDATE-NUMBER-PARAMS. 
+187917*    IF (SL-NUMBER-OF-PARMS NOT = DPP01-PARAMETERS-EXPECTED)  
+187917*       MOVE 9001               TO DPP42-HOLD-MSG-INDEX   
+187917*       MOVE SL-NUMBER-OF-PARMS TO DPP01-SIGNED   
+187917*       MOVE DPP01-UNSIGNED     TO DPP01-PARAMETERS-RECEIVED  
+187917*       STRING DPP01-PARAMETERS-EXPECTED ' Parameters required - '
+187917*              DPP01-PARAMETERS-RECEIVED ' Received, '
+187917*              'contact Help Desk!' DELIMITED BY SIZE 
+187917*             INTO DPP42-HOLD-MSG-DESC
+187917*       GO TO DPP12-SEVERE-ERROR-MSG. 
+
+       0700-RECEIVE-PGM-STD-PARAMS. 
+
+      * 
+      *  Receive the store procedure specific parameters.   
+      * 
+187917*    PERFORM SXSEL-RCV-SX-SEL.
+187917*    PERFORM SXSEL-RCV-STD-OUT.   
+
+144449     MOVE U-1404-PI-APPLICATION-NAME  
+144449                                TO GRP00-IN-APPLICATION.  
+144449     IF  (GRP00-EDIST-TAG = 'EDIST')  
+144449       MOVE GRP00-SYSTEM-ID     TO WS-SYSTEM-ID   
+144449     ELSE 
+144449       MOVE 'CCL'               TO WS-SYSTEM-ID   
+144449     END-IF.  
+
+       0800-SET-STD-OUT-PARAMS. 
+
+      * 
+      * Set standard output parameters  
+      * 
+           MOVE DPP01-SYSTEM-DATETIME TO U-1404-PO-DATE-TIME.   
+
+187917*    PERFORM SXSEL-SET-STD-OUT.   
+
+      *=================================================================
+
+       1000-TRANSACTION-PROCESS.
+
+      * Starting processing logic   
+
+           EVALUATE U-1404-PROCESS-MODE 
+
+           WHEN 'LIS'   
+
+149439*      Collect data and build list result set.
+
+             PERFORM 2000-EXC-LIST-PARA 
+                THRU 2099-EXC-LIST-PARA-EXIT
+
+           WHEN 'DET'   
+
+149439*      Collect data and build details result set. 
+
+             PERFORM 3000-EXC-DETAIL-PARA   
+                THRU 3099-EXC-DETAIL-PARA-EXIT  
+
+           WHEN OTHER   
+144449       MOVE 0010                  TO DPP42-HOLD-MSG-INDEX 
+187917*      MOVE 'Process mode should be either LIS or DET'
+187917*                                 TO DPP42-HOLD-MSG-DESC  
+187917       MOVE WS-PROG-ID            TO DPP42-HOLD-MSG-SOURCE
+144449       GO TO 9200-EDIT-ERROR-MSG  
+           END-EVALUATE.
+
+      *    All Done 
+187917     MOVE SPACES                 TO U-1404-OUT-EOM-LOCATOR.   
+187917     PERFORM 10000-SEND-OUTPUT
+187917       THRU 10000-SEND-OUTPUT-EXIT.   
+           GO TO 9000-END-OF-JOB.   
+
+      *=================================================================
+
+      ******************************************************************
+      * 2000-EXC-LIST-PARA Lists Shore Excursions from EXC-MASTER-REC   
+      ******************************************************************
+       2000-EXC-LIST-PARA.  
+
+149439*    Initiate (describe) the excursion list result set with   
+149439*    UniAccess.   
+
+187917*    PERFORM SXSELR-DSC-SEL.  
+
+      *-----------------------------------------------------------------
+
+      * Case-1 for listing all the records in the database. 
+
+       2010-LIST-ALL-EMR.   
+           IF  U-1404-EXC-ID = SPACES        AND
+               U-1404-PORT-CODE = SPACES AND
+               U-1404-VENDOR-ID = 0 
+               FETCH FIRST EXC-MASTER-REC WITHIN EXCURSION AREA 
+                   ON ERROR GO TO 2011-EMR-ERR-CHK  
+149439         GO TO 2015-LIST-ALL-EMR-CONT 
+           ELSE 
+               GO TO 2020-LIST-LOC  
+           END-IF.  
+
+       2011-EMR-ERR-CHK.
+           IF  ERROR-NUM NOT = '0000'   
+               IF  ERROR-NUM = '0006' OR '0007' OR '0013'   
+187917*            GO TO 2090-EXC-LIST-DONE 
+187917             GO TO 2099-EXC-LIST-PARA-EXIT
+               ELSE 
+144449             GO TO 9100-DATABASE-ERROR
+               END-IF   
+           END-IF.  
+
+149439 2015-LIST-ALL-EMR-CONT.  
+
+           PERFORM 2810-SEND-DATA   
+              THRU 2819-SEND-DATA-EXIT  
+           PERFORM 2110-ALLFETCH-NEXT-PARA  
+              THRU 2110-ALLFETCH-NEXT-PARA-EXIT 
+                  UNTIL END-OF-REC. 
+
+      * End of Case-1.  
+149439* 
+149439*    I (M3E) added the following GO TO here and at end of blocks  
+149439*    for other cases.  Each case is has its own exclusive 
+149439*    set of conditions so there is no need to drop through to 
+149439*    check other cases.   
+
+187917*     GO TO 2090-EXC-LIST-DONE.   
+187917      GO TO 2099-EXC-LIST-PARA-EXIT.  
+
+      *-----------------------------------------------------------------
+
+      * Case-2 for listing specific port for all vendor names.  
+
+       2020-LIST-LOC.   
+           MOVE 0 TO WS-END-OF-REC. 
+           IF  U-1404-EXC-ID = SPACES            AND
+               U-1404-PORT-CODE NOT = SPACES AND
+               U-1404-VENDOR-ID = 0 
+               MOVE U-1404-PORT-CODE TO ELR-LOCATION-CODE   
+
+              FETCH EXC-LOCATION-REC RECORD 
+                   ON ERROR GO TO 2021-ELR-EMR-ERR-CHK  
+
+              FETCH FIRST EXC-MASTER-REC
+                   WITHIN EXC-LOCATION-MASTER-SET SET   
+                   ON ERROR GO TO 2021-ELR-EMR-ERR-CHK  
+
+149439         GO TO 2025-LIST-LOC-CONT 
+           ELSE 
+               GO TO 2030-LIST-LOC-OPR  
+           END-IF.  
+
+       2021-ELR-EMR-ERR-CHK.
+           IF  ERROR-NUM NOT = '0000'   
+               IF  ERROR-NUM = '0006' OR '0007' OR '0013'   
+187917*            GO TO 2090-EXC-LIST-DONE 
+187917             GO TO 2099-EXC-LIST-PARA-EXIT
+               ELSE 
+144449             GO TO 9100-DATABASE-ERROR
+               END-IF   
+           END-IF.  
+
+149439 2025-LIST-LOC-CONT.  
+
+           IF  U-1404-PORT-CODE = EMR-PORT-CODE 
+               PERFORM 2810-SEND-DATA   
+                  THRU 2819-SEND-DATA-EXIT  
+           END-IF.  
+
+           PERFORM 2120-LOCFETCH-NEXT-PARA  
+              THRU 2129-LOCFETCH-NEXT-PARA-EXIT 
+                  UNTIL END-OF-REC. 
+
+      * End of Case-2.  
+
+187917*    GO TO 2090-EXC-LIST-DONE.
+187917     GO TO 2099-EXC-LIST-PARA-EXIT.   
+
+      *-----------------------------------------------------------------
+
+      * Case-3 for listing shore Excursions for specific port and a 
+      * specific vendor name.   
+
+       2030-LIST-LOC-OPR.   
+           MOVE 0 TO WS-END-OF-REC. 
+           IF  U-1404-EXC-ID = SPACES        AND
+               U-1404-PORT-CODE NOT = SPACES AND
+               U-1404-VENDOR-ID NOT = 0 
+
+      * Fetch a record from EXC-LOCATION-REC matching with the given
+      * Port of call or Location.   
+
+               MOVE U-1404-PORT-CODE TO ELR-LOCATION-CODE   
+
+               FETCH EXC-LOCATION-REC RECORD
+                   ON ERROR GO TO 2031-ELR-EMR-ERR-CHK  
+
+               FETCH FIRST EXC-MASTER-REC   
+                   WITHIN EXC-LOCATION-MASTER-SET SET   
+                       ON ERROR GO TO 2031-ELR-EMR-ERR-CHK  
+
+149439         GO TO 2035-LIST-LOC-OPR-CONT 
+           ELSE 
+               GO TO 2040-LIST-EXC-ID   
+           END-IF.  
+
+       2031-ELR-EMR-ERR-CHK.
+           IF  ERROR-NUM NOT = '0000'   
+               IF  ERROR-NUM = '0006' OR '0007' OR '0013'   
+187917*            GO TO 2090-EXC-LIST-DONE 
+187917             GO TO 2099-EXC-LIST-PARA-EXIT
+               ELSE 
+144449             GO TO 9100-DATABASE-ERROR
+               END-IF   
+           END-IF.  
+
+149439 2035-LIST-LOC-OPR-CONT.  
+
+           IF  U-1404-VENDOR-ID = EMR-VENDOR-ID     AND 
+               U-1404-PORT-CODE = EMR-PORT-CODE 
+               PERFORM 2810-SEND-DATA   
+                  THRU 2819-SEND-DATA-EXIT  
+           END-IF.  
+
+           PERFORM 2130-LOCEMR-NEXT-PARA
+              THRU 2139-LOCEMR-NEXT-PARA-EXIT   
+                  UNTIL END-OF-REC. 
+
+      * End of Case-3.  
+
+187917*    GO TO 2090-EXC-LIST-DONE.
+187917     GO TO 2099-EXC-LIST-PARA-EXIT.   
+
+      *-----------------------------------------------------------------
+
+      * Case-4 for listing a specific shore ex id.  
+
+       2040-LIST-EXC-ID.
+
+           IF  U-1404-EXC-ID NOT = SPACES    AND
+               U-1404-PORT-CODE = SPACES AND
+               U-1404-VENDOR-ID = 0 
+               MOVE U-1404-EXC-ID TO EMR-EXC-ID 
+
+               FETCH EXC-MASTER-REC RECORD  
+                   ON ERROR GO TO 2041-EMR-ERR-CHK  
+
+149439         GO TO 2045-LIST-LOC-EXC-ID-CONT  
+           ELSE 
+               GO TO 2050-EXC-LOC-LIST  
+           END-IF.  
+
+       2041-EMR-ERR-CHK.
+           IF  ERROR-NUM NOT = '0000'   
+               IF  ERROR-NUM = '0006' OR '0007' OR '0013'   
+187917*            GO TO 2090-EXC-LIST-DONE 
+187917             GO TO 2099-EXC-LIST-PARA-EXIT
+               ELSE 
+144449             GO TO 9100-DATABASE-ERROR
+               END-IF   
+           END-IF.  
+
+149439 2045-LIST-LOC-EXC-ID-CONT.   
+
+           PERFORM 2810-SEND-DATA   
+              THRU 2819-SEND-DATA-EXIT. 
+
+      * End of Case-4   
+
+187917*    GO TO 2090-EXC-LIST-DONE.
+187917     GO TO 2099-EXC-LIST-PARA-EXIT.   
+
+      *-----------------------------------------------------------------
+
+      * Case-5 for listing a specific shore ex id for specific port.
+
+       2050-EXC-LOC-LIST.   
+           IF  U-1404-EXC-ID NOT = SPACES        AND
+               U-1404-PORT-CODE NOT = SPACES AND
+               U-1404-VENDOR-ID = 0 
+               MOVE U-1404-EXC-ID TO EMR-EXC-ID 
+
+               FETCH EXC-MASTER-REC RECORD  
+                   ON ERROR GO TO 2051-EXC-LOC-ERR-CHK  
+
+149439         GO TO 2055-LIST-LOC-LIST-CONT
+           ELSE 
+               GO TO 2060-EXC-OPR-LIST  
+           END-IF.  
+
+       2051-EXC-LOC-ERR-CHK.
+           IF  ERROR-NUM NOT = '0000'   
+               IF  ERROR-NUM = '0006' OR '0007' OR '0013'   
+187917*            GO TO 2090-EXC-LIST-DONE 
+187917             GO TO 2099-EXC-LIST-PARA-EXIT
+               ELSE 
+144449             GO TO 9100-DATABASE-ERROR
+               END-IF   
+           END-IF.  
+
+149439 2055-LIST-LOC-LIST-CONT. 
+
+           IF  U-1404-PORT-CODE = EMR-PORT-CODE AND 
+               U-1404-EXC-ID = EMR-EXC-ID   
+               PERFORM 2810-SEND-DATA   
+                  THRU 2819-SEND-DATA-EXIT  
+           END-IF.  
+
+      * End of Case-5.  
+
+187917*    GO TO 2090-EXC-LIST-DONE.
+187917     GO TO 2099-EXC-LIST-PARA-EXIT.   
+
+      *-----------------------------------------------------------------
+
+      * Case-6 for listing a specific shore ex id for specific vendor.  
+
+       2060-EXC-OPR-LIST.   
+           IF  U-1404-EXC-ID NOT = SPACES    AND
+               U-1404-PORT-CODE = SPACES AND
+               U-1404-VENDOR-ID NOT = 0 
+               MOVE U-1404-EXC-ID TO EMR-EXC-ID 
+
+               FETCH EXC-MASTER-REC RECORD  
+                   ON ERROR GO TO 2061-EXC-OPR-ERR-CHK  
+149439         GO TO 2065-EXC-OPR-LIST-CONT 
+           ELSE 
+               GO TO 2070-EXC-LOC-OPR-LIST  
+           END-IF.  
+
+       2061-EXC-OPR-ERR-CHK.
+           IF  ERROR-NUM NOT = '0000'   
+               IF  ERROR-NUM = '0006' OR '0007' OR '0013'   
+187917*            GO TO 2090-EXC-LIST-DONE 
+187917             GO TO 2099-EXC-LIST-PARA-EXIT
+               ELSE 
+144449             GO TO 9100-DATABASE-ERROR
+               END-IF   
+           END-IF.  
+
+149439 2065-EXC-OPR-LIST-CONT.  
+
+           IF  U-1404-VENDOR-ID = EMR-VENDOR-ID AND 
+               U-1404-EXC-ID = EMR-EXC-ID   
+               PERFORM 2810-SEND-DATA   
+                  THRU 2819-SEND-DATA-EXIT  
+           END-IF.  
+
+      * End of Case-6.  
+
+187917*    GO TO 2090-EXC-LIST-DONE.
+187917     GO TO 2099-EXC-LIST-PARA-EXIT.   
+      *-----------------------------------------------------------------
+
+      * Case-7 for listing a specific shore ex id for specific vendor   
+      * and specific port.  
+
+       2070-EXC-LOC-OPR-LIST.   
+           IF  U-1404-EXC-ID NOT = SPACES        AND
+               U-1404-PORT-CODE NOT = SPACES AND
+               U-1404-VENDOR-ID NOT = 0 
+               MOVE U-1404-EXC-ID TO EMR-EXC-ID 
+
+               FETCH EXC-MASTER-REC RECORD  
+                   ON ERROR GO TO 2071-EXC-LOC-OPR-ERR-CHK  
+149439         GO TO 2075-EXC-LOC-OPR-LIST-CONT 
+           ELSE 
+               GO TO 2080-LOC-OPR-LIST  
+           END-IF.  
+
+       2071-EXC-LOC-OPR-ERR-CHK.
+           IF  ERROR-NUM NOT = '0000'   
+               IF  ERROR-NUM = '0006' OR '0007' OR '0013'   
+187917*            GO TO 2090-EXC-LIST-DONE 
+187917             GO TO 2099-EXC-LIST-PARA-EXIT
+               ELSE 
+144449             GO TO 9100-DATABASE-ERROR
+               END-IF   
+           END-IF.  
+
+149439 2075-EXC-LOC-OPR-LIST-CONT.  
+
+           IF  U-1404-VENDOR-ID = EMR-VENDOR-ID      AND
+               U-1404-PORT-CODE = EMR-PORT-CODE AND 
+               U-1404-EXC-ID = EMR-EXC-ID   
+               PERFORM 2810-SEND-DATA   
+                  THRU 2819-SEND-DATA-EXIT  
+           END-IF.  
+
+      * End of Case-7.  
+
+187917*    GO TO 2090-EXC-LIST-DONE.
+187917     GO TO 2099-EXC-LIST-PARA-EXIT.   
+
+      *-----------------------------------------------------------------
+
+      * Case-8 for listing all the excursions by a specific vendor. 
+
+       2080-LOC-OPR-LIST.   
+           MOVE 0 TO WS-END-OF-REC. 
+           IF  U-1404-EXC-ID = SPACES        AND
+               U-1404-PORT-CODE = SPACES AND
+               U-1404-VENDOR-ID NOT = 0 
+
+208566*        MOVE U-1404-VENDOR-ID TO EVIR-VENDOR-ID  
+
+208566*        FETCH EXC-VENDOR-ID-REC RECORD   
+208566*            ON ERROR GO TO 2081-LOC-OPR-ERR-CHK  
+
+208566         EXEC SQL 
+208566              SELECT VENDOR_ID
+208566              INTO :WS-VENDOR-ID  
+208566              FROM EXC_VENDOR_ID  
+208566              WHERE VENDOR_ID = :U-1404-VENDOR-ID 
+208566              FETCH FIRST 1 ROW ONLY  
+208566         END-EXEC 
+
+208566         IF SQLCODE < 0   
+208566            GO TO 9150-RDMS-ERROR 
+208566         END-IF   
+
+208566         IF SQLCODE = 100 
+187917*           GO TO 2090-EXC-LIST-DONE  
+187917            GO TO 2099-EXC-LIST-PARA-EXIT 
+208566         END-IF   
+
+208566*        FETCH FIRST EXC-MASTER-REC WITHIN EXC-VENDOR-MASTER-SET  
+208566*            SET ON ERROR GO TO 2081-LOC-OPR-ERR-CHK  
+
+208566         FETCH FIRST EXC-MASTER-REC WITHIN EXCURSION AREA 
+208566               ON ERROR GO TO 2081-LOC-OPR-ERR-CHK
+
+149439         GO TO 2085-LOC-OPR-LIST-CONT 
+           ELSE 
+187917*        GO TO 2090-EXC-LIST-DONE 
+187917         GO TO 2099-EXC-LIST-PARA-EXIT
+           END-IF.  
+
+       2081-LOC-OPR-ERR-CHK.
+           IF  ERROR-NUM NOT = '0000'   
+               IF  ERROR-NUM = '0006' OR '0007' OR '0013'   
+187917*            GO TO 2090-EXC-LIST-DONE 
+187917             GO TO 2099-EXC-LIST-PARA-EXIT
+               ELSE 
+144449             GO TO 9100-DATABASE-ERROR
+               END-IF   
+           END-IF.  
+
+149439 2085-LOC-OPR-LIST-CONT.  
+
+           IF  U-1404-VENDOR-ID = EMR-VENDOR-ID 
+               PERFORM 2810-SEND-DATA   
+                  THRU 2819-SEND-DATA-EXIT  
+           END-IF.  
+
+           PERFORM 2140-EVIREMR-NEXT-PARA   
+              THRU 2149-EVIREMR-NEXT-PARA-EXIT  
+                  UNTIL END-OF-REC. 
+
+      * End of Case-8.  
+187917     MOVE SPACES                 TO U-1404-OUT-EOM-LOCATOR.   
+187917*    GO TO 2090-EXC-LIST-DONE.
+187917     GO TO 2099-EXC-LIST-PARA-EXIT.   
+
+      *-----------------------------------------------------------------
+
+187917*2090-EXC-LIST-DONE.  
+
+149439*    Finish the list result set.  
+
+187917*    PERFORM DPP12-SEND-DONE-COUNT
+187917*       THRU DPP12-SEND-DONE-COUNT-EXIT.  
+
+
+      *-----------------------------------------------------------------
+
+       2099-EXC-LIST-PARA-EXIT. 
+           EXIT.
+      *=================================================================
+
+      ******************************************************************
+      * Fetch next paragraph for fetching all records.  
+      ******************************************************************
+       2110-ALLFETCH-NEXT-PARA. 
+
+           FETCH NEXT EXC-MASTER-REC WITHIN EXCURSION AREA  
+               ON ERROR GO TO 2111-ALLFETCH-NEXT-ERR-CHK.   
+149439     GO TO 2125-ALLFETCH-NEXT-CONT.   
+
+       2111-ALLFETCH-NEXT-ERR-CHK.  
+           IF  ERROR-STATUS NOT = '000000'  
+               IF  ERROR-NUM IS = '0007' OR '0013'  
+                   MOVE 1 TO WS-END-OF-REC  
+                   GO TO 2110-ALLFETCH-NEXT-PARA-EXIT   
+               ELSE 
+144449             GO TO 9100-DATABASE-ERROR
+              END-IF
+           END-IF.  
+
+149439 2125-ALLFETCH-NEXT-CONT. 
+           PERFORM 2810-SEND-DATA   
+              THRU 2819-SEND-DATA-EXIT. 
+
+       2110-ALLFETCH-NEXT-PARA-EXIT.
+           EXIT.
+
+      ******************************************************************
+      * Fetch next para for fetching records thru location-master-set.  
+      ******************************************************************
+       2120-LOCFETCH-NEXT-PARA. 
+
+           FETCH NEXT EXC-MASTER-REC
+               WITHIN EXC-LOCATION-MASTER-SET SET   
+                   ON ERROR GO TO 2121-LOCFETCH-NEXT-ERR-CHK.   
+149439     GO TO 2125-LOCFETCH-NEXT-CONT.   
+
+       2121-LOCFETCH-NEXT-ERR-CHK.  
+           IF  ERROR-STATUS NOT = '000000'  
+               IF  ERROR-NUM IS = '0007' OR '0013'  
+                   MOVE 1 TO WS-END-OF-REC  
+                   GO TO 2129-LOCFETCH-NEXT-PARA-EXIT   
+               ELSE 
+144449             GO TO 9100-DATABASE-ERROR
+               END-IF   
+           END-IF.  
+
+149439 2125-LOCFETCH-NEXT-CONT. 
+
+           PERFORM 2810-SEND-DATA   
+              THRU 2819-SEND-DATA-EXIT. 
+
+       2129-LOCFETCH-NEXT-PARA-EXIT.
+           EXIT.
+
+      ******************************************************************
+      * Fetch next para for fetching records thru location-master-set.  
+      * and checking for the vendor-id  
+      ******************************************************************
+
+       2130-LOCEMR-NEXT-PARA.   
+
+           FETCH NEXT EXC-MASTER-REC
+               WITHIN EXC-LOCATION-MASTER-SET SET   
+                   ON ERROR GO TO 2131-LOCEMR-NEXT-ERR-CHK. 
+
+149439     GO TO 2135-LOCEMR-NEXT-CONT. 
+
+       2131-LOCEMR-NEXT-ERR-CHK.
+           IF  ERROR-STATUS NOT = '000000'  
+               IF  ERROR-NUM IS = '0007' OR '0013'  
+                   MOVE 1 TO WS-END-OF-REC  
+                   GO TO 2139-LOCEMR-NEXT-PARA-EXIT 
+               ELSE 
+144449             GO TO 9100-DATABASE-ERROR
+               END-IF   
+           END-IF.  
+
+149439 2135-LOCEMR-NEXT-CONT.   
+
+           IF  U-1404-VENDOR-ID = EMR-VENDOR-ID AND 
+               U-1404-PORT-CODE = EMR-PORT-CODE 
+               PERFORM 2810-SEND-DATA   
+                  THRU 2819-SEND-DATA-EXIT  
+           END-IF.  
+
+       2139-LOCEMR-NEXT-PARA-EXIT.  
+           EXIT.
+
+      *-----------------------------------------------------------------
+
+      ******************************************************************
+      * Fetch next para for fetching records thru location-master-set.  
+      * and checking for the vendor-id  
+      ******************************************************************
+       2140-EVIREMR-NEXT-PARA.  
+
+208566*    FETCH NEXT EXC-MASTER-REC
+208566*        WITHIN EXC-VENDOR-MASTER-SET SET 
+208566*            ON ERROR GO TO 2141-EVIREMR-NEXT-ERR-CHK.
+
+208566     FETCH NEXT EXC-MASTER-REC WITHIN EXCURSION AREA  
+208566             ON ERROR GO TO 2141-EVIREMR-NEXT-ERR-CHK.
+
+149439     GO TO 2145-EVIREMR-NEXT-CONT.
+
+       2141-EVIREMR-NEXT-ERR-CHK.   
+
+           IF  ERROR-STATUS NOT = '000000'  
+               IF  ERROR-NUM IS = '0007' OR '0013'  
+                   MOVE 1 TO WS-END-OF-REC  
+                   GO TO 2149-EVIREMR-NEXT-PARA-EXIT
+               ELSE 
+144449             GO TO 9100-DATABASE-ERROR
+               END-IF   
+           END-IF.  
+
+149439 2145-EVIREMR-NEXT-CONT.  
+
+C50693     IF  U-1404-VENDOR-ID = EMR-VENDOR-ID 
+              PERFORM 2810-SEND-DATA
+                 THRU 2819-SEND-DATA-EXIT   
+C50693     END-IF.  
+
+       2149-EVIREMR-NEXT-PARA-EXIT. 
+           EXIT.
+
+      ******************************************************************
+      * Retrieve and Send data for data set one.
+      ******************************************************************
+       2810-SEND-DATA.  
+
+PSSSPA      IF U-1404-EXC-TYPE NOT = EMR-EXC-TYPE   
+149439*       This check was right before the send row.  It is better   
+149439*       here. 
+149439        GO TO 2819-SEND-DATA-EXIT 
+149439      END-IF. 
+187917     ADD 1 TO WS-EMR-OUT-CNT. 
+187917     IF WS-EMR-OUT-CNT < WS-EOM-EMR-CNT   
+187917        GO TO 2819-SEND-DATA-EXIT 
+187917     END-IF.  
+187917     ADD 1 TO U-1411-SUB. 
+187917     IF U-1411-SUB > 100  
+187917        MOVE WS-EMR-OUT-CNT       TO WS-EOM-EMR-CNT   
+187917        MOVE WS-EOM-LOC-VALUE     TO U-1404-OUT-EOM-LOCATOR   
+187917        PERFORM 10000-SEND-OUTPUT 
+187917           THRU 10000-SEND-OUTPUT-EXIT
+187917        GO TO 9000-END-OF-JOB 
+187917     END-IF.  
+           MOVE EMR-EXC-ID            TO U-1411-EXC-ID (U-1411-SUB).
+           MOVE EMR-PORT-CODE         TO U-1411-PORT-CODE (U-1411-SUB). 
+           MOVE EMR-ABBREV-NAME       TO U-1411-ABBREV-NAME 
+                                                          (U-1411-SUB). 
+           MOVE EMR-BEGIN-DATE        TO U-1411-BEGIN-DATE (U-1411-SUB).
+           MOVE EMR-END-DATE          TO U-1411-END-DATE (U-1411-SUB).  
+           MOVE EMR-CREATION-DATE     TO U-1411-CREATION-DATE   
+                                                          (U-1411-SUB). 
+           MOVE EMR-VENDOR-ID         TO U-1411-VENDOR-ID (U-1411-SUB). 
+PSSSPA     MOVE EMR-EXC-TYPE          TO U-1411-EXC-TYPE (U-1411-SUB).  
+196410     MOVE EMR-POPULAR-CODE      TO U-1411-POPULAR-IND 
+196410                                                    (U-1411-SUB). 
+PSSSPA     MOVE EMR-VENDOR-REF-NUM    TO U-1411-VENDOR-REF-NUM  
+PSSSPA                                                    (U-1411-SUB). 
+SCRUM      MOVE EMR-STATUS            TO U-1411-STATUS (U-1411-SUB).
+
+149439*    This sets NUL indicators but more imporantly makes sure  
+149439*    tabled fields are converted to long strings. 
+149439  
+187917*    PERFORM SXSELR-NUL-SEL.  
+
+148439* Send data to the front-end. 
+
+187917*    PERFORM DPP12-SEND-ROW   
+187917*        THRU DPP12-SEND-ROW-EXIT.
+
+       2819-SEND-DATA-EXIT. 
+           EXIT.
+
+      *=================================================================
+
+      ******************************************************************
+      * 3000-EXC-DETAIL-PARA Lists the Details of a Shore Excursion.
+      ******************************************************************
+
+       3000-EXC-DETAIL-PARA.
+
+      * Validate for blank shore Ex id. 
+
+           IF  U-1404-EXC-ID = SPACES   
+144449       MOVE 0011                  TO DPP42-HOLD-MSG-INDEX 
+187917*      MOVE 'Shore Excursion-id is either blank or invalid'   
+187917*                                 TO DPP42-HOLD-MSG-DESC  
+187917       MOVE WS-PROG-ID            TO DPP42-HOLD-MSG-SOURCE
+144449       GO TO 9200-EDIT-ERROR-MSG  
+           END-IF.  
+
+      * Fetch the record corresponding to the exc-id from EMR-MASTER-REC
+
+           MOVE U-1404-EXC-ID  TO EMR-EXC-ID.   
+           FETCH EXC-MASTER-REC RECORD  
+               ON ERROR GO TO 3005-FETCH-EMR-ERR-CHK.   
+
+149439     GO TO 3010-EXC-DETAIL-START. 
+
+       3005-FETCH-EMR-ERR-CHK.  
+           IF  ERROR-NUM NOT = '0000'   
+             IF  ERROR-NUM = '0006' OR '0007' OR '0013' 
+144449         MOVE 0012             TO DPP42-HOLD-MSG-INDEX
+187917*        MOVE 'Shore Excursion-id not found in database'  
+187917*                              TO DPP42-HOLD-MSG-DESC 
+187917         MOVE WS-PROG-ID       TO DPP42-HOLD-MSG-SOURCE   
+144449         GO TO 9200-EDIT-ERROR-MSG
+             ELSE   
+144449         GO TO 9100-DATABASE-ERROR
+             END-IF 
+           END-IF.  
+
+      *-----------------------------------------------------------------
+
+       3010-EXC-DETAIL-START.   
+187917     ADD 1 TO U-1405-SUB. 
+187917     IF U-1405-SUB > 50   
+187917        MOVE  WS-PROG-ID         TO DPP42-HOLD-MSG-SOURCE 
+187917        MOVE 'Output response buffer U-1405 reached max limit'
+187917              TO DPP42-HOLD-MSG-DESC  
+187917        GO TO 9200-EDIT-ERROR-MSG 
+187917     END-IF.  
+149439*    Initiate (describe) the excursion details result set with
+149439*    UniAccess.   
+
+187917*    PERFORM SXSEDR-DSC-SED.  
+
+149439*    Clear indicators of what types of notes have been retrieved. 
+149439*    If any still clear after fetching records, corresponding 
+149439*    result set fields can also be cleared.   
+149439  
+149439     MOVE LOW-VALUES   TO WS-TEXT-FETCHED-FLAGS.  
+
+      * Move the data from database to he result-set variables. 
+
+           MOVE EMR-EXC-ID           TO U-1405-EXC-ID (U-1405-SUB). 
+           MOVE EMR-EXC-NAME         TO U-1405-EXC-NAME (U-1405-SUB).   
+           MOVE EMR-ABBREV-NAME      TO U-1405-ABBREV-NAME (U-1405-SUB).
+           MOVE EMR-VENDOR-ID        TO U-1405-VENDOR-ID (U-1405-SUB).  
+           MOVE EMR-PORT-CODE        TO U-1405-PORT-CODE (U-1405-SUB).  
+149439*    MOVE EMR-MIN-PORT-TIME-DURATION TO   
+149439*                                    U-1405-MIN-PORT-TIME-DURATION.   
+149439     MOVE EMR-MIN-PORT-TIME-DURATION  
+149439                               TO WS-DURATION-Z.  
+149439     COMPUTE WS-DURATION = 100 * WS-DURATION-Z.   
+149439     MOVE WS-DURATION 
+                         TO U-1405-MIN-PORT-TIME-DURATION (U-1405-SUB). 
+
+           MOVE EMR-MIN-PORT-TIME-DUR-TYPE  
+                         TO U-1405-MIN-PORT-TIME-DUR-TYPE (U-1405-SUB). 
+
+           MOVE EMR-EXC-DURATION     TO WS-DURATION-Z.  
+           COMPUTE WS-DURATION = 100 * WS-DURATION-Z.   
+           MOVE WS-DURATION        TO U-1405-EXC-DURATION (U-1405-SUB). 
+
+           MOVE EMR-DURATION-TYPE  TO U-1405-DURATION-TYPE (U-1405-SUB).
+           MOVE EMR-MIN-AGE        TO U-1405-MIN-AGE (U-1405-SUB).  
+           MOVE EMR-MIN-AGE-TYPE   TO U-1405-MIN-AGE-TYPE (U-1405-SUB). 
+           MOVE EMR-BOOK-TYPE      TO U-1405-BOOK-TYPE (U-1405-SUB).
+           MOVE EMR-CREATION-DATE  TO U-1405-CREATION-DATE (U-1405-SUB).
+           MOVE EMR-DEFAULT-PS-CUTOFF-DAYS  
+                         TO U-1405-DEFAULT-PS-CUTOFF-DAYS (U-1405-SUB). 
+           MOVE EMR-SHIPBOARD-CUTOFF-HRS
+                         TO U-1405-SHIPBOARD-CUTOFF-HRS (U-1405-SUB).   
+149439     MOVE EMR-1099-IND
+                         TO U-1405-FORM-1099-IND (U-1405-SUB).  
+           MOVE EMR-PRESALES-SOLD-IND   
+                         TO U-1405-PRESALES-SOLD-IND (U-1405-SUB).  
+           MOVE EMR-TAX-IND          TO U-1405-TAX-IND (U-1405-SUB).
+           MOVE EMR-TAX-DESC         TO U-1405-TAX-DESC (U-1405-SUB).   
+           MOVE EMR-TAX-PCT          TO U-1405-TAX-PCT (U-1405-SUB).
+           MOVE EMR-COMM-IND         TO U-1405-COMM-IND (U-1405-SUB).   
+149439     MOVE EMR-COMM-DETAIL-DESC TO U-1405-COMM-DESC (U-1405-SUB).  
+           MOVE EMR-COMM-PCT         TO U-1405-COMM-PCT (U-1405-SUB).   
+           MOVE EMR-GRATUITY-IND   TO U-1405-GRATUITY-IND (U-1405-SUB). 
+           MOVE EMR-GRATUITY-DESC  TO U-1405-GRATUITY-DESC (U-1405-SUB).
+           MOVE EMR-GRATUITY-PCT   TO U-1405-GRATUITY-PCT (U-1405-SUB). 
+PSSSPA     MOVE EMR-EXC-TYPE       TO U-1405-EXC-TYPE (U-1405-SUB). 
+PSSSPA     MOVE EMR-VENDOR-REF-NUM  
+187917                   TO U-1405-VENDOR-REF-NUM (U-1405-SUB). 
+PSSSPA     MOVE EMR-AVAIL-IMPACT-IND
+SCRUM                    TO U-1405-AVAIL-IMPACT-IND (U-1405-SUB).   
+SCRUM      MOVE EMR-STATUS          TO U-1405-STATUS (U-1405-SUB).  
+SCRUM      MOVE EMR-POPULAR-CODE    TO U-1405-POPULAR-IND (U-1405-SUB). 
+SCRUM      MOVE EMR-ONBOARD-CODE    TO U-1405-ONBOARD-IND (U-1405-SUB). 
+
+           PERFORM VARYING WS-I FROM 1 BY 1 
+               UNTIL WS-I > 72  
+             MOVE   EMR-ADVISORY-BIT (WS-I) 
+                 TO U-1405-ADVISORY-BIT (U-1405-SUB WS-I)   
+             MOVE   EMR-ACTIVITY-BIT (WS-I) 
+                 TO U-1405-ACTIVITY-BIT (U-1405-SUB WS-I)   
+           END-PERFORM. 
+
+           PERFORM VARYING WS-I FROM 1 BY 1 
+               UNTIL WS-I > 5   
+
+             MOVE   EMR-TKT-DETAIL-TABLE (WS-I) 
+                 TO U-1405-TKT-DETAIL-TBL (U-1405-SUB WS-I) 
+
+             MOVE   EMR-MIN-VOLUME (WS-I)   
+                 TO WS-RR2-MIN-VOL (WS-I)   
+             MOVE   EMR-MAX-VOLUME (WS-I)   
+                 TO WS-RR2-MAX-VOL (WS-I)   
+
+             PERFORM VARYING WS-J FROM 1 BY 1   
+                 UNTIL WS-J > 5 
+               MOVE   EMR-COST-CODE (WS-I WS-J) 
+                   TO WS-RR2-COST-CODE (WS-I WS-J)  
+               MOVE   EMR-COST (WS-I WS-J)  
+                   TO WS-RR2-COST (WS-I WS-J)   
+             END-PERFORM
+
+             IF WS-RR2-MAX-VOL (WS-I) > 0   
+               MOVE   WS-RR2-COST-TABLE (WS-I)  
+                   TO U-1405-COST-TABLE (U-1405-SUB WS-I)   
+             ELSE   
+               MOVE   SPACES
+                   TO U-1405-COST-TABLE (U-1405-SUB WS-I)   
+             END-IF 
+           END-PERFORM. 
+
+P62525     IF EMR-SELL-BY-UNIT-IND > 0  
+P62525        MOVE 'Y' TO U-1405-SELL-BY-UNIT-IND (U-1405-SUB)  
+P62525        MOVE EMR-SELL-BY-UNIT-DESC TO 
+P62525            U-1405-SELL-BY-UNIT-DESC (U-1405-SUB) 
+P62525     ELSE 
+P62525        MOVE 'N'    TO U-1405-SELL-BY-UNIT-IND (U-1405-SUB)   
+P62525        MOVE SPACES TO U-1405-SELL-BY-UNIT-DESC (U-1405-SUB)  
+P62525     END-IF.  
+
+P62525     MOVE EMR-EXCEPT-PRICING-CNT TO   
+P62525          U-1405-EXCEPT-PRICING-CNT (U-1405-SUB). 
+P62525     PERFORM VARYING SUB FROM 1 BY 1 UNTIL SUB > 5
+P62525        IF SUB >  EMR-EXCEPT-PRICING-CNT  
+P62525           MOVE SPACES TO U-1405-PRICING-CODE-TABLE   
+P62525                                          (U-1405-SUB SUB)
+P62525        ELSE  
+P62525           MOVE EMR-EXCEPT-PRICING-CODE-TABLE (SUB) TO
+P62525                U-1405-PRICING-CODE-TABLE (U-1405-SUB SUB)
+P62525           MOVE EMR-PRICING-CODE (SUB) TO WS-EMR-PRICING-CODE 
+P62525           COMPUTE WS-EMR-BEGIN-AGE = EMR-BEGIN-AGE (SUB) + 0 
+P62525           COMPUTE WS-EMR-END-AGE   = EMR-END-AGE (SUB) + 0   
+P62525           MOVE EMR-AGE-TYPE (SUB) TO WS-EMR-AGE-TYPE 
+P62525           MOVE EMR-PRICING-CODE-DESC (SUB) TO
+P62525                                      WS-EMR-PRICING-CODE-DESC
+P62525           MOVE WS-EMR-EXCEPT-PRICING-CODES TO
+P62525                U-1405-PRICING-CODE-TABLE (U-1405-SUB SUB)
+P62525        END-IF
+P62525     END-PERFORM. 
+      * Fetch data from EXC-NOTE-REC.   
+
+       3020-EMNS-DET-CONT.  
+
+C92439* ENR record will now have two additional ENR-TYPE as 'N' and 'H'.
+C92439* 'N' for New 'NOTES' text box in Admin Tool. This field will be  
+C92439* available for all Pre sale types, having default value as SPACES
+C92439* ENR-TYPE = 'H' will only exist for pre sale type 'EX'. This 
+C92439* field will represent the Activity header (new drop down box 
+C92439* in Admin  tool) of each excursion. EPR is the new record, which 
+C92439* represent the new 'ONBOARD PRICING SHEET DESCRIPTION' in Admin  
+C92439* tool and will be available for pre sale type 'EX' only. 
+C92439* 
+149439*    There was a FETCH FIRST block that I removed and consolodated
+149439*    here.
+149439  
+208566*    FETCH NEXT RECORD WITHIN EXC-MASTER-NOTE-SET SET 
+208566*       AT END GO TO 3080-SEND-DETAIL 
+208566*       ON ERROR GO TO 3025-EMNS-ERR-CHK. 
+208566* 
+208566*    IF RECORD-NAME = 'EXC-NOTE-REC'  
+208566*      EVALUATE ENR-TYPE  
+208566*      WHEN 'D'   
+208566*        MOVE ENR-TEXT         TO U-1405-DESCRIPTION-TEXT 
+208566*        MOVE 1                TO WS-DESCRIPTION-FLG  
+208566*      WHEN 'A'   
+208566*        MOVE ENR-TEXT         TO U-1405-DISCLAIMER-TEXT  
+208566*        MOVE 1                TO WS-DISCLAIMER-FLG   
+208566*      WHEN 'N'   
+208566*        MOVE ENR-TEXT         TO U-1405-NOTES
+208566*        MOVE 1                TO WS-NOTES-FLG
+208566*      WHEN OTHER 
+208566*        MOVE ENR-TEXT         TO U-1405-ACTIVITY-HEADER  
+208566*        MOVE 1                TO WS-ACTIVITY-HEADER-FLG  
+208566*      END-EVALUATE   
+208566*    ELSE 
+208566* 
+149439*      Size of a pricing description block of text.   
+208566*      MOVE FUNCTION LENGTH (U-1405-PRICING-DESC) 
+208566*                              TO WS-K
+149439*      Number of blocks to make a whole.  
+208566*      COMPUTE                    WS-L
+208566*          =   FUNCTION LENGTH (EPR-LONG-DESC)
+208566*            / WS-K   
+208566*      MOVE 1 TO WS-J 
+208566*      PERFORM
+208566*          VARYING WS-I  FROM 1 BY 1  
+208566*          UNTIL   (WS-I > WS-L)  
+208566*        MOVE   EPR-LONG-DESC (WS-J:WS-K) 
+208566*            TO U-1405-PRICING-DESC (WS-I)
+208566*        ADD WS-K TO WS-J 
+208566*      END-PERFORM
+208566*      MOVE 1                  TO WS-PRICING-DESC-FLG 
+208566*    END-IF.  
+208566* 
+208566*    GO TO 3020-EMNS-DET-CONT.
+
+208566     EXEC SQL 
+208566          DECLARE EXC_NOTE_CUR CURSOR 
+208566          SELECT TYPE 
+208566                 ,TEXT
+208566          FROM EXC_NOTE   
+208566          WHERE EXC_ID = :EMR-EXC-ID  
+208566     END-EXEC.
+
+208566     EXEC SQL 
+208566          OPEN EXC_NOTE_CUR   
+208566     END-EXEC.
+
+208566 3021-FETCH-NEXT-ENR. 
+
+208566     MOVE SPACES               TO WS-ENR-TYPE 
+208566                                  WS-ENR-TEXT.
+208566     EXEC SQL 
+208566          FETCH NEXT EXC_NOTE_CUR 
+208566                INTO :WS-ENR-TYPE 
+208566                    ,:WS-ENR-TEXT 
+208566     END-EXEC.
+
+208566     IF SQLCODE < 0   
+208566        GO TO 3025-EMNS-ERR-CHK   
+208566     END-IF.  
+
+208566     IF SQLCODE = 100 
+208566        EXEC SQL  
+208566            CLOSE EXC_NOTE_CUR
+208566        END-EXEC  
+208566        GO TO 3022-FETCH-EPR  
+208566     END-IF.  
+
+208566     EVALUATE WS-ENR-TYPE 
+208566       WHEN 'D'   
+208566         MOVE WS-ENR-TEXT  TO U-1405-DESCRIPTION-TEXT (U-1405-SUB)
+208566         MOVE 1            TO WS-DESCRIPTION-FLG  
+208566       WHEN 'A'   
+208566         MOVE WS-ENR-TEXT  TO U-1405-DISCLAIMER-TEXT (U-1405-SUB) 
+208566         MOVE 1            TO WS-DISCLAIMER-FLG   
+208566       WHEN 'N'   
+208566         MOVE WS-ENR-TEXT  TO U-1405-NOTES (U-1405-SUB)   
+208566         MOVE 1            TO WS-NOTES-FLG
+208566       WHEN OTHER 
+208566         MOVE WS-ENR-TEXT  TO U-1405-ACTIVITY-HEADER (U-1405-SUB) 
+208566         MOVE 1            TO WS-ACTIVITY-HEADER-FLG  
+208566     END-EVALUATE.
+
+208566     GO TO 3021-FETCH-NEXT-ENR.   
+
+208566 3022-FETCH-EPR.  
+
+208566     MOVE SPACES               TO WS-EPD-LONG-DESC.   
+208566     EXEC SQL 
+208566          SELECT LONG_DESC
+208566          INTO :WS-EPD-LONG-DESC  
+208566          FROM EXC_PRICING_DESC   
+208566          WHERE EXC_ID = :EMR-EXC-ID  
+208566     END-EXEC.
+
+208566     IF (SQLCODE < 0) OR  
+208566        (SQLCODE = 100)   
+208566        GO TO 3025-EMNS-ERR-CHK   
+208566     END-IF.  
+
+208566     MOVE FUNCTION LENGTH (U-1405-PRICING-DESC (U-1405-SUB 1))
+208566                             TO WS-K. 
+208566     COMPUTE WS-L 
+208566             =   FUNCTION LENGTH (WS-EPD-LONG-DESC)   
+208566             / WS-K.  
+208566     MOVE 1                  TO WS-J. 
+208566     PERFORM  
+208566         VARYING WS-I  FROM 1 BY 1
+208566         UNTIL   (WS-I > WS-L)
+208566       MOVE   WS-EPD-LONG-DESC (WS-J:WS-K)
+208566           TO U-1405-PRICING-DESC (U-1405-SUB WS-I)   
+208566       ADD WS-K TO WS-J   
+208566     END-PERFORM. 
+208566     MOVE 1                  TO WS-PRICING-DESC-FLG.  
+
+208566     GO TO 3080-SEND-DETAIL.  
+
+       3025-EMNS-ERR-CHK.   
+
+208566*    IF  ERROR-NUM = '0000' OR '0006' OR '0007' OR '0013' 
+208566     IF SQLCODE = 100 
+             GO TO 3080-SEND-DETAIL 
+           ELSE 
+208566*      GO TO 9100-DATABASE-ERROR  
+208566       GO TO 9150-RDMS-ERROR  
+           END-IF.  
+
+      *-----------------------------------------------------------------
+
+       3080-SEND-DETAIL.
+
+      * Ensure that fields that weren't filled yet are initialized. 
+      * This will prevent returning data stuck from prior transaction.  
+
+149439     IF  (WS-DESCRIPTION-FLG = 0) 
+149439       MOVE SPACE      TO U-1405-DESCRIPTION-TEXT (U-1405-SUB)
+149439     END-IF.  
+149439     IF  (WS-DISCLAIMER-FLG = 0)  
+149439       MOVE SPACE      TO U-1405-DISCLAIMER-TEXT (U-1405-SUB) 
+149439     END-IF.  
+149439     IF  (WS-NOTES-FLG = 0)   
+149439       MOVE SPACE      TO U-1405-NOTES (U-1405-SUB)   
+149439     END-IF.  
+149439     IF  (WS-ACTIVITY-HEADER-FLG = 0) 
+149439       MOVE SPACE      TO U-1405-ACTIVITY-HEADER (U-1405-SUB) 
+149439     END-IF.  
+149439     IF  (WS-PRICING-DESC-FLG = 0)
+149439*      Size of a pricing description block of text.   
+149439       MOVE FUNCTION LENGTH (U-1405-PRICING-DESC (U-1405-SUB 1))  
+149439                               TO WS-K
+149439*      Number of blocks to make a whole.  
+149439       COMPUTE                    WS-L
+208566*          =   FUNCTION LENGTH (EPR-LONG-DESC)
+208566           =   FUNCTION LENGTH (WS-EPD-LONG-DESC) 
+149439             / WS-K   
+149439*      This assumes there are as many RPCMan table entries
+149439*      defined as the blocks computed above.  
+149439       PERFORM
+149439           VARYING WS-I  FROM 1 BY 1  
+149439           UNTIL   (WS-I > WS-L)  
+149439         MOVE   SPACE 
+149439             TO U-1405-PRICING-DESC (U-1405-SUB WS-I) 
+149439       END-PERFORM
+149439     END-IF.  
+
+149439*    This sets NUL indicators but more importantly makes sure 
+149439*    tabled fields are converted to long strings. 
+149439  
+187917*    PERFORM SXSEDR-NUL-SED.  
+
+      * Send data to the front-end. 
+
+187917*    PERFORM DPP12-SEND-ROW   
+187917*        THRU DPP12-SEND-ROW-EXIT.
+
+
+      *-----------------------------------------------------------------
+       3090-EXC-DETAIL-DONE.
+
+149439*    Finish the list result set.  
+
+149439*    I took out condition for match between input and EMR keys.   
+149439*    Why wouldn't they since the input key is what was explicitly 
+149439*    fetched for. 
+
+187917     MOVE SPACES                 TO U-1404-OUT-EOM-LOCATOR.   
+187917*    PERFORM DPP12-SEND-DONE-COUNT
+187917*       THRU DPP12-SEND-DONE-COUNT-EXIT.  
+
+      *-----------------------------------------------------------------
+       3099-EXC-DETAIL-PARA-EXIT.   
+           EXIT.
+
+      *-----------------------------------------------------------------
+
+      *=================================================================
+
+      *    Standard termination and advisory handling paragraphs.   
+       9000-END-OF-JOB. 
+144449     GO TO DPP12-END-OF-JOB.  
+
+208566 9150-RDMS-ERROR. 
+208566     GO TO DPP12-RDMS-ERROR.  
+
+       9100-DATABASE-ERROR. 
+           GO TO DPP12-DATABASE-ERROR.  
+
+144449 9200-EDIT-ERROR-MSG. 
+144449     PERFORM DPP12-EDIT-ERROR-MSG 
+144449         THRU DPP12-EDIT-ERROR-MSG-EXIT.  
+144449     GO TO 9000-END-OF-JOB.   
+144449  
+144449 9210-EDIT-CONTINUE-MSG.  
+144449     PERFORM DPP12-EDIT-ERROR-MSG 
+144449         THRU DPP12-EDIT-ERROR-MSG-EXIT.  
+144449  
+144449 9300-SEVERE-ERROR-MSG.   
+144449     GO TO DPP12-SEVERE-ERROR-MSG.
+144449  
+187917*9300-UASL-ERROR. 
+187917*    GO TO DPP12-UASL-ERROR.  
+144449  
+144449 9400-INFO-MSG.   
+144449     PERFORM DPP12-INFO-MSG   
+144449         THRU DPP12-INFO-MSG-EXIT.
+144449  
+144449 9500-RETURN-SUBROUTINE-ERROR.
+144449     GO TO DPP12-RETURN-SUBROUTINE-ERROR. 
+
+187917 10000-SEND-OUTPUT.   
+187917     PERFORM DPP12-OUTPUT-INFOMSG-TABLE   
+187917        THRU DPP12-OUTPUT-INFOMSG-TABLE-X.
+187917     IF DPP01-ISUB > 0
+187917        PERFORM VARYING DPP01-SUB FROM 1 BY 1 
+187917                UNTIL DPP01-SUB > DPP01-ISUB  
+187917           MOVE DPP01-INFO-MSG-SOURCE (DPP01-SUB) 
+187917                          TO U-1404-INFMSG-MSG-SOURCE (DPP01-SUB) 
+187917           MOVE DPP01-INFO-MSG-DESC (DPP01-SUB)   
+187917                          TO U-1404-INFMSG-MSG-DESC (DPP01-SUB)   
+187917           MOVE DPP01-INFO-MSG-STATUS (DPP01-SUB) 
+187917                          TO U-1404-INFMSG-MSG-STATUS (DPP01-SUB) 
+187917           MOVE DPP01-INFO-MSG-INDEX (DPP01-SUB)  
+187917                          TO U-1404-INFMSG-MSG-NUM (DPP01-SUB)
+187917           MOVE DPP01-INFO-MSG-BOOK-NUM (DPP01-SUB)   
+187917                          TO U-1404-INFMSG-BOOK-NUM (DPP01-SUB)   
+187917        END-PERFORM   
+187917     END-IF.  
+187917     MOVE FUNCTION LENGTH (X-OUTPUT-R-SXSEL-BUFFER)   
+187917                                 TO DPP01-PLENGHT.
+187917     MOVE X-OUTPUT-R-SXSEL-BUFFER TO DPP01-MCB-OUTPUT-MESSAGE.
+187917     PERFORM ECP75-SEND-OUTPUT
+187917        THRU ECP75-SEND-OUTPUT-EXIT.  
+
+
+187917 10000-SEND-OUTPUT-EXIT.  
+187917     EXIT.
+
+144449*===== RPCMan Procedure Procs ====================================
+144449  
+187917*COPY SXSEL-P-1404.   
+187917*COPY SXSEDR-R-1405.  
+187917*COPY SXSELR-R-1411.  
+187917     COPY SXP-R-SX-SEL-INT.   
+
+      *===== Standard Advisory and Termination Procs ===================
+187917     COPY DPP12EER.   
+187917*    COPY DPP12UER.   
+187917*    COPY DPP12UMI.   
+           COPY DPP12ERR.   
+187917     COPY DPP12MMI.   
+           COPY DPP12WDB.   
+187917     COPY ECP75MSG.   
+
+
+      *===== Other Procs ===============================================

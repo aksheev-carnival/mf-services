@@ -1,0 +1,3222 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.       YMB09CCD.  
+       AUTHOR.           SYSTEMS.   
+       INSTALLATION.     CARNIVAL CRUISE LINES. 
+       DATE-WRITTEN.     SEPT 95.   
+       DATE-COMPILED.   
+************************************************************************
+HW0902* 09/02  - BYPASS FETCH OF AVAIL CABIN IF PHANTOM CATEGORY   H1W *
+HW0902*          INDICATOR IS SET TO 'Y'                               *
+************************************************************************
+GCBPRJ* MAY-2005      9RG      TATA INFOTECH LTD.      GCBPRJ          *
+GCBPRJ* Modified Program for Group Cabins Breakout Project.            *
+GCBPRJ* The Program now uses Areas GRP1-RATE1 - GRP1-RATE5 instead of  *
+GCBPRJ* GRP1-RATM1 area.                                               *
+************************************************************************
+SP0605*  JUN-13-05     0SP     TATA INFOTECH LTD      CQ39120          *
+SP0605*  MODIFIED CODE TO IGNORE HARD-CODED CUSTOMER # OR AGENT PHONE #*
+SP0605*  AND USE THE 16TH BIT OF ATCR-INDICATORS TO BYPASS THESE TEST  *
+SP0605*  BOOKINGS.                                                     *
+************************************************************************
+AD0905* AUG-30-05     0AD     TATA INFOTECH LTD      CQ42452           *
+AD0905* MODIFIED CODE TO SKIP THE MSAM MATCH IF SKIP FLAG IS SET AS:   *
+AD0905* 'S': FOR SATURDAY                                              *
+AD0905* 'A': FOR ANY OTHER DAY.                                        *
+************************************************************************
+C64542* 05-JUL-07     1BB     TCS LTD.               CQ64542           *
+C64542* CHANGES DONE IN CODE TO NOT INCLUDE GBR BERTHED CABIN COUNTS IN*
+C64542* IBR BERTHED COUNTS.                                            *
+************************************************************************
+C65772* JUL-24-07     9RG     TCS LTD.               CQ65772           *
+C65772* CODE MODIFIED TO EXCLUDE THE 'CLOSED-DRY DOCK' SAILING FROM THE*
+C65772* CLOSED SAILING PROCESS.                                        *
+************************************************************************
+RA0808* ISSDM00061722 - "PROGRAM FEE RE-STRUCTURE Project" changes.    *
+************************************************************************
+C85967* FEB-10-2009   N3P                            CQ85967           *
+C85967* Data currenly obtained from the GRP1-COUNT-HISTORY-REC         *
+C85967* needs to be acquired and derived from RSO15BCR (Groups Counts) *
+************************************************************************
+C87403* 16-JUN-09     GN2     TCS LTD.               CQ87403           *
+C87403* CHANGES MADE FOR CATEGORY EXPANSION.                           *
+************************************************************************
+C86344* 31-JUL-09     N3P                            CQ86344           *
+C86344* CHANGES MADE FOR REAL-TIME CABIN STATUS.  ENSURE THAT ALL      *
+C86344* CABINS ARE DRAINED TO THE DW ON SATURDAY, A NON-SLA DAY        *
+************************************************************************
+C92909* 25-SEP-09     9KS     TCS LTD.               CQ92909           *
+C92909* JOB ABORTS FOR CABINS WITH STATUS 'B' AND NO BOOK NUM ATTCHD.  *
+************************************************************************
+C97529* 05-OCT-09     9KS     TCS LTD.               CQ97529           *
+C97529* Value of 0 populating DW.SAIL_CONTROL_FACT table               *
+C97529* Calc_Grp_Hcp_Cab field.                                        *
+************************************************************************
+C98140* 03-DEC-09     N3P                            CQ98140           *
+C98140* ISSUES WITH INTRA-DAY AND REGULAR CABIN-FACT                   *
+C98140* -ALL CABIN RECORDS ARE ERRONEOUSLY DRAINED TO YMBCAB.          *
+************************************************************************
+102741* 08-FEB-10     9KS     TCS LTD.               CQ102741          *
+102741* INCORRECT DEADLOCK LOGIC.                                      *
+************************************************************************
+103403* ISSDM0103403 - REMOVE OTS REFERENCES PER PROJECT REQUIREMENTS. *
+103403*   REPLACE "PASS-OTS-3CHAR-USERID" WITH "DPP01-3CHAR-USERID";   *
+103403*   REMOVE GRP02SEC.  "DPP01-3CHAR-USERID" IS MOVEDED PRIOR TO   *
+103403*   ALL CALLS TO SUBROUTINES.                    2010/02/01  RSA *
+************************************************************************
+111892* 12-OCT-10     9KS     TCS LTD.               CQ111892          *
+111892* YMBCPA FILE COMING OUT BLANK.                                  *
+************************************************************************
+C85443* 23-MAR-11     DK0     TCS LTD.               CQ85443           *
+C85443* PBO ONLY - RSP15 RESTRUCTURING.                                *
+************************************************************************
+108267* 23-JUN-11     2SJ     TCS LTD.               CQ108267          *
+108267* MULTI CURRENCY PROGRAM CHANGES.                                *
+************************************************************************
+110124* 14-DEC-11     AG2     TCS LTD.               CQ110124          *
+110124* CORRECTING THE INCORRECT DEADLOCK LOGIC.                       *
+************************************************************************
+CCL-UK* 21-MAY-12     JHM     TCS LTD.               CQCCL-UK          *
+CCL-UK* CARNIVAL UK CHANGES: REPLACED HARDCODING FOR BROCHURE TYPE= 'D'*
+CCL-UK* WITH CMP-BROCHURE-TYPE.                                        *
+************************************************************************
+164817* 07-APR-14     SN2     TCS LTD.               CQ164817          *
+164817* CALL SSC13GSD.                                                 *
+************************************************************************
+165576* 25-JUL-14     PS5     TCS LTD.               CQ165576          *
+165576* CHANGES MADE TO HANDLE THE RESTART LOGIC AFTER DEADLOCK        *
+************************************************************************
+173305* 21-JAN-15     PY0     TCS LTD.               CQ173305          *
+173305* CHANGES DONE TO ENSURE COORDINATED THREAD CONTROL AS SSC14USD  *
+173305* WILL NOW BE USING RDMS DATABASE.                               *
+************************************************************************
+165711* 29-JUN-15     RK2     TCS LTD                CQ165711          *
+165711* CHANGES DONE TO ADD A NEW CALLING PARAMETER FOR THE ROUTINES   *
+165711* IMPACTED.                                                      *
+************************************************************************
+192483* 05-FEB-16     5NS     TCS LTD.               CQ192483          *
+192483* CHANGES DONE FOR ADA PROJECT.                                  *
+************************************************************************
+192660* 05-JUL-16     HK2     TCS LTD.               CQ192660          *
+192660* SUPPORT MULTIPLE ERF NUMBERS PER AGENCY PROFILE TO PAYOUT      *
+192660* COMMISSIONS BASED ON BOOKINGS CURRENCY                         *
+************************************************************************
+197423* 08-AUG-16     DC6     TCS LTD.               CQ197423          *
+197423* TO COMMENT THE DEAD CODE IN YMB09CCD.                          *
+************************************************************************
+214948* 05-AUG-19     FSK     TCS LTD                 CQ214948         *
+214948* CHANGES DONE TO INCORPORATE ALPHANUMERIC AGENCY CUSTOMER NUM.  *
+************************************************************************
+PPC470* 10-FEB-16     RK2     TCS LTD.               PPC470            *
+PPC470* PPC PROJECT CHANGES.                                           *
+************************************************************************
+879253* 12-MAY-21     DC6     TCS LTD.               CQ879253          *
+879253* Fire Zone code chnages at Cabin Level                          *
+************************************************************************
+133581* 07-AUG-23     7NC     TCS LTD.               ADO1335818        *
+133581* CHANGES DONE TO ADD NEW CABIN STATUS VALUE TO 'R'              *
+133581* FOR CABIN RESERVED BY RATE CODE                                *
+************************************************************************
+131866* 27-OCT-25     SAI     TCS LTD.               ADO2131866        *
+131866* CHANGES MADE TO SEND THE FULL DATA(YMBCAB) ON FRIDAY NIGHT ONLY*
+************************************************************************
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER. UNISYS-2200-622.
+       OBJECT-COMPUTER. UNISYS-2200-622 MEMORY 3 MODULES.   
+       SPECIAL-NAMES.   
+               PRINTER IS PRINTER   
+               CONSOLE IS CONSOLE.  
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT DATE-FILE          ASSIGN TO DISC    YMBCCD02D.   
+           SELECT PRINT-FILE         ASSIGN TO PRINTER YMBCCD01P.   
+           SELECT YMBCCD-FILE        ASSIGN TO DISC    YMBCCD03D.   
+DL0802     SELECT YMBCCD-CNT-FILE    ASSIGN TO DISC    YMBCCD03DC.  
+NP0103     SELECT YMBCAB-FILE        ASSIGN TO DISC    YMBCAB02D.   
+NP0103     SELECT YMBCAB-CNT-FILE    ASSIGN TO DISC    YMBCAB02DC.  
+NP0103     SELECT YMBCPA-FILE        ASSIGN TO DISC    YMBCPA02D.   
+NP0103     SELECT YMBCPA-CNT-FILE    ASSIGN TO DISC    YMBCPA02DC.  
+           SELECT YMBCAB-MSAM-FILE   ASSIGN TO DISC    YMBmsc02D
+               ORGANIZATION IS INDEXED  
+               ACCESS IS DYNAMIC
+               RECORD KEY IS YMBCAB-MSAM-KEY.   
+           SELECT YMBCAB-MNEW-FILE   ASSIGN TO DISC    YMBMNW02D.   
+C42452     SELECT YMBCCD-SKIP-FILE   ASSIGN TO DISC    YMBCCD01D.   
+131866     SELECT YMBCCD-POI-FILE    ASSIGN TO DISC    YMBPOI01D.   
+       DATA DIVISION.   
+       SUBSCHEMA SECTION.   
+       INVOKE SUBSCHEMA PST100UCOBSU
+              IN FILE SUBSCHEMAS OF SCHEMA PST100SCHEMA 
+              COPYING RECORDS    INTO COMMON
+              COPYING DATA-NAMES INTO COMMON
+              RUN-UNIT-ID IS IRBCCD 
+              OVERLAY PAX-REC WITH PAX-CXF-REC  
+169014*                            PAX-FUT-REC  
+                                   PAX-VI-REC   
+144449        SAVE DATA INCLUDES DEFERRED-UPDATES   
+              DMCA COMMON   
+              ERROR RECOVERY IS 9100-DATABASE-ERROR 
+              ROLLBACK IS       9100-DATABASE-ERROR.
+
+       FILE SECTION.
+       FD  DATE-FILE
+           LABEL RECORDS ARE STANDARD.  
+       01  DATE-REC.
+           03  DATE-REC-TYPE           PIC X.   
+           03  DATE-BEGIN-DATE         PIC 9(8).
+           03  FILLER                  PIC X.   
+           03  DATE-END-DATE           PIC 9(8).
+           03  FILLER                  PIC X(62).   
+
+       FD  PRINT-FILE   
+           LABEL RECORDS ARE STANDARD   
+           LINAGE 66 TOP 0 BOTTOM 0.
+       01  P-REC                       PIC X(132).  
+
+       FD YMBCCD-FILE   
+           LABEL RECORDS ARE OMITTED.   
+       01 YMBCCD-REC.   
+          05 YMBCCD-RECORD-ID               PIC X(6).   
+          05 YMBCCD-DATESTAMP               PIC 9(8).   
+          05 YMBCCD-FILLER-1                PIC X.  
+          05 YMBCCD-SHIP-CODE               PIC X(2).   
+          05 YMBCCD-FILLER-2                PIC X.  
+          05 YMBCCD-DURATION-DAYS           PIC 9(2).   
+          05 YMBCCD-FILLER-3                PIC X.  
+          05 YMBCCD-SAIL-DATE               PIC 9(8).   
+          05 YMBCCD-FILLER-4                PIC X.  
+          05 YMBCCD-CATEGORY-CODE           PIC X(3).   
+          05 YMBCCD-FILLER-5                PIC X.  
+          05 YMBCCD-NUM-CABINS              PIC 9(5).   
+          05 YMBCCD-FILLER-6                PIC X.  
+          05 YMBCCD-OPEN-CABINS             PIC 9(5).   
+          05 YMBCCD-FILLER-7                PIC X.  
+          05 YMBCCD-RESV-AFF-NET            PIC 9(5).   
+          05 YMBCCD-FILLER-8                PIC X.  
+          05 YMBCCD-RESV-NOT-AFF-NET        PIC 9(5).   
+          05 YMBCCD-FILLER-9                PIC X.  
+          05 YMBCCD-INDV-BTH-CABS           PIC 9(5).   
+          05 YMBCCD-FILLER-10               PIC X.  
+          05 YMBCCD-INDV-GTEE-CABS          PIC 9(5).   
+          05 YMBCCD-FILLER-11               PIC X.  
+          05 YMBCCD-INDV-BLK-CABS           PIC 9(5).   
+          05 YMBCCD-FILLER-12               PIC X.  
+          05 YMBCCD-GRP-REQ-CABS            PIC 9(5).   
+          05 YMBCCD-FILLER-13               PIC X.  
+          05 YMBCCD-GRP-SOLD-CABS           PIC 9(5).   
+          05 YMBCCD-FILLER-14               PIC X.  
+          05 YMBCCD-GRP-BLK-CABS            PIC 9(5).   
+          05 YMBCCD-FILLER-15               PIC X.  
+          05 YMBCCD-GRP-GTEE-CABS           PIC 9(5).   
+          05 YMBCCD-FILLER-25               PIC X.  
+          05 YMBCCD-GRP-BLK-GTEE-CABS       PIC 9(5).   
+          05 YMBCCD-FILLER-16               PIC X.  
+          05 YMBCCD-GRP-BTH-CABS            PIC 9(5).   
+          05 YMBCCD-FILLER-17               PIC X.  
+          05 YMBCCD-GRP-HCP-CABS            PIC 9(5).   
+          05 YMBCCD-FILLER-18               PIC X.  
+          05 YMBCCD-INDV-OPT-CABS           PIC 9(5).   
+          05 YMBCCD-FILLER-19               PIC X.  
+          05 YMBCCD-INDV-PAX-CNT            PIC 9(5).   
+          05 YMBCCD-FILLER-20               PIC X.  
+          05 YMBCCD-GRP-PAX-CNT             PIC 9(5).   
+          05 YMBCCD-FILLER-21               PIC X.  
+          05 YMBCCD-GRP-EST-PAX-CNT         PIC 9(5).   
+RH1101    05 YMBCCD-FILLER-22               PIC X.  
+RH1101    05 YMBCCD-HOLD-SAIL-POOL-CABINS   PIC 9(5).   
+RH1101    05 YMBCCD-FILLER-23               PIC X.  
+RH1101    05 YMBCCD-NET-CABINS-AVAILABLE    PIC -9(5).  
+NP0502    05 YMBCCD-GRP-HCP-CABS-OC         OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-24            PIC X.  
+NP0502       10 YMBCCD-GRP-HCP-CABSD        PIC 9(5).   
+NP0502    05 YMBCCD-FEMALE-QUAD-CABS-OC     OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-26            PIC X.  
+NP0502       10 YMBCCD-FEMALE-QUAD-CABSD    PIC 9(5).   
+NP0502    05 YMBCCD-FEMALE-SHARE-CABS-OC    OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-27            PIC X.  
+NP0502       10 YMBCCD-FEMALE-SHARE-CABSD   PIC 9(5).   
+NP0502    05 YMBCCD-GRP-BLK-BKG-CABS-OC     OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-28            PIC X.  
+NP0502       10 YMBCCD-GRP-BLK-BKG-CABSD    PIC 9(5).   
+NP0502    05 YMBCCD-GRP-BLK-GTEE-CABS-OC    OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-29            PIC X.  
+NP0502       10 YMBCCD-GRP-BLK-GTEE-CABSD   PIC 9(5).   
+NP0502    05 YMBCCD-GRP-BLK-SAIL-CABS-OC    OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-30            PIC X.  
+NP0502       10 YMBCCD-GRP-BLK-SAIL-CABSD   PIC 9(5).   
+NP0502    05 YMBCCD-GRP-BTH-CABS-OC         OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-31            PIC X.  
+NP0502       10 YMBCCD-GRP-BTH-CABSD PIC 9(5).  
+NP0502    05 YMBCCD-GRP-GTEE-CABS-OC        OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-32            PIC X.  
+NP0502       10 YMBCCD-GRP-GTEE-CABSD       PIC 9(5).   
+NP0502    05 YMBCCD-GRP-LOG-BKG-CABS-OC     OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-33            PIC X.  
+NP0502       10 YMBCCD-GRP-LOG-BKG-CABSD    PIC 9(5).   
+NP0502    05 YMBCCD-GRP-LOG-BTH-CABS-OC     OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-34            PIC X.  
+NP0502       10 YMBCCD-GRP-LOG-BTH-CABSD    PIC 9(5).   
+NP0502    05 YMBCCD-GRP-LOG-SAIL-CABS-OC    OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-35            PIC X.  
+NP0502       10 YMBCCD-GRP-LOG-SAIL-CABSD   PIC 9(5).   
+NP0502    05 YMBCCD-GRP-REQ-CABS-OC         OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-36            PIC X.  
+NP0502       10 YMBCCD-GRP-REQ-CABSD        PIC 9(5).   
+NP0502    05 YMBCCD-GRP-SOLD-CABS-OC        OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-37            PIC X.  
+NP0502       10 YMBCCD-GRP-SOLD-CABSD       PIC 9(5).   
+NP0502    05 YMBCCD-GRP-UNASG-GTEE-CAB-OC   OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-38            PIC X.  
+NP0502       10 YMBCCD-GRP-UNASG-GTEE-CABSD PIC 9(5).   
+NP0502    05 YMBCCD-INDV-BLOCKED-CABS-OC    OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-39            PIC X.  
+NP0502       10 YMBCCD-INDV-BLOCKED-CABSD   PIC 9(5).   
+NP0502    05 YMBCCD-INDV-BTH-CABS-OC        OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-40            PIC X.  
+NP0502       10 YMBCCD-INDV-BTH-CABSD       PIC 9(5).   
+NP0502    05 YMBCCD-INDV-GTEE-CABS-OC       OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-41            PIC X.  
+NP0502       10 YMBCCD-INDV-GTEE-CABSD      PIC 9(5).   
+NP0502    05 YMBCCD-MALE-QUAD-CABS-OC       OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-42            PIC X.  
+NP0502       10 YMBCCD-MALE-QUAD-CABSD      PIC 9(5).   
+NP0502    05 YMBCCD-MALE-SHARE-CABS-OC      OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-43            PIC X.  
+NP0502       10 YMBCCD-MALE-SHARE-CABSD     PIC 9(5).   
+NP0502    05 YMBCCD-NUM-CABS-OC             OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-44            PIC X.  
+NP0502       10 YMBCCD-NUM-CABSD            PIC 9(5).   
+NP0502    05 YMBCCD-OPEN-CABS-OC            OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-46            PIC X.  
+NP0502       10 YMBCCD-OPEN-CABSD           PIC 9(5).   
+NP0502    05 YMBCCD-OPEN-CABS-BY-MAX-CAP-OC OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-47            PIC X.  
+NP0502       10 YMBCCD-OPEN-CABS-BY-MAX-CAPD PIC 9(5).  
+NP0502    05 YMBCCD-RESV-CABS-AFFECT-NET-OC OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-48            PIC X.  
+NP0502       10 YMBCCD-RESV-CABS-AFFECT-NETD PIC 9(5).  
+NP0502    05 YMBCCD-RESV-CABS-BY-MAX-AFF-OC OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-49            PIC X.  
+NP0502       10 YMBCCD-RESV-CABS-BY-MAX-AFFD PIC 9(5).  
+NP0502    05 YMBCCD-RSV-CAB-BY-MX-NOT-AF-OC OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-50            PIC X.  
+NP0502       10 YMBCCD-RESV-CABS-BY-MX-NOT-AFD PIC 9(5).
+NP0502    05 YMBCCD-RSV-CAB-NOT-AF-NET-OC   OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-51            PIC X.  
+NP0502       10 YMBCCD-RSV-CABS-NOT-AFF-NETD PIC 9(5).  
+NP0502    05 YMBCCD-WAITLIST-CABS-OC        OCCURS 5 TIMES. 
+NP0502       10 YMBCCD-FILLER-52            PIC X.  
+NP0502       10 YMBCCD-WAITLIST-CABSD       PIC 9(5).   
+
+NP0103 FD  YMBCAB-FILE  
+NP0103     LABEL RECORDS ARE OMITTED.                                    * Sourc
+NP0103 01  YMBCAB-REC.                                                    * 
+NP0103     05 YMBCAB-RECORD-ID          PIC X(6).   
+NP0103     05 YMBCAB-DATESTAMP          PIC 9(8).   
+NP0103     05 YMBCAB-FILLER-00          PIC X.  
+NP0103     05 YMBCAB-SHIP-CODE          PIC X(2).                         * AVAI
+NP0103     05 YMBCAB-FILLER-01          PIC X.  
+NP0103     05 YMBCAB-SAIL-DATE          PIC 9(8).                         * AVAI
+NP0103     05 YMBCAB-FILLER-02          PIC X.  
+NP0103     05 YMBCAB-DURATION-DAYS      PIC 9(3).                         * AVAI
+NP0103     05 YMBCAB-FILLER-03          PIC X.  
+NP0103     05 YMBCAB-CATEGORY-CODE      PIC X(3).                         * AVAI
+NP0103     05 YMBCAB-FILLER-04          PIC X.  
+NP0103     05 YMBCAB-CABIN-NUM          PIC X(5).                         * AVL-
+NP0103     05 YMBCAB-FILLER-05          PIC X.  
+NP0103     05 YMBCAB-AFFECT-NET-IND     PIC X.                            * AVL-
+NP0103     05 YMBCAB-FILLER-06          PIC X.  
+NP0103     05 YMBCAB-BED-TYPE-CODE      PIC X(2).                         * AVL-
+NP0103     05 YMBCAB-FILLER-07          PIC X.  
+NP0103     05 YMBCAB-BOOK-NUM           PIC X(6).                         * AVL-
+NP0103     05 YMBCAB-FILLER-08          PIC X.  
+NP0103     05 YMBCAB-CABIN-STATUS       PIC X.                            * AVL-
+NP0103     05 YMBCAB-FILLER-09          PIC X.  
+NP0103     05 YMBCAB-CONNECT-IND        PIC X.                            * AVL-
+NP0103     05 YMBCAB-FILLER-10          PIC X.  
+214948*    05 YMBCAB-CUSTOMER-NUM       PIC 9(7).                         * AVL-
+214948     05 YMBCAB-CUSTOMER-NUM-ASCII PIC 9(14).                        * AVL-
+NP0103     05 YMBCAB-FILLER-11          PIC X.  
+NP0103     05 YMBCAB-DECK               PIC X(2).                         * AVL-
+NP0103     05 YMBCAB-FILLER-12          PIC X.  
+NP0103     05 YMBCAB-DISPLAY-SEQ        PIC 9(4).                         * AVL-
+NP0103     05 YMBCAB-FILLER-13          PIC X.  
+NP0103     05 YMBCAB-IS-OS-IND          PIC X.                            * AVL-
+NP0103     05 YMBCAB-FILLER-14          PIC X.  
+NP0103     05 YMBCAB-MAX-CAPACITY       PIC 9.                            * AVL-
+NP0103     05 YMBCAB-FILLER-15          PIC X.  
+NP0103     05 YMBCAB-NORMAL-CAPACITY    PIC 9.                            * AVL-
+NP0103     05 YMBCAB-FILLER-16          PIC X.  
+NP0103     05 YMBCAB-NUM-PAX            PIC 9.                            * AVL-
+NP0103     05 YMBCAB-FILLER-17          PIC X.  
+NP0103     05 YMBCAB-NUM-ROLLAWAYS      PIC X.                            * AVL-
+NP0103     05 YMBCAB-FILLER-18          PIC X.  
+NP0103     05 YMBCAB-OTHER-NUM-PAX      PIC 9.                            * AVL-
+NP0103     05 YMBCAB-FILLER-19          PIC X.  
+NP0103     05 YMBCAB-PRICE-CODE         PIC X(4).                         * AVL-
+NP0103     05 YMBCAB-FILLER-20          PIC X.  
+NP0103     05 YMBCAB-PRICE-TYPE         PIC X.                            * AVL-
+NP0103     05 YMBCAB-FILLER-21          PIC X.  
+NP0103     05 YMBCAB-SELL-IND           PIC X.                            * AVL-
+NP0103     05 YMBCAB-FILLER-22          PIC X.  
+NP0103     05 YMBCAB-SHARE-CODE         PIC X(2).                         * AVL-
+NP0103     05 YMBCAB-FILLER-23          PIC X.  
+NP0103     05 YMBCAB-SUBCATEGORY        PIC X(4).                         * AVL-
+NP0103     05 YMBCAB-FILLER-24          PIC X.  
+NP0103     05 YMBCAB-TUB-CODE           PIC X.                            * AVL-
+NP0103     05 YMBCAB-FILLER-25          PIC X.  
+NP0103     05 YMBCAB-VIEW-IND           PIC X.                            * AVL-
+NP0103     05 YMBCAB-FILLER-26          PIC X.  
+NP0103     05 YMBCAB-WHEELCHAIR-IND     PIC X.                            * AVL-
+879253     05 YMBCAB-FILLER-27          PIC X.  
+879253     05 YMBCAB-AVL-FIRE-ZONE      PIC X(2).   
+
+       FD  YMBCPA-FILE  
+           LABEL RECORDS ARE STANDARD.  
+       01  YMBCPA-REC.  
+NP0103     05  YMBCPA-RECORD-ID                 PIC X(6).   
+NP0103     05  YMBCPA-DATESTAMP                 PIC 9(8).   
+NP0103     05  YMBCPA-FILLER-01                 PIC X.  
+NP0103     05  YMBCPA-SHIP-CODE                 PIC X(2).   
+NP0103     05  YMBCPA-FILLER-02                 PIC X.  
+NP0103     05  YMBCPA-DURATION-DAYS             PIC 9(2).   
+NP0103     05  YMBCPA-FILLER-03                 PIC X.  
+NP0103     05  YMBCPA-SAIL-DATE                 PIC 9(8).   
+NP0103     05  YMBCPA-FILLER-04                 PIC X.  
+NP0103     05  YMBCPA-BOOK-NUM                  PIC X(6).   
+NP0103     05  YMBCPA-FILLER-05                 PIC X.  
+NP0103     05  YMBCPA-CATEGORY-CODE             PIC X(3).   
+NP0103     05  YMBCPA-OCCUPANCY-LINE OCCURS 5 TIMES.
+NP0103*       * cpa counts *
+NP0103         10  YMBCPA-FILLER-06             PIC X.  
+NP0103         10  YMBCPA-ORIG-REQ-CNT          PIC 9(5).   
+NP0103         10  YMBCPA-FILLER-07             PIC X.  
+NP0103         10  YMBCPA-REQ-CNT               PIC 9(5).   
+NP0103         10  YMBCPA-FILLER-08             PIC X.  
+NP0103         10  YMBCPA-SOLD-CNT              PIC 9(5).   
+NP0103         10  YMBCPA-FILLER-09             PIC X.  
+NP0103         10  YMBCPA-LOG-BKG-CNT           PIC 9(5).   
+NP0103         10  YMBCPA-FILLER-10             PIC X.  
+NP0103         10  YMBCPA-LOG-SAIL-CNT          PIC 9(5).   
+NP0103         10  YMBCPA-FILLER-11             PIC X.  
+NP0103         10  YMBCPA-BLK-GTEE-CNT          PIC 9(5).   
+NP0103         10  YMBCPA-FILLER-12             PIC X.  
+NP0103         10  YMBCPA-UNASG-GTEE-CNT        PIC 9(5).   
+NP0103         10  YMBCPA-FILLER-13             PIC X.  
+NP0103         10  YMBCPA-BTH-GTEE-CNT          PIC 9(5).   
+NP0103         10  YMBCPA-FILLER-14             PIC X.  
+NP0103         10  YMBCPA-LOG-BTH-CNT           PIC 9(5).   
+NP0103         10  YMBCPA-FILLER-15             PIC X.  
+NP0103*       * physical counts *   
+NP0103         10  YMBCPA-HOLD-CNT              PIC 9(5).   
+NP0103         10  YMBCPA-FILLER-16             PIC X.  
+NP0103         10  YMBCPA-CXF-REQ-CNT           PIC 9(5).   
+NP0103         10  YMBCPA-FILLER-17             PIC X.  
+NP0103         10  YMBCPA-REDUCED-RATE-CNT      PIC 9(5).   
+NP0103         10  YMBCPA-FILLER-18             PIC X.  
+NP0103         10  YMBCPA-WAITLIST-CNT          PIC 9(5).   
+NP0103         10  YMBCPA-FILLER-19             PIC X.  
+NP0103         10  YMBCPA-PHY-BTH-CNT           PIC 9(5).   
+NP0103         10  YMBCPA-FILLER-20             PIC X.  
+NP0103         10  YMBCPA-PHY-BLK-BKG-CNT       PIC 9(5).   
+NP0103         10  YMBCPA-FILLER-21             PIC X.  
+NP0103         10  YMBCPA-HOLD-BLK-GTEE-CNT     PIC 9(5).   
+
+DL0802 FD  YMBCCD-CNT-FILE  
+DL0802     LABEL RECORDS ARE STANDARD.  
+DL0802 01  YMBCCD-CNT-REC.  
+DL0802     05  YMBCCD-CNT-RECORD-ID          PIC X(06). 
+DL0802     05  YMBCCD-CNT-DATESTAMP          PIC 9(8).  
+DL0802     05  YMBCCD-CNT-FILLER-1           PIC X(08). 
+DL0802     05  YMBCCD-CNT-REC-CNT            PIC 9(10). 
+
+NP0103 FD  YMBCAB-CNT-FILE  
+NP0103     LABEL RECORDS ARE STANDARD.  
+NP0103 01  YMBCAB-CNT-REC.  
+NP0103     05  YMBCAB-CNT-RECORD-ID          PIC X(06). 
+NP0103     05  YMBCAB-CNT-DATESTAMP          PIC 9(8).  
+NP0103     05  YMBCAB-CNT-FILLER-1           PIC X(08). 
+NP0103     05  YMBCAB-CNT-REC-CNT            PIC 9(10). 
+
+NP0103 FD  YMBCPA-CNT-FILE  
+NP0103     LABEL RECORDS ARE STANDARD.  
+NP0103 01  YMBCPA-CNT-REC.  
+NP0103     05  YMBCPA-CNT-RECORD-ID          PIC X(06). 
+NP0103     05  YMBCPA-CNT-DATESTAMP          PIC 9(8).  
+NP0103     05  YMBCPA-CNT-FILLER-1           PIC X(08). 
+NP0103     05  YMBCPA-CNT-REC-CNT            PIC 9(10). 
+
+NP0103 FD  YMBCAB-MSAM-FILE 
+NP0103     LABEL RECORDS ARE standard.                                   * Sourc
+NP0103 01  YMBCAB-MSAM-REC.                                              *  
+NP0103     05 YMBCAB-MSAM-RECORD-ID          PIC X(6).  
+NP0103     05 YMBCAB-MSAM-DATESTAMP          PIC 9(8).  
+NP0103     05 YMBCAB-MSAM-KEY.  
+NP0103         10 YMBCAB-MSAM-SHIP-CODE      PIC X(2).                         *
+NP0103         10 YMBCAB-MSAM-SAIL-DATE      PIC 9(8).                         *
+NP0103         10 YMBCAB-MSAM-DURATION-DAYS  PIC 9(3).                         *
+NP0103         10 YMBCAB-MSAM-CATEGORY-CODE  PIC X(3).                         *
+NP0103         10 YMBCAB-MSAM-CABIN-NUM      PIC X(5).                         *
+NP0103     05 YMBCAB-MSAM-AFFECT-NET-IND     PIC X.                            *
+NP0103     05 YMBCAB-MSAM-BED-TYPE-CODE      PIC X(2).                         *
+NP0103     05 YMBCAB-MSAM-BOOK-NUM           PIC X(6).                         *
+NP0103     05 YMBCAB-MSAM-CABIN-STATUS       PIC X.                            *
+NP0103     05 YMBCAB-MSAM-CONNECT-IND        PIC X.                            *
+214948*    05 YMBCAB-MSAM-CUSTOMER-NUM       PIC 9(7).                         *
+214948     05 YMBCAB-MSAM-CUST-NUM-ASCII     PIC 9(14).                        *
+NP0103     05 YMBCAB-MSAM-DECK               PIC X(2).                         *
+NP0103     05 YMBCAB-MSAM-DISPLAY-SEQ        PIC 9(4).                         *
+NP0103     05 YMBCAB-MSAM-IS-OS-IND          PIC X.                            *
+NP0103     05 YMBCAB-MSAM-MAX-CAPACITY       PIC 9.                            *
+NP0103     05 YMBCAB-MSAM-NORMAL-CAPACITY    PIC 9.                            *
+NP0103     05 YMBCAB-MSAM-NUM-PAX            PIC 9.                            *
+NP0103     05 YMBCAB-MSAM-NUM-ROLLAWAYS      PIC X.                            *
+NP0103     05 YMBCAB-MSAM-OTHER-NUM-PAX      PIC 9.                            *
+NP0103     05 YMBCAB-MSAM-PRICE-CODE         PIC X(4).                         *
+NP0103     05 YMBCAB-MSAM-PRICE-TYPE         PIC X.                            *
+NP0103     05 YMBCAB-MSAM-SELL-IND           PIC X.                            *
+NP0103     05 YMBCAB-MSAM-SHARE-CODE         PIC X(2).                         *
+NP0103     05 YMBCAB-MSAM-SUBCATEGORY        PIC X(4).                         *
+NP0103     05 YMBCAB-MSAM-TUB-CODE           PIC X.                            *
+NP0103     05 YMBCAB-MSAM-VIEW-IND           PIC X.                            *
+NP0103     05 YMBCAB-MSAM-WHEELCHAIR-IND     PIC X.                            *
+879253     05 YMBCAB-MSAM-FIRE-ZONE          PIC X(2).  
+
+NP0103 FD  YMBCAB-MNEW-FILE 
+NP0103     LABEL RECORDS ARE OMITTED.                                    * Sourc
+NP0103 01  YMBCAB-MNEW-REC.                                              *  
+NP0103     05 YMBCAB-MNEW-RECORD-ID          PIC X(6).  
+NP0103     05 YMBCAB-MNEW-DATESTAMP          PIC 9(8).  
+NP0103     05 YMBCAB-MNEW-SHIP-CODE          PIC X(2).                         *
+NP0103     05 YMBCAB-MNEW-SAIL-DATE          PIC 9(8).                         *
+NP0103     05 YMBCAB-MNEW-DURATION-DAYS      PIC 9(3).                         *
+NP0103     05 YMBCAB-MNEW-CATEGORY-CODE      PIC X(3).                         *
+NP0103     05 YMBCAB-MNEW-CABIN-NUM          PIC X(5).                         *
+NP0103     05 YMBCAB-MNEW-AFFECT-NET-IND     PIC X.                            *
+NP0103     05 YMBCAB-MNEW-BED-TYPE-CODE      PIC X(2).                         *
+NP0103     05 YMBCAB-MNEW-BOOK-NUM           PIC X(6).                         *
+NP0103     05 YMBCAB-MNEW-CABIN-STATUS       PIC X.                            *
+NP0103     05 YMBCAB-MNEW-CONNECT-IND        PIC X.                            *
+214948*    05 YMBCAB-MNEW-CUSTOMER-NUM       PIC 9(7).                         *
+214948     05 YMBCAB-MNEW-CUSTOMER-NUM-ASCII PIC 9(14). 
+NP0103     05 YMBCAB-MNEW-DECK               PIC X(2).                         *
+NP0103     05 YMBCAB-MNEW-DISPLAY-SEQ        PIC 9(4).                         *
+NP0103     05 YMBCAB-MNEW-IS-OS-IND          PIC X.                            *
+NP0103     05 YMBCAB-MNEW-MAX-CAPACITY       PIC 9.                            *
+NP0103     05 YMBCAB-MNEW-NORMAL-CAPACITY    PIC 9.                            *
+NP0103     05 YMBCAB-MNEW-NUM-PAX            PIC 9.                            *
+NP0103     05 YMBCAB-MNEW-NUM-ROLLAWAYS      PIC X.                            *
+NP0103     05 YMBCAB-MNEW-OTHER-NUM-PAX      PIC 9.                            *
+NP0103     05 YMBCAB-MNEW-PRICE-CODE         PIC X(4).                         *
+NP0103     05 YMBCAB-MNEW-PRICE-TYPE         PIC X.                            *
+NP0103     05 YMBCAB-MNEW-SELL-IND           PIC X.                            *
+NP0103     05 YMBCAB-MNEW-SHARE-CODE         PIC X(2).                         *
+NP0103     05 YMBCAB-MNEW-SUBCATEGORY        PIC X(4).                         *
+NP0103     05 YMBCAB-MNEW-TUB-CODE           PIC X.                            *
+NP0103     05 YMBCAB-MNEW-VIEW-IND           PIC X.                            *
+NP0103     05 YMBCAB-MNEW-WHEELCHAIR-IND     PIC X.                            *
+879253     05 YMBCAB-MNEW-FIRE-ZONE          PIC X(2).  
+C42452 FD  YMBCCD-SKIP-FILE 
+C42452     LABEL RECORDS ARE STANDARD.  
+C42452 01  YMBCCD-SKIP-REC. 
+C42452     03  YMBCCD-SKIP-FLAG              PIC X. 
+
+131866 FD  YMBCCD-POI-FILE  
+131866     LABEL RECORDS ARE STANDARD.  
+131866 01  YMBCCD-POI-REC.  
+131866     03  YMBCCD-POI-INDICATOR          PIC X(01). 
+131866     03  FILLER                        PIC X(79). 
+
+
+       WORKING-STORAGE SECTION. 
+144449 01  WS-PROG-ID            PIC X(8) VALUE 'YMB09CCD'. 
+       01  MCFLAG                            PIC 9(10) USAGE BINARY.
+SC1197 01  WS-BEGIN-DATE                     PIC 9(08). 
+RH0202 01  WS-RUN-DATE                       PIC 9(08). 
+SC1197 01  WS-END-DATE                       PIC 9(08). 
+
+       01  WS-DURATION-DAYS                  PIC 9(2).  
+
+       01  WS-SEASON                         PIC X(12). 
+
+       01  WS-SAIL-LEVEL                     PIC X(28). 
+
+       01  WS-SUB                            PIC 9(04). 
+
+NP0103 01  WS-CAT-SUB                        PIC 9(05) BINARY.  
+NP0103 01  WS-RAT-SUB        value 1         PIC 9(05) BINARY.  
+NP0103 01  WS-CPA-SUB                        PIC 9(05) BINARY.  
+NP0103 01  WS-OCC-SUB                        PIC 9(05) BINARY.  
+np0103 01  ws-occ-max        value 5         pic 9(05) binary.  
+NP0103 01  WS-CPA-FL                         PIC X. 
+np0903 01  ws-cab-skipped                   pic 9(10) binary value zero.
+C98140 01  WS-MNEW-CNT                      PIC 9(10) BINARY VALUE ZERO.
+
+       01  WS-TOT-SUB                        PIC 9(04). 
+
+       01  WS-NEXT-CSUB                      PIC 9(04). 
+
+       01  WS-PREV-CSUB                      PIC 9(04). 
+
+       01  WS-CALC-AMT                       PIC S9(08)V99. 
+
+       01  WS-PAGE-EJECT                     PIC X VALUE SPACES.
+
+       01  WS-UNDERSCORE                     PIC X(125) VALUE ALL '-'.  
+
+       01  WS-SPACES                         PIC X(132) VALUE ALL ' '.  
+
+       01  WS-TOT-TBAS                       PIC S9(08)V99. 
+
+       01  WS-CABIN-NUM.
+           05  WS-CABIN-TYPE                 PIC X(01). 
+           05  FILLER                        PIC X(04). 
+       01  WS-SGB                            PIC 9(3).  
+PPC470*01  WS-HDG-LINE-1.   
+PPC470*    05  WHL1-SHIP-CODE                PIC X(02). 
+PPC470*    05  WHL1-DUR-DAYS                 PIC 9(02). 
+PPC470*    05  FILLER                        PIC X(01) VALUE SPACE. 
+PPC470*    05  WHL1-SAIL-DATE                PIC 9(06). 
+PPC470*    05  FILLER                        PIC X(20) VALUE SPACES.
+PPC470*    05  WHL1-SAIL-STATUS              PIC X(25). 
+PPC470*    05  FILLER                        PIC X(02) VALUE SPACES.
+PPC470*    05  WHL1-ITIN-DESC                PIC X(40). 
+PPC470*    05  FILLER                        PIC X(34) VALUE SPACES.
+
+PPC470*01  WS-HDG-LINE-2.   
+PPC470*    05  FILLER                        PIC X(06) VALUE 'Notes '.  
+PPC470*    05  WHL2-NOTE                     PIC X(70). 
+PPC470*    05  FILLER                        PIC X(56) VALUE SPACES.
+
+PPC470*01  WS-HDG-LINE-3.   
+PPC470*    05  FILLER                        PIC X(06) VALUE SPACES.
+PPC470*    05  WHL3-NOTE                     PIC X(70). 
+PPC470*    05  FILLER                        PIC X(56) VALUE SPACES.
+
+PPC470*01  WS-SCREEN1-HDG1. 
+PPC470*    03  FILLER                          PIC X(46) VALUE  
+PPC470*        '      ----- Available Cabins -------     -----'.
+PPC470*    03  FILLER                          PIC X(48) VALUE  
+PPC470*        '----- Tba Cabins ----------              Options'.  
+
+PPC470*01  WS-SCREEN1-HDG2. 
+PPC470*    03  FILLER                          PIC X(46) VALUE  
+PPC470*        'Cat    Qd  Tr  Tw Sg Tot Ms-Mq Fs-Fq     Qt  Q'.
+PPC470*    03  FILLER                          PIC X(48) VALUE  
+PPC470*        'd Tr  Tw Sg Gr Tot MsFsMqFq      Net     Tdy Tot'.  
+
+       01  WS-SCRN-CAT-SUBCAT.  
+BD0998*    03  WS-SCRN-CAT                     PIC 9(2).
+BD0998*    03  WS-SCRN-SUBCAT                  PIC X.   
+BD0998     03  WS-SCRN-CAT-CODE                PIC X(3).
+
+       01  WS-AVAIL-CABINS. 
+           03  WS-AVAIL-CABIN-INIT                 PIC X(19) VALUE  
+               '   -   -   -  -   -'.   
+           03  WS-AVAIL-CABINS-REDEF REDEFINES WS-AVAIL-CABIN-INIT. 
+               05  WS-AVAIL-QUADS                    PIC ZZZ9.  
+               05  WS-AVAIL-TRIPLES                  PIC ZZZ9.  
+               05  WS-AVAIL-TWINS                    PIC ZZZ9.  
+               05  WS-AVAIL-SINGLES                  PIC ZZ9.   
+               05  WS-AVAIL-TOTAL-CABINS             PIC ZZZ9.  
+
+192483*    01  WS-AVAIL-SHARE-CABINS                 PIC X(12) VALUE
+192483*        '  - -   - - '.  
+192483*    01  WS-SHARE-CABINS-REDEF REDEFINES WS-AVAIL-SHARE-CABINS.   
+192483*        03  FILLER                            PIC X. 
+192483*        03  WS-MALE-SHARES.  
+192483*            05  WS-MS-CABINS                  PIC Z. 
+192483*            05  WS-MS-LITERAL                 PIC X. 
+192483*            05  WS-MQ-CABINS                  PIC Z. 
+192483*            05  WS-MQ-LITERAL                 PIC X. 
+192483*            05  WS-MQ-OPEN-BTH                PIC Z. 
+192483*        03  FILLER                            PIC X. 
+192483*        03  WS-FEMALE-SHARES.
+192483*            05  WS-FS-CABINS                  PIC Z. 
+192483*            05  WS-FS-LITERAL                 PIC X. 
+192483*            05  WS-FQ-CABINS                  PIC Z. 
+192483*            05  WS-FQ-LITERAL                 PIC X. 
+192483*            05  WS-FQ-OPEN-BTH                PIC Z. 
+
+       01  WS-TBA-CABINS.   
+           03  WS-TBA-CABIN-INIT                   PIC X(24) VALUE  
+               '  -   -  -   -  -  -   -'.  
+           03  WS-TBA-CABINS-REDEF REDEFINES WS-TBA-CABIN-INIT. 
+               05  WS-TBA-QUINTS                   PIC ZZ9. 
+               05  WS-TBA-QUADS                    PIC ZZZ9.
+               05  WS-TBA-TRIPLES                  PIC ZZ9. 
+               05  WS-TBA-TWINS                    PIC ZZZ9.
+               05  WS-TBA-SINGLES                  PIC ZZ9. 
+               05  WS-TBA-GRP-BLK-CABINS           PIC ZZ9. 
+               05  WS-TBA-TOTAL-CABINS             PIC ZZZ9.
+
+192483*    01  WS-TBA-SHARES.   
+192483*        03  WS-TBA-SHARE-INIT                   PIC X(09) VALUE  
+192483*            '  - - - -'. 
+192483*        03  WS-TBA-SHARE-REDEF REDEFINES WS-TBA-SHARE-INIT.  
+192483*            05  WS-TBA-MS-CABINS                PIC ZZ9. 
+192483*            05  WS-TBA-FS-CABINS                PIC Z9.  
+192483*            05  WS-TBA-MQ-CABINS                PIC Z9.  
+192483*            05  WS-TBA-FQ-CABINS                PIC Z9.  
+
+       01  WS-CAT-NET-TOTAL.
+           03  WS-CAT-NET-INIT                        PIC X(05).
+           03  WS-CAT-NET-REDEF REDEFINES WS-CAT-NET-INIT.  
+               05  WS-CAT-NET                      PIC ----9.   
+
+       01  WS-OPTION-TOTAL. 
+           03  WS-OPTION-TOTAL-INIT                   PIC X(08) VALUE   
+               '   -   -'.  
+           03  WS-OPTION-TOT-REDEF REDEFINES WS-OPTION-TOTAL-INIT.  
+               05  WS-TDY-OPTIONS                  PIC ZZZ9.
+               05  WS-TOT-OPTIONS                  PIC ZZZ9.
+
+       01  WS-TOT-AVAIL-CABINS. 
+           03  WS-TOT-AVAIL-CAB-INIT         PIC X(19). 
+           03  WS-TOT-AVAIL-CAB-REDEF REDEFINES WS-TOT-AVAIL-CAB-INIT.  
+               05  WS-TOT-AVAIL-QUADS          PIC ZZZ9.
+               05  WS-TOT-AVAIL-TRIPLES        PIC ZZZ9.
+               05  WS-TOT-AVAIL-TWINS          PIC ZZZ9.
+               05  WS-TOT-AVAIL-SINGLES        PIC ZZ9. 
+               05  WS-TOT-AVAIL-TOTAL-CABINS   PIC ZZZ9.
+
+       01  WS-NO-RESV.  
+               05  FILLER                 PIC X(30) VALUE   
+                                          '     No Reserved Cabins.'.   
+       01  WS-TOT-RESV-CABINS.  
+               05  FILLER                      PIC X(17) VALUE  
+                                           'Resv Cabins Aff: '. 
+               05  WS-TOT-AFF-RESV-CABINS      PIC ZZ9. 
+               05  FILLER                      PIC X(12) VALUE  
+                                            ' / Not Aff: '. 
+               05  WS-TOT-NOT-AFF-RESV-CABINS  PIC ZZ9. 
+192483*    01  WS-TOT-AVAIL-SHARES                 PIC X(12).   
+192483*    01  WS-TOT-AVAIL-SHARES-REDEF REDEFINES WS-TOT-AVAIL-SHARES. 
+192483*        03  FILLER                            PIC X. 
+192483*        03  WS-TOT-MALE-SHARES.  
+192483*            05  WS-TOT-MS-CABINS                  PIC Z. 
+192483*            05  WS-TOT-MS-LITERAL                 PIC X. 
+192483*            05  WS-TOT-MQ-CABINS                  PIC Z. 
+192483*            05  WS-TOT-MQ-LITERAL                 PIC X. 
+192483*            05  WS-TOT-MQ-OPEN-BTH                PIC Z. 
+192483*        03  FILLER                                PIC X. 
+192483*        03  WS-TOT-FEMALE-SHARES.
+192483*            05  WS-TOT-FS-CABINS                  PIC Z. 
+192483*            05  WS-TOT-FS-LITERAL                 PIC X. 
+192483*            05  WS-TOT-FQ-CABINS                  PIC Z. 
+192483*            05  WS-TOT-FQ-LITERAL                 PIC X. 
+192483*            05  WS-TOT-FQ-OPEN-BTH                PIC Z. 
+
+       01  WS-TOT-TBA-CABINS.   
+           03  WS-TOT-TBA-CABIN-INIT               PIC X(24).   
+           03  WS-TOT-TBA-CABINS-REDEF REDEFINES WS-TOT-TBA-CABIN-INIT. 
+               05  WS-TOT-TBA-QUINTS                   PIC ZZ9. 
+               05  WS-TOT-TBA-QUADS                    PIC ZZZ9.
+               05  WS-TOT-TBA-TRIPLES                  PIC ZZ9. 
+               05  WS-TOT-TBA-TWINS                    PIC ZZZ9.
+               05  WS-TOT-TBA-SINGLES                  PIC ZZ9. 
+               05  WS-TOT-TBA-GRP-BLK-CABINS           PIC ZZ9. 
+               05  WS-TOT-TBA-TOTAL-CABINS             PIC ZZZ9.
+
+       01  WS-TOT-TBA-SHARES.   
+           03  WS-TOT-TBA-SHARE-INIT                   PIC X(09).   
+           03  WS-TOT-TBA-SHARE-REDEF REDEFINES WS-TOT-TBA-SHARE-INIT.  
+               05  WS-TOT-TBA-MS-CABINS                PIC ZZ9. 
+               05  WS-TOT-TBA-FS-CABINS                PIC Z9.  
+               05  WS-TOT-TBA-MQ-CABINS                PIC Z9.  
+               05  WS-TOT-TBA-FQ-CABINS                PIC Z9.  
+
+       01  WS-TOTAL-NET.
+           03  WS-TOT-NET-INIT                        PIC X(05).
+           03  WS-TOT-NET-REDEF REDEFINES WS-TOT-NET-INIT.  
+               05  WS-NET-TOTAL                    PIC ----9.   
+
+       01  WS-TOTAL-OPTIONS.
+           03  WS-TOT-OPTION-INIT                   PIC X(08).  
+           03  WS-TOT-OPTION-REDEF REDEFINES WS-TOT-OPTION-INIT.
+               05  WS-TDY-OPTIONS-TOTAL            PIC ZZZ9.
+               05  WS-TOT-OPTIONS-TOTAL            PIC ZZZ9.
+
+       01  WS-CATEGORY-DATA                        PIC X(80).   
+
+       01  WS-DATE-TIME.
+           03 WS-DATE                    PIC 9(8).  
+           03 WS-TIME.  
+              05 WS-HH                   PIC 99.
+              05 WS-MM                   PIC 99.
+              05 WS-SS                   PIC 9999.  
+
+214948*01  ws-CUSTOMER-NUM                           PIC 9(7).  
+214948*    88  test-booking-customer     values 0125378 0852955 
+214948*                                         0063350 0158697.
+214948* 
+214948 01  ws-CUSTOMER-NUM                           PIC X(7).  
+214948     88  test-booking-customer     values '0125378' '0852955' 
+214948                                          '0063350' '0158697'.
+
+       01  WS-SEARCH-SUB                             PIC 9(3).  
+       01  WS-MS-SUB                                 PIC 9. 
+       01  WS-FS-SUB                                 PIC 9. 
+       01  WS-HOLD-TBA-TWINS                         PIC 9(5).  
+       01  WS-HOLD-TBA-QUADS                         PIC 9(5).  
+       01  WS-TOTAL-TBA-TWINS                        PIC 9(5).  
+       01  WS-TOTAL-TBA-QUADS                        PIC 9(5).  
+EL0901 01  WS-HOLD-SAIL-POOL-CAB                     PIC 9(5).  
+EL0901 01  WS-HOLD-SAIL-POOL-PAX                     PIC 9(5).  
+EL0901 01  WS-ACT-OPTION-DATE                        PIC 9(8).  
+       01  WS-TOTAL-MS-NET                           PIC 9(2).  
+       01  WS-TOTAL-FS-NET                           PIC 9(2).  
+       01  WS-TOTAL-MQ-NET                           PIC 9(2).  
+       01  WS-TOTAL-FQ-NET                           PIC 9(2).  
+       01  WS-UNMATCHED-MS                           PIC 9(3).  
+       01  WS-UNMATCHED-FS                           PIC 9(3).  
+       01  WS-UNMATCHED-MQ                           PIC 9(3).  
+       01  WS-UNMATCHED-FQ                           PIC 9(3).  
+SC0300 01  WS-TOT-ORIG-REQ                           PIC 9(5).  
+       01  WS-FULL-TBA-SHARE-CABINS                  PIC 9(5).  
+       01  DPS-SAVE-AREA.   
+           03  DSA-TRANS-CODE                             PIC X(6). 
+           03  DSA-SHIP-DURATION.   
+               05  DSA-SHIP-CODE                          PIC X(2). 
+               05  DSA-DURATION-DAYS                      PIC 9(2). 
+           03  DSA-SAIL-DATE                              PIC 9(6). 
+           03  DSA-FUNCTION                               PIC 9(2). 
+           03  FILLER                                     PIC X(2). 
+       01 WS-GBR-CABIN-COUNTS.  
+LM1000* 03 WS-GBR-BKG-CAT OCCURS 20 TIMES.  
+          05 WS-GBCR-NUM-REQ            PIC 9(5).   
+          05 WS-GBCR-NUM-TBA            PIC 9(5).   
+          05 WS-GBCR-NUM-BLK            PIC 9(5).   
+          05 WS-GBCR-NUM-BTH            PIC 9(5).   
+
+       01  WS-NUMBER                           PIC 9(2).
+       01  WS-NUMBER-X REDEFINES WS-NUMBER. 
+           03  WS-NUMBER-1                     PIC X.   
+           03  WS-NUMBER-2                     PIC X.   
+
+       01  WS-G-SUB                         PIC 99. 
+
+       01  WS-NEXT-PREV-IND.
+           03  WS-NPI-IND                   PIC X(1).   
+           03  WS-NPI-CODE. 
+               05  WS-NPI-CODE1             PIC X.  
+               05  WS-NPI-CODE2             PIC X.  
+           03  WS-NPI-DURATION-DAYS         PIC 9(2).   
+           03  WS-NPI-DURATION-DAYS-X REDEFINES 
+                                         WS-NPI-DURATION-DAYS.  
+               05  WS-NPI-DAYS1             PIC X.  
+               05  WS-NPI-DAYS2             PIC X.  
+
+       01  WS-BLANK-IND                     PIC X VALUE SPACES. 
+       01  WS-FOOTING.  
+           05  FILLER                       PIC X(08) VALUE 'Sell to:'. 
+           05  WF-SELL-TO                   PIC ----9.  
+           05  FILLER                       PIC X(13) VALUE 
+               '     Pax Cnt:'. 
+           05  WF-PAX-CNT                   PIC ZZZ9.   
+           05  FILLER                       PIC X(11) VALUE 
+               ' + Est Pax:'.   
+           05  WF-EST-PAX                   PIC ZZZ9.   
+           05  FILLER                       PIC X(11) VALUE 
+               ' = TOT PAX:'.   
+           05  WF-TOT-PAX                   PIC ZZZ9.   
+           05  FILLER                       PIC X(72).  
+
+C42452 01 WS-SKIP-MSAM                      PIC X.  
+C42452    88 SKIP-MSAM                                VALUE 'Y'.
+C87403 01  WS-SB                            PIC 9(02).  
+C87403 01  WS-LOOP-END-FLAG                 PIC X(01).  
+C87403     88  WS-LOOP-END                  VALUE 'Y'.  
+110124  
+110124 01  WS-DEADLOCK-FLAG                 PIC X(01) VALUE SPACES. 
+110124  
+144449*COPY DPP01BWS.   
+144449 COPY DPP01DTA.   
+144449 COPY DPP01ERR.   
+144449 COPY DPP01MCB.   
+144449 COPY DPP12SCO.   
+144449 COPY DPP42ERR.   
+144449 COPY RSP00DMS.   
+144449 COPY RSP32DMS.   
+144449 COPY RSP64DMS.   
+144449 COPY RSP77GMD.   
+103403 COPY DPP01CIW.   
+       COPY DPP01SCO.   
+LM1000 COPY DPP02Y2K.   
+LM1000*COPY DPP02Y2K.   
+NP0103 COPY DPP03PWS.   
+       COPY DPP15ACW.   
+105574 COPY DPP16SBW.   
+PPC470*COPY SSP13GSD.   
+PPC470*COPY SSP14USD.   
+       COPY DPP20DWS .  
+       COPY DPP44CCW.   
+       COPY DPP50FPW.   
+NP0103 COPY DPP66PWS.   
+       COPY DPP80NAW.   
+       COPY IRP03MWS.   
+       COPY IRP66IBR.   
+103403 COPY RSP15INP.   
+       COPY RSP15OUT.   
+TWAIT  COPY YMP01DLW.   
+C39120 COPY MKP40RIW.   
+NP0905 COPY YMP02FEW.   
+C87403 COPY DPP34CWS.   
+C87403 COPY INFO-BUFFER.
+144449*COPY SSP00COM.   
+PPC470*COPY SSP13WSD.   
+163032 COPY SSP05GCD.   
+PPC470*COPY SSP22GPD.   
+165711 COPY RSP90OVW.   
+214948 COPY YMP01AAW.   
+PPC470 COPY TDP01SAW.   
+PPC470 COPY SMP68EFF.   
+
+       COMMON-STORAGE SECTION.  
+
+       PROCEDURE DIVISION.  
+       0000-INITIALIZE. 
+144449 COPY DPP01INT.   
+PPC470 COPY TDP01INT.   
+       COPY SMP68INT.   
+173305*    MOVE 0 TO MCFLAG.
+
+173305     PERFORM DPP12-BEGIN-THREAD THRU DPP12-BEGIN-THREAD-EXIT. 
+
+173305     IF DPP01-SQL-ERROR-IND = 'Y' 
+173305        GO TO DPP12-THREAD-ERROR-EXIT 
+173305     END-IF.  
+
+PPC470     EXEC SQL USE DEFAULT SCHEMA PSTRDMS END-EXEC.
+
+PPC470     EXEC SQL WHENEVER SQLERROR   
+PPC470       GO TO DPP12-RDMS-ERROR 
+PPC470     END-EXEC.
+
+       0000-BEGIN.  
+           OPEN INPUT  DATE-FILE
+                       YMBCAB-MSAM-FILE 
+C42452                 YMBCCD-SKIP-FILE 
+131866                 YMBCCD-POI-FILE  
+                OUTPUT PRINT-FILE   
+                       YMBCCD-FILE  
+DL0802                 YMBCCD-CNT-FILE  
+NP0103                 YMBCAB-FILE  
+NP0103                 YMBCAB-CNT-FILE  
+NP0103                 YMBCPA-FILE  
+NP0103                 YMBCPA-CNT-FILE  
+                       YMBCAB-Mnew-FILE.
+           MOVE ZEROS TO YMBCCD-CNT-REC-CNT 
+NP0103                   YMBCAB-CNT-REC-CNT 
+NP0103                   YMBCPA-CNT-REC-CNT 
+np0903                   ws-cab-skipped 
+C98140                   WS-MNEW-CNT.   
+
+       0010-GET-DATE-INFO.  
+           READ DATE-FILE   
+               AT END   
+                  GO TO 0050-SET-DEFAULT-DATE.  
+
+           IF DATE-REC-TYPE = '*'   
+              GO TO 0010-GET-DATE-INFO. 
+
+DL1102     MOVE FUNCTION CURRENT-DATE TO WS-DATE-TIME   
+DL1102     IF WS-HH > 18
+DL1102        MOVE WS-DATE TO WS-RUN-DATE   
+DL1102     ELSE 
+DL1102        MOVE WS-DATE TO DPP02-YYYYMMDD-DATE   
+DL1102        MOVE 1 TO DPP02-NUMBER-DAYS   
+DL1102        PERFORM DPP10-DEMINISH-YYYYMMDD-DATE  
+DL1102        MOVE DPP02-YYYYMMDD-DATE TO WS-RUN-DATE   
+           END-IF.  
+
+           IF DATE-BEGIN-DATE > ZEROS   
+RH0202*        MOVE DATE-BEGIN-DATE TO WS-BEGIN-DATE WS-RUN-DATE
+DL1102        MOVE DATE-BEGIN-DATE TO WS-BEGIN-DATE 
+DL1102     ELSE 
+DL1102*       MOVE FUNCTION CURRENT-DATE TO WS-DATE-TIME
+DL1102*       IF WS-HH > 18 
+OLDOLD*          MOVE WS-DATE TO DATE-BEGIN-DATE WS-BEGIN-DATE  
+DL1102*          MOVE WS-DATE TO WS-RUN-DATE
+DL1102*       ELSE  
+DL1102*          MOVE WS-DATE TO DPP02-YYYYMMDD-DATE
+DL1102*          MOVE 1 TO DPP02-NUMBER-DAYS
+DL1102*          PERFORM DPP10-DEMINISH-YYYYMMDD-DATE   
+DL1102*            MOVE DPP02-YYYYMMDD-DATE TO WS-RUN-DATE  
+OLDOLD*           MOVE DPP02-YYYYMMDD-DATE TO DATE-BEGIN-DATE   
+OLDOLD*                                      WS-BEGIN-DATE  
+      *     END-IF  
+ ****************************** 
+RH0202        IF  WS-HH > 18
+RH0202*           MOVE 30 TO DPP02-NUMBER-DAYS  
+NP0502            MOVE 75 TO DPP02-NUMBER-DAYS  
+RH0202        ELSE  
+RH0202*           MOVE 31 TO DPP02-NUMBER-DAYS  
+NP0502            MOVE 76 TO DPP02-NUMBER-DAYS  
+RH0202        END-IF
+RH0202        MOVE WS-DATE     TO DPP02-YYYYMMDD-DATE   
+RH0202        PERFORM DPP10-DEMINISH-YYYYMMDD-DATE  
+RH0202        MOVE DPP02-YYYYMMDD-DATE TO DATE-BEGIN-DATE   
+RH0202                                    WS-BEGIN-DATE.
+ ****************************** 
+           IF DATE-END-DATE > ZEROS 
+              MOVE DATE-END-DATE TO WS-END-DATE 
+           ELSE 
+              MOVE 42 TO DPP02-NUMBER-DAYS  
+              PERFORM DPP10-ADVANCE-YYYYMMDD-DATE   
+              MOVE DPP02-YYYYMMDD-DATE TO WS-END-DATE.  
+
+           GO TO 0090-CONT-PROCESSING.  
+
+       0050-SET-DEFAULT-DATE.   
+           ACCEPT DPP02-SYSTEM-DATE FROM DATE YYYYMMDD. 
+
+           MOVE DPP02-SYSTEM-DATE TO WS-BEGIN-DATE  
+                                     DPP02-YYYYMMDD-DATE.   
+           MOVE 42 TO DPP02-NUMBER-DAYS.
+           PERFORM DPP10-ADVANCE-YYYYMMDD-DATE. 
+           MOVE DPP02-YYYYMMDD-DATE TO WS-END-DATE. 
+
+       0090-CONT-PROCESSING.
+np0303     display 'Processing Sailings from ' ws-begin-date
+np0303             ' through ' ws-end-date  
+np0303         upon PRINTER.
+
+           PERFORM 8000-OPEN-DATABASE.  
+
+C42452 0100-DAY-OF-WEEK.
+C86344***************************************************************** 
+C86344*   use rdate for all cabin selection day to ensure all cabins
+C86344*   are drained to the DW on Saturday--a non-sla day--for 
+C86344*   Friday's business (rdate) 
+C86344***************************************************************** 
+C86344*    ACCEPT DPP02-SYSTEM-DATE FROM DATE YYYYMMDD. 
+C86344*    MOVE DPP02-SYSTEM-DATE TO DPP02-YYYYMMDD-DATE.   
+C86344     MOVE WS-RUN-DATE       TO DPP02-YYYYMMDD-DATE.   
+C42452     PERFORM DPP10-YYYYMMDD-TO-JULIAN.
+C42452     PERFORM DPP10-DETERMINE-WEEK-DAY.
+
+
+nptest*    move 1 to mcflag.
+C42452 0200-READ-SKIP-FILE. 
+
+131866     READ YMBCCD-POI-FILE 
+131866         AT END   
+131866             CONTINUE.
+
+C42452     MOVE 'N' TO WS-SKIP-MSAM.
+C42452     READ YMBCCD-SKIP-FILE
+C42452         AT END   
+C42452             GO TO 1000-FIRST-SAILING.
+
+C86344*    IF DPP02-DAY-OF-WEEK = 'SATURDAY'
+131866*    IF DPP02-DAY-OF-WEEK = 'FRIDAY'  
+131866     IF DPP02-DAY-OF-WEEK = 'FRIDAY' AND  
+131866        YMBCCD-POI-INDICATOR = 'O'
+C42452        IF YMBCCD-SKIP-FLAG = 'S' 
+C42452           MOVE 'Y' TO WS-SKIP-MSAM   
+C42452        ELSE  
+C42452           IF YMBCCD-SKIP-FLAG = 'P'  
+C42452              MOVE 'N' TO WS-SKIP-MSAM
+C42452           END-IF 
+C42452        END-IF
+C42452     ELSE 
+C42452        IF YMBCCD-SKIP-FLAG = 'A' 
+C42452           MOVE 'Y' TO WS-SKIP-MSAM   
+C42452        END-IF
+C42452     END-IF.  
+nptest     display dpp02-day-of-week
+nptest         ' Skip MSAM=' ws-skip-msam upon printer. 
+nptest*     move 1 to mcflag.   
+
+       1000-FIRST-SAILING.  
+TWAIT      MOVE 'A' TO DLREC-READ-BASIS-SW. 
+PPC470*    MOVE SPACES             TO SSP13-WALK-SSUM-AN-PARAMS.
+PPC470*    MOVE LOW-VALUES         TO SSP13-WALK-SSUM-N-PARAMS. 
+PPC470*    MOVE WS-BEGIN-DATE      TO SSP13-IW-BEGIN-DATE.  
+PPC470*    MOVE WS-END-DATE        TO SSP13-IW-END-DATE.
+PPC470     MOVE WS-BEGIN-DATE      TO TDP01-I-SAIL-DATE-YYYYMMDD.   
+PPC470     MOVE WS-END-DATE        TO TDP01-I-END-SDATE-YYYYMMDD.   
+PPC470     PERFORM TDP01-FETCH-FIRST-SAIL THRU  
+PPC470             TDP01-FETCH-SAIL-EXIT.   
+PPC470       GO TO 1020-PROCESS-SSUM.   
+
+       1010-FETCH-NEXT-SSUM.
+PPC470*    CALL 'SSC13WSD' USING DPP01-COMMON-DATA-FIELDS   
+PPC470*                          DPP01-COMMON-INFO  
+PPC470*                          SSP13-WALK-SSUM-INPUT  
+PPC470*                          SSP13-WALK-SSUM-OUTPUT.
+PPC470* 
+PPC470*    IF DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1
+PPC470*       GO TO 9500-RETURN-SUBROUTINE-ERROR.   
+PPC470     PERFORM TDP01-FETCH-NEXT-SAIL THRU   
+PPC470             TDP01-FETCH-SAIL-EXIT.   
+
+       1020-PROCESS-SSUM.   
+
+PPC470*    IF SSP13-OW-END-IND = 'Y'
+PPC470*       GO TO 9000-END-OF-JOB.
+PPC470*    IF SSP13-OW-STATUS-CODE = 'C' AND
+PPC470*          (SSP13-OW-SPEC-SAIL-IND NOT = 'D') 
+PPC470*       GO TO 1010-FETCH-NEXT-SSUM.   
+
+PPC470     IF TDP01-SAIL-SQLERR 
+PPC470        GO TO 9150-RDMS-ERROR 
+PPC470     END-IF.  
+
+PPC470     IF TDP01-END-OF-SAIL 
+PPC470        GO TO 9000-END-OF-JOB 
+PPC470     END-IF.  
+PPC470     IF TDP01-STATUS-CODE = 'C' AND   
+PPC470        TDP01-SPECIAL-SAIL-IND NOT = 'D'  
+PPC470        GO TO 1010-FETCH-NEXT-SSUM
+PPC470     END-IF.  
+
+PPC470*    MOVE SSP13-OW-SHIP-CODE      TO SAIL1-SHIP-CODE. 
+PPC470*    MOVE SSP13-OW-SAIL-DATE      TO SAIL1-SAIL-DATE. 
+PPC470*    MOVE SSP13-OW-DURATION-DAYS  TO SAIL1-DURATION-DAYS. 
+
+           MOVE 49011000 TO DPP01-ERROR-NUMBER. 
+PPC470*    FETCH SAIL1-REC RECORD.  
+
+163032 COPY SSP05INT.   
+
+PPC470*    MOVE SAIL1-COMPANY-CODE    TO  SSP05-I-COMPANY-CODE. 
+PPC470     MOVE TDP01-COMPANY-CODE    TO  SSP05-I-COMPANY-CODE. 
+
+163032     CALL 'SSC05GCD' USING DPP01-COMMON-DATA-FIELDS   
+163032                           DPP01-COMMON-INFO  
+163032                           SSP05-INPUT-PARAMS 
+163032                           SSP05-OUTPUT-PARAMS.   
+
+163032     IF DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1
+163032        GO TO 9500-RETURN-SUBROUTINE-ERROR.   
+
+PPC470*    IF SAIL1-RECAT-CODE = 'Y'
+PPC470*       GO TO 1010-FETCH-NEXT-SSUM
+PPC470*    END-IF.  
+PPC470*    IF SAIL1-SAILED-CODE = 'N'   
+PPC470*       GO TO 1010-FETCH-NEXT-SSUM
+PPC470*    END-IF.  
+
+PPC470     IF TDP01-RECAT-CODE = 'Y'
+PPC470        GO TO 1010-FETCH-NEXT-SSUM
+PPC470     END-IF.  
+PPC470     IF TDP01-SAILED-CODE = 'N'   
+PPC470        GO TO 1010-FETCH-NEXT-SSUM
+PPC470     END-IF.  
+
+           INITIALIZE WS-GBR-CABIN-COUNTS.  
+           MOVE ZEROES TO WS-TOT-ORIG-REQ.  
+
+PPC470*    PERFORM DPP16-MAKE-SSUM1-CURRENT 
+PPC470*       THRU DPP16-MAKE-SSUM1-CURRENT-EXIT.   
+
+105574     PERFORM DPP16-FETCH-SAIL-BOOK-HDR
+105574        THRU DPP16-FETCH-SAIL-BOOK-HDR-EXIT.  
+
+PPC470*    IF (SSP13-OW-SHIP-CODE NOT = SBHR-SHIP-CODE) OR  
+PPC470*          (SSP13-OW-SAIL-DATE NOT = SBHR-SAIL-DATE) OR   
+PPC470*          (SSP13-OW-DURATION-DAYS NOT = SBHR-DURATION-DAYS)  
+PPC470*       NEXT SENTENCE 
+PPC470*    ELSE 
+PPC470*       PERFORM 6000-WALK-SGBR THRU 6000-EXIT.
+
+PPC470     IF (TDP01-SHIP-CODE NOT = SBHR-SHIP-CODE) OR 
+PPC470           (TDP01-SAIL-DATE-YYYYMMDD NOT = SBHR-SAIL-DATE) OR 
+PPC470           (TDP01-DURATION-DAYS NOT = SBHR-DURATION-DAYS) 
+PPC470        NEXT SENTENCE 
+PPC470     ELSE 
+PPC470        PERFORM 6000-WALK-SGBR THRU 6000-EXIT.
+
+PPC470*    IF SSP13-OW-SHIP-CODE = SAIL1-SHIP-CODE AND  
+PPC470*          SSP13-OW-SAIL-DATE = SAIL1-SAIL-DATE AND   
+PPC470*          SSP13-OW-DURATION-DAYS = SAIL1-DURATION-DAYS   
+PPC470*       NEXT SENTENCE 
+PPC470*    ELSE 
+PPC470*       PERFORM 9100-DATABASE-ERROR.  
+
+           PERFORM 8100-INIT-REPORT THRU 8199-EXIT. 
+CCL-UK*    MOVE 'D' TO IRP03-BROCHURE-TYPE. 
+PPC470*    MOVE SSP05-O-BROCHURE-TYPE TO IRP03-BROCHURE-TYPE.   
+SC1097     MOVE 'USD' TO IRP03-CURRENCY-CODE.   
+PPC470*    MOVE 'P' TO DPP50-EDIT-TYPE. 
+110124  
+PPC470*    IF  WS-DEADLOCK-FLAG = 'Y'   
+PPC470*        INITIALIZE SPNR-SHIP-CODE
+PPC470*                   SPNR-DURATION-DAYS
+PPC470*                   SPNR-SAIL-DATE
+PPC470*        MOVE 'N' TO WS-DEADLOCK-FLAG 
+PPC470*    END-IF.  
+PPC470*    PERFORM DPP50-FETCH-SAIL-PHASE-NUM-REC THRU DPP50-EXIT.  
+
+PPC470*    IF ERROR-NUM > ZEROS 
+PPC470*       DISPLAY 'SAIL-PHASE-NUM NOT FOUND FOR : ' UPON PRINTER
+PPC470*       DISPLAY '     SHIP : ' SSP13-OW-SHIP-CODE UPON PRINTER
+PPC470*       DISPLAY '     DATE : ' SSP13-OW-SAIL-DATE UPON PRINTER
+PPC470*       DISPLAY '     DAYS : ' SSP13-OW-DURATION-DAYS UPON PRINTER
+PPC470*       GO TO 1010-FETCH-NEXT-SSUM.   
+PPC470*    MOVE 'F' TO DPP50-EDIT-TYPE. 
+
+PPC470*    IF SPNR-SEASON-CODE (IRP03-SPNR-SUB) = 'S'   
+PPC470*    IF SPNR-SEASON-CODE = 'S'
+PPC470*       MOVE 'Season  ' TO WS-SEASON  
+PPC470*    ELSE 
+PPC470*       IF SPNR-SEASON-CODE (IRP03-SPNR-SUB) = 'B'
+PPC470*       IF SPNR-SEASON-CODE = 'B' 
+PPC470*          MOVE 'Base    ' TO WS-SEASON   
+PPC470*       ELSE  
+PPC470*          IF SPNR-SEASON-CODE (IRP03-SPNR-SUB) = 'V' 
+PPC470*          IF SPNR-SEASON-CODE = 'V'  
+PPC470*             MOVE 'Value   ' TO WS-SEASON
+PPC470*          ELSE   
+PPC470*             MOVE SPACES     TO WS-SEASON.   
+PPC470*    MOVE 12345678 TO DPP01-ERROR-NUMBER. 
+PPC470* 
+C65772*    IF SAIL1-STATUS-CODE = 'C'   
+PPC470*    IF SAIL1-STATUS-CODE = 'C' AND SAIL1-SPEC-SAIL-IND NOT = 'D' 
+PPC470*       GO TO 1010-FETCH-NEXT-SSUM.   
+
+PPC470*    IF SAIL1-INDV-ACCESS-IND = 'G'   
+PPC470     IF TDP01-ACCESS-CODE = '~'   
+              MOVE 'General Res     ' TO WS-SAIL-LEVEL  
+           ELSE 
+PPC470*       IF SAIL1-INDV-ACCESS-IND = 'A'
+PPC470        IF TDP01-ACCESS-CODE = 'A'
+                 MOVE 'Res Admin       ' TO WS-SAIL-LEVEL   
+              ELSE  
+PPC470*          IF SAIL1-INDV-ACCESS-IND = 'H' 
+PPC470           IF TDP01-ACCESS-CODE = 'H' 
+                    MOVE 'Hotline         ' TO WS-SAIL-LEVEL
+                 ELSE   
+PPC470*             IF SAIL1-INDV-ACCESS-IND = 'R'  
+PPC470              IF TDP01-ACCESS-CODE = 'R'  
+                       MOVE 'Restricted       '  TO WS-SAIL-LEVEL.  
+
+PPC470*    IF SAIL1-STATUS-CODE = 'C' AND SAIL1-SPEC-SAIL-IND = 'D' 
+PPC470     IF TDP01-STATUS-CODE = 'C' AND TDP01-SPECIAL-SAIL-IND = 'D'  
+C65772        MOVE 'Closed Sailing-Dry/Wet Dock ' TO WS-SAIL-LEVEL  
+C65772     ELSE 
+PPC470*       IF SAIL1-STATUS-CODE = 'C'
+PPC470        IF TDP01-STATUS-CODE = 'C'
+                 MOVE 'Closed Sailing   ' TO WS-SAIL-LEVEL  
+              ELSE  
+PPC470*          IF SAIL1-STATUS-CODE = 'W' 
+PPC470           IF TDP01-STATUS-CODE = 'W' 
+                    MOVE 'Wet Dock        ' TO WS-SAIL-LEVEL
+                 ELSE   
+PPC470*             IF SAIL1-STATUS-CODE = 'D'  
+PPC470              IF TDP01-STATUS-CODE = 'D'  
+                       MOVE 'Dry Dock         ' TO WS-SAIL-LEVEL.   
+
+PPC470*    MOVE SAIL1-SHIP-CODE     TO WHL1-SHIP-CODE   
+PPC470     MOVE TDP01-SHIP-CODE     TO YMBCCD-SHIP-CODE.
+PPC470*    MOVE SAIL1-DURATION-DAYS TO WHL1-DUR-DAYS
+PPC470     MOVE TDP01-DURATION-DAYS TO ITR-DURATION-DAYS
+                                      YMBCCD-DURATION-DAYS. 
+PPC470*    MOVE SAIL1-SAIL-DATE     TO DPP02-YYYYMMDD-DATE. 
+PPC470     MOVE TDP01-SAIL-DATE-YYYYMMDD
+PPC470                              TO DPP02-YYYYMMDD-DATE  
+                                       YMBCCD-SAIL-DATE.
+
+           MOVE 'CCLCCD' TO YMBCCD-RECORD-ID.   
+RH0202     MOVE WS-RUN-DATE     TO YMBCCD-DATESTAMP.
+SCTEMP*    MOVE DATE-BEGIN-DATE TO YMBCCD-DATESTAMP.
+SC1097     PERFORM DPP10-YYYYMMDD-TO-MMDDYY.
+PPC470*    MOVE DPP02-MMDDYY-DATE  TO WHL1-SAIL-DATE.   
+PPC470*    MOVE SPACES             TO WHL1-SAIL-STATUS. 
+PPC470* 
+PPC470*    STRING WS-SEASON DELIMITED BY '  '   
+PPC470*           ' ' WS-SAIL-LEVEL DELIMITED BY SIZE   
+PPC470*           INTO WHL1-SAIL-STATUS.
+
+PPC470*    MOVE SAIL1-PORT-CODE       TO ITR-PORT-CODE. 
+PPC470*    MOVE SAIL1-ITINERARY-CODE  TO ITR-ITINERARY-CODE.
+
+PPC470     MOVE TDP01-EMBARK-PORT-CODE  
+PPC470                                TO ITR-PORT-CODE. 
+PPC470     MOVE TDP01-ITINERARY-CODE  TO ITR-ITINERARY-CODE.
+
+       1050-AFTER-SAIL-NOTE.
+PPC470*    MOVE SAIL1-SHIP-CODE     TO DPP44-SELECT-SHIP-CODE.  
+PPC470*    MOVE SAIL1-SAIL-DATE     TO DPP44-BEG-SAIL-DATE  
+PPC470*                               DPP44-END-SAIL-DATE.  
+PPC470*    MOVE SAIL1-DURATION-DAYS TO DPP44-SELECT-DURATION.   
+PPC470     MOVE TDP01-SHIP-CODE     TO DPP44-SELECT-SHIP-CODE.  
+PPC470     MOVE TDP01-SAIL-DATE-YYYYMMDD
+PPC470                              TO DPP44-BEG-SAIL-DATE  
+PPC470                                 DPP44-END-SAIL-DATE. 
+PPC470     MOVE TDP01-DURATION-DAYS TO DPP44-SELECT-DURATION.   
+           MOVE SPACES             TO DPP44-SELECT-CATEGORY-CODE.   
+
+           PERFORM DPP44-AVAIL-COUNTS THRU DPP44-EXIT.  
+PPC470*    FIND CURRENT SAIL1-REC RECORD.   
+PPC470*    PERFORM DPP16-MAKE-SSUM1-CURRENT 
+PPC470*       THRU DPP16-MAKE-SSUM1-CURRENT-EXIT.   
+
+105574     PERFORM DPP16-FETCH-SAIL-BOOK-HDR
+105574        THRU DPP16-FETCH-SAIL-BOOK-HDR-EXIT.  
+
+PPC470*    IF (SSP13-OW-SHIP-CODE NOT = SBHR-SHIP-CODE) OR  
+PPC470*          (SSP13-OW-SAIL-DATE NOT = SBHR-SAIL-DATE) OR   
+PPC470*          (SSP13-OW-DURATION-DAYS NOT = SBHR-DURATION-DAYS)  
+PPC470*       GO TO 3000-REPORT-ON-SAILING. 
+PPC470     IF (TDP01-SHIP-CODE NOT = SBHR-SHIP-CODE) OR 
+PPC470        (TDP01-SAIL-DATE-YYYYMMDD NOT = SBHR-SAIL-DATE) OR
+PPC470        (TDP01-DURATION-DAYS NOT = SBHR-DURATION-DAYS)
+PPC470        GO TO 3000-REPORT-ON-SAILING  
+PPC470     END-IF.  
+
+110124     IF SAIL-INDV-BOOK-SET SET EMPTY  
+110124        GO TO 3000-REPORT-ON-SAILING. 
+
+       2000-FETCH-NEXT-SIBR.
+           MOVE 51011900   TO DPP01-ERROR-NUMBER.   
+105574     FETCH NEXT SAIL-INDV-BOOK-REC WITHIN SAIL-INDV-BOOK-SET SET  
+                 AT END GO TO 3000-REPORT-ON-SAILING.   
+
+           MOVE ZERO TO WS-SUB. 
+
+       2100-WALK-SIBR-TABLE.
+nptest*    move 1 to mcflag.
+
+           ADD 1 TO WS-SUB. 
+
+105574     IF WS-SUB > SIBR-ENTRY-CTR   
+              GO TO 2000-FETCH-NEXT-SIBR.   
+
+105574     IF WS-SUB > DPP16-SIBR-MAX-ENTRIES   
+              GO TO 9100-DATABASE-ERROR.
+
+105574     IF SIBR-BOOK-TYPE (WS-SUB) = 'G' 
+EL0901        GO TO 2100-WALK-SIBR-TABLE.   
+
+105574     IF SIBR-BOOK-NUM (WS-SUB) = SPACES OR 'XXXXXX'   
+              GO TO 2100-WALK-SIBR-TABLE.   
+
+105574     IF SIBR-BOOK-STATUS (WS-SUB) NOT = 'O'   
+              GO TO 2100-WALK-SIBR-TABLE.   
+
+LM1100*     IF SIBR1-BOOK-NUM (WS-SUB) > 'LA0000'   
+LM1100*        IF SIBR1-BOOK-NUM (WS-SUB) < 'LA4000'
+LM1100*          GO TO 2100-WALK-SIBR-TABLE.
+      * 
+LM1100*     IF SIBR1-BOOK-NUM (WS-SUB) = 'LA1740'   
+LM1100*          GO TO 2100-WALK-SIBR-TABLE.
+
+105574     MOVE SIBR-BOOK-NUM (WS-SUB) TO IBR-BOOK-NUM. 
+
+           MOVE 39011000   TO DPP01-ERROR-NUMBER.   
+IBREXP     MOVE 'I' TO IBR-BOOK-TYPE.   
+IBREXP     PERFORM IRP66-FETCH-IBR THRU 
+IBREXP             IRP66-FETCH-IBR-EXIT.
+
+IBREXP     IF IRP66-ERROR-NUM > 0   
+IBREXP        MOVE 2 TO DPP01-MESSAGE-SW
+IBREXP        MOVE IRP66-ERROR-MESSAGE (IRP66-ERROR-NUM)
+IBREXP             TO DPP01-USER-MESSAGE
+105574            display sibr-book-num (ws-sub) ' INVALID IRP66 '  
+np0105                    ' - continuing' upon printer  
+np0105            go to 2100-walk-sibr-table.   
+IBREXP*        GO TO 9100-DATABASE-ERROR.   
+
+nptest*    move 0 to mcflag.
+
+PPC470*    IF IBR-SHIP-CODE = SAIL1-SHIP-CODE AND   
+PPC470*          IBR-SAIL-DATE = SAIL1-SAIL-DATE AND
+PPC470*          IBR-DURATION-DAYS = SAIL1-DURATION-DAYS
+PPC470     IF IBR-SHIP-CODE = TDP01-SHIP-CODE AND   
+PPC470           IBR-SAIL-DATE = TDP01-SAIL-DATE-YYYYMMDD AND   
+PPC470           IBR-DURATION-DAYS = TDP01-DURATION-DAYS
+              NEXT SENTENCE 
+           ELSE 
+              GO TO 2100-WALK-SIBR-TABLE.   
+
+           MOVE IBR-CABIN-NUM     TO WS-CABIN-NUM.  
+
+           IF IBR-CANCEL-DATE > ZEROES OR   
+                 IBR-GROSS-FARE-AMT = ZEROES OR 
+                 IBR-WAITLIST-IND = 'F' OR  
+                 WS-CABIN-TYPE = 'W' OR 
+GM0801           IRP66-TOTAL-PAYMENT-AMT > ZERO 
+              GO TO 2100-WALK-SIBR-TABLE.   
+
+           IF IBR-DEPOSIT-TYPE-1 > SPACES OR
+                 IBR-DEPOSIT-TYPE-2 > SPACES
+              GO TO 2100-WALK-SIBR-TABLE.   
+
+PPC470*    IF SAIL1-INDV-GRACE-DAYS > ZERO  
+PPC470*       MOVE IBR-OPTION-DATE TO DPP02-YYYYMMDD-DATE   
+PPC470*       MOVE SAIL1-INDV-GRACE-DAYS TO DPP02-NUMBER-DAYS   
+PPC470*       PERFORM DPP10-ADVANCE-YYYYMMDD-DATE   
+PPC470*       MOVE DPP02-YYYYMMDD-DATE TO WS-ACT-OPTION-DATE
+PPC470*    ELSE 
+PPC470*       MOVE IBR-OPTION-DATE TO WS-ACT-OPTION-DATE.   
+
+
+PPC470*    IF IBR-SAIL-DATE = WS-ACT-OPTION-DATE AND
+PPC470     IF IBR-SAIL-DATE = IBR-OPTION-DATE AND   
+                 IBR-OPTION-TIME = ZERO 
+              GO TO 2100-WALK-SIBR-TABLE.   
+
+           MOVE IBR-CATEGORY-CODE    TO DPP44-CATEGORY-CODE.
+
+           PERFORM DPP44-LOCATE-TABLE-ENTRY THRU DPP44-LTE-EXIT.
+
+           ADD 1 TO DPP44-TOT-OPTION-CNT (DPP44-CSUB)   
+                    DPP44-TOTAL-OPTIONS.
+
+           IF IBR-OPTION-DATE = DPP02-SYSTEM-DATE   
+              ADD 1 TO DPP44-TDY-OPTION-CNT (DPP44-CSUB)
+                       DPP44-TDY-OPTION-TOTAL   
+           ELSE 
+              GO TO 2100-WALK-SIBR-TABLE.   
+
+PPC470*     IF IBR-SHARE-CODE = 'MS' OR 'MQ'
+PPC470*        ADD 1 TO DPP44-MS-OPTION-CNT (DPP44-CSUB)
+PPC470*     ELSE
+PPC470*        IF IBR-SHARE-CODE = 'FS' OR 'FQ' 
+PPC470*           ADD 1 TO DPP44-FS-OPTION-CNT (DPP44-CSUB) 
+PPC470*        ELSE 
+PPC470*           ADD 1 TO DPP44-REG-OPTION-CNT (DPP44-CSUB).   
+
+PPC470     ADD 1 TO DPP44-REG-OPTION-CNT (DPP44-CSUB).  
+
+           GO TO 2100-WALK-SIBR-TABLE.  
+
+       3000-REPORT-ON-SAILING.  
+           MOVE SPACES TO        WS-TOT-AVAIL-CABINS WS-TOT-TBA-CABINS  
+                                 WS-TOT-TBA-SHARES   WS-TOTAL-NET   
+                                 WS-TOTAL-OPTIONS    WS-BLANK-IND.  
+           MOVE ZERO  TO         WS-TOTAL-TBA-TWINS WS-TOTAL-TBA-QUADS  
+                                 WS-TOTAL-MS-NET    WS-TOTAL-FS-NET 
+                                 WS-TOTAL-MQ-NET    WS-TOTAL-FQ-NET 
+                                 WS-UNMATCHED-MS    WS-UNMATCHED-FS 
+                                 WS-UNMATCHED-MQ    WS-UNMATCHED-FQ 
+                                 WS-TOT-TBAS.   
+           ADD 1 DPP44-CAT-ENTRY-CTR GIVING WS-TOT-SUB. 
+           ADD 1 DPP44-CAT-ENTRY-CTR GIVING DPP44-CSUB. 
+
+       3100-REPORT-LOOP.
+           SUBTRACT 1 FROM DPP44-CSUB.  
+           INITIALIZE YMBCCD-REC.   
+           IF DPP44-CSUB = ZERO 
+              GO TO 4000-TOTAL-REPORT.  
+
+PPC470*    MOVE SAIL1-SHIP-CODE     TO YMBCCD-SHIP-CODE.
+PPC470*    MOVE SAIL1-DURATION-DAYS TO YMBCCD-DURATION-DAYS.
+PPC470*    MOVE SAIL1-SAIL-DATE     TO YMBCCD-SAIL-DATE.
+
+PPC470     MOVE TDP01-SHIP-CODE     TO YMBCCD-SHIP-CODE.
+PPC470     MOVE TDP01-DURATION-DAYS TO YMBCCD-DURATION-DAYS.
+PPC470     MOVE TDP01-SAIL-DATE-YYYYMMDD
+PPC470                              TO YMBCCD-SAIL-DATE.
+
+           MOVE 'CCLCCD' TO YMBCCD-RECORD-ID.   
+RH0202     MOVE WS-RUN-DATE     TO YMBCCD-DATESTAMP.
+SCTEMP*    MOVE DATE-BEGIN-DATE TO YMBCCD-DATESTAMP.
+PRICNG     IF DPP44-TBL-CATEGORY-CODE (DPP44-CSUB) > SPACES 
+              NEXT SENTENCE 
+           ELSE 
+              GO TO 3100-REPORT-LOOP.   
+
+BD0998     MOVE DPP44-TBL-CATEGORY-CODE (DPP44-CSUB) TO 
+BD0998                                            WS-SCRN-CAT-CODE  
+SC0599                                            YMBCCD-CATEGORY-CODE. 
+
+           MOVE ZERO TO WS-HOLD-TBA-TWINS WS-HOLD-TBA-QUADS.
+
+           COMPUTE WS-CALC-AMT = DPP44-INDV-TBA-CABINS (DPP44-CSUB 5)   
+                               + DPP44-GROUP-TBA-CABINS (DPP44-CSUB 5). 
+
+           IF WS-CALC-AMT > ZERO
+              MOVE WS-CALC-AMT TO WS-TBA-QUINTS.
+
+           COMPUTE WS-CALC-AMT = DPP44-INDV-TBA-CABINS (DPP44-CSUB 4)   
+                               + DPP44-GROUP-TBA-CABINS (DPP44-CSUB 4). 
+
+           IF WS-CALC-AMT > ZERO
+              MOVE WS-CALC-AMT TO WS-HOLD-TBA-QUADS.
+
+           COMPUTE WS-CALC-AMT = DPP44-INDV-TBA-CABINS (DPP44-CSUB 3)   
+                               + DPP44-GROUP-TBA-CABINS (DPP44-CSUB 3). 
+
+           IF WS-CALC-AMT > ZERO
+              MOVE WS-CALC-AMT TO WS-TBA-TRIPLES.   
+
+           COMPUTE WS-CALC-AMT = DPP44-INDV-TBA-CABINS (DPP44-CSUB 2)   
+                               + DPP44-GROUP-TBA-CABINS (DPP44-CSUB 2). 
+
+           IF WS-CALC-AMT > ZERO
+              MOVE WS-CALC-AMT TO WS-HOLD-TBA-TWINS.
+
+           COMPUTE WS-CALC-AMT = DPP44-INDV-TBA-CABINS (DPP44-CSUB 1)   
+                               + DPP44-GROUP-TBA-CABINS (DPP44-CSUB 1). 
+
+           IF WS-CALC-AMT > ZERO
+              MOVE WS-CALC-AMT TO WS-TBA-SINGLES.   
+
+           MOVE ZERO TO DPP44-RESULT DPP44-REMAINDER.   
+
+192483*    COMPUTE WS-CALC-AMT = DPP44-MALE-SHARE-CABINS (DPP44-CSUB)   
+192483*                        - DPP44-TBA-MS-PAX (DPP44-CSUB). 
+
+192483*    IF WS-CALC-AMT < ZERO
+192483*       COMPUTE WS-CALC-AMT = WS-CALC-AMT * -1
+192483*       DIVIDE WS-CALC-AMT BY 2   
+192483*              GIVING DPP44-RESULT REMAINDER DPP44-REMAINDER  
+192483*       ADD DPP44-RESULT TO WS-HOLD-TBA-TWINS 
+192483*       IF DPP44-REMAINDER > ZERO 
+192483*          ADD DPP44-REMAINDER TO WS-UNMATCHED-MS 
+192483*          MOVE DPP44-REMAINDER TO WS-TBA-MS-CABINS.  
+
+192483*    COMPUTE WS-CALC-AMT = DPP44-FEMALE-SHARE-CABINS (DPP44-CSUB) 
+192483*                        - DPP44-TBA-FS-PAX (DPP44-CSUB). 
+
+192483*    IF WS-CALC-AMT < ZERO
+192483*       COMPUTE WS-CALC-AMT = WS-CALC-AMT * -1
+192483*       DIVIDE WS-CALC-AMT BY 2   
+192483*              GIVING DPP44-RESULT REMAINDER DPP44-REMAINDER  
+192483*       ADD DPP44-RESULT TO WS-HOLD-TBA-TWINS 
+192483*       IF DPP44-REMAINDER > ZERO 
+192483*          ADD DPP44-REMAINDER TO WS-UNMATCHED-FS 
+192483*          MOVE DPP44-REMAINDER TO WS-TBA-FS-CABINS.  
+
+           IF WS-HOLD-TBA-TWINS > ZERO  
+              MOVE WS-HOLD-TBA-TWINS TO WS-TBA-TWINS
+              ADD WS-HOLD-TBA-TWINS  TO WS-TOTAL-TBA-TWINS. 
+
+192483*      IF DPP44-TBA-MQ-PAX (DPP44-CSUB) > ZERO
+192483*         COMPUTE DPP44-CALC-AMT =
+192483*                 (DPP44-MALE-QUAD-CABINS (DPP44-CSUB) * 4)   
+192483*                 - DPP44-MQ-BTH-PAX (DPP44-CSUB) 
+192483*                 - DPP44-TBA-MQ-PAX (DPP44-CSUB) 
+192483*         IF DPP44-CALC-AMT < ZERO
+192483*            COMPUTE DPP44-CALC-AMT = DPP44-CALC-AMT * -1 
+192483*            DIVIDE DPP44-CALC-AMT BY 4 GIVING DPP44-RESULT   
+192483*                                       REMAINDER DPP44-REMAINDER 
+192483*            ADD DPP44-RESULT TO WS-HOLD-TBA-QUADS
+192483*            IF DPP44-REMAINDER > ZERO
+192483*               ADD DPP44-REMAINDER  TO WS-UNMATCHED-MQ   
+192483*               MOVE DPP44-REMAINDER TO WS-TBA-MQ-CABINS. 
+
+192483*     IF DPP44-TBA-FQ-PAX (DPP44-CSUB) > ZERO 
+192483*        COMPUTE DPP44-CALC-AMT = 
+192483*                (DPP44-FEMALE-QUAD-CABINS (DPP44-CSUB) * 4)  
+192483*                - DPP44-FQ-BTH-PAX (DPP44-CSUB)  
+192483*                - DPP44-TBA-FQ-PAX (DPP44-CSUB)  
+192483*        IF DPP44-CALC-AMT < ZERO 
+192483*           COMPUTE DPP44-CALC-AMT = DPP44-CALC-AMT * -1  
+192483*           DIVIDE DPP44-CALC-AMT BY 4 GIVING DPP44-RESULT
+192483*                                      REMAINDER DPP44-REMAINDER  
+192483*           ADD DPP44-RESULT TO WS-HOLD-TBA-QUADS 
+192483*           IF DPP44-REMAINDER > ZERO 
+192483*              ADD DPP44-REMAINDER  TO WS-UNMATCHED-FQ
+192483*              MOVE DPP44-REMAINDER TO WS-TBA-FQ-CABINS.  
+
+           IF WS-HOLD-TBA-QUADS > ZERO  
+              MOVE WS-HOLD-TBA-QUADS TO WS-TBA-QUADS
+              ADD  WS-HOLD-TBA-QUADS TO WS-TOTAL-TBA-QUADS. 
+
+            IF DPP44-NUM-GRP-TBA-CABS (DPP44-CSUB) > ZERO   
+               MOVE DPP44-NUM-GRP-TBA-CABS (DPP44-CSUB) TO  
+                    WS-TBA-GRP-BLK-CABINS.  
+
+           COMPUTE WS-CALC-AMT = WS-HOLD-TBA-QUADS  
+                               + WS-HOLD-TBA-TWINS  
+                               + DPP44-GRP-BLK-TBA-CABINS (DPP44-CSUB 2)
+                               + DPP44-INDV-TBA-CABINS (DPP44-CSUB 1)   
+                               + DPP44-GROUP-TBA-CABINS (DPP44-CSUB 1)  
+                               + DPP44-INDV-TBA-CABINS (DPP44-CSUB 3)   
+                               + DPP44-GROUP-TBA-CABINS (DPP44-CSUB 3)  
+                               + DPP44-INDV-TBA-CABINS (DPP44-CSUB 5)   
+                               + DPP44-GROUP-TBA-CABINS (DPP44-CSUB 5). 
+
+           MOVE WS-CALC-AMT  TO WS-TBA-TOTAL-CABINS.
+           ADD  WS-CALC-AMT  TO WS-TOT-TBAS.
+
+BD0398     IF DPP44-OPEN-CAB-CNT (DPP44-CSUB, 4) >  
+BD0398        DPP44-RESV-CAB-CNT-AFF-NET (DPP44-CSUB, 4)
+BD0398         COMPUTE WS-AVAIL-QUADS = 
+BD0398          DPP44-OPEN-CAB-CNT (DPP44-CSUB, 4) -
+BD0398          DPP44-RESV-CAB-CNT-AFF-NET (DPP44-CSUB, 4). 
+
+           IF DPP44-OPEN-CAB-CNT (DPP44-CSUB, 3) >  
+              DPP44-RESV-CAB-CNT-AFF-NET (DPP44-CSUB, 3)
+               COMPUTE WS-AVAIL-TRIPLES =   
+                DPP44-OPEN-CAB-CNT (DPP44-CSUB, 3) -
+                DPP44-RESV-CAB-CNT-AFF-NET (DPP44-CSUB, 3). 
+
+BD0398     IF DPP44-OPEN-CAB-CNT (DPP44-CSUB, 2) >  
+BD0398        DPP44-RESV-CAB-CNT-AFF-NET (DPP44-CSUB, 2)
+BD0398         COMPUTE WS-AVAIL-TWINS = 
+BD0398          DPP44-OPEN-CAB-CNT (DPP44-CSUB, 2) -
+BD0398          DPP44-RESV-CAB-CNT-AFF-NET (DPP44-CSUB, 2). 
+
+BD0398     IF DPP44-OPEN-CAB-CNT (DPP44-CSUB, 1) >  
+BD0398        DPP44-RESV-CAB-CNT-AFF-NET (DPP44-CSUB, 1)
+BD0398         COMPUTE WS-AVAIL-SINGLES =   
+BD0398          DPP44-OPEN-CAB-CNT (DPP44-CSUB, 1) -
+BD0398          DPP44-RESV-CAB-CNT-AFF-NET (DPP44-CSUB, 1). 
+
+192483*    IF DPP44-MALE-SHARE-CABINS (DPP44-CSUB) > ZERO   
+192483*       MOVE 'S'  TO WS-MS-LITERAL
+192483*       MOVE DPP44-MALE-SHARE-CABINS (DPP44-CSUB) TO WS-MS-CABINS.
+
+192483*    IF DPP44-FEMALE-SHARE-CABINS (DPP44-CSUB) > ZERO 
+192483*       MOVE 'S'  TO WS-FS-LITERAL
+192483*       MOVE DPP44-FEMALE-SHARE-CABINS (DPP44-CSUB) TO
+192483*            WS-FS-CABINS.
+
+192483*    IF DPP44-MALE-QUAD-CABINS (DPP44-CSUB) > ZERO
+192483*       MOVE 'Q'  TO WS-MS-LITERAL
+192483*       MOVE DPP44-MALE-QUAD-CABINS (DPP44-CSUB) TO WS-MQ-CABINS  
+192483*       MOVE DPP44-MQ-BTH-PAX (DPP44-CSUB)     TO WS-MQ-OPEN-BTH. 
+
+192483*    IF DPP44-FEMALE-QUAD-CABINS (DPP44-CSUB) > ZERO  
+192483*       MOVE 'Q'  TO WS-MS-LITERAL
+192483*       MOVE DPP44-FEMALE-QUAD-CABINS (DPP44-CSUB) TO WS-FQ-CABINS
+192483*       MOVE DPP44-FQ-BTH-PAX (DPP44-CSUB)     TO WS-FQ-OPEN-BTH. 
+
+BD0398     COMPUTE WS-AVAIL-TOTAL-CABINS =  
+BD0398         DPP44-OPEN-CABINS (DPP44-CSUB) - 
+BD0398         DPP44-RESV-CABS-AFFECT-NET (DPP44-CSUB). 
+
+           IF DPP44-TDY-OPTION-CNT (DPP44-CSUB) > ZERO  
+              MOVE DPP44-TDY-OPTION-CNT (DPP44-CSUB) TO WS-TDY-OPTIONS. 
+
+           IF DPP44-TOT-OPTION-CNT (DPP44-CSUB) > ZERO  
+              MOVE DPP44-TOT-OPTION-CNT (DPP44-CSUB) TO WS-TOT-OPTIONS  
+                                                 YMBCCD-INDV-OPT-CABS.  
+
+           MOVE DPP44-CAT-NET-CABINS (DPP44-CSUB) TO WS-CAT-NET 
+RH1101                              YMBCCD-NET-CABINS-AVAILABLE.
+
+BD0998     STRING WS-SCRN-CAT-CODE '  ' WS-AVAIL-CABINS 
+192483*           WS-AVAIL-SHARE-CABINS '    ' WS-TBA-CABINS
+192483            '    ' WS-TBA-CABINS  
+192483*           WS-TBA-SHARES '    ' WS-CAT-NET-TOTAL '    '  
+192483            '    ' WS-CAT-NET-TOTAL '    '
+                  WS-OPTION-TOTAL DELIMITED BY SIZE INTO P-REC. 
+
+           PERFORM 4500-WRITE-YMBCCD THRU 4500-EXIT.
+
+           GO TO 3100-REPORT-LOOP.  
+
+       4000-TOTAL-REPORT.   
+           MOVE WS-TOT-TBAS              TO WS-TOT-TBA-TOTAL-CABINS.
+           MOVE DPP44-TOTAL-NET          TO WS-NET-TOTAL.   
+
+           COMPUTE WS-TOT-AVAIL-TOTAL-CABINS =  
+                 DPP44-TOTAL-OPEN-CABINS -  
+                 DPP44-TOTAL-RESV-CABS-AFF. 
+
+           IF DPP44-TOT-OPEN-CAB-CNT (4) >  
+              DPP44-TOT-RES-CABS-CNT-AFF (4)
+              COMPUTE  WS-TOT-AVAIL-QUADS = 
+                         DPP44-TOT-OPEN-CAB-CNT (4) -   
+                         DPP44-TOT-RES-CABS-CNT-AFF (4).
+
+           IF DPP44-TOT-OPEN-CAB-CNT (3) >  
+              DPP44-TOT-RES-CABS-CNT-AFF (3)
+              COMPUTE  WS-TOT-AVAIL-TRIPLES =   
+                         DPP44-TOT-OPEN-CAB-CNT (3) -   
+                         DPP44-TOT-RES-CABS-CNT-AFF (3).
+
+           IF DPP44-TOT-OPEN-CAB-CNT (2) >  
+              DPP44-TOT-RES-CABS-CNT-AFF (2)
+              COMPUTE  WS-TOT-AVAIL-TWINS = 
+                         DPP44-TOT-OPEN-CAB-CNT (2) -   
+                         DPP44-TOT-RES-CABS-CNT-AFF (2).
+
+           IF DPP44-TOT-OPEN-CAB-CNT (1) >  
+              DPP44-TOT-RES-CABS-CNT-AFF (1)
+              COMPUTE  WS-TOT-AVAIL-SINGLES =   
+                         DPP44-TOT-OPEN-CAB-CNT (1) -   
+                         DPP44-TOT-RES-CABS-CNT-AFF (1).
+
+           IF WS-UNMATCHED-MS > ZERO
+              DIVIDE WS-UNMATCHED-MS BY 2 GIVING WS-TOTAL-MS-NET
+                                          REMAINDER DPP44-REMAINDER 
+              IF DPP44-REMAINDER > ZERO 
+                 ADD 1 TO WS-TOTAL-MS-NET.  
+
+           IF WS-UNMATCHED-FS > ZERO
+              DIVIDE WS-UNMATCHED-FS BY 2 GIVING WS-TOTAL-FS-NET
+                                          REMAINDER DPP44-REMAINDER 
+              IF DPP44-REMAINDER > ZERO 
+                 ADD 1 TO WS-TOTAL-FS-NET.  
+
+           IF WS-UNMATCHED-MQ > ZERO
+              DIVIDE WS-UNMATCHED-MQ BY 2 GIVING WS-TOTAL-MQ-NET
+                                          REMAINDER DPP44-REMAINDER 
+              IF DPP44-REMAINDER > ZERO 
+                 ADD 1 TO WS-TOTAL-MQ-NET.  
+
+           IF WS-UNMATCHED-FQ > ZERO
+              DIVIDE WS-UNMATCHED-FQ BY 2 GIVING WS-TOTAL-FQ-NET
+                                          REMAINDER DPP44-REMAINDER 
+              IF DPP44-REMAINDER > ZERO 
+                 ADD 1 TO WS-TOTAL-FQ-NET.  
+
+           IF WS-TOTAL-MS-NET > ZERO
+              MOVE WS-TOTAL-MS-NET  TO WS-TOT-TBA-MS-CABINS.
+
+           IF WS-TOTAL-FS-NET > ZERO
+              MOVE WS-TOTAL-FS-NET  TO WS-TOT-TBA-FS-CABINS.
+
+           IF WS-TOTAL-MQ-NET > ZERO
+              MOVE WS-TOTAL-MQ-NET  TO WS-TOT-TBA-MQ-CABINS.
+
+           IF WS-TOTAL-FQ-NET > ZERO
+              MOVE WS-TOTAL-FQ-NET  TO WS-TOT-TBA-FQ-CABINS.
+
+           COMPUTE WS-CALC-AMT = DPP44-ITBA-CABINS (5)  
+                               + DPP44-GTBA-CABINS (5). 
+
+           IF WS-CALC-AMT NOT = ZERO
+              MOVE WS-CALC-AMT TO WS-TOT-TBA-QUINTS.
+
+           IF WS-TOTAL-TBA-QUADS NOT = ZERO 
+              MOVE WS-TOTAL-TBA-QUADS TO WS-TOT-TBA-QUADS.  
+
+           COMPUTE WS-CALC-AMT = DPP44-ITBA-CABINS (3)  
+                               + DPP44-GTBA-CABINS (3). 
+
+           IF WS-CALC-AMT NOT = ZERO
+              MOVE WS-CALC-AMT TO WS-TOT-TBA-TRIPLES.   
+
+           IF WS-TOTAL-TBA-TWINS NOT = ZERO 
+              MOVE WS-TOTAL-TBA-TWINS TO WS-TOT-TBA-TWINS.  
+
+           COMPUTE WS-CALC-AMT = DPP44-ITBA-CABINS (1)  
+                               + DPP44-GTBA-CABINS (1). 
+
+           IF WS-CALC-AMT NOT = ZERO
+              MOVE WS-CALC-AMT TO WS-TOT-TBA-SINGLES.   
+
+           IF  DPP44-GTBA-CABINS (2) NOT = ZERO 
+              MOVE DPP44-GTBA-CABINS (2) TO 
+                   WS-TOT-TBA-GRP-BLK-CABINS.   
+
+           MOVE DPP44-TDY-OPTION-TOTAL TO WS-TDY-OPTIONS-TOTAL. 
+           MOVE DPP44-TOTAL-OPTIONS    TO WS-TOT-OPTIONS-TOTAL. 
+           MOVE SPACES TO P-REC.
+
+           STRING 'Tot  ' WS-TOT-AVAIL-CABINS   
+                  '                ' WS-TOT-TBA-CABINS WS-TOT-TBA-SHARES
+                  '    ' WS-TOTAL-NET '    ' WS-TOTAL-OPTIONS   
+                  DELIMITED BY SIZE INTO P-REC. 
+
+           IF DPP44-TOTAL-RESV-CABS-NOT-AFF > ZEROES OR 
+              DPP44-TOTAL-RESV-CABS-AFF > ZEROES
+               MOVE DPP44-TOTAL-RESV-CABS-NOT-AFF TO
+                           WS-TOT-NOT-AFF-RESV-CABINS   
+               MOVE DPP44-TOTAL-RESV-CABS-AFF TO
+                           WS-TOT-AFF-RESV-CABINS.  
+
+           MOVE DPP44-TOTAL-PAX        TO WF-PAX-CNT.   
+PPC470*    MOVE SAIL1-NUM-EST-PAX       TO WF-EST-PAX.  
+PPC470*    MOVE SAIL1-CABIN-SELL-TO-CNT TO WF-SELL-TO.  
+PPC470     MOVE TDP01-ESTIMATED-GUESTS  TO WF-EST-PAX.  
+PPC470     MOVE TDP01-SELL-TO-NET       TO WF-SELL-TO.  
+
+PPC470*    COMPUTE DPP44-CALC-AMT = DPP44-TOTAL-PAX + SAIL1-NUM-EST-PAX..   
+PPC470     COMPUTE DPP44-CALC-AMT = DPP44-TOTAL-PAX +   
+PPC470                              TDP01-ESTIMATED-GUESTS. 
+
+           MOVE DPP44-CALC-AMT TO WF-TOT-PAX.   
+
+           PERFORM 8200-END-SAILING THRU 8299-EXIT. 
+
+           GO TO 1010-FETCH-NEXT-SSUM.  
+
+
+       4500-WRITE-YMBCCD.   
+           MOVE DPP44-NUM-CABINS (DPP44-CSUB) TO
+                         YMBCCD-NUM-CABINS. 
+
+SC0700     SUBTRACT DPP44-NUM-CABINS-NOT-FOR-SALE (DPP44-CSUB) FROM 
+SC0700                          YMBCCD-NUM-CABINS.  
+
+SCTEST*    DISPLAY 'NUM CABS NOT FOR SALE : '   
+      *       DPP44-NUM-CABINS-NOT-FOR-SALE (DPP44-CSUB) UPON PRINTER.  
+
+           MOVE DPP44-OPEN-CABINS (DPP44-CSUB) TO   
+                         YMBCCD-OPEN-CABINS.
+
+           MOVE DPP44-RESV-CABS-BY-CAT-AFF (DPP44-CSUB) TO  
+                         YMBCCD-RESV-AFF-NET.   
+           MOVE DPP44-RESV-CABS-BY-CAT-NOT-AF (DPP44-CSUB) TO   
+                         YMBCCD-RESV-NOT-AFF-NET.   
+           MOVE DPP44-NUM-IND-TBA-CABS (DPP44-CSUB) TO  
+                         YMBCCD-INDV-GTEE-CABS. 
+           MOVE DPP44-NUM-GRP-TBA-CABS (DPP44-CSUB) TO  
+NP1002*                   YMBCCD-GRP-GTEE-CABS. 
+NP1002                   YMBCCD-GRP-BLK-GTEE-CABS.  
+
+           MOVE DPP44-NUM-GRP-REQ-CABS (DPP44-CSUB) TO  
+                         YMBCCD-GRP-REQ-CABS.   
+           MOVE DPP44-NUM-GRP-BLK-CABS (DPP44-CSUB) TO  
+                         YMBCCD-GRP-BLK-CABS.   
+
+C87403*    MOVE YMBCCD-CATEGORY-CODE
+C87403*                             TO AVAIL1-CATEGORY-CODE.
+nptest*    move 1 to mcflag.
+C87403*    MOVE SAIL1-SHIP-CODE     TO AVAIL1-SHIP-CODE.
+C87403*    MOVE SAIL1-SAIL-DATE     TO AVAIL1-SAIL-DATE.
+C87403*    MOVE SAIL1-DURATION-DAYS TO AVAIL1-DURATION-DAYS.
+C87403*    MOVE 17011042 TO DPP01-ERROR-NUMBER. 
+C87403*    MOVE SAIL1-AVAIL-AREANAME TO AVAIL-AREA-NAME.
+C87403*    FETCH AVAIL-CATEGORY1-REC RECORD 
+C87403*       ON ERROR GO TO 9100-DATABASE-ERROR.   
+C87403* 
+C87403*    IF (AVAIL1-SHIP-CODE     = SAIL1-SHIP-CODE)      AND 
+C87403*       (AVAIL1-SAIL-DATE     = SAIL1-SAIL-DATE)      AND 
+C87403*       (AVAIL1-DURATION-DAYS = SAIL1-DURATION-DAYS) AND  
+C87403*       (YMBCCD-CATEGORY-CODE) =  AVAIL1-CATEGORY-CODE
+C87403*        NEXT SENTENCE
+C87403*    ELSE 
+C87403*        GO TO 4500-EXIT. 
+C87403     COPY DPP34INT.   
+C87403     MOVE 'N'                 TO WS-LOOP-END-FLAG.
+PPC470*     PERFORM VARYING WS-SB FROM 1 BY 1   
+PPC470*        UNTIL WS-SB > SAIL1-CATEGORY-CNT OR WS-LOOP-END  
+PPC470*        IF  SAIL1-CATEGORY-CODE(WS-SB) = YMBCCD-CATEGORY-CODE
+PPC470*            MOVE SAIL1-CATEGORY-CODE(WS-SB)  
+PPC470*                              TO DPP34-SELECT-CATEGORY-CODE  
+PPC470*            MOVE 'Y'          TO WS-LOOP-END-FLAG
+PPC470*        END-IF   
+PPC470*     END-PERFORM.
+PPC470      PERFORM VARYING WS-SB FROM 1 BY 1   
+PPC470         UNTIL WS-SB > TDP01-SAIL-CAT-CNT OR WS-LOOP-END  
+PPC470         IF  TDP01-CATEGORY-CODE(WS-SB) = YMBCCD-CATEGORY-CODE
+PPC470             MOVE TDP01-CATEGORY-CODE(WS-SB)  
+PPC470                               TO DPP34-SELECT-CATEGORY-CODE  
+PPC470             MOVE 'Y'          TO WS-LOOP-END-FLAG
+PPC470         END-IF   
+PPC470      END-PERFORM.
+C87403     PERFORM DPP33-FETCH-AVAIL-RECORD THRU DPP33-EXIT.
+C88403     IF  DPP34-ERROR-SUB > ZEROES 
+C87403         GO TO 9100-DATABASE-ERROR
+C87403     END-IF.  
+PPC470*    IF  (AVAIL-SHIP-CODE      = SAIL1-SHIP-CODE)     AND 
+PPC470*        (AVAIL-SAIL-DATE      = SAIL1-SAIL-DATE)     AND 
+PPC470*        (AVAIL-DURATION-DAYS  = SAIL1-DURATION-DAYS) AND 
+PPC470*        (YMBCCD-CATEGORY-CODE =  AVAIL-CATEGORY-CODE)
+PPC470*        NEXT SENTENCE
+PPC470*    ELSE 
+PPC470*        GO TO 4500-EXIT. 
+
+PPC470     IF  (AVAIL-SHIP-CODE      = TDP01-SHIP-CODE)     AND 
+PPC470         (AVAIL-SAIL-DATE      = TDP01-SAIL-DATE-YYYYMMDD)  AND   
+PPC470         (AVAIL-DURATION-DAYS  = TDP01-DURATION-DAYS) AND 
+PPC470         (YMBCCD-CATEGORY-CODE =  AVAIL-CATEGORY-CODE)
+PPC470         NEXT SENTENCE
+PPC470     ELSE 
+PPC470         GO TO 4500-EXIT. 
+
+C87403     IF  AVAIL-CATEGORY-OCC-SET SET EMPTY 
+C97529*        GO TO 4500-EXIT. 
+C97529         GO TO 4700-CONTINUE. 
+nptest*    move 0 to mcflag.
+           MOVE ZEROES TO YMBCCD-INDV-PAX-CNT   
+                          YMBCCD-GRP-PAX-CNT YMBCCD-GRP-EST-PAX-CNT 
+EL0901                    WS-HOLD-SAIL-POOL-PAX WS-HOLD-SAIL-POOL-CAB.  
+C97529*    MOVE 1      TO WS-G-SUB. 
+C87403 4700-AVCOR-LOOP. 
+C87403     FETCH NEXT  AVAIL-CAT-OCC-REC
+C87403         WITHIN AVAIL-CATEGORY-OCC-SET SET
+C87403         AT END GO TO 4700-CONTINUE.  
+C97529     MOVE AVCOR-OCCUPANCY TO WS-G-SUB.
+C87403     ADD AVCOR-INDV-BTH-CABINS      TO YMBCCD-INDV-BTH-CABS.  
+C87403     ADD AVCOR-INDV-BLOCKED-CABINS  TO YMBCCD-INDV-BLK-CABS.  
+C87403     ADD AVCOR-GRP-BTH-CABINS       TO YMBCCD-GRP-BTH-CABS.   
+C87403     MOVE AVCOR-GRP-BLK-BKG-CABINS
+C87403                   TO YMBCCD-GRP-BLK-BKG-CABSD (WS-G-SUB).
+C87403     MOVE AVCOR-GRP-BTH-CABINS
+C87403                   TO YMBCCD-GRP-BTH-CABSD (WS-G-SUB).
+192483*     MOVE AVCOR-FEMALE-QUAD-CABINS   
+192483      MOVE 0  
+C87403                   TO YMBCCD-FEMALE-QUAD-CABSD (WS-G-SUB).
+192483*    MOVE AVCOR-FEMALE-SHARE-CABINS   
+192483      MOVE 0  
+C87403                   TO YMBCCD-FEMALE-SHARE-CABSD (WS-G-SUB).   
+C87403     MOVE AVCOR-GRP-BLK-SAIL-CABINS   
+C87403                   TO YMBCCD-GRP-BLK-SAIL-CABSD (WS-G-SUB).   
+C87403     MOVE AVCOR-INDV-BLOCKED-CABINS   
+C87403                   TO YMBCCD-INDV-BLOCKED-CABSD (WS-G-SUB).   
+C87403     MOVE AVCOR-INDV-BTH-CABINS   
+C87403                   TO YMBCCD-INDV-BTH-CABSD (WS-G-SUB).   
+192483*    MOVE AVCOR-MALE-QUAD-CABINS  
+192483     MOVE 0   
+C87403                   TO YMBCCD-MALE-QUAD-CABSD (WS-G-SUB).  
+192483*    MOVE AVCOR-MALE-SHARE-CABINS 
+192483     MOVE 0   
+C87403                   TO YMBCCD-MALE-SHARE-CABSD (WS-G-SUB). 
+C87403     MOVE AVCOR-NUM-CABINS
+C87403                   TO YMBCCD-NUM-CABSD (WS-G-SUB).
+C87403     MOVE AVCOR-OPEN-CABINS   
+C87403                   TO YMBCCD-OPEN-CABSD (WS-G-SUB).   
+C87403     MOVE AVCOR-OPEN-CABS-BY-MAX-CAP  
+C87403                   TO YMBCCD-OPEN-CABS-BY-MAX-CAPD (WS-G-SUB).
+C87403     MOVE AVCOR-RSV-AFFECT-NET-CAB
+C87403                   TO YMBCCD-RESV-CABS-AFFECT-NETD (WS-G-SUB).
+C87403     MOVE AVCOR-MX-RSV-AFFECT-NET-CAB 
+C87403                   TO YMBCCD-RESV-CABS-BY-MAX-AFFD (WS-G-SUB).
+C87403     MOVE AVCOR-MX-RSV-NO-AFFECT-NET-CAB  
+C87403                   TO YMBCCD-RESV-CABS-BY-MX-NOT-AFD (WS-G-SUB).  
+C87403     MOVE AVCOR-RSV-NO-AFFECT-NET-CAB 
+C87403                   TO YMBCCD-RSV-CABS-NOT-AFF-NETD (WS-G-SUB).
+C87403     IF  AVAIL-OCC-CABIN-SET SET EMPTY
+C87403         GO TO 4700-AVCOR-LOOP.   
+           PERFORM 5000-GET-PAX-COUNTS THRU 5000-EXIT.  
+C97529*    ADD 1         TO WS-G-SUB.   
+C87403     GO TO 4700-AVCOR-LOOP.   
+C87403  
+C87403 4700-CONTINUE.   
+
+C87403*    COMPUTE YMBCCD-INDV-BTH-CABS = AVAIL1-INDV-BTH-CABINS (1) +  
+C87403*                                     AVAIL1-INDV-BTH-CABINS (2) +
+C87403*                                     AVAIL1-INDV-BTH-CABINS (3) +
+C87403*                                     AVAIL1-INDV-BTH-CABINS (4) +
+C87403*                                     AVAIL1-INDV-BTH-CABINS (5). 
+C87403* 
+C87403*    COMPUTE YMBCCD-INDV-BLK-CABS = AVAIL1-INDV-BLOCKED-CABINS (1)
+C87403*                              + AVAIL1-INDV-BLOCKED-CABINS (2)   
+C87403*                              + AVAIL1-INDV-BLOCKED-CABINS (3)   
+C87403*                              + AVAIL1-INDV-BLOCKED-CABINS (4)   
+C87403*                              + AVAIL1-INDV-BLOCKED-CABINS (5).  
+SCTEMP*     MOVE ZEROES TO YMBCCD-GRP-SOLD-CABS.
+C87403*    COMPUTE YMBCCD-GRP-SOLD-CABS =   
+C87403*                               AVAIL1-GRP-SOLD-CABINS (1) +  
+C87403*                               AVAIL1-GRP-SOLD-CABINS (2) +  
+C87403*                               AVAIL1-GRP-SOLD-CABINS (3) +  
+C87403*                               AVAIL1-GRP-SOLD-CABINS (4) +  
+C87403*                               AVAIL1-GRP-SOLD-CABINS (5).   
+C87403* 
+C87403*    COMPUTE YMBCCD-GRP-BTH-CABS =
+C87403*                            AVAIL1-GRP-BTH-CABINS (1) +  
+C87403*                            AVAIL1-GRP-BTH-CABINS (2) +  
+C87403*                            AVAIL1-GRP-BTH-CABINS (3) +  
+C87403*                            AVAIL1-GRP-BTH-CABINS (4) +  
+C87403*                            AVAIL1-GRP-BTH-CABINS (5).   
+C87403* 
+C87403*    COMPUTE YMBCCD-GRP-GTEE-CABS =   
+EL0901*     COMPUTE YMBCCD-GRP-BLK-GTEE-CABS =  
+C87403*                         AVAIL1-GRP-GTEE-CABINS (1) +
+C87403*                         AVAIL1-GRP-GTEE-CABINS (2) +
+C87403*                         AVAIL1-GRP-GTEE-CABINS (3) +
+C87403*                         AVAIL1-GRP-GTEE-CABINS (4) +
+C87403*                         AVAIL1-GRP-GTEE-CABINS (5). 
+
+C64542*    COMPUTE YMBCCD-INDV-BTH-CABS = YMBCCD-INDV-BTH-CABS +
+C64542*                                   YMBCCD-GRP-BTH-CABS.  
+
+C87403*    MOVE AVAIL1-CATEGORY-CODE TO DPP80-CATEGORY-CODE.
+C87403     MOVE AVAIL-CATEGORY-CODE  TO DPP80-CATEGORY-CODE.
+PRICNG     MOVE 'F' TO DPP80-EDIT-TYPE. 
+PRICNG     PERFORM DPP80-GET-SAIL-CAT-CODE THRU DPP80-EXIT. 
+C87403*    COMPUTE YMBCCD-GRP-HCP-CABS =
+EL0901*                         AVAIL1-GRP-GTEE-CABINS (1) +
+EL0901*                         AVAIL1-GRP-GTEE-CABINS (2) +
+EL0901*                         AVAIL1-GRP-GTEE-CABINS (3) +
+EL0901*                         AVAIL1-GRP-GTEE-CABINS (4) +
+EL0901*                         AVAIL1-GRP-GTEE-CABINS (5) +
+C87403*                         AVAIL1-GRP-BLK-GTEE-CABINS (1) +
+C87403*                         AVAIL1-GRP-BLK-GTEE-CABINS (2) +
+C87403*                         AVAIL1-GRP-BLK-GTEE-CABINS (3) +
+C87403*                         AVAIL1-GRP-BLK-GTEE-CABINS (4) +
+C87403*                         AVAIL1-GRP-BLK-GTEE-CABINS (5) +
+NP0502***************************************************************   
+NP0502** use logical bkg & sailing pool cabins instead of physical **   
+NP0502***************************************************************   
+C87403*                         AVAIL1-GRP-LOG-BTH-CABINS (1) + 
+C87403*                         AVAIL1-GRP-LOG-BTH-CABINS (2) + 
+C87403*                         AVAIL1-GRP-LOG-BTH-CABINS (3) + 
+C87403*                         AVAIL1-GRP-LOG-BTH-CABINS (4) + 
+C87403*                         AVAIL1-GRP-LOG-BTH-CABINS (5) + 
+C87403*                         AVAIL1-GRP-LOG-BKG-CABINS (1) + 
+C87403*                         AVAIL1-GRP-LOG-BKG-CABINS (2) + 
+C87403*                         AVAIL1-GRP-LOG-BKG-CABINS (3) + 
+C87403*                         AVAIL1-GRP-LOG-BKG-CABINS (4) + 
+C87403*                         AVAIL1-GRP-LOG-BKG-CABINS (5) + 
+C87403*                         AVAIL1-GRP-LOG-SAIL-CABINS (1) +
+C87403*                         AVAIL1-GRP-LOG-SAIL-CABINS (2) +
+C87403*                         AVAIL1-GRP-LOG-SAIL-CABINS (3) +
+C87403*                         AVAIL1-GRP-LOG-SAIL-CABINS (4) +
+C87403*                         AVAIL1-GRP-LOG-SAIL-CABINS (5). 
+NP0502*                          AVAIL1-GRP-BTH-CABINS (1) +
+NP0502*                          AVAIL1-GRP-BTH-CABINS (2) +
+NP0502*                          AVAIL1-GRP-BTH-CABINS (3) +
+NP0502*                          AVAIL1-GRP-BTH-CABINS (4) +
+NP0502*                          AVAIL1-GRP-BTH-CABINS (5) +
+NP0502*                          AVAIL1-GRP-BLK-BKG-CABINS (1) +
+NP0502*                          AVAIL1-GRP-BLK-BKG-CABINS (2) +
+NP0502*                          AVAIL1-GRP-BLK-BKG-CABINS (3) +
+NP0502*                          AVAIL1-GRP-BLK-BKG-CABINS (4) +
+NP0502*                          AVAIL1-GRP-BLK-BKG-CABINS (5) +
+NP0502*                          WS-HOLD-SAIL-POOL-CAB. 
+
+C87403*    IF AVAIL1-CATEGORY-CODE = '4A '  
+PPC470*    IF SAIL1-QUOTE-FLAG(DPP80-SAIL-CAT-SUB) > 0  
+PPC470*       COMPUTE YMBCCD-GRP-EST-PAX-CNT = WS-TOT-ORIG-REQ * .15.   
+
+PPC470     IF  TDP01-QUOTE-IND (DPP80-SAIL-CAT-SUB) NOT = 'N'   
+PPC470         COMPUTE YMBCCD-GRP-EST-PAX-CNT = WS-TOT-ORIG-REQ * .15   
+PPC470     END-IF.  
+
+C87403*    COMPUTE YMBCCD-INDV-PAX-CNT = YMBCCD-INDV-PAX-CNT +  
+C87403*        (AVAIL1-INDV-GTEE-CABINS (1) * 1) +  
+C87403*        (AVAIL1-INDV-GTEE-CABINS (2) * 2) +  
+C87403*        (AVAIL1-INDV-GTEE-CABINS (3) * 3) +  
+C87403*        (AVAIL1-INDV-GTEE-CABINS (4) * 4) +  
+C87403*        (AVAIL1-INDV-GTEE-CABINS (5) * 5).   
+C87403* 
+C87403*    COMPUTE YMBCCD-GRP-PAX-CNT =  YMBCCD-GRP-PAX-CNT +   
+C87403*        (AVAIL1-GRP-GTEE-CABINS (1) * 1) +   
+C87403*        (AVAIL1-GRP-GTEE-CABINS (2) * 2) +   
+C87403*        (AVAIL1-GRP-GTEE-CABINS (3) * 3) +   
+C87403*        (AVAIL1-GRP-GTEE-CABINS (4) * 4) +   
+C87403*        (AVAIL1-GRP-GTEE-CABINS (5) * 5).
+
+RH1101     MOVE WS-HOLD-SAIL-POOL-CAB TO YMBCCD-HOLD-SAIL-POOL-CABINS.  
+
+NP0502     MOVE 1 TO WS-G-SUB.  
+NP0502     PERFORM UNTIL WS-G-SUB > 5   
+C87403*        MOVE AVAIL1-GRP-REQ-CABINS (WS-G-SUB)
+C87403         MOVE AVAIL-GRP-REQ-CABINS (WS-G-SUB) 
+NP0502                   TO YMBCCD-GRP-REQ-CABSD (WS-G-SUB) 
+C87403*        MOVE AVAIL1-GRP-BLK-BKG-CABINS (WS-G-SUB)
+C87403*                  TO YMBCCD-GRP-BLK-BKG-CABSD (WS-G-SUB) 
+C87403*        MOVE AVAIL1-GRP-BTH-CABINS (WS-G-SUB)
+C87403*                  TO YMBCCD-GRP-BTH-CABSD (WS-G-SUB) 
+C87403*        MOVE AVAIL1-GRP-GTEE-CABINS (WS-G-SUB)   
+C87403         MOVE AVAIL-GRP-GTEE-CABINS (WS-G-SUB)
+NP0502                   TO YMBCCD-GRP-GTEE-CABSD (WS-G-SUB)
+C87403*        MOVE AVAIL1-FEMALE-QUAD-CABINS (WS-G-SUB)
+C87403*                  TO YMBCCD-FEMALE-QUAD-CABSD (WS-G-SUB) 
+C87403*        MOVE AVAIL1-FEMALE-SHARE-CABINS (WS-G-SUB)   
+C87403*                  TO YMBCCD-FEMALE-SHARE-CABSD (WS-G-SUB)
+C87403*        MOVE AVAIL1-GRP-BLK-GTEE-CABINS (WS-G-SUB)   
+C87403         MOVE AVAIL-GRP-BLK-GTEE-CABINS (WS-G-SUB)
+NP0502                   TO YMBCCD-GRP-BLK-GTEE-CABSD (WS-G-SUB)
+C87403*        MOVE AVAIL1-GRP-BLK-SAIL-CABINS (WS-G-SUB)   
+C87403*                  TO YMBCCD-GRP-BLK-SAIL-CABSD (WS-G-SUB)
+C87403*        MOVE AVAIL1-GRP-LOG-BKG-CABINS (WS-G-SUB)
+C87403         MOVE AVAIL-GRP-LOG-BKG-CABINS (WS-G-SUB) 
+NP0502                   TO YMBCCD-GRP-LOG-BKG-CABSD (WS-G-SUB) 
+C87403*        MOVE AVAIL1-GRP-LOG-BTH-CABINS (WS-G-SUB)
+C87403         MOVE AVAIL-GRP-LOG-BTH-CABINS (WS-G-SUB) 
+NP0502                   TO YMBCCD-GRP-LOG-BTH-CABSD (WS-G-SUB) 
+C87403*        MOVE AVAIL1-GRP-LOG-SAIL-CABINS (WS-G-SUB)   
+C87403         MOVE AVAIL-GRP-LOG-SAIL-CABINS (WS-G-SUB)
+NP0502                   TO YMBCCD-GRP-LOG-SAIL-CABSD (WS-G-SUB)
+C87403*        MOVE AVAIL1-GRP-SOLD-CABINS (WS-G-SUB)   
+C87403         MOVE AVAIL-GRP-SOLD-CABINS (WS-G-SUB)
+NP0502                   TO YMBCCD-GRP-SOLD-CABSD (WS-G-SUB)
+C87403*        MOVE AVAIL1-GRP-UNASG-GTEE-CABINS (WS-G-SUB) 
+C87403         MOVE AVAIL-GRP-UNASG-GTEE-CABINS (WS-G-SUB)  
+NP0502                   TO YMBCCD-GRP-UNASG-GTEE-CABSD (WS-G-SUB)  
+C87403*        MOVE AVAIL1-INDV-BLOCKED-CABINS (WS-G-SUB)   
+C87403*                  TO YMBCCD-INDV-BLOCKED-CABSD (WS-G-SUB)
+C87403*        MOVE AVAIL1-INDV-BTH-CABINS (WS-G-SUB)   
+C87403*                  TO YMBCCD-INDV-BTH-CABSD (WS-G-SUB)
+C87403*        MOVE AVAIL1-INDV-GTEE-CABINS (WS-G-SUB)  
+C87403         MOVE AVAIL-INDV-GTEE-CABINS (WS-G-SUB)   
+NP0502                   TO YMBCCD-INDV-GTEE-CABSD (WS-G-SUB)   
+C87403*        MOVE AVAIL1-MALE-QUAD-CABINS (WS-G-SUB)  
+C87403*                  TO YMBCCD-MALE-QUAD-CABSD (WS-G-SUB)   
+C87403*        MOVE AVAIL1-MALE-SHARE-CABINS (WS-G-SUB) 
+C87403*                  TO YMBCCD-MALE-SHARE-CABSD (WS-G-SUB)  
+C87403*        MOVE AVAIL1-NUM-CABINS (WS-G-SUB)
+C87403*                  TO YMBCCD-NUM-CABSD (WS-G-SUB) 
+C87403*        MOVE AVAIL1-OPEN-CABINS (WS-G-SUB)   
+C87403*                  TO YMBCCD-OPEN-CABSD (WS-G-SUB)
+C87403*        MOVE AVAIL1-OPEN-CABS-BY-MAX-CAP (WS-G-SUB)  
+C87403*                  TO YMBCCD-OPEN-CABS-BY-MAX-CAPD (WS-G-SUB) 
+C87403*        MOVE AVAIL1-RESV-CABS-AFFECT-NET (WS-G-SUB)  
+C87403*                  TO YMBCCD-RESV-CABS-AFFECT-NETD (WS-G-SUB) 
+C87403*        MOVE AVAIL1-RESV-CABS-BY-MAX-AFF (WS-G-SUB)  
+C87403*                  TO YMBCCD-RESV-CABS-BY-MAX-AFFD (WS-G-SUB) 
+C87403*        MOVE AVAIL1-RESV-CABS-BY-MAX-NOT-AF (WS-G-SUB)   
+C87403*                  TO YMBCCD-RESV-CABS-BY-MX-NOT-AFD (WS-G-SUB)   
+C87403*        MOVE AVAIL1-RESV-CABS-NOT-AFF-NET (WS-G-SUB) 
+C87403*                  TO YMBCCD-RSV-CABS-NOT-AFF-NETD (WS-G-SUB) 
+C87403*        MOVE AVAIL1-WAITLIST-CABINS (WS-G-SUB)   
+C87403         MOVE AVAIL-WAITLIST-CABINS (WS-G-SUB)
+NP0502                   TO YMBCCD-WAITLIST-CABSD (WS-G-SUB)
+NP0502         COMPUTE YMBCCD-GRP-HCP-CABSD (WS-G-SUB) =
+C87403*                  AVAIL1-GRP-LOG-SAIL-CABINS (WS-G-SUB) +
+C87403*                  AVAIL1-GRP-BLK-GTEE-CABINS (WS-G-SUB) +
+C87403*                  AVAIL1-GRP-LOG-BTH-CABINS (WS-G-SUB) + 
+C87403*                  AVAIL1-GRP-LOG-BKG-CABINS (WS-G-SUB)   
+C87403                   AVAIL-GRP-LOG-SAIL-CABINS (WS-G-SUB) + 
+C87403                   AVAIL-GRP-BLK-GTEE-CABINS (WS-G-SUB) + 
+C87403                   AVAIL-GRP-LOG-BTH-CABINS (WS-G-SUB) +  
+C87403                   AVAIL-GRP-LOG-BKG-CABINS (WS-G-SUB)
+C87403         ADD AVAIL-GRP-GTEE-CABINS(WS-G-SUB)  
+C87403                   TO YMBCCD-GRP-GTEE-CABS
+C87403         COMPUTE YMBCCD-GRP-HCP-CABS =
+C97529                     YMBCCD-GRP-HCP-CABS  
+C87403                   + AVAIL-GRP-BLK-GTEE-CABINS(WS-G-SUB)  
+C87403                   + AVAIL-GRP-LOG-BTH-CABINS (WS-G-SUB)  
+C87403                   + AVAIL-GRP-LOG-BKG-CABINS (WS-G-SUB)  
+C87403                   + AVAIL-GRP-LOG-SAIL-CABINS(WS-G-SUB)  
+C87403         COMPUTE YMBCCD-INDV-PAX-CNT = YMBCCD-INDV-PAX-CNT +  
+C87403         (AVAIL-INDV-GTEE-CABINS (WS-G-SUB) * WS-G-SUB)   
+C87403         COMPUTE YMBCCD-GRP-PAX-CNT = YMBCCD-GRP-PAX-CNT +
+C87403         (AVAIL-GRP-GTEE-CABINS (WS-G-SUB) * WS-G-SUB)
+C87403         ADD AVAIL-GRP-SOLD-CABINS (WS-G-SUB) 
+C87403                   TO YMBCCD-GRP-SOLD-CABS
+NP0502         ADD 1 TO WS-G-SUB
+NP0502     END-PERFORM. 
+NP0502  
+           MOVE '|' TO YMBCCD-FILLER-1  YMBCCD-FILLER-14
+                       YMBCCD-FILLER-2  YMBCCD-FILLER-15
+                       YMBCCD-FILLER-3  YMBCCD-FILLER-16
+                       YMBCCD-FILLER-4  YMBCCD-FILLER-17
+                       YMBCCD-FILLER-5  YMBCCD-FILLER-18
+                       YMBCCD-FILLER-6  YMBCCD-FILLER-19
+                       YMBCCD-FILLER-7  YMBCCD-FILLER-20
+                       YMBCCD-FILLER-8  YMBCCD-FILLER-21
+                       YMBCCD-FILLER-9  YMBCCD-FILLER-11
+                       YMBCCD-FILLER-10 YMBCCD-FILLER-12
+RH1101                 YMBCCD-FILLER-22 YMBCCD-FILLER-23
+                       YMBCCD-FILLER-13 YMBCCD-FILLER-25.   
+
+
+NP0502     MOVE 1 TO WS-G-SUB.  
+NP0502     PERFORM UNTIL WS-G-SUB > 5   
+NP0502  
+NP0502         MOVE '|' TO     YMBCCD-FILLER-24 (WS-G-SUB)  
+NP0502                         YMBCCD-FILLER-26 (WS-G-SUB)  
+NP0502                         YMBCCD-FILLER-27 (WS-G-SUB)  
+NP0502                         YMBCCD-FILLER-28 (WS-G-SUB)  
+NP0502                         YMBCCD-FILLER-29 (WS-G-SUB)  
+NP0502                         YMBCCD-FILLER-30 (WS-G-SUB)  
+NP0502                         YMBCCD-FILLER-31 (WS-G-SUB)  
+NP0502                         YMBCCD-FILLER-32 (WS-G-SUB)  
+NP0502                         YMBCCD-FILLER-33 (WS-G-SUB)  
+NP0502                         YMBCCD-FILLER-34 (WS-G-SUB)  
+NP0502                         YMBCCD-FILLER-35 (WS-G-SUB)  
+NP0502                         YMBCCD-FILLER-36 (WS-G-SUB)  
+NP0502                         YMBCCD-FILLER-37 (WS-G-SUB)  
+NP0502                         YMBCCD-FILLER-38 (WS-G-SUB)  
+NP0502                         YMBCCD-FILLER-39 (WS-G-SUB)  
+NP0502                         YMBCCD-FILLER-40 (WS-G-SUB)  
+NP0502                         YMBCCD-FILLER-41 (WS-G-SUB)  
+NP0502                         YMBCCD-FILLER-42 (WS-G-SUB)  
+NP0502                         YMBCCD-FILLER-43 (WS-G-SUB)  
+NP0502                         YMBCCD-FILLER-44 (WS-G-SUB)  
+NP0502*                        YMBCCD-FILLER-45 (WS-G-SUB)  
+NP0502                         YMBCCD-FILLER-46 (WS-G-SUB)  
+NP0502                         YMBCCD-FILLER-47 (WS-G-SUB)  
+NP0502                         YMBCCD-FILLER-48 (WS-G-SUB)  
+NP0502                         YMBCCD-FILLER-49 (WS-G-SUB)  
+NP0502                         YMBCCD-FILLER-50 (WS-G-SUB)  
+NP0502                         YMBCCD-FILLER-51 (WS-G-SUB)  
+NP0502                         YMBCCD-FILLER-52 (WS-G-SUB)  
+NP0502         ADD 1 TO WS-G-SUB
+NP0502     END-PERFORM. 
+NP0502  
+NP0905******************************************************************
+NP0905***** SPECIAL CODE FOR FEMA CHARTERS DUE TO HURRICAN KATRINA *****
+NP0905       MOVE YMBCCD-SHIP-CODE     TO YMP02-SHIP-CODE   
+NP0905       MOVE YMBCCD-DURATION-DAYS TO YMP02-DURATION-DAYS   
+NP0905       MOVE YMBCCD-SAIL-DATE     TO YMP02-SAIL-DATE   
+NP0905       PERFORM YMP02-SHIP-SWITCH  
+NP0905       MOVE YMP02-SHIP-CODE      TO YMBCCD-SHIP-CODE  
+NP0905******************************************************************
+           WRITE YMBCCD-REC.
+DL0802     ADD 1 TO YMBCCD-CNT-REC-CNT. 
+
+       4500-EXIT.   
+           EXIT.
+
+
+       5000-GET-PAX-COUNTS. 
+PPC470*    IF SAIL1-PHANTOM-CAT-FLAG (DPP44-CSUB)  = 1  
+PPC470*        GO TO 5000-EXIT. 
+
+PPC470     IF TDP01-PHANTOM-CAT-IND (DPP44-CSUB)  = 'Y' 
+PPC470         GO TO 5000-EXIT. 
+
+C87403*    FETCH NEXT AVAIL-CABIN1-REC  
+C87403*         WITHIN AVAIL-CABIN1-SET SET 
+C87403*       AT END GO TO 5000-EXIT.   
+C87403     FETCH NEXT AVAIL-CABIN-REC   
+C87403          WITHIN AVAIL-OCC-CABIN-SET SET  
+C87403        AT END GO TO 5000-EXIT.   
+
+NP0103     PERFORM 5100-WRITE-CABIN-DETAILS THRU 5100-EXIT. 
+
+C87403*    IF AVL-CAB1-CABIN-STATUS NOT > SPACES
+C87403     IF AVL-CAB-CABIN-STATUS NOT > SPACES 
+              GO TO 5000-GET-PAX-COUNTS.
+
+C87403*    IF AVL-CAB1-CABIN-STATUS = 'I'   
+C87403*       ADD AVL-CAB1-NUM-PAX TO YMBCCD-INDV-PAX-CNT.  
+
+C87403*    IF AVL-CAB1-CABIN-STATUS = 'G'   
+C87403*       ADD AVL-CAB1-NUM-PAX TO YMBCCD-GRP-PAX-CNT.   
+
+C87403     IF AVL-CAB-CABIN-STATUS = 'I'
+C87403        ADD AVL-CAB-NUM-PAX TO YMBCCD-INDV-PAX-CNT.   
+C87403  
+C87403     IF AVL-CAB-CABIN-STATUS = 'G'
+C87403        ADD AVL-CAB-NUM-PAX TO YMBCCD-GRP-PAX-CNT.
+
+C87403*    IF AVL-CAB1-CABIN-STATUS = 'S'   
+C87403     IF AVL-CAB-CABIN-STATUS = 'S'
+NP0502*        ADD AVL-CAB1-NUM-PAX TO WS-HOLD-SAIL-POOL-PAX - superflous-NP
+EL0901        ADD 1                TO WS-HOLD-SAIL-POOL-CAB.
+EL0901  
+
+           GO TO 5000-GET-PAX-COUNTS.   
+
+       5000-EXIT.   
+           EXIT.
+
+NP0103 5100-WRITE-CABIN-DETAILS.
+NP0103     INITIALIZE YMBCAB-REC.   
+nptest*    move 1 to MCFLAG.
+133581     IF AVL-CAB-RATE-CODE > SPACES
+133581        AND (AVL-CAB-CABIN-STATUS NOT > SPACES)   
+133581        AND AVL-CAB-AFFECT-NET-IND = 'Y'  
+133581        MOVE 'R'     TO AVL-CAB-CABIN-STATUS  
+133581     END-IF.  
+NP0103  
+NP0103     MOVE 'CCLCAB'                 TO YMBCAB-RECORD-ID
+                                            YMBCAB-mnew-RECORD-ID.  
+NP0103     MOVE WS-RUN-DATE              TO YMBCAB-DATESTAMP
+                                            YMBCAB-mnew-DATESTAMP.  
+C87403*    MOVE AVAIL1-SHIP-CODE         TO YMBCAB-SHIP-CODE
+C87403     MOVE AVAIL-SHIP-CODE          TO YMBCAB-SHIP-CODE
+                                            YMBCAB-msam-SHIP-CODE   
+                                            YMBCAB-mnew-SHIP-CODE.  
+C87403*    MOVE AVAIL1-SAIL-DATE         TO YMBCAB-SAIL-DATE
+C87403     MOVE AVAIL-SAIL-DATE          TO YMBCAB-SAIL-DATE
+                                            YMBCAB-msam-SAIL-DATE   
+                                            YMBCAB-mnew-SAIL-DATE.  
+C87403*    MOVE AVAIL1-DURATION-DAYS     TO YMBCAB-DURATION-DAYS
+C87403     MOVE AVAIL-DURATION-DAYS      TO YMBCAB-DURATION-DAYS
+                                            YMBCAB-msam-DURATION-DAYS   
+                                            YMBCAB-mnew-DURATION-DAYS.  
+C87403*    MOVE AVAIL1-CATEGORY-CODE     TO YMBCAB-CATEGORY-CODE
+C87403     MOVE AVAIL-CATEGORY-CODE      TO YMBCAB-CATEGORY-CODE
+                                            YMBCAB-msam-CATEGORY-CODE   
+                                            YMBCAB-mnew-CATEGORY-CODE.  
+C87403*    MOVE AVL-CAB1-CABIN-NUM       TO YMBCAB-CABIN-NUM
+C87403     MOVE AVL-CAB-CABIN-NUM        TO YMBCAB-CABIN-NUM
+                                            YMBCAB-msam-CABIN-NUM   
+                                            YMBCAB-mnew-CABIN-NUM.  
+nptest*    move 0 to MCFLAG.
+C87403*    MOVE AVL-CAB1-AFFECT-NET-IND  TO YMBCAB-AFFECT-NET-IND   
+C87403     MOVE AVL-CAB-AFFECT-NET-IND   TO YMBCAB-AFFECT-NET-IND   
+                                            YMBCAB-mnew-AFFECT-NET-IND. 
+C87403*    MOVE AVL-CAB1-BED-TYPE-CODE   TO YMBCAB-BED-TYPE-CODE
+C87403     MOVE AVL-CAB-BED-TYPE-CODE    TO YMBCAB-BED-TYPE-CODE
+                                            YMBCAB-mnew-BED-TYPE-CODE.  
+c87403*    MOVE AVL-CAB1-BOOK-NUM        TO YMBCAB-BOOK-NUM 
+C87403     MOVE AVL-CAB-BOOK-NUM         TO YMBCAB-BOOK-NUM 
+                                            YMBCAB-mnew-BOOK-NUM.   
+C87403*    MOVE AVL-CAB1-CABIN-STATUS    TO YMBCAB-CABIN-STATUS 
+C87403     MOVE AVL-CAB-CABIN-STATUS     TO YMBCAB-CABIN-STATUS 
+                                            YMBCAB-mnew-CABIN-STATUS.   
+C87403*    MOVE AVL-CAB1-CONNECT-IND     TO YMBCAB-CONNECT-IND  
+C87403     IF  AVL-CAB-CONNECT-CABIN-NUM  > SPACES  
+C87403         MOVE 'Y'                  TO YMBCAB-CONNECT-IND  
+                                            YMBCAB-mnew-CONNECT-IND 
+C98140     ELSE 
+C98140         MOVE 'N'                  TO YMBCAB-CONNECT-IND  
+C98140                                      YMBCAB-mnew-CONNECT-IND 
+C87403     END-IF.  
+C87403*    MOVE AVL-CAB1-CUSTOMER-NUM    TO YMBCAB-CUSTOMER-NUM 
+214948*    MOVE AVL-CAB-CUSTOMER-NUM     TO YMBCAB-CUSTOMER-NUM 
+214948*                                     YMBCAB-MNEW-CUSTOMER-NUM.   
+214948     MOVE AVL-CAB-CUSTOMER-NUM     TO YMP01-AGENT-CUST-NUM-OLD.   
+214948     PERFORM YMP01-ALPHANUMERIC-TO-ASCII. 
+214948     MOVE YMP01-AGENT-CUST-NUM-NEW TO YMBCAB-CUSTOMER-NUM-ASCII   
+214948                                   YMBCAB-MNEW-CUSTOMER-NUM-ASCII.
+c87403*    MOVE AVL-CAB1-DECK            TO YMBCAB-DECK 
+C87403     MOVE AVL-CAB-DECK             TO YMBCAB-DECK 
+                                            YMBCAB-mnew-DECK.   
+C87403*    MOVE AVL-CAB1-DISPLAY-SEQ     TO YMBCAB-DISPLAY-SEQ  
+C87403     MOVE AVL-CAB-DISPLAY-SEQ      TO YMBCAB-DISPLAY-SEQ  
+                                            YMBCAB-mnew-DISPLAY-SEQ.
+C87403*    MOVE AVL-CAB1-IS-OS-IND       TO YMBCAB-IS-OS-IND
+C87403     MOVE AVL-CAB-IS-OS-IND        TO YMBCAB-IS-OS-IND
+                                            YMBCAB-mnew-IS-OS-IND.  
+C87403*    MOVE AVL-CAB1-MAX-CAPACITY    TO YMBCAB-MAX-CAPACITY 
+C87403     MOVE AVL-CAB-MAX-CAPACITY     TO YMBCAB-MAX-CAPACITY 
+                                            YMBCAB-mnew-MAX-CAPACITY.   
+c87403*    MOVE AVL-CAB1-NORMAL-CAPACITY TO YMBCAB-NORMAL-CAPACITY  
+C87403     MOVE AVL-CAB-NORMAL-CAPACITY  TO YMBCAB-NORMAL-CAPACITY  
+                                            YMBCAB-mnew-NORMAL-CAPACITY.
+c87403*    MOVE AVL-CAB1-NUM-PAX         TO YMBCAB-NUM-PAX  
+C87403     MOVE AVL-CAB-NUM-PAX          TO YMBCAB-NUM-PAX  
+                                            YMBCAB-mnew-NUM-PAX.
+C87403*    MOVE AVL-CAB1-NUM-ROLLAWAYS   TO YMBCAB-NUM-ROLLAWAYS
+C87403     MOVE AVL-CAB-NUM-ROLLAWAYS    TO YMBCAB-NUM-ROLLAWAYS
+                                            YMBCAB-mnew-NUM-ROLLAWAYS.  
+C87403*    MOVE AVL-CAB1-OTHER-NUM-PAX   TO YMBCAB-OTHER-NUM-PAX
+C87403*                                     YMBCAB-mnew-OTHER-NUM-PAX.  
+C87403*    MOVE AVL-CAB1-PRICE-CODE      TO YMBCAB-PRICE-CODE   
+C87403     MOVE AVL-CAB-PRICE-CODE       TO YMBCAB-PRICE-CODE   
+                                            YMBCAB-mnew-PRICE-CODE. 
+C87403*    MOVE AVL-CAB1-PRICE-TYPE      TO YMBCAB-PRICE-TYPE   
+C87403     MOVE AVL-CAB-PRICE-TYPE       TO YMBCAB-PRICE-TYPE   
+                                            YMBCAB-mnew-PRICE-TYPE. 
+C87403*    MOVE AVL-CAB1-SELL-IND        TO YMBCAB-SELL-IND 
+C87403*                                     YMBCAB-mnew-SELL-IND.   
+C87403     IF  AVL-CAB-NOT-FOR-SELL-FLG = 1 
+C87403         MOVE 'N'                 TO YMBCAB-SELL-IND  
+C87403                                     YMBCAB-mnew-SELL-IND 
+C87403     ELSE 
+C87403         MOVE 'Y'                 TO YMBCAB-SELL-IND  
+C87403                                     YMBCAB-mnew-SELL-IND 
+C87403     END-IF.  
+
+C87403*    MOVE AVL-CAB1-SHARE-CODE      TO YMBCAB-SHARE-CODE   
+C87403     MOVE AVL-CAB-SHARE-CODE       TO YMBCAB-SHARE-CODE   
+                                            YMBCAB-mnew-SHARE-CODE. 
+C87403*    MOVE AVL-CAB1-SUBCATEGORY     TO YMBCAB-SUBCATEGORY  
+C87403     MOVE AVL-CAB-SUBCATEGORY-CODE TO YMBCAB-SUBCATEGORY  
+                                            YMBCAB-mnew-SUBCATEGORY.
+C87403*    MOVE AVL-CAB1-TUB-CODE        TO YMBCAB-TUB-CODE 
+C87403     MOVE AVL-CAB-TUB-CODE         TO YMBCAB-TUB-CODE 
+                                            YMBCAB-mnew-TUB-CODE.   
+C87403*    MOVE AVL-CAB1-VIEW-IND        TO YMBCAB-VIEW-IND 
+C87403     MOVE AVL-CAB-VIEW-IND         TO YMBCAB-VIEW-IND 
+                                            YMBCAB-mnew-VIEW-IND.   
+C87403*    MOVE AVL-CAB1-WHEELCHAIR-IND  TO YMBCAB-WHEELCHAIR-IND   
+C87403     MOVE AVL-CAB-WHEELCHAIR-IND   TO YMBCAB-WHEELCHAIR-IND   
+                                            YMBCAB-mnew-WHEELCHAIR-IND. 
+879253     MOVE AVL-CAB-FIRE-ZONE        TO YMBCAB-AVL-FIRE-ZONE
+879253                                      YMBCAB-mnew-FIRE-ZONE.  
+nptest*     if YMBCAB-mnew-SHIP-CODE = 'FA' and 
+nptest*        YMBCAB-mnew-SAIL-DATE = 20030703 and 
+nptest*        YMBCAB-mnew-CATEGORY-CODE = '1A' 
+nptest*         move 1 to MCFLAG
+nptest*         move 'NADA' to YMBCAB-CABIN-NUM.
+
+
+nptest**CQ|20030622|007|11 |7270 |  
+nptest*    if YMBCAB-SHIP-CODE = 'CQ' and   
+nptest*       YMBCAB-DURATION-DAYS = 007 and
+nptest*       YMBCAB-SAIL-DATE = 20031212 and   
+nptest*       YMBCAB-CABIN-NUM = '7270' 
+nptest*        move 1 to MCFLAG.
+nptest**TI|20040320|007|11 |7326 |  
+nptest*    if YMBCAB-SHIP-CODE = 'TI' and   
+nptest*       YMBCAB-DURATION-DAYS = 007 and
+nptest*       YMBCAB-SAIL-DATE = 20040320 and   
+nptest*       YMBCAB-CABIN-NUM = '7326' 
+nptest*        move 1 to MCFLAG.
+nptest**|FA|20031218|003|6C |U129 | 
+nptest*    if YMBCAB-SHIP-CODE = 'FA' and   
+nptest*       YMBCAB-DURATION-DAYS = 003 and
+nptest*       YMBCAB-SAIL-DATE = 20031218 and   
+nptest*       YMBCAB-CABIN-NUM = 'U129 '
+nptest*        move 1 to MCFLAG.
+nptest**SE|20031222|005|12 |U107 |  
+nptest*    if YMBCAB-SHIP-CODE = 'SE' and   
+nptest*       YMBCAB-DURATION-DAYS = 005 and
+nptest*       YMBCAB-SAIL-DATE = 20031222 and   
+nptest*       YMBCAB-CABIN-NUM = 'U107 '
+nptest*        move 1 to MCFLAG.
+
+nptest*     if YMBCAB-BOOK-NUM = 'T70F99'  or   
+nptest*                          'T9W815'  or   
+nptest*                          'T9X971'  or   
+nptest*                          'T9X972'  or   
+nptest*                          'T9X981'   
+nptest*         move 1 to mcflag
+nptest*     else
+nptest*         move 0 to mcflag.   
+nptest* 
+nptest*    if MCFLAG = 1
+nptest*        display 'GBR-' ymbcab-book-num   
+nptest*                YMBCAB-SHIP-CODE ' ' 
+nptest*                YMBCAB-DURATION-DAYS ' ' 
+nptest*                YMBCAB-SAIL-DATE  ' '
+nptest*                YMBCAB-CABIN-NUM 
+nptest*                upon printer.
+nptest* 
+
+NP0603     MOVE 'X' TO DPP03-END-OF-PAX-IND.
+NP0103  
+C87403*    IF AVL-CAB1-CABIN-STATUS = 'I' OR 'G'
+C87403*        MOVE AVL-CAB1-CABIN-STATUS TO DPP03-REQ-BOOK-TYPE
+C87403*        MOVE AVL-CAB1-CABIN-NUM TO DPP03-BEG-CABIN-NUM   
+C87403     IF AVL-CAB-CABIN-STATUS  = 'I' OR 'G'
+C87403         MOVE AVL-CAB-CABIN-STATUS TO DPP03-REQ-BOOK-TYPE 
+C87403         MOVE AVL-CAB-CABIN-NUM    TO DPP03-BEG-CABIN-NUM 
+NP0103                                    DPP03-END-CABIN-NUM   
+NP0103         MOVE 'A' TO DPP03-REQUESTED-PAX-STATUS   
+NP0103         PERFORM DPP17-FETCH-PAX-WITH-KEYS THRU DPP17-EXIT
+C87403*        IF PAX-CABIN-NUM NOT = AVL-CAB1-CABIN-NUM  OR
+C87403         IF PAX-CABIN-NUM NOT = AVL-CAB-CABIN-NUM   OR
+NP0503            DPP03-SHIP-CODE NOT = YMBCAB-SHIP-CODE  OR
+NP0503            DPP03-SAIL-DATE NOT = YMBCAB-SAIL-DATE  OR
+NP0503            DPP03-DURATION-DAYS NOT = YMBCAB-DURATION-DAYS
+NP0503             PERFORM DPP17-FETCH-NEXT-PAX-WITH-KEYS THRU  
+NP0503                     DPP17-EXIT   
+NP0503             UNTIL DPP03-END-OF-PAX-IND = 'Y' OR  
+C87403*                 (PAX-CABIN-NUM = AVL-CAB1-CABIN-NUM  AND
+C87403                  (PAX-CABIN-NUM = AVL-CAB-CABIN-NUM   AND
+NP0503                   DPP03-SHIP-CODE = YMBCAB-SHIP-CODE  AND
+NP0503                   DPP03-SAIL-DATE = YMBCAB-SAIL-DATE  AND
+NP0503                   DPP03-DURATION-DAYS = YMBCAB-DURATION-DAYS)
+NP0503         END-IF   
+C87403*        IF PAX-CABIN-NUM = AVL-CAB1-CABIN-NUM  AND   
+C87403         IF PAX-CABIN-NUM = AVL-CAB-CABIN-NUM   AND   
+NP0503            DPP03-SHIP-CODE = YMBCAB-SHIP-CODE  AND   
+NP0503            DPP03-SAIL-DATE = YMBCAB-SAIL-DATE  AND   
+NP0503            DPP03-DURATION-DAYS = YMBCAB-DURATION-DAYS
+NP0503             IF PAX-RECORD NOT = 'PAX-CXF-REC'
+NP0103                 MOVE PAX-BOOK-NUM TO YMBCAB-BOOK-NUM 
+np1003                                      YMBCAB-mnew-BOOK-NUM
+NP0503             END-IF   
+NP0103         END-IF   
+NP0103     END-IF.  
+
+C98140     ADD 1 TO                    WS-MNEW-CNT. 
+NP0103     WRITE YMBCAB-MNEW-REC.   
+
+nptest*     go to 5100-skip-msam.   
+C42452     IF SKIP-MSAM 
+C42452        GO TO 5100-SKIP-MSAM. 
+
+NP0103     READ YMBCAB-MSAM-FILE INVALID KEY GO TO 5100-SKIP-MSAM.  
+
+      *WRITE TODAY'S YMBCAB-MSAM SDF FILE                               '   
+      *READ YMBCAB-MSAM FILE - IF NO FIELDS HAVE CHANGED, GO TO EXIT
+nptest*    perform 7000-test-msam-display.  
+           IF YMBCAB-MSAM-SHIP-CODE       = YMBCAB-SHIP-CODE  AND   
+              YMBCAB-MSAM-SAIL-DATE       = YMBCAB-SAIL-DATE  AND   
+              YMBCAB-MSAM-DURATION-DAYS   = YMBCAB-DURATION-DAYS  AND   
+              YMBCAB-MSAM-CATEGORY-CODE   = YMBCAB-CATEGORY-CODE  AND   
+              YMBCAB-MSAM-CABIN-NUM       = YMBCAB-CABIN-NUM  AND   
+              YMBCAB-MSAM-AFFECT-NET-IND  = YMBCAB-AFFECT-NET-IND  AND  
+              YMBCAB-MSAM-BED-TYPE-CODE   = YMBCAB-BED-TYPE-CODE  AND   
+              YMBCAB-MSAM-BOOK-NUM        = YMBCAB-BOOK-NUM  AND
+              YMBCAB-MSAM-CABIN-STATUS    = YMBCAB-CABIN-STATUS  AND
+              YMBCAB-MSAM-CONNECT-IND     = YMBCAB-CONNECT-IND  AND 
+214948*       YMBCAB-MSAM-CUSTOMER-NUM    = YMBCAB-CUSTOMER-NUM AND 
+214948        YMBCAB-MSAM-CUST-NUM-ASCII = YMBCAB-CUSTOMER-NUM-ASCII AND
+              YMBCAB-MSAM-DECK            = YMBCAB-DECK  AND
+              YMBCAB-MSAM-DISPLAY-SEQ     = YMBCAB-DISPLAY-SEQ  AND 
+              YMBCAB-MSAM-IS-OS-IND       = YMBCAB-IS-OS-IND  AND   
+              YMBCAB-MSAM-MAX-CAPACITY    = YMBCAB-MAX-CAPACITY  AND
+              YMBCAB-MSAM-NORMAL-CAPACITY = YMBCAB-NORMAL-CAPACITY  AND 
+              YMBCAB-MSAM-NUM-PAX         = YMBCAB-NUM-PAX  AND 
+              YMBCAB-MSAM-NUM-ROLLAWAYS   = YMBCAB-NUM-ROLLAWAYS  AND   
+C98140*       YMBCAB-MSAM-OTHER-NUM-PAX   = YMBCAB-OTHER-NUM-PAX  AND   
+              YMBCAB-MSAM-PRICE-CODE      = YMBCAB-PRICE-CODE  AND  
+              YMBCAB-MSAM-PRICE-TYPE      = YMBCAB-PRICE-TYPE  AND  
+              YMBCAB-MSAM-SELL-IND        = YMBCAB-SELL-IND  AND
+              YMBCAB-MSAM-SHARE-CODE      = YMBCAB-SHARE-CODE  AND  
+              YMBCAB-MSAM-SUBCATEGORY     = YMBCAB-SUBCATEGORY  AND 
+              YMBCAB-MSAM-TUB-CODE        = YMBCAB-TUB-CODE  AND
+              YMBCAB-MSAM-VIEW-IND        = YMBCAB-VIEW-IND  AND
+              YMBCAB-MSAM-WHEELCHAIR-IND  = YMBCAB-WHEELCHAIR-IND   
+nptest*         display 'YMBCAB-SHIP-CODE    ' YMBCAB-SHIP-CODE     ' ' 
+nptest*                 'YMBCAB-SAIL-DATE    ' YMBCAB-SAIL-DATE     ' ' 
+nptest*                 'YMBCAB-DURATION-DAYS' YMBCAB-DURATION-DAYS ' ' 
+nptest*                 'YMBCAB-CATEGORY-CODE' YMBCAB-CATEGORY-CODE ' ' 
+nptest*                 'YMBCAB-CABIN-NUM    ' YMBCAB-CABIN-NUM 
+nptest*                 ' Skipped'  
+nptest*             upon PRINTER
+NP0903         ADD 1 TO WS-CAB-SKIPPED  
+               GO TO 5100-EXIT. 
+
+NP0903 5100-SKIP-MSAM.  
+
+C87403*    IF AVAIL1-SAIL-DATE NOT > WS-RUN-DATE
+C87403     IF AVAIL-SAIL-DATE  NOT > WS-RUN-DATE
+nptest*         display '5000-Skipping ibr '
+nptest*                YMBCAB-SHIP-CODE ' ' 
+nptest*                YMBCAB-DURATION-DAYS ' ' 
+nptest*                YMBCAB-SAIL-DATE  ' '
+nptest*                YMBCAB-CABIN-NUM 
+nptest*                upon printer 
+NP0803         GO TO 5000-PAST-SAILING-SKIP-IBR.
+
+nptest*         display '5000-Processing ibr '  
+nptest*                YMBCAB-SHIP-CODE ' ' 
+nptest*                YMBCAB-DURATION-DAYS ' ' 
+nptest*                YMBCAB-SAIL-DATE  ' '
+nptest*                YMBCAB-CABIN-NUM 
+nptest*                upon printer.
+NP0603  
+NP0603     IF YMBCAB-BOOK-NUM >= SPACES AND 
+NP0603        DPP03-END-OF-PAX-IND = SPACE  
+NP0603         MOVE 39010301 TO DPP01-ERROR-NUMBER  
+NP0603         FETCH OWNER RECORD WITHIN INDV-BOOKING-PAX-SET SET   
+NP0603             SUPPRESS ALL 
+NP0603             ON ERROR GO TO 9100-DATABASE-ERROR   
+NP0603     END-IF.  
+
+NP0503     IF YMBCAB-CABIN-STATUS = 'I' 
+NP0503         MOVE IBR-CUSTOMER-NUM      TO WS-CUSTOMER-NUM
+NP0503*        IF TEST-BOOKING-CUSTOMER 
+C39120         MOVE IBR-CUSTOMER-NUM        TO AAR-CUSTOMER-NUM 
+C39120         MOVE SPACES                  TO AAR-CUSTOMER-FILL
+C39120         MOVE 'CM'                    TO AAR-CUSTOMER-TYPE
+C39120         MOVE 00051004                TO DPP01-ERROR-NUMBER   
+C39120         FETCH AGENCY-ASSOCIATION-REC RECORD  
+C39120               ON ERROR GO TO 5100-EXIT   
+C39120  
+C39120         MOVE 10012105 TO DPP01-ERROR-NUMBER  
+C39120         FETCH OWNER RECORD WITHIN AGENCY-ASSOCIATION-SET SET 
+C39120               ON ERROR GO TO 5100-EXIT   
+
+C39120* Fetch ATCR-REC and compare the 16th bit to validate test agents 
+C39120         MOVE AGENT-PHONE-NUM        TO ATCR-PHONE-NUM
+C39120         MOVE IBR-COMPANY-CODE       TO ATCR-COMPANY-CODE 
+C39120         MOVE 12511006               TO DPP01-ERROR-NUMBER
+C39120         FETCH AGENT-TERMS-COMPANY-REC RECORD 
+C39120             ON ERROR GO TO 5100-EXIT 
+C39120         MOVE ATCR-AGENCY-INDICATORS TO MKP40A-INDICATORS 
+C39120         IF MKP40A-TEST-AGENT 
+NP0503             MOVE 'T'               TO YMBCAB-CABIN-STATUS
+214948*            MOVE IBR-CUSTOMER-NUM  TO YMBCAB-CUSTOMER-NUM.   
+214948             MOVE IBR-CUSTOMER-NUM  TO YMP01-AGENT-CUST-NUM-OLD   
+214948             PERFORM YMP01-ALPHANUMERIC-TO-ASCII  
+214948             MOVE YMP01-AGENT-CUST-NUM-NEW
+214948                                    TO YMBCAB-CUSTOMER-NUM-ASCII. 
+
+NP0503  
+NP0503     IF YMBCAB-CABIN-STATUS = 'I' AND 
+NP0503        YMBCAB-BOOK-NUM NOT > SPACES  
+NP0503         MOVE 'H'                   TO YMBCAB-CABIN-STATUS.   
+NP0503  
+NP0503     IF YMBCAB-CABIN-STATUS = 'G' 
+NP0503         MOVE IBR-CUSTOMER-NUM      TO WS-CUSTOMER-NUM
+NP0503*        IF TEST-BOOKING-CUSTOMER 
+C39120         MOVE IBR-CUSTOMER-NUM      TO AAR-CUSTOMER-NUM   
+C39120         MOVE SPACES                TO AAR-CUSTOMER-FILL  
+C39120         MOVE 'CM'                  TO AAR-CUSTOMER-TYPE  
+C39120         MOVE 00051007              TO DPP01-ERROR-NUMBER 
+C39120         FETCH AGENCY-ASSOCIATION-REC RECORD  
+C39120               ON ERROR GO TO 5100-EXIT   
+C39120  
+C39120         MOVE 10012108              TO DPP01-ERROR-NUMBER 
+C39120         FETCH OWNER RECORD WITHIN AGENCY-ASSOCIATION-SET SET 
+C39120               ON ERROR GO TO 5100-EXIT   
+
+C39120* Fetch ATCR-REC and compare the 16th bit to validate test agents 
+C39120         MOVE AGENT-PHONE-NUM       TO ATCR-PHONE-NUM 
+C39120         MOVE IBR-COMPANY-CODE      TO ATCR-COMPANY-CODE  
+C39120         MOVE 12511009              TO DPP01-ERROR-NUMBER 
+C39120         FETCH AGENT-TERMS-COMPANY-REC RECORD 
+C39120             ON ERROR GO TO 5100-EXIT 
+C39120         MOVE ATCR-AGENCY-INDICATORS TO MKP40A-INDICATORS 
+C39120         IF MKP40A-TEST-AGENT 
+NP0503             MOVE 'U'               TO YMBCAB-CABIN-STATUS
+214948*            MOVE GBR1-CUSTOMER-NUM TO YMBCAB-CUSTOMER-NUM.   
+214948             MOVE GBR1-CUSTOMER-NUM TO YMP01-AGENT-CUST-NUM-OLD   
+214948             PERFORM YMP01-ALPHANUMERIC-TO-ASCII  
+214948             MOVE YMP01-AGENT-CUST-NUM-NEW
+214948                                    TO YMBCAB-CUSTOMER-NUM-ASCII. 
+NP0103  
+NP0503     IF YMBCAB-CABIN-STATUS = 'B' 
+C92909        IF YMBCAB-BOOK-NUM = SPACES OR LOW-VALUES 
+C92909           DISPLAY 'CABIN NUM: ' YMBCAB-CABIN-NUM 
+PPC470*              'SHIP CODE: '  SAIL1-SHIP-CODE 
+PPC470*              'SAIL DATE: ' SAIL1-SAIL-DATE  
+PPC470               'SHIP CODE: '  TDP01-SHIP-CODE 
+PPC470               'SAIL DATE: ' TDP01-SAIL-DATE  
+C92909               'CABIN STATUS: ' YMBCAB-CABIN-STATUS   
+C92909               'CABIN BOOK NUM: ' YMBCAB-BOOK-NUM UPON PRINTER
+C92909           MOVE SPACES          TO YMBCAB-CABIN-STATUS
+C92909        ELSE  
+NP0603           MOVE YMBCAB-BOOK-NUM TO GBR1-BOOK-NUM  
+NP0603           MOVE 33200302 TO DPP01-ERROR-NUMBER
+NP0603           FETCH GRP1-BOOKING-REC RECORD SUPPRESS ALL 
+NP0503           MOVE GBR1-CUSTOMER-NUM     TO WS-CUSTOMER-NUM  
+NP0503*          IF TEST-BOOKING-CUSTOMER   
+C39120           MOVE GBR1-CUSTOMER-NUM     TO AAR-CUSTOMER-NUM 
+C39120           MOVE SPACES                TO AAR-CUSTOMER-FILL
+C39120           MOVE 'CM'                  TO AAR-CUSTOMER-TYPE
+C39120           MOVE 000510110             TO DPP01-ERROR-NUMBER   
+C39120           FETCH AGENCY-ASSOCIATION-REC RECORD
+C39120                 ON ERROR GO TO 5100-EXIT 
+C39120  
+C39120           MOVE 10012111              TO DPP01-ERROR-NUMBER   
+C39120           FETCH OWNER RECORD WITHIN AGENCY-ASSOCIATION-SET SET   
+C39120                 ON ERROR GO TO 5100-EXIT 
+
+C39120* Fetch ATCR-REC and compare the 16th bit to validate test agents 
+C39120           MOVE AGENT-PHONE-NUM       TO ATCR-PHONE-NUM   
+C39120           MOVE GBR1-COMPANY-CODE     TO ATCR-COMPANY-CODE
+C39120           MOVE 12511012              TO DPP01-ERROR-NUMBER   
+C39120           FETCH AGENT-TERMS-COMPANY-REC RECORD   
+C39120               ON ERROR GO TO 5100-EXIT   
+C39120           MOVE ATCR-AGENCY-INDICATORS TO MKP40A-INDICATORS   
+C39120           IF MKP40A-TEST-AGENT   
+NP0503               MOVE 'V'               TO YMBCAB-CABIN-STATUS  
+C92909*              MOVE GBR1-CUSTOMER-NUM TO YMBCAB-CUSTOMER-NUM. 
+214948*              MOVE GBR1-CUSTOMER-NUM TO YMBCAB-CUSTOMER-NUM  
+214948               MOVE GBR1-CUSTOMER-NUM TO YMP01-AGENT-CUST-NUM-OLD 
+214948               PERFORM YMP01-ALPHANUMERIC-TO-ASCII
+214948               MOVE YMP01-AGENT-CUST-NUM-NEW  
+214948                                      TO YMBCAB-CUSTOMER-NUM-ASCII
+C92909           END-IF 
+C92909        END-IF
+C92909     END-IF.  
+NP0103  
+nptest*        if MCFLAG = 1 move 0 to MCFLAG.  
+
+NP0803 5000-PAST-SAILING-SKIP-IBR.  
+
+NP0103  
+NP0103     MOVE '|'   TO YMBCAB-FILLER-00   
+NP0103                   YMBCAB-FILLER-01 YMBCAB-FILLER-02  
+NP0103                   YMBCAB-FILLER-03 YMBCAB-FILLER-04  
+NP0103                   YMBCAB-FILLER-05 YMBCAB-FILLER-06  
+NP0103                   YMBCAB-FILLER-07 YMBCAB-FILLER-08  
+NP0103                   YMBCAB-FILLER-09 YMBCAB-FILLER-10  
+NP0103                   YMBCAB-FILLER-11 YMBCAB-FILLER-12  
+NP0103                   YMBCAB-FILLER-13 YMBCAB-FILLER-14  
+NP0103                   YMBCAB-FILLER-15 YMBCAB-FILLER-16  
+NP0103                   YMBCAB-FILLER-17 YMBCAB-FILLER-18  
+NP0103                   YMBCAB-FILLER-19 YMBCAB-FILLER-20  
+NP0103                   YMBCAB-FILLER-21 YMBCAB-FILLER-22  
+NP0103                   YMBCAB-FILLER-23 YMBCAB-FILLER-24  
+NP0103                   YMBCAB-FILLER-25 YMBCAB-FILLER-26  
+879253                   YMBCAB-FILLER-27.  
+
+NP0103     ADD 1 TO YMBCAB-CNT-REC-CNT  
+NP0905******************************************************************
+NP0905***** SPECIAL CODE FOR FEMA CHARTERS DUE TO HURRICAN KATRINA *****
+NP0905       MOVE YMBCAB-SHIP-CODE     TO YMP02-SHIP-CODE   
+NP0905       MOVE YMBCAB-DURATION-DAYS TO YMP02-DURATION-DAYS   
+NP0905       MOVE YMBCAB-SAIL-DATE     TO YMP02-SAIL-DATE   
+NP0905       PERFORM YMP02-SHIP-SWITCH  
+NP0905       MOVE YMP02-SHIP-CODE      TO YMBCAB-SHIP-CODE  
+NP0905******************************************************************
+NP0103     WRITE YMBCAB-REC.
+NP0103  
+NP0103 5100-EXIT.   
+NP0103     EXIT.
+
+
+       6000-WALK-SGBR.  
+           MOVE 1 TO WS-SGB.
+105574*    MOVE 49011012 TO DPP01-ERROR-NUMBER. 
+105574*    FIND CURRENT SAIL1-REC RECORD.   
+           MOVE 50011900 TO DPP01-ERROR-NUMBER. 
+lm1000*    FETCH FIRST SAIL1-GRP1-BOOK-REC WITHIN SAIL1-BOOK-SET SET
+105574     FETCH FIRST SAIL-GROUP-BOOK-REC  
+105574           WITHIN SAIL-GROUP-BOOK-SET SET 
+              ON ERROR GO TO 6000-EXIT. 
+           GO TO 6000-CONTINUE. 
+       6000-NEXT-SGBR.  
+           MOVE 1 TO WS-SGB.
+           MOVE 50011900 TO DPP01-ERROR-NUMBER. 
+105574     FETCH NEXT SAIL-GROUP-BOOK-REC WITHIN SAIL-GROUP-BOOK-SET SET
+              ON ERROR GO TO 6000-EXIT. 
+
+       6000-CONTINUE.   
+111892     IF WS-SGB > SGBR-ENTRY-CTR   
+111892        GO TO 6000-NEXT-SGBR. 
+
+110124*    IF SGBR-BOOK-NUM (WS-SGB) (1:2) = 'LA'   
+110124*         MOVE 1 TO MCFLAG.   
+
+105574     IF SGBR-BOOK-NUM (WS-SGB) = SPACES OR LOW-VALUES 
+              OR 'XXXXXX'   
+              GO TO 6100-INC-SUB.   
+
+
+105574     MOVE SGBR-BOOK-NUM (WS-SGB) TO GBR1-BOOK-NUM 
+LM1000*    MOVE SGBR1-BOOK-NUM (WS-SGB) TO GBCR-BOOK-NUM.   
+           FETCH GRP1-BOOKING-REC RECORD
+              ON ERROR GO TO 6100-INC-SUB.  
+LM1000*    PERFORM DPP20-UNLOAD-GBR-DATES THRU DPP20-EXIT.  
+
+PPC470*    IF GBR1-SAIL-DATE = SAIL1-SAIL-DATE AND  
+PPC470*       GBR1-SHIP-CODE = SAIL1-SHIP-CODE AND  
+PPC470*       GBR1-DURATION-DAYS = SAIL1-DURATION-DAYS  
+PPC470*       NEXT SENTENCE 
+PPC470*    ELSE 
+PPC470*       GO TO 6000-EXIT.  
+
+PPC470     IF GBR1-SAIL-DATE = TDP01-SAIL-DATE-YYYYMMDD AND 
+PPC470        GBR1-SHIP-CODE = TDP01-SHIP-CODE AND  
+PPC470        GBR1-DURATION-DAYS = TDP01-DURATION-DAYS  
+PPC470        NEXT SENTENCE 
+PPC470     ELSE 
+PPC470        GO TO 6000-EXIT.  
+
+197423*    GO TO 6000-CONTINUE-Y.   
+C85967*** the skipped code is no longere needed and should be ***   
+C85967***               removed at a later time               ***   
+
+LM1000*    MOVE 34011800 TO DPP01-ERROR-NUMBER. 
+LM1000*    FETCH FIRST GROUP-COMMENT-REC
+LM1000*          WITHIN GRP1-BOOKING-COMMENT-SET SET.   
+
+LM1000*    ADD GCR-NUM-CAB-REQ (1) TO WS-TOT-ORIG-REQ.  
+
+197423*    FETCH FIRST GRP1-COUNT-HISTORY-DATE-REC WITHIN   
+197423*             GRP1-BOOK-COUNT-SET SET 
+LM1000*                 ON ERROR GO TO 6100-INC-SUB.
+197423*                 ON ERROR GO TO 6000-CONTINUE-Y.                  6100-IN
+
+197423*    FETCH FIRST GRP1-COUNT-HISTORY-REC WITHIN
+197423*             GRP1-COUNT-HISTORY-SET SET  
+LM1000*                ON ERROR GO TO 6100-INC-SUB. 
+197423*                 ON ERROR GO TO 6000-CONTINUE-Y.                  6100-IN
+
+197423*    GO TO 6000-CONTINUE-X.   
+
+197423*6000-CONTINUE-FETCH. 
+197423*    FETCH NEXT GRP1-COUNT-HISTORY-REC WITHIN 
+197423*                   GRP1-COUNT-HISTORY-SET SET
+197423*                       AT END GO TO 6000-CONTINUE-Y  
+197423*                       ON ERROR GO TO 6100-INC-SUB.  
+
+197423*6000-CONTINUE-X. 
+C85967*    ADD GCHS1-REQ-CNT TO WS-TOT-ORIG-REQ.
+197423*    GO TO 6000-CONTINUE-FETCH.   
+
+LM1000 6000-CONTINUE-Y. 
+LM1000     INITIALIZE     DPP01-COMMON-DATA-FIELDS. 
+           IF GBR1-CANCEL-DATE > ZEROES 
+              GO TO 6100-INC-SUB.   
+
+165711     COPY RSP90INT.   
+
+105574     MOVE SGBR-BOOK-NUM (WS-SGB)  TO RSP15-I-GRP-BOOK-NUM.
+103403     MOVE 'BATCH'                 TO DPP01-USERID.
+PPC470*    MOVE 'N'                     TO RSP15-I-AVAIL-IND.   
+LM1000     MOVE 'Y'                     TO RSP15-I-CALC-PAYMENT-IND.
+LM1000     CALL 'RSO15BCR' USING DPP01-COMMON-DATA-FIELDS   
+LM1000                           DPP01-COMMON-INFO  
+LM1000                           RSP15-CABIN-COUNTS-INPUT   
+LM1000                           RSP15-CABIN-COUNTS-OUTPUT  
+165711                           RSP90-OVERRIDE-FLAGS-INFO. 
+144449*    MOVE 'Y'                     TO DPP01-RETURN-CONTROL.
+144449*    PERFORM DPP12-ERROR-CHECK.   
+LM1000     IF DPP01-SUB-MSG-CTR > 0 AND 
+LM1000       (DPP01-SUB-MSG-STATUS (1) = 3 OR 2)
+LM1000          GO TO 6100-INC-SUB. 
+
+LM1000     MOVE RSP15-O-TOT-REQ-CNT      TO WS-GBCR-NUM-REQ.
+LM1000     MOVE RSP15-O-TOT-BLK-GTEE-CNT TO WS-GBCR-NUM-TBA.
+PPC470     MOVE RSP15-O-TOT-LOG-BKG-CNT  TO WS-GBCR-NUM-BLK.
+PPC470*    COMPUTE WS-GBCR-NUM-BLK = RSP15-O-TOT-LOG-BKG-CNT +  
+PPC470*                              RSP15-O-TOT-LOG-SAIL-CNT.  
+LM1000     MOVE RSP15-O-TOT-LOG-BTH-CNT  TO WS-GBCR-NUM-BTH.
+
+NP0103* create "CPA" Pool Records * 
+NP0103********* one record per category **********  
+NP0103     PERFORM VARYING WS-CAT-SUB FROM 1 BY 1   
+NP0103       UNTIL WS-CAT-SUB > RSP15-O-CATEGORY-CNT
+NP0103         INITIALIZE YMBCPA-REC
+NP0103         MOVE 'CCLCPA'                 TO YMBCPA-RECORD-ID
+NP0103         MOVE WS-RUN-DATE              TO YMBCPA-DATESTAMP
+NP0103         MOVE GBR1-BOOK-NUM            TO YMBCPA-BOOK-NUM 
+PPC470*        MOVE SAIL1-SHIP-CODE          TO YMBCPA-SHIP-CODE
+PPC470*        MOVE SAIL1-SAIL-DATE          TO YMBCPA-SAIL-DATE
+PPC470*        MOVE SAIL1-DURATION-DAYS      TO YMBCPA-DURATION-DAYS
+PPC470         MOVE TDP01-SHIP-CODE          TO YMBCPA-SHIP-CODE
+PPC470         MOVE TDP01-SAIL-DATE-YYYYMMDD TO YMBCPA-SAIL-DATE
+PPC470         MOVE TDP01-DURATION-DAYS      TO YMBCPA-DURATION-DAYS
+NP0103         MOVE '|'  TO YMBCPA-FILLER-01 YMBCPA-FILLER-02   
+NP0103                      YMBCPA-FILLER-03 YMBCPA-FILLER-04   
+NP0103                      YMBCPA-FILLER-05
+NP0103         MOVE SPACE TO WS-CPA-FL  
+NP0103         MOVE 1 TO WS-RAT-SUB 
+NP0103         MOVE RSP15-O-CATEGORY-CODE (WS-CAT-SUB)  
+NP0103            TO YMBCPA-CATEGORY-CODE   
+
+C85443*        PERFORM VARYING WS-CPA-SUB FROM 1 BY 1 UNTIL 
+C85443*          WS-CPA-SUB > RSP15-O-CPA-CAT-CNT (1)   
+C85443*          IF RSP15-O-CAT-CODE (1 WS-CPA-SUB) =   
+C85443*             RSP15-O-CATEGORY-CODE (WS-CAT-SUB)  
+NP0103             PERFORM VARYING WS-OCC-SUB FROM 1 BY 1   
+NP0103               UNTIL WS-OCC-SUB > WS-OCC-MAX  
+C85443*              ADD RSP15-O-ORIG-REQ-CNT   
+C85443*                      (WS-RAT-SUB WS-CPA-SUB 1 WS-OCC-SUB)   
+C85443               ADD RSP15-O-SUM-ORIG-REQ-CNT   
+C85443                       (WS-CAT-SUB WS-OCC-SUB)
+NP0103                 TO YMBCPA-ORIG-REQ-CNT (WS-OCC-SUB)  
+C85967*        **  calculate ws-tot-orig-req count as pax  **   
+C85967               COMPUTE WS-TOT-ORIG-REQ = WS-TOT-ORIG-REQ +
+C85443*                 (RSP15-O-ORIG-REQ-CNT   
+C85443*                      (WS-RAT-SUB WS-CPA-SUB 1 WS-OCC-SUB) * 
+C85443                  (RSP15-O-SUM-ORIG-REQ-CNT   
+C85443                       (WS-CAT-SUB WS-OCC-SUB) *  
+C85967                   WS-OCC-SUB)
+C85443*              ADD RSP15-O-REQ-CNT
+C85443*                      (WS-RAT-SUB WS-CPA-SUB 1 WS-OCC-SUB)   
+C85443               ADD RSP15-O-SUM-REQ-CNT
+C85443                       (WS-CAT-SUB WS-OCC-SUB)
+NP0103                 TO YMBCPA-REQ-CNT (WS-OCC-SUB)   
+C85443*              ADD RSP15-O-SOLD-CNT   
+C85443*                      (WS-RAT-SUB WS-CPA-SUB 1 WS-OCC-SUB)   
+C85443               ADD RSP15-O-SUM-SOLD-CNT   
+C85443                       (WS-CAT-SUB WS-OCC-SUB)
+NP0103                 TO YMBCPA-SOLD-CNT (WS-OCC-SUB)  
+C85443*              ADD RSP15-O-LOG-BKG-CNT
+C85443*                      (WS-RAT-SUB WS-CPA-SUB 1 WS-OCC-SUB)   
+C85443               ADD RSP15-O-SUM-LOG-BKG-CNT
+C85443                       (WS-CAT-SUB WS-OCC-SUB)
+NP0103                 TO YMBCPA-LOG-BKG-CNT (WS-OCC-SUB)   
+C85443*              ADD RSP15-O-LOG-SAIL-CNT   
+C85443*                      (WS-RAT-SUB WS-CPA-SUB 1 WS-OCC-SUB)   
+PPC470*              ADD RSP15-O-SUM-LOG-SAIL-CNT   
+PPC470*                      (WS-CAT-SUB WS-OCC-SUB)
+PPC470*                TO YMBCPA-LOG-SAIL-CNT (WS-OCC-SUB)  
+PPC470               MOVE ZEROES TO YMBCPA-LOG-SAIL-CNT (WS-OCC-SUB)
+C85443*              ADD RSP15-O-BLK-GTEE-CNT   
+C85443*                      (WS-RAT-SUB WS-CPA-SUB 1 WS-OCC-SUB)   
+C85443               ADD RSP15-O-SUM-BLK-GTEE-CNT   
+C85443                       (WS-CAT-SUB WS-OCC-SUB)
+NP0103                 TO YMBCPA-BLK-GTEE-CNT (WS-OCC-SUB)  
+C85443*              ADD RSP15-O-UNASG-GTEE-CNT 
+C85443*                      (WS-RAT-SUB WS-CPA-SUB 1 WS-OCC-SUB)   
+C85443               ADD RSP15-O-SUM-UNASG-GTEE-CNT 
+C85443                       (WS-CAT-SUB WS-OCC-SUB)
+NP0103                 TO YMBCPA-UNASG-GTEE-CNT (WS-OCC-SUB)
+C85443*              ADD RSP15-O-BTH-GTEE-CNT   
+C85443*                      (WS-RAT-SUB WS-CPA-SUB 1 WS-OCC-SUB)   
+C85443               ADD RSP15-O-SUM-BTH-GTEE-CNT   
+C85443                       (WS-CAT-SUB WS-OCC-SUB)
+NP0103                 TO YMBCPA-BTH-GTEE-CNT (WS-OCC-SUB)  
+C85443*              ADD RSP15-O-LOG-BTH-CNT
+C85443*                      (WS-RAT-SUB WS-CPA-SUB 1 WS-OCC-SUB)   
+C85443               ADD RSP15-O-SUM-LOG-BTH-CNT
+C85443                       (WS-CAT-SUB WS-OCC-SUB)
+NP0103                 TO YMBCPA-LOG-BTH-CNT (WS-OCC-SUB)   
+C85443*              ADD RSP15-O-HOLD-CNT   
+C85443*                      (WS-RAT-SUB WS-CPA-SUB 1 WS-OCC-SUB)   
+C85443               ADD RSP15-O-SUM-HOLD-CNT   
+C85443                       (WS-CAT-SUB WS-OCC-SUB)
+NP0103                 TO YMBCPA-HOLD-CNT (WS-OCC-SUB)  
+C85443*              ADD RSP15-O-CXF-REQ-CNT
+C85443*                      (WS-RAT-SUB WS-CPA-SUB 1 WS-OCC-SUB)   
+C85443               ADD RSP15-O-SUM-CXF-REQ-CNT
+C85443                       (WS-CAT-SUB WS-OCC-SUB)
+NP0103                 TO YMBCPA-CXF-REQ-CNT (WS-OCC-SUB)   
+C85443*              ADD RSP15-O-HOLD-BLK-GTEE-CNT  
+C85443*                      (WS-RAT-SUB WS-CPA-SUB 1 WS-OCC-SUB)   
+C85443               ADD RSP15-O-SUM-HOLD-BLK-GTEE-CNT  
+C85443                      (WS-CAT-SUB WS-OCC-SUB) 
+NP0103                 TO YMBCPA-HOLD-BLK-GTEE-CNT (WS-OCC-SUB) 
+NP0103             END-PERFORM  
+C85443*          END-IF                                                 *CAT MAT
+C85443*        END-PERFORM                                              *CPA
+NP0103         PERFORM VARYING WS-OCC-SUB FROM 1 BY 1   
+NP0103           UNTIL WS-OCC-SUB > WS-OCC-MAX  
+C85443*          MOVE RSP15-O-WAITLIST-CNT (WS-CAT-SUB 1 WS-OCC-SUB)
+PPC470*          MOVE RSP15-O-WAITLIST-CNT (WS-CAT-SUB WS-OCC-SUB)  
+PPC470           MOVE ZERO  
+PPC470              TO YMBCPA-WAITLIST-CNT (WS-OCC-SUB) 
+C85443*          MOVE RSP15-O-PHY-BTH-CNT (WS-CAT-SUB 1 WS-OCC-SUB) 
+C85443           MOVE RSP15-O-PHY-BTH-CNT (WS-CAT-SUB WS-OCC-SUB)   
+NP0103              TO YMBCPA-PHY-BTH-CNT (WS-OCC-SUB)  
+C85443*          MOVE RSP15-O-PHY-BLK-BKG-CNT (WS-CAT-SUB 1 WS-OCC-SUB) 
+C85443           MOVE RSP15-O-PHY-BLK-BKG-CNT (WS-CAT-SUB WS-OCC-SUB)   
+NP0103              TO YMBCPA-PHY-BLK-BKG-CNT (WS-OCC-SUB)  
+NP0103           MOVE '|'   TO YMBCPA-FILLER-06 (WS-OCC-SUB)
+NP0103                         YMBCPA-FILLER-07 (WS-OCC-SUB)
+NP0103                         YMBCPA-FILLER-08 (WS-OCC-SUB)
+NP0103                         YMBCPA-FILLER-09 (WS-OCC-SUB)
+NP0103                         YMBCPA-FILLER-10 (WS-OCC-SUB)
+NP0103                         YMBCPA-FILLER-11 (WS-OCC-SUB)
+NP0103                         YMBCPA-FILLER-12 (WS-OCC-SUB)
+NP0103                         YMBCPA-FILLER-13 (WS-OCC-SUB)
+NP0103                         YMBCPA-FILLER-14 (WS-OCC-SUB)
+NP0103                         YMBCPA-FILLER-15 (WS-OCC-SUB)
+NP0103                         YMBCPA-FILLER-16 (WS-OCC-SUB)
+NP0103                         YMBCPA-FILLER-17 (WS-OCC-SUB)
+NP0103                         YMBCPA-FILLER-18 (WS-OCC-SUB)
+NP0103                         YMBCPA-FILLER-19 (WS-OCC-SUB)
+NP0103                         YMBCPA-FILLER-20 (WS-OCC-SUB)
+NP0103                         YMBCPA-FILLER-21 (WS-OCC-SUB)
+NP0103  
+np0103           if ymbcpa-orig-req-cnt          (ws-occ-sub) > 0  or   
+np0103              ymbcpa-req-cnt               (ws-occ-sub) > 0  or   
+np0103              ymbcpa-sold-cnt              (ws-occ-sub) > 0  or   
+np0103              ymbcpa-log-bkg-cnt           (ws-occ-sub) > 0  or   
+np0103              ymbcpa-log-sail-cnt          (ws-occ-sub) > 0  or   
+np0103              ymbcpa-blk-gtee-cnt          (ws-occ-sub) > 0  or   
+np0103              ymbcpa-unasg-gtee-cnt        (ws-occ-sub) > 0  or   
+np0103              ymbcpa-bth-gtee-cnt          (ws-occ-sub) > 0  or   
+np0103              ymbcpa-log-bth-cnt           (ws-occ-sub) > 0  or   
+np0103              ymbcpa-hold-cnt              (ws-occ-sub) > 0  or   
+np0103              ymbcpa-cxf-req-cnt           (ws-occ-sub) > 0  or   
+np0103              ymbcpa-reduced-rate-cnt      (ws-occ-sub) > 0  or   
+np0103              ymbcpa-hold-blk-gtee-cnt     (ws-occ-sub) > 0  or   
+np0103              ymbcpa-phy-bth-cnt           (ws-occ-sub) > 0  or   
+np0103              ymbcpa-waitlist-cnt          (ws-occ-sub) > 0  or   
+np0103              ymbcpa-phy-blk-bkg-cnt       (ws-occ-sub) > 0   
+NP0103              MOVE 'Y' TO WS-CPA-FL   
+np0103           end-if 
+NP0103         END-PERFORM                                              *occ
+
+NP0103         IF WS-CPA-FL NOT = SPACES
+NP0905******************************************************************
+NP0905***** SPECIAL CODE FOR FEMA CHARTERS DUE TO HURRICAN KATRINA *****
+NP0905            MOVE YMBCPA-SHIP-CODE     TO YMP02-SHIP-CODE  
+NP0905            MOVE YMBCPA-DURATION-DAYS TO YMP02-DURATION-DAYS  
+NP0905            MOVE YMBCPA-SAIL-DATE     TO YMP02-SAIL-DATE  
+NP0905            PERFORM YMP02-SHIP-SWITCH 
+NP0905            MOVE YMP02-SHIP-CODE      TO YMBCPA-SHIP-CODE 
+NP0905******************************************************************
+NP0103             WRITE YMBCPA-REC 
+NP0103             ADD 1 TO YMBCPA-CNT-REC-CNT  
+NP0103         END-IF   
+NP0103     END-PERFORM.                                                 *cat
+
+nptest*     if MCFLAG > 0 move zeroes to MCFLAG.
+
+       6100-INC-SUB.
+105574     IF WS-SGB < SGBR-ENTRY-CTR   
+              ADD 1 TO WS-SGB   
+              GO    TO 6000-CONTINUE.   
+
+           MOVE 1 TO WS-SGB 
+           GO TO 6000-NEXT-SGBR.
+
+       6000-EXIT.   
+           EXIT.
+
+       7000-test-msam-display.  
+nptest     display YMBCAB-MSAM-SHIP-CODE       '='  
+nptest         YMBCAB-SHIP-CODE 
+nptest        ' AND '  upon printer no advancing
+nptest     display YMBCAB-MSAM-SAIL-DATE       '='  
+nptest         YMBCAB-SAIL-DATE 
+nptest        ' AND '  upon printer no advancing
+nptest     display YMBCAB-MSAM-DURATION-DAYS   '='  
+nptest         YMBCAB-DURATION-DAYS 
+nptest        ' AND '  upon printer no advancing
+nptest     display YMBCAB-MSAM-CATEGORY-CODE   '='  
+nptest         YMBCAB-CATEGORY-CODE 
+nptest        ' AND '  upon printer no advancing
+nptest     display YMBCAB-MSAM-CABIN-NUM       '='  
+nptest         YMBCAB-CABIN-NUM 
+nptest        ' AND '  upon printer no advancing
+nptest     display YMBCAB-MSAM-AFFECT-NET-IND  '='  
+nptest         YMBCAB-AFFECT-NET-IND
+nptest        ' AND '  upon printer no advancing
+nptest     display YMBCAB-MSAM-BED-TYPE-CODE   '='  
+nptest         YMBCAB-BED-TYPE-CODE 
+nptest        ' AND '  upon printer no advancing
+nptest     display YMBCAB-MSAM-BOOK-NUM        '='  
+nptest         YMBCAB-BOOK-NUM  
+nptest        ' AND '  upon printer no advancing
+nptest     display YMBCAB-MSAM-CABIN-STATUS    '='  
+nptest         YMBCAB-CABIN-STATUS  
+nptest        ' AND '  upon printer no advancing
+nptest     display YMBCAB-MSAM-CONNECT-IND     '='  
+nptest         YMBCAB-CONNECT-IND   
+nptest        ' AND (Connect-Ind'  upon printer no advancing
+214948*    display YMBCAB-MSAM-CUSTOMER-NUM    '='  
+214948*        YMBCAB-CUSTOMER-NUM  
+214948*       ' AND '  upon printer no advancing
+214948     display YMBCAB-MSAM-CUST-NUM-ASCII    '='
+214948         YMBCAB-CUSTOMER-NUM-ASCII
+214948        ' AND '  upon printer no advancing
+nptest     display YMBCAB-MSAM-DECK            '='  
+nptest         YMBCAB-DECK  
+nptest        ' AND '  upon printer no advancing
+nptest     display YMBCAB-MSAM-DISPLAY-SEQ     '='  
+nptest         YMBCAB-DISPLAY-SEQ   
+nptest        ' AND '  upon printer no advancing
+nptest     display YMBCAB-MSAM-IS-OS-IND       '='  
+nptest         YMBCAB-IS-OS-IND 
+nptest        ' AND '  upon printer no advancing
+nptest     display YMBCAB-MSAM-MAX-CAPACITY    '='  
+nptest         YMBCAB-MAX-CAPACITY  
+nptest        ' AND '  upon printer no advancing
+nptest     display YMBCAB-MSAM-NORMAL-CAPACITY '='  
+nptest         YMBCAB-NORMAL-CAPACITY   
+nptest        ' AND '  upon printer no advancing
+nptest     display YMBCAB-MSAM-NUM-PAX         '='  
+nptest         YMBCAB-NUM-PAX   
+nptest        ' AND '  upon printer no advancing
+nptest     display YMBCAB-MSAM-NUM-ROLLAWAYS   '='  
+nptest         YMBCAB-NUM-ROLLAWAYS 
+nptest        ' AND '  upon printer no advancing
+nptest     display YMBCAB-MSAM-OTHER-NUM-PAX   '='  
+nptest         YMBCAB-OTHER-NUM-PAX 
+nptest        ' AND '  upon printer no advancing
+nptest     display YMBCAB-MSAM-PRICE-CODE      '='  
+nptest         YMBCAB-PRICE-CODE
+nptest        ' AND '  upon printer no advancing
+nptest     display YMBCAB-MSAM-PRICE-TYPE      '='  
+nptest         YMBCAB-PRICE-TYPE
+nptest        ' AND '  upon printer no advancing
+nptest     display YMBCAB-MSAM-SELL-IND        '='  
+nptest         YMBCAB-SELL-IND  
+nptest        ' AND '  upon printer no advancing
+nptest     display YMBCAB-MSAM-SHARE-CODE      '='  
+nptest         YMBCAB-SHARE-CODE
+nptest        ' AND '  upon printer no advancing
+nptest     display YMBCAB-MSAM-SUBCATEGORY     '='  
+nptest         YMBCAB-SUBCATEGORY   
+nptest        ' AND '  upon printer no advancing
+nptest     display YMBCAB-MSAM-TUB-CODE        '='  
+nptest         YMBCAB-TUB-CODE  
+nptest        ' AND '  upon printer no advancing
+nptest     display YMBCAB-MSAM-VIEW-IND        '='  
+nptest         YMBCAB-VIEW-IND  
+nptest        ' AND '  upon printer no advancing
+nptest     display YMBCAB-MSAM-WHEELCHAIR-IND  '='  
+nptest         YMBCAB-WHEELCHAIR-IND
+nptest         upon printer no advancing.   
+
+
+       8000-OPEN-DATABASE.  
+           MOVE 01010100   TO DPP01-ERROR-NUMBER.   
+           IMPART.  
+
+           MOVE 33010100 TO DPP01-ERROR-NUMBER. 
+           OPEN GRP1-BOOK       USAGE-MODE IS RETRIEVAL.
+           MOVE 'GRP1-BOOK'  TO GRP1-BOOK-CALCAREA. 
+
+SC0300     OPEN GRP1-CNT-HST.   
+169013*    OPEN PRICESUMMX  
+169013*         PRICESUMM.  
+
+LM1100     OPEN GRP1-CAT USAGE-MODE IS RETRIEVAL.   
+
+C85443*    OPEN GRP1-RATE  USAGE-MODE IS RETRIEVAL. 
+GCBPRJ*    OPEN GRP1-RATM1 USAGE-MODE IS RETRIEVAL. 
+GCBPRJ     PERFORM GRP01-OPEN-RATE-RETRIEVAL
+GCBPRJ        THRU GRP01-OPEN-EXIT. 
+C85443*    OPEN GRP1-RATM2 USAGE-MODE IS RETRIEVAL. 
+
+LM1100*    OPEN GRP-BK-CAT. 
+LM1000*    MOVE 'GRP-BK-CAT' TO GRP-BK-CAT-CALCAREA.
+
+           MOVE 27010135   TO DPP01-ERROR-NUMBER.   
+           OPEN ERROR-DESC. 
+
+NP0103     PERFORM DPP11-OPEN-PAX-AREAS THRU DPP11-EXIT.
+
+           MOVE 49010100   TO DPP01-ERROR-NUMBER.   
+PPC470*    OPEN SAIL1.  
+
+SC1197     MOVE 26050130 TO DPP01-ERROR-NUMBER. 
+SC1197     OPEN SAIL-PHASE      USAGE-MODE IS RETRIEVAL.
+           MOVE 'SAIL-PHASE' TO SAIL-PHASE-CALCAREA.
+
+           MOVE 49010300   TO DPP01-ERROR-NUMBER.   
+PPC470*    OPEN SAIL1-IDX.  
+
+           MOVE 12410100   TO DPP01-ERROR-NUMBER.   
+161301*    OPEN SAIL1SUMM.  
+
+           MOVE 12410300   TO DPP01-ERROR-NUMBER.   
+161301*    OPEN SAIL1SUMMX. 
+
+           PERFORM DPP45-OPEN-AVAIL-RETRIEVAL THRU  
+                   DPP45-AVAIL-EXIT.
+
+IBREXP     PERFORM IRP66-OPEN-IBR-RETRIEVAL THRU
+IBREXP             IRP66-OPEN-IBR-AREAS-EXIT.   
+IBREXP     MOVE 41530100 TO DPP01-ERROR-NUMBER. 
+IBREXP     OPEN INDV-FEE
+
+           MOVE 42510100  TO DPP01-ERROR-NUMBER.
+           OPEN ITINERARY.  
+
+105574*    MOVE 51020100  TO DPP01-ERROR-NUMBER.
+105574*    OPEN SAIL1-INDV. 
+
+105574*    MOVE 50010100  TO DPP01-ERROR-NUMBER.
+105574*    OPEN SAIL1GROUP. 
+
+105574     OPEN SAILBOOK.   
+
+           MOVE 60010100  TO DPP01-ERROR-NUMBER.
+163032*    OPEN SHIP.   
+
+C39120     MOVE 10010100 TO DPP01-ERROR-NUMBER. 
+C39120     OPEN AGENT.  
+C39120     MOVE 10010300 TO DPP01-ERROR-NUMBER. 
+C39120     OPEN AGENT-IDX.  
+C39120     MOVE 12110127 TO DPP01-ERROR-NUMBER  
+C39120     OPEN AGENCY-ASSOC USAGE-MODE IS RETRIEVAL.   
+C39120     MOVE 'AGENCY-ASSOC' TO AGENCY-ASSOC-CALCAREA.
+C39120     OPEN AGENT-COMP   USAGE-MODE IS RETRIEVAL.   
+C39120     MOVE 'AGENT-COMP'   TO AGENT-COMP-CALCAREA.  
+144449*    OPEN FEE            USAGE-MODE IS RETRIEVAL  
+144449*         CURR
+144449*         SAILCURR
+PPC470*    OPEN MISC-RATE      USAGE-MODE IS RETRIEVAL  
+PPC470*         MISC-RATEIDX   USAGE-MODE IS RETRIEVAL  
+PPC470*         PRICING        USAGE-MODE IS RETRIEVAL  
+192660     OPEN AGENT-CURR     USAGE-MODE IS RETRIEVAL  
+163032*         COMPANY 
+144449*         COUNTRY 
+144449*         LOCALITY
+169013*         PRICINGX       USAGE-MODE IS RETRIEVAL  
+104170          IBRPROMO       USAGE-MODE IS RETRIEVAL  
+PPC470*         PROMO-ITMX     USAGE-MODE IS RETRIEVAL  
+PPC470*         PROMO-ITEM     USAGE-MODE IS RETRIEVAL  
+           MOVE 'ERROR-DESC'   TO ERROR-DESC-CALCAREA.  
+           MOVE 'ITINERARY'    TO ITINERARY-CALCAREA.   
+163032*    MOVE 'SHIP'         TO SHIP-CALCAREA.
+144449*    CALL 'SSO00MEM'. 
+       8100-INIT-REPORT.
+
+       8199-EXIT.   
+           EXIT.
+
+       8200-END-SAILING.
+
+       8299-EXIT.   
+           EXIT.
+
+      ******************************************************************
+      *                E N D   O F   J O B                             *
+      ******************************************************************
+       9000-END-OF-JOB. 
+nptest*     move 1 to MCFLAG.   
+nptest*     display 'ending' upon PRINTER.  
+DL0802     MOVE 'CCLCCD' TO YMBCCD-CNT-RECORD-ID.   
+DL0802     MOVE WS-RUN-DATE TO YMBCCD-CNT-DATESTAMP.
+DL0802     MOVE ' COUNT: ' TO YMBCCD-CNT-FILLER-1.  
+DL0802     MOVE 'CCLCAB' TO YMBCAB-CNT-RECORD-ID.   
+DL0802     MOVE WS-RUN-DATE TO YMBCAB-CNT-DATESTAMP.
+DL0802     MOVE ' COUNT: ' TO YMBCAB-CNT-FILLER-1.  
+DL0802     WRITE YMBCCD-CNT-REC.
+NP0103*     WRITE YMBCAB-CNT-REC.   
+NP0103     DISPLAY YMBCCD-CNT-REC-CNT ' CCD Records Written'
+NP0103         UPON PRINTER.
+NP0103     DISPLAY WS-MNEW-CNT        ' MNW Records Written'
+NP0103         UPON PRINTER.
+NP0103     DISPLAY YMBCAB-CNT-REC-CNT ' CAB Records Written'
+NP0103         UPON PRINTER.
+NP0903     DISPLAY ws-cab-skipped     ' CAB Records Skipped'
+NP0903         UPON PRINTER.
+NP0103     DISPLAY YMBCPA-CNT-REC-CNT ' CPA Records Written'
+NP0103         UPON PRINTER.
+
+           CLOSE PRINT-FILE 
+                 DATE-FILE  
+                 YMBCCD-FILE
+DL0802           YMBCCD-CNT-FILE
+NP0103           YMBCAB-FILE
+NP0103           YMBCAB-CNT-FILE
+NP0103           YMBCPA-FILE
+NP0103           YMBCPA-CNT-FILE
+                 YMBCAB-MSAM-FILE   
+                 YMBCAB-Mnew-FILE.  
+
+           GO TO DPP12-END-OF-JOB.  
+
+TWAIT  9100-FILE-DUMMY. 
+TWAIT      DISPLAY 'PROGRAM SHOULD NEVER GET HERE' UPON PRINTER.
+TWAIT      GO TO DPP12-DATABASE-ERROR.  
+
+np0105 9100-DATABASE-ERROR. 
+np0105     if irp66-error-num > 0   
+105574      display sibr-book-num (ws-sub) ' INVALID IRP66 '
+np0105              ' - continuing' upon printer
+np0105      go to 2100-walk-sibr-table. 
+165576*     IF  RB-ERROR-CODE = '02'
+165576*         MOVE 'Y' TO WS-DEADLOCK-FLAG
+165576*     END-IF. 
+
+165576     IF RB-ERROR-CODE NOT = '02'  
+165576        GO TO DPP12-DATABASE-ERROR
+165576     END-IF.  
+165576     MOVE 'Y'   TO WS-DEADLOCK-FLAG.  
+165576     DISPLAY 'RB-ERROR-CODE ' RB-ERROR-CODE UPON PRINTER. 
+165576     DISPLAY 'ERROR-STATUS  ' ERROR-STATUS  UPON PRINTER. 
+165576     DISPLAY 'ERROR-NUMBER  ' ERROR-NUM     UPON PRINTER. 
+165576     DISPLAY 'DPP01-ERROR-NUMBER ' DPP01-ERROR-NUMBER 
+165576                                            UPON PRINTER. 
+165576     DISPLAY 'ERROR-AREA  '   ERROR-AREA    UPON PRINTER. 
+165576     DISPLAY 'ERROR-RECORD  ' ERROR-RECORD  UPON PRINTER. 
+165576     DISPLAY 'ERROR-SET  '    ERROR-SET     UPON PRINTER. 
+165576     DISPLAY DLREC-BOOK-NUM UPON PRINTER  
+
+783211*    MOVE 30000 TO DLREC-WAIT-MILLISECONDS.   
+783211     MOVE 15000 TO DLREC-WAIT-MILLISECONDS.   
+165576     ADD 1      TO DLREC-DEADLOCK-CNT.
+165576     IF DLREC-DEADLOCK-CNT > 10   
+165576        GO TO DPP12-DATABASE-ERROR
+165576     END-IF.  
+
+165576     DISPLAY 'DEADLOCK -- ATTEMPTING TO RECOVER ' 
+165576        DLREC-DEADLOCK-CNT ' TIME(S)' UPON PRINTER.   
+
+165576     DISPLAY '----WAITING ' DLREC-WAIT-MILLISECONDS   
+165576          ' MILLISECONDS' UPON PRINTER.   
+
+165576 9110-KEEP-WAITING.   
+165576     CALL 'ERTWAIT' USING DLREC-WAIT-MILLISECONDS.
+165576     DISPLAY 'CONTINUING AFTER WAITING' UPON PRINTER. 
+
+165576     IF IMPART-DEPART = '1'   
+173305*       DEPART WITH ROLLBACK  
+173305        PERFORM DPP12-CHECK-ROLLBACK  
+173305           THRU DPP12-CHECK-ROLLBACK-EXIT 
+165576     END-IF.  
+
+165576     CLOSE DATE-FILE  
+165576           YMBCAB-MSAM-FILE   
+165576           YMBCCD-SKIP-FILE   
+131866           YMBCCD-POI-FILE
+165576           PRINT-FILE 
+165576           YMBCCD-FILE
+165576           YMBCCD-CNT-FILE
+165576           YMBCAB-FILE
+165576           YMBCAB-CNT-FILE
+165576           YMBCPA-FILE
+165576           YMBCPA-CNT-FILE
+165576           YMBCAB-Mnew-FILE.  
+165576     GO TO 0000-BEGIN.
+
+161301 9500-RETURN-SUBROUTINE-ERROR.
+161301     GO TO DPP12-RETURN-SUBROUTINE-ERROR. 
+
+PPC470 9150-RDMS-ERROR. 
+PPC470     DISPLAY 'RDMS ERROR SQLCODE: ' TDP01-PROC-SQLCODE
+PPC470                            UPON PRINTER. 
+PPC470     DISPLAY DLREC-BOOK-NUM UPON PRINTER. 
+PPC470     GO TO DPP12-RDMS-ERROR.  
+
+165576* COPY YMP01DLP REPLACING 
+165576*       9100-DATABASE-ERROR by 9100-DATABASE-ERROR-cont   
+165576*                0000-IMPART-OPEN BY 8000-OPEN-DATABASE   
+165576*       1210-FILE-CONTINUE BY 9100-FILE-DUMMY 
+165576*       2000-FETCH-FIRST-AREA BY 1000-FIRST-SAILING   
+110124*       2100-FETCH-NEXT-AREA BY 1010-FETCH-NEXT-SSUM. 
+165576*       2100-FETCH-NEXT-AREA BY 1020-PROCESS-SSUM.
+
+       COPY DPP10Y2K.   
+       COPY DPP12BER.   
+144449 COPY DPP12ERR.   
+144449 COPY DPP12WDB.   
+       COPY DPP16SBR.   
+       COPY DPP44CCR.   
+PPC470*COPY DPP50FPR. . 
+       COPY DPP45AOP.   
+       COPY DPP20Y2K.   
+       COPY DPP80NAR.   
+       COPY IRP66OIB.   
+       COPY IRP66RIB.   
+103403 COPY RSP15INT.   
+NP0103 COPY DPP17PFR.   
+NP0103 COPY DPP11POP.   
+GCBPRJ COPY GRP01CAT.   
+NP0905 COPY YMP02FEP.   
+       COPY DPP33CIU.   
+214948 COPY YMP01AAP.   
+PPC470 COPY TDP01SAP.   
+PPC470 COPY TDP01SCP.   

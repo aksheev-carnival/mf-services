@@ -1,0 +1,148 @@
+REQ:
+<?xml version="1.0"?>
+<CruiseLineRequest>
+  <MessageHeader SegmentId="MSGHDR" xmlns="">
+    <MessageId>CCMCAVL1</MessageId>
+    <SessionId>AKSH01</SessionId>
+    <CruiseLineCode>CCL</CruiseLineCode>
+    <SystemId>CCL</SystemId>
+    <UserId>NEWCONSUMER 1</UserId>
+    <UserName>KHA</UserName>
+    <AgencyId> </AgencyId>
+    <AgencyPhoneNumber> </AgencyPhoneNumber>
+    <AgencyARCNumber> </AgencyARCNumber>
+    <UICode>A</UICode>
+    <VersionNum>1.0</VersionNum>
+    <AttemptCnt>1</AttemptCnt>
+    <SendDescriptionInd>Y</SendDescriptionInd>
+  </MessageHeader>
+  <MultiCabinAvailabilityRequest xmlns="">
+    <SailingId>20280325BR07</SailingId>
+    <SailDate>2028-03-25</SailDate>
+    <DurationDays>7</DurationDays>
+    <Ship Code="BR" />
+    <Currency Code="USD" />
+    <MetaCategory Code="OB" />
+    <ConnectReqInd>Y</ConnectReqInd>
+    <DeckCode>E</DeckCode>
+    <LocationCode>F</LocationCode>
+    <CabinInfo SeqNumber="1" HomeStateCode="" PastGuestInd="Y" SeniorInd="Y" PaxNumber="3">
+      <Rate Code="PNS" />
+      <Category Code="8B" />
+      <TransportationType>O</TransportationType>
+      <City Code="MIA" />
+      <GuestInfo OwnerSeqNum="1" PaxSeqNum="1" />
+      <GuestInfo OwnerSeqNum="1" PaxSeqNum="2" />
+      <GuestInfo OwnerSeqNum="1" PaxSeqNum="3" />
+    </CabinInfo>
+    <CabinInfo SeqNumber="2" HomeStateCode="" PastGuestInd="Y" SeniorInd="Y" PaxNumber="2">
+      <Rate Code="PNS" />
+      <Category Code="8B" />
+      <TransportationType>O</TransportationType>
+      <City Code="MIA" />
+      <GuestInfo OwnerSeqNum="2" PaxSeqNum="1" />
+      <GuestInfo OwnerSeqNum="2" PaxSeqNum="2" />
+    </CabinInfo>
+    <StateRoomChoices SeqNumber="1">
+      <StateRoomChoicesInfo OwnerSeqNum="1" MetaCatCode="OB" NumOfCabins="2" />
+    </StateRoomChoices>
+  </MultiCabinAvailabilityRequest>
+</CruiseLineRequest>
+
+RES:
+<?xml version="1.0"?>
+<CruiseLineResponse>
+    <MessageHeader SegmentId="MSGHDR">
+        <MessageId>CCMCAVL2</MessageId>
+        <SessionId>AKSH01</SessionId>
+        <CruiseLineCode>CCL</CruiseLineCode>
+        <SystemId>CCL</SystemId>
+        <UserId>NEWCONSUMER 1</UserId>
+        <UserName>KHA</UserName>
+        <AgencyPhoneNumber>0000000000</AgencyPhoneNumber>
+        <AgencyARCNumber>00000000</AgencyARCNumber>
+        <AgencyCLIANumber>00000000</AgencyCLIANumber>
+        <UICode>A</UICode>
+        <VersionNum>1.0</VersionNum>
+        <AttemptCnt>1</AttemptCnt>
+        <SendDescriptionInd>Y</SendDescriptionInd>
+        <Copyright>Copyright (C) 2000 Carnival Corporation.  All rights reserved.</Copyright>
+    </MessageHeader>
+    <MultiCabinAvailabilityResponse SegmentId="MCAVL2">
+        <SailingInfo>
+            <SailingId>20280325BR07</SailingId>
+            <StatusCode>AV</StatusCode>
+            <ShipCode>BR</ShipCode>
+            <SailDate>2028-03-25</SailDate>
+            <DurationDays>7</DurationDays>
+            <EmbPortCode>GAL</EmbPortCode>
+            <DebPortCode>GAL</DebPortCode>
+            <Itinerary Code="CWC" Description="7-Day Western Caribbean"/>
+            <OptionInfo DateTime="2027-12-31T01:20:00" TimeZone="USET"/>
+        </SailingInfo>
+        <CabinGroup>
+            <DeckCode>E</DeckCode>
+            <FwdMidAftCode>F</FwdMidAftCode>
+            <RecipeSeqNum>0</RecipeSeqNum>
+            <BaseAmountGuest Value="1327.00"/>
+            <BaseAmount Value="6635.00"/>
+            <GrossAmount Value="6635.00"/>
+            <CabinAvailInfo SeqNumber="1">
+                <RateCode>PNS</RateCode>
+                <CabinNumber>7214</CabinNumber>
+                <UpgradeCode>8A</UpgradeCode>
+                <MetaCatCode>OB</MetaCatCode>
+                <CatCode>8B</CatCode>
+                <ConnectCabinNumber>7210</ConnectCabinNumber>
+                <BaseAmountGuest Value="1159.66"/>
+                <BaseAmount Value="3479.00"/>
+                <GrossAmount Value="3479.00"/>
+                <CabinType>BROBSTB</CabinType>
+            </CabinAvailInfo>
+            <CabinAvailInfo SeqNumber="2">
+                <RateCode>PNS</RateCode>
+                <CabinNumber>7210</CabinNumber>
+                <UpgradeCode>8A</UpgradeCode>
+                <MetaCatCode>OB</MetaCatCode>
+                <CatCode>8B</CatCode>
+                <ConnectCabinNumber>7214</ConnectCabinNumber>
+                <BaseAmountGuest Value="1578.00"/>
+                <BaseAmount Value="3156.00"/>
+                <GrossAmount Value="3156.00"/>
+                <CabinType>BROBSTB</CabinType>
+            </CabinAvailInfo>
+        </CabinGroup>
+        <CabinGroup>
+            <DeckCode>E</DeckCode>
+            <FwdMidAftCode>F</FwdMidAftCode>
+            <RecipeSeqNum>0</RecipeSeqNum>
+            <BaseAmountGuest Value="1327.00"/>
+            <BaseAmount Value="6635.00"/>
+            <GrossAmount Value="6635.00"/>
+            <CabinAvailInfo SeqNumber="1">
+                <RateCode>PNS</RateCode>
+                <CabinNumber>7215</CabinNumber>
+                <UpgradeCode>8A</UpgradeCode>
+                <MetaCatCode>OB</MetaCatCode>
+                <CatCode>8B</CatCode>
+                <ConnectCabinNumber>7209</ConnectCabinNumber>
+                <BaseAmountGuest Value="1159.66"/>
+                <BaseAmount Value="3479.00"/>
+                <GrossAmount Value="3479.00"/>
+                <CabinType>BROBSTB</CabinType>
+            </CabinAvailInfo>
+            <CabinAvailInfo SeqNumber="2">
+                <RateCode>PNS</RateCode>
+                <CabinNumber>7209</CabinNumber>
+                <UpgradeCode>8A</UpgradeCode>
+                <MetaCatCode>OB</MetaCatCode>
+                <CatCode>8B</CatCode>
+                <ConnectCabinNumber>7215</ConnectCabinNumber>
+                <BaseAmountGuest Value="1578.00"/>
+                <BaseAmount Value="3156.00"/>
+                <GrossAmount Value="3156.00"/>
+                <CabinType>BROBSTB</CabinType>
+            </CabinAvailInfo>
+        </CabinGroup>
+    </MultiCabinAvailabilityResponse>
+</CruiseLineResponse>

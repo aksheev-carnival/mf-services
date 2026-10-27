@@ -1,0 +1,17 @@
+SELECT
+    CATEGORY_CODE,
+    SOLD_GTEE_CABIN,
+    SOLD_GTEE_CABIN_DBL,
+    SOLD_GTEE_CABIN_TRPL,
+    SOLD_GTEE_CABIN_QUAD,
+    SOLD_GTEE_CABIN_QUNT,
+    LAST_UPDATE_DATETIME
+FROM SAIL_CATEGORY
+WHERE SHIP_CODE='AQ'
+AND SAIL_ID=22844
+AND CATEGORY_CODE IN ('6B','8D','EB','OS');
+
+6B       -1       0       0       0      -1 2025-10-15 14:22:56 
+8D       -1       0       0       0      -1 2025-10-15 14:22:56 
+EB       -1       0       0       0      -1 2025-10-15 14:22:56 
+OS       -2       0       0       0      -2 2025-10-15 14:22:56 

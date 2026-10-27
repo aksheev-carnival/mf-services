@@ -1,0 +1,492 @@
+SELECT * FROM PORT;
+
+600 MOVIE0                         N F                                                     N     600       0 N  
+601 MOVIE1                         N F                                                     N     601       0 N  
+602 MOVIE2                         N F                                                     N     602       0 N  
+603 MOVIE3                         N F                                                     N     603       0 N  
+604 MOVIE4                         N F                                                     N     604       0 N  
+605 MOVIE5                         N F                                                     N     605       0 N  
+606 MOVIE6                         N F                                                     N     606       0 N  
+607 MOVIE7                         N F                                                     N     607       0 N  
+608 MOVIE8                         N F                                                     N     608       0 N  
+609 MOVIE9                         N F                                                     N     609       0 N  
+A50 SHIP MEETUP                    N E                                                     N       0       0 N  
+AAS ALESUND, NORWAY                N P ALESUND                            NO  AES          Y     850       0 N S
+ABR ABURATSU (MIYAZAKI), JAPAN     N P ABURATSU                           JP  AB           Y     713       0 N  
+ACA ACAPULCO, MEXICO               N P ACAPULCO                           MX  ACA     P06  N     308    8888 N  
+ADL ADELAIDE, AUSTRALIA            Y P ADELAIDE                           AU  AD           Y     920       0 N  
+AES ALESUND, NORWAY                N P DO NOT USE - DELETE                NO               Y       0       0 N S
+AG1 CRUISE AMALIA GLACIER          N E                                    CL               Y     778       0 N  
+AGP MALAGA, SPAIN                  N P MALAGA                             ES  AGP     P01  Y     813    8888 N S
+AJA AJACCIO, CORSICA, FRANCE       N P AJACCIO                            FR  AJA          Y     878       0 N S
+AKL AUCKLAND, NEW ZEALAND          Y P AUCKLAND                           NZ  AK           Y     927       0 N  
+AKU AKUREYRI, ICELAND              N P AKUREYRI                           IS  AKU          Y     903       0 N S
+ALC ALICANTE, SPAIN                N P ALICANTE                           ES  ALC          Y     794    8888 N S
+ALH ALBANY, AUSTRALIA              N P ALBANY                             AU  AL           Y     914       0 N  
+ALS ANDALSNES, NORWAY              N P ANDALSNES                          NO  ALS          Y     909       0 Y S
+AMS AMSTERDAM, THE NETHERLANDS     N P AMSTERDAM                          NL  AMS          Y     800    8888 N S
+ANC ANCHORAGE, AK                  Y P ANCHORAGE                          US  ANC          N     165       0 N  
+AOJ AOMORI, JAPAN                  N P AOMORI                             JP  AOJ          Y     721       0 N  
+ARB ARUBA                          Y P ORANJESTAD                         AW  ORJ     P04  Y     412    8888 N  
+ARH AARHUS, DENMARK                N P AARHUS                             DK  AAR          Y     893       0 N S
+ARI ARICA, CHILE                   N P ARICA                              CL  ARI          Y     365       0 N  
+ASH ASHDOD (JERUSALEM), ISRAEL     N P ASHDOD                             IL  ASH          Y     772       0 N  
+AST ASTORIA, OR                    N P ASTORIA                        OR  US  AST          N     136       0 N  
+ATA ALOTAU, PAPUA NEW GUINEA       N P ALOTAU                             PG  GUR          Y     981       0 N  
+ATG ANTIGUA                        N P ST. JOHN'S                         AG  SJO     P04  N     411    8888 N  
+ATH PIRAEUS (ATHENS), GREECE       Y P PIRAEUS                            GR  ATH          Y     823       0 N S
+BAR BAR, MONTENEGRO                N P MONTENEGRO                         ME  BA           Y     775       0 N  
+BAY CAPE LIBERTY CRUISE PORT, NJ   N P BAYONNE                        NJ  US  BAY          N     134       0 N  
+BCN BARCELONA, SPAIN               Y P BARCELONA                          ES  BCN          Y     801    8888 N S
+BDS BARBADOS                       Y P BRIDGETOWN                         BB  BGI     P05  N     413    8888 N  
+BEO BENOA (DENPASAR), BALI         N P BENOA                              ID  BOA          Y     961       0 Y  
+BER BERLIN, GERMANY                N P BERLIN                             DE  BER          Y     949       0 N S
+BFT BELFAST, NORTHERN IRELAND      N P BELFAST                            GB  BEL          Y     851       0 N  
+BGO BERGEN, NORWAY                 N P BERGEN                             NO  BGO          Y     840       0 N S
+BGS ZEEBRUGGE (BRUSSELS), BELGIUM  N P DO NOT USE - DELETE                BE               Y       0       0 N S
+BHA BAR HARBOR, ME                 N P BAR HARBOR                     ME  US  BHB     P05  N     122    1120 Y  
+BIM BIMINI, THE BAHAMAS            N P BIMINI                             BS  BIM     P05  N     402       0 N  
+BIO BILBAO, SPAIN                  N P BILBAO                             ES  BIO     P01  Y     881       0 N S
+BIT BITUNG, INDONESIA              N P BITUNG                             ID  BIT          Y     726       0 N  
+BME BROOME, AUSTRALIA              N P BROOME                             AU  BME          Y     986       0 N  
+BNE BRISBANE, AUSTRALIA            Y P BRISBANE                           AU  BNE          Y     958       0 N  
+BOB BORA BORA, FRENCH POLYNESIA    N P BORA BORA                          PF  BOB          Y     923       0 Y  
+BON BONAIRE                        N P KRALENDIJK                         BQ  BON     P04  Y     443       0 N  
+BOS BOSTON, MA                     Y P BOSTON                         MA  US  BOS     P05  N     123    4010 N  
+BPV BAHAMAS PRIVATE ISLAND         Y P DO NOT USE - DELETE                BS               N       0       0 N  
+BRI BARI, ITALY                    N P BARI                               IT  BR           Y     779       0 N S
+BRV BREMERHAVEN, GERMANY           Y P BREMERHAVEN                        DE  BR           Y     781       0 N  
+BSC CRUISE BEAGLE CHANNEL          N E                                                     N       0       0 N  
+BUE BUENOS AIRES, ARGENTINA        Y P BUENOS AIRES                       AR  BUE          Y     360       0 N  
+BWI BALTIMORE, MD                  Y P BALTIMORE                      MY  US  BAL     P05  N     112    1303 N  
+BWT BURNIE, TASMANIA, AUSTRALIA    N P BURNIE                             AU  BWT          Y     929       0 N  
+BYO BAY OF ISLANDS, NEW ZEALAND    N P PAIHIA                             NZ  RUS          Y     928       0 Y  
+BZE BELIZE                         N P BELIZE CITY                        BZ  BZE     P06  N     509    8888 Y  
+CAD CADIZ, SPAIN                   Y P CADIZ                              ES  CAD          Y     839       0 N S
+CAG CAGLIARI, SARDINIA, ITALY      N P CAGLIARI                           IT  CAG          Y     869       0 N S
+CAR CALDERA, COSTA RICA            N P CALDERA                            CR  CAL     P05  N     510    8888 N  
+CAS CAIRNS, AUSTRALIA              N P CAIRNS                             AU  CNS          Y     947       0 N  
+CAT CATALINA ISLAND, CA            N P CATALINA ISLAND                CA  US  AOU     P08  N     107    8888 Y  
+CAY GRAND CAYMAN, CAYMAN ISLANDS   N P GRAND CAYMAN                       KY  GEC     P05  N     417    8888 Y  
+CBG CHERBOURG, NORMANDY, FRANCE    N P CHERBOURG                          FR  CER          Y     845       0 N S
+CBK CELEBRATION KEY, THE BAHAMAS   N P CELEBRATION KEY                    BS  CB      P05  N     409    8888 N  
+CCD CASA DE CAMPO, DOMINICAN REP   N P DO NOT USE - DELETE                                 N       0       0 N  
+CEQ CANNES, FRANCE                 N P CANNES                             FR  CEQ          Y     803    8888 Y S
+CET HERAKLION, CRETE, GREECE       N P HERAKLION                          GR  HER          Y     847       0 N S
+CFI CONFLICT ISLANDS, PNG          N P MILNE BAY PROVINCE                 PG  CFG          Y     984       0 Y  
+CFS CHILEAN FJORDS SCENIC CRUISING N E DO NOT USE - DELETE                                 N       0       0 N  
+CFU CORFU, GREECE                  N P CORFU                              GR  CFU          Y     865       0 N S
+CGL CRUISE GULF OF ST. LAWRENCE    N E                                                     N       0       0 N  
+CGN CARTAGENA, COLOMBIA            N P CARTAGENA                          CO  CTG     P05  Y     511    8888 N  
+CGP CARTAGENA, SPAIN               N P CARTAGENA                          ES  CAR          Y     802    8888 N S
+CGU CRUISE GATUN LAKE              N E                                    PA  GTN          N       0       0 N  
+CHA CHARLOTTETOWN, PE, CANADA      N P CHARLOTTETOWN                  PE  CA  CH           N     223       0 N  
+CHB CRUISE HAVANNAH BOULARI        N E                                    NC               Y     988       0 N  
+CHC CHRISTCHURCH, NEW ZEALAND      N P CHRISTCHURCH                       NZ  CHC          Y     930       0 N  
+CHS CHARLESTON, SC                 Y P CHARLESTON                     SC  US  CHS     P05  N     118    1601 N  
+CIP CRUISE INSIDE PASSAGE          N E                                                     N       0       0 N  
+CIV CIVITAVECCHIA (ROME), ITALY    Y P CIVITAVECCHIA                      IT  CVV          Y     804    8888 N S
+CL1 CARNIVAL LIVE CONCERT          N E                                                     N       0       0 N  
+CL2 CARNIVAL LIVE CONCERT-SOLD OUT N E                                                     N       0       0 N  
+CLF CRUISE COLLEGE FJORD           N E                                    US               N       0       0 N  
+CLG CRUISE COLUMBIA GLACIER        N E                                                     N       0       0 N  
+CLI CALICA, MEXICO                 Y P CALICA                             MX  PMS          N     315       0 N  
+CLL CALLAO (LIMA), PERU            N P CALLAO                             PE  CLL          Y     366       0 N  
+CLN COLON (PANAMA CANAL), PANAMA   N P COLON                              PA  ONX          N     513       0 N  
+CMY CHAN MAY (HUE/DANANG), VIETNAM N P CHAN MAY                           VN  CM           N     740       0 N  
+CMZ COSTA MAYA, MEXICO             N P COSTA MAYA                         MX  COM     P06  N     316    8888 N  
+COB COBH (CORK), IRELAND           N P COBH                               IE  COB          Y     805    8888 N  
+COP COPENHAGEN, DENMARK            N P                                    DK               Y       0       0 N S
+COT PUERTO CORTES, HONDURAS        N P PUERTO CORTES                      HN  PCR          N     519    8888 N  
+CPH COPENHAGEN, DENMARK            Y P COPENHAGEN                         DK  CPH          Y     806    8888 N S
+CQQ COQUIMBO (LA SERENA), CHILE    N P COQUIMBO                           CL  CQ           N     355       0 N  
+CSL CABO SAN LUCAS, MEXICO         N P CABO SAN LUCAS                     MX  CSL     P07  N     314    8888 Y  
+CTA CATANIA, SICILY, ITALY         N P CATANIA                            IT  CTA          Y     876       0 N S
+CTI CATALINA ISLAND, DOMINICAN REP N P CATALINA ISLAND                    DO  CAI     P04  N     441       0 Y  
+CUN CANCUN, MEXICO                 N P DO NOT USE - DELETE                                 N       0       0 N  
+CUR CURACAO                        N P WILLEMSTAD                         CW  CUR     P04  Y     414    8888 N  
+CZM COZUMEL, MEXICO                N P COZUMEL                            MX  CZ      P06  N     304    8888 N  
+D31 31-DAY DRYDOCK                 N E                                                     N       0       0 N  
+D46 46-DAY DRY DOCK                N E                                                     N       0       0 N  
+D66 65-DAY DRY DOCK                N E                                                     N       0       0 N  
+DBV DUBROVNIK, CROATIA             N P DUBROVNIK                          HR  DBV          Y     953    8888 N S
+DC1 CROSS INTERNATIONAL DATELINE   N E                                                     N       0       0 N  
+DCC CRUISE DARWIN CHANNEL          N E                                                     N       0       0 N  
+DDK DRY DOCK                       N E                                                     N       0       0 N  
+DGL DOUGLAS, ISLE OF MAN, UK       N P DOUGLAS                            GB  DGL          Y     894       0 Y  
+DJU DJUPIVOGUR, ICELAND            N P DJUPIVOGUR                         IS  DJ           Y     786       0 Y S
+DLI DUN LAOGHAIRE (DUBLIN) IRELAND N P DUN LAOGHAIRE                      IE  DLG          Y     888       0 Y  
+DOH DOHA, QATAR                    N P DOHA                               QA  DOH          Y     770       0 N  
+DOM DOMINICA                       N P ROSEAU                             DM  RSU     P04  N     415    8888 N  
+DOP AMBER COVE, DOMINICAN REPUBLIC N P AMBER COVE                         DO  POP     P04  N     445       0 N  
+DRA DRAVUNI ISLAND, FIJI           N P DRAVUNI                            FJ  SUV          Y     919       0 Y  
+DRW DARWIN, AUSTRALIA              Y P DARWIN                             AU  DRW          Y     959       0 N  
+DUB DUBLIN, IRELAND                N P DUBLIN                             IE  DUB          Y     838       0 N  
+DUD PORT CHALMERS (DUNEDIN), NZ    N P PORT CHALMERS                      NZ  DUD          Y     943       0 N  
+DXB DUBAI, UNITED ARAB EMIRATES    N P DUBAI                              AE  DXB          Y     771       0 N  
+ECL SOLAR ECLIPSE SCENIC CRUISING  N E                                                     Y     774       0 N  
+EDI EDINBURGH, SCOTLAND, UK        N P EDINBURGH                          GB  EDI          Y     852       0 Y  
+EEM EEMSHAVEN, THE NETHERLANDS     Y P EEMSHAVEN                          NL  EE           Y     787       0 N S
+EGL FT LAUDERDALE (PT EVRGLDS), FL Y P FT LAUDERDALE                  FL  US  PEF     P05  N     119    5210 N  
+ENA CRUISE ENDICOTT ARM FJORD      N E                                    US               N     179       0 N  
+ENS ENSENADA, MEXICO               Y P ENSENDADA                          MX  ESE     P08  N     310    8888 N  
+ESC CROSSING THE EQUATOR           N E                                                     N       0       0 N  
+FBU OSLO, NORWAY                   N P DO NOT USE - DELETE                NO               Y       0       0 N S
+FJM FALMOUTH, JAMAICA              N P FALMOUTH                           JM  FMH     P05  N     442    8888 N  
+FLL FORT LAUDERDALE, FL            Y P FORT LAUDERDALE                FL  US  FLL          N     100    8888 N  
+FLM FLAAM, NORWAY                  N P FLAAM                              NO  FLA          Y     910       0 N S
+FNC FUNCHAL, MADEIRA, PORTUGAL     N P FUNCHAL                            PT  FNC          Y     807    8888 N S
+FNP CRUISE FIORDLAND NATIONAL PARK N E                                    NZ               N       0       0 N  
+FOR FORTALEZA, BRAZIL              N P FORTALEZA                          BR  FOR          Y     368       0 N  
+FPO FREEPORT, THE BAHAMAS          N P FREEPORT                           BS  FPO     P05  N     416    8888 N  
+FRE FREMANTLE (PERTH), AUSTRALIA   N P FREMANTLE                          AU  FR           Y     913       0 N  
+FS1 FUN DAY AT SEA                 N F                                                     N       0       0 N  
+FS2 2 FUN DAYS AT SEA              N F                                                     N       0       0 N  
+FS3 3 FUN DAYS AT SEA              N F                                                     N       0       0 N  
+FS4 4 FUN DAYS AT SEA              N F                                                     N       0       0 N  
+FS5 5 FUN DAYS AT SEA              N F                                                     N       0       0 N  
+FS7 7 FUN DAYS AT SEA              N F                                                     N       0       0 N  
+FSC CHILEAN FJORDS SCENIC CRUISING N E DO NOT USE - DELETE                                 N       0       0 N  
+FUK FUKUOKA (HAKATA), JAPAN        N P FUKUOKA                            JP  FU           Y     733       0 N  
+GAL GALVESTON, TX                  Y P GALVESTON                      TX  US  GLS          N     115    5310 N  
+GBY CRUISE GLACIER BAY             N E                                    US               N       0       0 N  
+GCI ST. PETER PORT, GUERNSEY       N P ST. PETER PORT                     GB  PP           Y     863       0 Y  
+GDS GRENADINES                     N P DO NOT USE - DELETE                                 N       0       0 N  
+GDT GRAND TURK                     Y P GRAND TURK                         TC  GDT          N     440       0 N  
+GEN GENOA, ITALY                   Y P DO NOT USE - DELETE                IT               Y       0       0 N S
+GFJ CRUISE GEIRANGERFJORD          N E                                    NO               Y       0       0 N S
+GGR GEIRANGER, NORWAY              N P GEIRANGER                          NO  GNR          Y     873       0 Y S
+GIB GIBRALTAR                      N P GIBRALTAR                          GI  GIB          Y     861       0 N  
+GLA GREENOCK (GLASGOW), SCOTLAND   N P GREENOCK                           GB  GLW          Y     808    8888 N  
+GLT GLADSTONE, AUSTRALIA           N P GLADSTONE                          AU  GLT          Y     971       0 N  
+GO1 CRUISE GREAT OYSTER BAY        N E                                    AU               Y     898       0 N  
+GOA GENOA, ITALY                   Y P GENOA                              IT  GOA          Y     860       0 N S
+GOH NUUK, GREENLAND                N P NUUK                               GL  GO           Y     896       0 Y  
+GOT GOTHENBURG, SWEDEN             N P GOTHENBURG                         SE  GOT          Y     872       0 N S
+GPE GUADELOUPE, FWI                Y P GUADELOUPE                         GP  BBR     P04  N     419    8888 N  
+GPT GULFPORT (BILOXI), MS          N P GULFPORT                       MS  US  BIX          N     130    1902 N  
+GSP GREAT STIRRUP CAY, THE BAHAMAS N P GREAT STIRRUP CAY                  BS  GSC     P05  N     215       0 Y  
+GUM GUAM                           N P HAGATNA                            US  GUM          N     980       0 N  
+GUU GRUNDARFJORDUR, ICELAND        N P GRUNDARFJORDUR                     IS  GRF          Y     904       0 Y S
+HAI HAIFA (TEL AVIV), ISRAEL       N P HAIFA                              IL  HFA          Y     773       0 N  
+HAM HAMBURG, GERMANY               N P HAMBURG                            DE  HAM          Y     853       0 N S
+HAU HAUGESUND, NORWAY              N P HAUGESUND                          NO  HAU          Y     887       0 N S
+HAV HAVANA, CUBA                   N P HAVANA                             CU  HAV     P05  N     410       0 N  
+HBA HOBART, TASMANIA, AUSTRALIA    N P HOBART                             AU  HBA          Y     931       0 N  
+HBE CRUISE HUBBARD GLACIER         N E                                    US               N     180       0 N  
+HEL HELSINKI, FINLAND              N P HELSINKI                           FI  HEL     P02  Y     810    8888 N S
+HES HELLESYLT, NORWAY              N P HELLESYLT                          NO  HSY          Y     874       0 N S
+HEY HEIMAEY, WESTMAN ISLANDS       N P VESTMANNAEYJAR HOFN                IS  VES          Y     912    8888 Y S
+HIR HIROSHIMA, JAPAN               N P HIROSHIMA                          JP  HIR          Y     723       0 N  
+HKD HAKODATE, JAPAN                N P HAKODATE                           JP  HKD          Y     718       0 N  
+HKE LAHAINA, MAUI, HI              N P LAHAINA                        HI  US  LHN          N     195    8888 Y  
+HKG HONG KONG                      Y P HONG KONG                          HK  HK           Y     736       0 N  
+HKT PHUKET, THAILAND               N P PHUKET                             TH  HKT          Y     975       0 N  
+HLB HALONG BAY, VIETNAM            N P HALONG BAY                         VN  HL           Y     708       0 N  
+HLY HOLYHEAD, WALES, UK            N P HOLYHEAD                           GB  HLY          Y     882       0 N  
+HMC HALF MOON CAY, THE BAHAMAS     N P HALF MOON CAY                      BS  HM      P05  N     420    8888 Y  
+HMD RELAXAWAY, HALF MOON CAY       N P HALF MOON CAY                      BS  HM      P05  N     447    8888 N  
+HMP HAMBURG, GERMANY               N P DO NOT USE - DELETE                DE               Y       0       0 N S
+HNL HONOLULU, OAHU, HI             Y P HONOLULU                       HI  US  HNL     P10  N     194    3201 N  
+HNS HAINES, AK                     N P HAINES                         AK  US  HNS     P09  N     702       0 N  
+HOU HOUSTON, TX                    N P HOUSTON                        TX  US  HOU          N     114       0 N  
+HRW HARWICH (LONDON), ENGLAND      Y P HARWICH                            GB  HRW          Y     809    8888 N  
+HSC CRUISE CAPE HORN               N E                                                     N       0       0 N  
+HTC HITACHINAKA, JAPAN             N P HITACHINAKA                        JP  HIC          Y     717       0 N  
+HUX HUATULCO, MEXICO               N P HUATULCO                           MX  HTO     P07  N     317    8888 N  
+IJM IJMUIDEN (AMSTERDAM), NL       N P IJMUIDEN                           NL  IJ           Y     883       0 N S
+IOP ISLE OF PINES, NEW CALEDONIA   N P ISLE OF PINES                      NC  ILP          Y     932       0 Y  
+IST ISTANBUL, TURKEY               N P ISTANBUL                           TR  IST          Y     822       0 N  
+ITO HILO, HAWAII, HI               N P HILO                           HI  US  ITO     P10  N     190    3202 N  
+IVG INVERGORDON, SCOTLAND, UK      N P INVERGORDON                        GB  IVG          Y     854       0 N  
+IZM IZMIR (EPHESUS), TURKEY        N P IZMIR                              TR  IZM          Y     821       0 N  
+JAP PUNTARENAS, COSTA RICA         N P PUNTARENAS                         CR  PAS          N     517       0 N  
+JAX JACKSONVILLE, FL               Y P JACKSONVILLE                   FL  US  JAX          N     121    1803 N  
+JCO CORINTO, NICARAGUA             N P CORINTO                            NI  CIO          N     522       0 N  
+JFK JOHN F KENNEDY                 Y P NEW YORK                       NY  US  NY  E   POS  N     132    1001 N  
+JGU GRENADA                        N P ST. GEORGE'S                       GD  STG     P04  N     418    8888 N  
+JJU QAQORTOQ, GREENLAND            N P QAQORTOQ                           GL  JJU          Y     862       0 Y  
+JNN NANORTALIK, GREENLAND          N P NANORTALIK                         GL  JNN          Y     889       0 Y  
+JNU JUNEAU, AK                     N P JUNEAU                         AK  US  JNU     P09  N     171    3101 N  
+JTR SANTORINI, GREECE              N P THIRA                              GR  JTR          Y     792       0 Y S
+KAN KANGAROO ISLAND, AUSTRALIA     N P PENNESHAW                          AU  PE           Y     990       0 Y  
+KAT KATAKOLON (OLYMPIA), GREECE    N P KATAKOLON                          GR  KAT          Y     824       0 N S
+KEL KEELUNG (TAIPEI), TAIWAN       N P KEELUNG                            TW  KE           Y     735       0 N  
+KET KETCHIKAN (WARD COVE), AK      N P KETCHIKAN                      AK  US  KT      P09  N     168    3102 N  
+KEY KEY WEST, FL                   N P KEY WEST                       FL  US  EYW     P05  N     104    5202 N  
+KHH KAOHSIUNG, TAIWAN              N P KAOHSIUNG                          TW  KH           Y     709       0 N  
+KIL KIEL (HAMBURG), GERMANY        N P KIEL                               DE  KEL          Y     790       0 N S
+KIR KIRIWINA ISLAND, PNG           N P LOSUIA                             PG  GUR          Y     983       0 Y  
+KKU KOTA KINABALU, MALAYSIA        N P KOTA KINABALU                      MY  BKI          Y     917       0 N  
+KLK KLAKSVIK, FAROE ISLANDS        N P KLAKSVIK                           FO  KVI          Y     948       0 N  
+KMS CRUISE KANMON STRAIT           N E                                    JP  KN           Y     710       0 N  
+KOA KONA, HAWAII, HI               N P KONA                           HI  US  KHH     P10  N     191    3206 Y  
+KOI KIRKWALL, ORKNEY ISLANDS, UK   N P KIRKWALL                           GB  KWL          Y     907       0 N  
+KOJ KAGOSHIMA, JAPAN               N P KAGOSHIMA                          JP  KO           Y     712       0 N  
+KOT KOTOR, MONTENEGRO              N P KOTOR                              ME  KOT          Y     901       0 Y  
+KTA KITAVA, PAPUA NEW GUINEA       N P KITAVA                             PG  GUR          Y     985       0 Y  
+KTN KETCHIKAN, AK                  N P KETCHIKAN                      AK  US  KTN     P09  N     170    3102 N  
+KUH KUSHIRO, JAPAN                 N P KUSHIRO                            JP  KUH          Y     720       0 N  
+KUS KUSADASI (EPHESUS), TURKEY     N P KUSADASI                           TR  KUS          Y     900       0 N  
+KVA KAVALA, GREECE                 N P KAVALA                             GR  KVA          Y     788       0 N S
+LAP LA PAZ, MEXICO                 N P LA PAZ                             MX  LAP     P06  N     318    8888 N  
+LAS LAS PALMAS, CANARY IS          N P DO NOT USE - DELETE                ES               Y       0       0 N S
+LAX LOS ANGELES, CA                Y P LOS ANGELES                    CA  US  LAX     P08  N     106    2704 N  
+LBJ KOMODO ISLAND, INDONESIA       N P NUSA TENGGARA                      ID  KMD          Y     972       0 Y  
+LCG LA CORUNA, SPAIN               N P LA CORUNA                          ES  LCG          Y     880    8888 N S
+LCH LAEM CHABANG (BANGKOK), TH     N P LAEM CHABANG                       TH  LC           Y     994       0 N  
+LED ST. PETERSBURG, RUSSIA         N P ST. PETERSBURG                     RU  LED          Y     951       0 N  
+LEH LE HAVRE (PARIS), FRANCE       N P LE HAVRE                           FR  LEH          Y     811    8888 N S
+LEX LEIXOES (PORTO), PORTUGAL      N P LEIXOES                            PT  LEI          Y     899       0 N S
+LGA LA GUAIRA (CARACAS), VENEZUELA N P LA GUAIRA                          VE  LAG     P05  Y     514    8888 N  
+LGB LONG BEACH (LOS ANGELES), CA   Y P LONG BEACH                     CA  US  LGB     P08  N     113    2709 N  
+LGK LANGKAWI, MALAYSIA             N P LANGKAWI                           MY  LG           Y     996       0 N  
+LGN LA GOULETTE (TUNIS), TUNISIA   N P LA GOULETTE                        TN  LG           Y     776       0 N  
+LIC LITTLE STIRRUP CAY, BAHAMAS    N P LITTLE STIRRUP CAY                 BS  COC     P05  N     221       0 Y  
+LIF LIFOU, NEW CALEDONIA           N P LIFOU                              NC  LIF          Y     933       0 Y  
+LIH NAWILIWILI, KAUAI, HI          N P NAWILIWILI                     HI  US  NIJ     P10  N     193    3204 N  
+LIM LIMASSOL, CYPRUS               N P LIMASSOL                           CY  LMS          Y     789       0 N  
+LIS LISBON, PORTUGAL               Y P LISBON                             PT  LIS          Y     954       0 N S
+LMO LIMON, COSTA RICA              N P LIMON                              CR  LIO     P06  N     515    8888 N  
+LOD DOVER (LONDON), ENGLAND        Y P DOVER                              GB  DVR          Y     855       0 N  
+LOM LEMBAR, LOMBOK, INDONESIA      N P LEMBAR                             ID  LBR          Y     962       0 N  
+LON LONDON, ENGLAND                Y P LONDON                             GB  LON          Y     798       0 N  
+LPA LAS PALMAS, CANARY ISLANDS     N P LAS PALMAS                         ES  LPA          Y     849       0 N S
+LPL LIVERPOOL, ENGLAND             N P LIVERPOOL                          GB  LIV          Y     864       0 N  
+LRH LA ROCHELLE (BORDEAUX), FRANCE N P LA ROCHELLE                        FR  LRH          Y     879       0 N S
+LRM LA ROMANA, DOMINICAN REPUBLIC  Y P LA ROMANA                          DO  LRM     P04  N     428    8888 N  
+LTK LAUTOKA, FIJI                  N P LAUTOKA                            FJ  LTK          Y     979       0 Y  
+LU2 THE KIMBERLEY (YAMPI SOUND)    N E                                    AU               Y       0       0 N  
+LU3 THE KIMBERLEY (HUNTER RIVER)   N E                                    AU               Y       0       0 N  
+LVI LE VERDON (BORDEAUX), FRANCE   N P LE VERDON                          FR  LVE          Y     727       0 N S
+LVO LIVORNO (FLORENCE/PISA), ITALY N P LIVORNO                            IT  LIV          Y     812    8888 N S
+LWK LERWICK, SHETLAND ISLANDS, UK  N P LERWICK                            GB  LER          Y     796       0 Y  
+LYN CRUISE LYNN CANAL              N E                                                     N       0       0 N  
+LYT LYTTELTON (CHRISTCHURCH), NZ   N P LYTTELTON                          NZ  LYT          Y     955       0 N  
+MAF MONFALCONE, ITALY              Y P MONAFALCONE                        IT  MNF          Y     815       0 N S
+MAN MANZANILLO, MEXICO             N P MANZANILLO                         MX  ZLO     P07  N     319    8888 N  
+MAR MARMARIS, TURKEY               N P MARMARIS                           TR  MRM          Y     827       0 N  
+MAU MAUI, HAWAII                   N P                                    US  KUI          N       0       0 N  
+MB1 CRUISE MUTINY ON THE BOUNTY    N E                                                     Y     993       0 N  
+MCM MONACO                         N P MONACO                             MC  MCM          Y     832       0 Y  
+MCO ORLANDO, FL                    Y P ORLANDO                            US  ORL          N     135       0 N  
+MCZ MACEIO, BRAZIL                 N P MACEIO                             BR  MC           Y     354       0 N  
+MEC MANTA, ECUADOR                 N P MANTA                              EC  ME           Y     367       0 N  
+MEE MARE, NEW CALEDONIA            N P MARE                               NC  MEE          Y     935       0 Y  
+MEL MELBOURNE, AUSTRALIA           Y P MELBOURNE                          AU  MEL          Y     936       0 N  
+MES MESSINA, SICILY, ITALY         N P MESSINA                            IT  MSN          Y     814    8888 N S
+MFN MILFORD SOUND, NEW ZEALAND     N P MILFORD SOUND                      NZ  MFN          N     970       0 N  
+MGH MARGHERA, ITALY                Y P MARGHERA                           IT  PMA          Y     837       0 N S
+MIA MIAMI, FL                      Y P MIAMI                          FL  US  MIA     P05  N     101    5201 N  
+MIS CRUISE MISSISSIPPI RIVER       N E                                                     N       0       0 N  
+MLN MELILLA(SPANISH MOROCCO),SPAIN N P MELILLA                            ES  ML           Y     783    8888 N S
+MMY MIYAKO, JAPAN                  N P MIYAKO                             JP  MY           Y     715       0 N  
+MNL MANILA, PHILIPPINES            N P MANILA                             PH  MNL          Y     728       0 N  
+MOB MOBILE, AL                     Y P MOBILE                         AL  US  MOB     P06  N     124    1901 N  
+MOL MOLDE, NORWAY                  N P MOLDE                              NO  MOL          Y     859       0 N S
+MOX MOOLOOLABA, AUSTRALIA          N P MOOLOOLABA                         AU  MLL          Y     965       0 Y  
+MOZ MOOREA, FRENCH POLYNESIA       N P MOOREA                             PF  MOZ          Y     922       0 Y  
+MRS MARSEILLES (PROVENCE), FRANCE  N P MARSEILLES                         FR  MRS          Y     820       0 N S
+MSY NEW ORLEANS, LA                Y P NEW ORLEANS                    LA  US  MSY     P06  N     105    2002 N  
+MTB MONTEGO BAY, JAMAICA           N P MONTEGO BAY                        JM  MBJ     P05  N     423    8888 N  
+MTK MARTINIQUE, FWI                Y P MARTINIQUE                         MQ  FDF     P04  N     422    8888 N  
+MVD MONTEVIDEO, URUGUAY            N P MONTEVIDEO                         UY  MVD          Y     361       0 N  
+MYK MYKONOS, GREECE                N P MYKONOS                            GR  JMK          Y     791       0 N S
+MYS MYSTERY ISLAND, VANUATU        N P MYSTERY ISLAND                     VU  VLI          Y     937       0 Y  
+MZT MAZATLAN, MEXICO               N P MAZATLAN                           MX  MZT     P07  N     306    8888 N  
+NAB CRUISE NA PALI COAST           N E                                                     N       0       0 N  
+NAH NAHA, OKINAWA, JAPAN           N P NAHA                               JP  NAH          Y     719       0 N  
+NAP NAPLES (AMALFI/POMPEII), ITALY N P NAPLES                             IT  NAP          Y     816    8888 N S
+NAS NASSAU, THE BAHAMAS            N P NASSAU                             BS  NAS     P05  N     424    8888 N  
+NGO NAGOYA, JAPAN                  N P NAGOYA                             JP  NG           Y     714       0 N  
+NGS NAGASAKI, JAPAN                N P NAGASAKI                           JP  NGS          Y     724       0 N  
+NHA NHA TRANG, VIETNAM             N P NHA TRANG                          VN  NH           Y     737       0 Y  
+NLK NORFOLK ISLAND, AUSTRALIA      N P KINGSTON                           AU  NL           Y     991       0 Y  
+NOS STAVANGER, NORWAY              N P DO NOT USE - DELETE                NO               Y       0       0 N S
+NOU NOUMEA, NEW CALEDONIA          N P NOUMEA                             NC  NOU          Y     939       0 N  
+NPA NAUPLIA                        N P DO NOT USE - DELETE                                 Y       0       0 N  
+NPE NAPIER, NEW ZEALAND            N P NAPIER                             NZ  NPE          Y     938       0 N  
+NPN NEWPORT NEWS, VA               Y P NEWPORT NEWS                   VA  US  NNS     P05  N     116    1402 N  
+NPT NEWPORT, RI                    N P NEWPORT                        RI  US  NPT          N     126    5010 N  
+NRJ CRUISE NORDFJORD               N E                                    NO               Y       0       0 N S
+NUK NUKU'ALOFA, TONGA              N P NUKUALOFA                          TO  TB           Y     977       0 N  
+NYC MANHATTAN, NEW YORK CITY, NY   Y P MANHATTAN                      NY  US  MNH     P05  N     125    1001 N  
+NYN NYNASHAMN (STOCKHOLM), SWEDEN  N P NYNASHAMN                          SE  NYN          Y     891       0 N S
+OAU OTARU (SAPPORO), JAPAN         N P OTARU                              JP  OTR          Y     716       0 N  
+OCJ OCHO RIOS, JAMAICA             N P OCHO RIOS                          JM  OCJ     P05  N     425    8888 N  
+OEN OLDEN, NORWAY                  N P OLDEN                              NO  OLD          Y     870       0 N S
+OGG KAHULUI, MAUI, HI              N P KAHULUI                        HI  US  OGG     P10  N     192    3203 N  
+OLB OLBIA, SARDINIA, ITALY         N P OLBIA                              IT  OLB          Y     835       0 N S
+ORF NORFOLK, VA                    Y P NORFOLK                        VA  US  ORF     P05  N     127    1401 N  
+OSA OSAKA (KYOTO), JAPAN           N P OSAKA                              JP  OS           Y     732       0 N  
+OSL OSLO, NORWAY                   N P OSLO                               NO  OSL          Y     856       0 N S
+PAL PALAMOS, SPAIN                 N P PALAMOS                            ES  PAL          Y     833       0 N S
+PCL PANAMA CANAL TRANSIT           N E                                    PA          P05  N     521    8888 N  
+PCS PRINCESS CAYS, THE BAHAMAS     N P PRINCESS CAYS                      BS  ELE     P05  N     439    8888 Y  
+PCT PICTON, NEW ZEALAND            N P PICTON                             NZ  PCN          Y     926       0 N  
+PCV PORT CANAVERAL (ORLANDO), FL   Y P CAPE CANAVERAL                 FL  US  PCV     P05  N     102    1816 N  
+PD2 PORT DENARAU, FIJI             N P PORT DENARAU                       FJ  DEN          Y     941       0 Y  
+PDC PLAYA DEL CARMEN, MEXICO       N P PLAYA DEL CARMEN                   MX  PCM     P06  N     303    8888 N  
+PDL PONTA DELGADA, AZORES          N P PONTA DELGADA                      PT  PDL          Y     829       0 N S
+PEE ISLE OF SKYE, SCOTLAND, UK     N P PORTREE                            GB  ISK          Y     908       0 Y  
+PGR PROGRESO, YUCATAN, MEXICO      N P PROGRESO                           MX  PGO     P06  N     320    8888 N  
+PHL PHILADELPHIA, PA               Y P PHILADELPHIA                   PA  US  PHL     P05  N     111    1101 N  
+PHM PHU MY (HO CHI MINH), VIETNAM  N P PHU MY                             VN  SG           Y     973       0 N  
+PIA PHILLIP ISLAND, AUSTRALIA      N P RHYLL                              AU  PIS          Y     915       0 Y  
+PKG PORT KLANG (KUALA LUMPUR), MY  N P KLANG                              MY  KL           Y     995       0 N  
+PLO PORT LINCOLN, AUSTRALIA        N P PORT LINCOLN                       AU  PL           Y     916       0 N  
+PMC PUERTO MONTT, CHILE            N P PUERTO MONTT                       CL  PMC          Y     364       0 Y  
+PMI PALMA DE MALLORCA, SPAIN       N P PALMA DE MALLORCA                  ES  PMI          Y     817    8888 N S
+PMO PALERMO, SICILY, ITALY         N P PALERMO                            IT  PMO          Y     866       0 N S
+PMY PUERTO MADRYN, ARGENTINA       N P PUERTO MADRYN                      AR  PMY          Y     362       0 N  
+POP PUERTO PLATA, DOMINICAN REP    N P PUERTO PLATA                       DO  PO      P04  N     446       0 N  
+POR PT ARTHUR, TASMANIA, AUSTRALIA N P PORT ARTHUR                        AU  POR          Y     940       0 Y  
+POS PORT OF SPAIN, TRINIDAD        Y P PORT OF SPAIN                      TT  POS          N     506       0 N  
+PPG PAGO-PAGO, AMERICAN SAMOA      N P PAGO-PAGO                          AS  PPG          N     976       0 Y  
+PPS PUERTO PRINCESA, PHILIPPINES   N P PUERTO PRINCESA                    PH  PPS          Y     725       0 N  
+PPT PAPEETE, TAHITI, POLYNESIA     N P PAPEETE                            PF  PPT          Y     921       0 N  
+PQG PUERTO QUETZAL, GUATEMALA      N P PUERTO QUETZAL                     GT  PRQ          N     324       0 N  
+PR  MIAMI, FL                      Y P MIAMI                          FL  US  MIA     P05  N     101    5201 N  
+PRM PORTIMAO, ALGARVE, PORTUGAL    N P PORTIMAO                           PT  PRM          Y     884       0 Y S
+PRQ PUERTO QUETZAL, GUATEMALA      N P DO NOT USE - DELETE                GT               N       0       0 N  
+PRV PRAIA DA VITORIA, AZORES       N P PRAIA DA VITORIA                   PT  PRV          Y     793       0 N S
+PSO ICY STRAIT POINT, AK           N P ICY STRAIT POINT               AK  US  HNH     P08  N     701       0 N  
+PTI PORT DOUGLAS, AUSTRALIA        N P PORT DOUGLAS                       AU  PTI          Y     964       0 Y  
+PUQ PUNTA ARENAS, CHILE            N P PUNTA ARENAS                       CL  PUQ          Y     352       0 Y  
+PUS BUSAN, SOUTH KOREA             N P BUSAN                              KR  PU           Y     739       0 N  
+PVR PUERTO VALLARTA, MEXICO        Y P PUERTO VALLARTA                    MX  PVR     P06  N     305    8888 N  
+PWM PORTLAND, ME                   N P PORTLAND                       ME  US  PWM     P05  N     128    1010 N  
+PWS CRUISE PRINCE WILLIAM SOUND    N E                                                     N       0       0 N  
+QDN EDEN, AUSTRALIA                N P EDEN                               AU  QD           Y     918       0 N  
+QHW BROOKLYN, NEW YORK CITY, NY    Y P BROOKLYN                       NY  US  BOY     P05  N     133       0 N  
+QSR SALERNO (AMALFI/POMPEII),ITALY N P SALERNO                            IT  SA           Y     836       0 N S
+QUE QUEBEC CITY, QUEBEC            N P QUEBEC CITY                    QB  CA  QUE     P04  N     225    8888 N  
+RAB RABAUL, PAPUA NEW GUINEA       N P RABAUL                             PG  RAB          Y     982       0 N  
+RAR RAROTONGA, COOK ISLANDS        N P RAROTONGA                          CK  RAR          Y     978       0 Y  
+RDO INVERGORDON, SCOTLAND          N P DO NOT USE - DELETE                GB               Y       0       0 N  
+REC RECIFE, BRAZIL                 N P RECIFE                             BR  REC          Y     357       0 N  
+RHO RHODES, GREECE                 N P RHODES                             GR  RHO          Y     825       0 N S
+RIN RINGASKIDDY (CORK), IRELAND    N P RINGASKIDDY                        IE  RI           Y     785       0 N  
+RIO RIO DE JANEIRO, BRAZIL         N P RIO DE JANEIRO                     BR  RIO          Y     359       0 N  
+RJK RIJEKA, CROATIA                N P RIJEKA                             HR  RJK          Y     902       0 N S
+RTB ISLA TROPICALE, ROATAN         N P MAHOGANY BAY                       HN  RT      P06  N     523    8888 N  
+RTM ROTTERDAM, THE NETHERLANDS     N P ROTTERDAM                          NL  RTM          Y     877       0 N S
+RTN MAHOGANY BAY, ROATAN           N P MAHOGANY BAY                       HN  RT      P06  N     518    8888 N  
+RUN RUNAVIK, FAROE ISLANDS         N P RUNAVIK                            FO  RVK          Y     906       0 N  
+RYK REYKJAVIK, ICELAND             N P REYKJAVIK                          IS  REY          Y     950    8888 N S
+S00 SOMEWHERE                      N E DO NOT USE - DELETE                                 N       0       0 N  
+S24 CRUISE CHILEAN FJORDS          N E                                                     N       0       0 N  
+SAG SAGUENAY, QC, CANADA           N P SAGUENAY                       QC  CA  SA           N     222       0 N  
+SAI SAN ANTONIO (SANTIAGO), CHILE  Y P SAN ANTONIO                        CL  SA           N     356       0 N  
+SBA SAN BLAS ISLANDS, PANAMA       N P SAN BLAS ISLANDS                   PA  SBS          N     520    8888 N  
+SBH ST. BARTS, FWI                 N P ST. BARTS                          BL  SBH     P04  N     429    8888 Y  
+SCA SCARBOROUGH, TOBAGO            N P SCARBOROUGH                        TT  SCA          N     444       0 N  
+SCO EDINBURGH, SCOTLAND            N P DO NOT USE - DELETE                GB               Y       0       0 Y  
+SCT SANTO TOMAS DE CASTILLA        N P STO. TOMAS CASTILLA                GT  STC     P06  N     512       0 N  
+SCY SALT CAY, THE BAHAMAS          N P SALT CAY                           BS  SLX     P05  N     426    8888 N  
+SDG SAN DIEGO, CA                  Y P SAN DIEGO                      CA  US  SAN     P08  N     129    2501 N  
+SDH SOUDA (CHANIA), CRETE, GREECE  N P SOUDA                              GR  SD           Y     782       0 N S
+SDQ SANTO DOMINGO, DOMINICAN REP   Y P SANTO DOMINGO                      DO  SDQ          N     438    8888 N  
+SEA SEATTLE, WA                    Y P SEATTLE                        WA  US  SEA     P08  N     169    3001 N  
+SEJ SEYDISFJORDUR, ICELAND         N P SEYDISFJORDUR                      IS  SEY          Y     905       0 Y S
+SFO SAN FRANCISCO, CA              Y P SAN FRANCISCO                  CA  US  SFO     P08  N     117    2809 N  
+SGJ CRUISE SOGNEFJORD              N E                                    NO               Y       0       0 N S
+SIH SIHANOUKVILLE, CAMBODIA        N P SIHANOUKVILLE                      KH  KO           Y     738       0 N  
+SIN SINGAPORE                      Y P MARINA BAY                         SG  SIN          Y     963       0 N  
+SIR SIRACUSA, SICILY, ITALY        N P SICILY                             IT  SI           Y     777       0 N S
+SIT SITKA, AK                      N P SITKA                          AK  US  SIT     P09  N     173    3115 N  
+SJU SAN JUAN, PUERTO RICO          Y P SAN JUAN                           PR  SJU     P05  N     427    4909 N  
+SKM STOCKHOLM, SWEDEN              N P STOCKHOLM                          SE  STO          Y     890       0 N S
+SKY SKAGWAY, AK                    N P SKAGWAY                        AK  US  SGY     P09  N     172    3203 N  
+SLC ST. LUCIA                      N P CASTRIES                           LC  CAS     P04  N     432    8888 N  
+SLN SKJOLDEN, NORWAY               N P SKJOLDEN                           NO  SLN          Y     875       0 N S
+SMZ SHIMIZU (MOUNT FUJI), JAPAN    N P SHIMIZU                            JP  SM           Y     730       0 N  
+SOM CRUISE STRAIT OF MAGELLAN      N E                                                     N       0       0 N  
+SON SANTO, VANUATU                 N P SANTO                              VU  SAN          Y     934       0 N  
+SPA SPA                            N F                                US  US      E        N     700       0 N  
+SPE LA SPEZIA, ITALY               N P LA SPEZIA                          IT  SPE          Y     797       0 N S
+SPN SAIPAN, N. MARIANA ISLANDS     N P SAIPAN                             MP  SP           Y     989       0 N  
+SPO SEOGWIPO (JEJU), SOUTH KOREA   N P SEOGWIPO                           KR  SP           Y     734       0 N  
+SPQ SAN PEDRO (LOS ANGELES), CA    Y P SAN PEDRO                      CA  US  SPQ     P08  N     351       0 N  
+SPU SPLIT, CROATIA                 N P SPLIT                              HR  SP           Y     897       0 N S
+SRF CRUISE SAGUENAY RIVER & FJORD  N E                                                     N       0       0 N  
+SRT SANTA MARTA, COLOMBIA          N P SANTA MARTA                        CO  SMR     P05  Y     370       0 N  
+SSA SALVADOR, BRAZIL               N P SALVADOR                           BR  SSA          Y     358       0 N  
+SSB SASEBO, JAPAN                  N P SASEBO                             JP  SS           Y     711       0 N  
+STH SOUTHAMPTON (LONDON), ENGLAND  Y P SOUTHAMPTON                        GB  SOU          Y     795       0 N  
+STK ST. KITTS, WI                  N P ST. KITTS                          KN  BAS     P04  N     431    8888 N  
+STT ST. THOMAS, USVI               Y P ST. THOMAS                         VI  STT     P04  N     434    5101 N  
+STV KINGSTOWN, ST. VINCENT         N P KINGSTOWN                          VC  ST           N     408       0 N  
+STX ST. CROIX, USVI                Y P ST. CROIX                          VI  FRD     P04  N     430    7404 N  
+SUV SUVA, FIJI                     N P SUVA                               FJ  SUV          Y     924       0 N  
+SVG STAVANGER, NORWAY              N P STAVANGER                          NO  SVG          Y     858       0 N S
+SVN SAVONA, ITALY                  N P SAVONA                             IT  SVN          Y     834       0 N S
+SVQ CADIZ (SEVILLE), SPAIN         N P CADIZ                              ES  SVQ          Y     830       0 N S
+SWD SEWARD (ANCHORAGE), AK         Y P SEWARD                         AK  US  SWD     P09  N     176    3126 N  
+SXM ST. MAARTEN, NA                N P ST. MAARTEN                        SX  SXM     P04  N     433    8888 N  
+SYD SYDNEY, AUSTRALIA              Y P SYDNEY                             AU  SYD          Y     925       0 N  
+SYE SOLAR ECLIPSE SYDNEY HARBOUR   Y E SYDNEY                             AU  SY           Y     998       0 N  
+SYN SYDNEY, NS, CANADA             N P SYDNEY                         NS  CA  SYD     P04  N     228    8888 N  
+SYW SYDNEY (WHITE BAY), AUSTRALIA  Y P SYDNEY                             AU  SY           Y     997       0 N  
+SYY STORNOWAY, SCOTLAND, UK        N P STORNOWAY                          GB  STO          Y     892       0 Y  
+T01 PANAMA CANAL PARTIAL TRANSIT   N E                                    PA          P05  N     516       0 N  
+TFJ CRUISE TRACY ARM FJORD         N E                                    US               N     178       0 N  
+TKU TURKU, FINLAND                 Y P TURKU                              FI  TKU          Y     871       0 N S
+TLL TALLINN, ESTONIA               N P TALLINN                            EE  TLL          Y     952    8888 N S
+TLN TOULON (PROVENCE), FRANCE      N P TOULON                             FR  TLN          Y     886       0 N S
+TND TRINIDAD                       N P DO NOT USE - DELETE                TT  POS     P04  N     436    8888 N  
+TNF TENERIFE, CANARY ISLANDS       Y P TENERIFE                           ES  SCT          Y     846       0 N S
+TNG TANGIER, MOROCCO               N P TANGIER                            MA  TN           Y     784       0 N  
+TNJ TANJUNG PRIOK, JAKARTA, JAVA   N P TANJUNG PRIOK                      ID  TPP          Y     987       0 N  
+TOR TORTOLA,BRITISH VIRGIN ISLANDS N P TORTOLA                            VG  TOV     P04  N     435    8888 N  
+TPA TAMPA, FL                      Y P TAMPA                          FL  US  TPA     P05  N     103    1801 N  
+TRG TAURANGA, NEW ZEALAND          N P TAURANGA                           NZ  TRG          Y     944       0 N  
+TRS TRIESTE, ITALY                 Y P TRIESTE                            IT  TRS          Y     867       0 N S
+TRX TRONDHEIM, NORWAY              N P TRONDHEIM                          NO  TRD          Y     841       0 N S
+TSV TOWNSVILLE, AUSTRALIA          N P TOWNSVILLE                         AU  TSV          Y     968       0 N  
+TYO TOKYO, JAPAN                   Y P TOKYO                              JP  TY           Y     722       0 N  
+UKB KOBE (KYOTO), JAPAN            N P KOBE                               JP  UK           Y     731       0 N  
+UKK BELFAST, NORTHERN IRELAND      N P DO NOT USE - DELETE                GB               Y       0       0 N  
+USH USHUAIA, ARGENTINA             N P USHUAIA                            AR  USH          Y     363       0 N  
+USM KOH SAMUI, THAILAND            N P KOH SAMUI                          TH  USM          Y     974       0 N  
+UTX RAIATEA, FRENCH POLYNESIA      N P UTUROA                             PF  RFP          Y     969       0 Y  
+UWZ WILLIS ISLAND (ONBOARD EXP.)   N P WILLIS ISLAND                      AU  CRS          Y     967       0 N  
+V32 32-DAY DOCKSIDE EVENT          N E                                                     N       0       0 N  
+VAP VALPARAISO (SANTIAGO), CHILE   Y P VALPARAISO                         CL  VAP          Y     350       0 N  
+VAV VAVA'U, TONGA                  N P NEIAFU                             TO  VA           Y     992       0 Y  
+VCE VENICE, ITALY                  Y P VENICE                             IT  VCE          Y     818    8888 N S
+VDZ VALDEZ, AK                     N P VALDEZ                         AK  US  VDZ     P09  N     175    3107 N  
+VER VERACRUZ, MEXICO               N P VERACRUZ                           MX  VER          N     321       0 N  
+VGO VIGO, SPAIN                    N P VIGO                               ES  VGO          Y     799       0 N S
+VIJ VIRGIN GORDA, BVI              N P VIRGIN GORDA                       VG  VIJ          N     437    8888 Y  
+VLC VALENCIA, SPAIN                N P VALENCIA                           ES  VLC          Y     848       0 N S
+VLF VILLEFRANCHE (CANNES), FRANCE  N P VILLEFRANCHE                       FR  VFM          Y     831       0 Y S
+VLI VILA, VANUATU                  N P VILA                               VU  VL           Y     942       0 Y  
+VLT VALLETTA, MALTA                N P VALLETTA                           MT  MLA          Y     868       0 N S
+VSB VISBY, GOTLAND, SWEDEN         N P VISBY                              SE  VBY          Y     885       0 N S
+VZL AKAROA (CHRISTCHURCH), NZ      N P AKAROA                             NZ  AKA          Y     956       0 Y  
+WAA WALA, VANUATU                  N P DO NOT USE - DELETE                VU  WLA          Y     945       0 Y  
+WAR WARNEMUNDE (BERLIN), GERMANY   N P WARNEMUNDE                         DE  WAR          Y     819    8888 N S
+WEY PORTLAND, ENGLAND, UK          N P PORTLAND                           GB  PTL          Y     895       0 N  
+WHT WHITTIER (ANCHORAGE), AK       Y P WHITTIER                       AK  US  WQF          N     174    3126 N  
+WLG WELLINGTON, NEW ZEALAND        N P WELLINGTON                         NZ  WLG          Y     946       0 N  
+WRF BERMUDA                        N P HAMILTON                           BM  KWF     P05  N     421    8888 N  
+WSY AIRLIE BEACH, AUSTRALIA        N P AIRLIE BEACH                       AU  WSY          Y     957       0 Y  
+XBW CRUISE BAY OF FUNDY            N E                                    CA               N     131       0 N  
+XM0 MORETON ISLAND, AUSTRALIA      N P TANGALOOMA RESORT                  AU  MET          Y     966       0 Y  
+YAK CRUISE YAKUTAT BAY             N E                                                     N       0       0 N  
+YAY ST. ANTHONY, NL, CANADA        N P ST. ANTHONY                    NL  CA  SAT     P05  N     234       0 Y  
+YBC BAIE-COMEAU, QUEBEC            N P BAIE-COMEAU                        CA  BCO          N     232       0 N  
+YGV HAVRE ST. PIERRE, QUEBEC       N P HAVRE ST. PIERRE                   CA  HSP          N     233       0 N  
+YHZ HALIFAX, NS, CANADA            N P HALIFAX                        NS  CA  HAL     P04  N     224    8888 N  
+YKB YORKEYS KNOB (CAIRNS), AU      N P YORKEYS KNOB                       AU  YKB          Y     960       0 Y  
+YNF CORNER BROOK, NL, CANADA       N P CORNER BROOK                   NL  CA  CBK     P05  N     231    8888 N  
+YOK YOKOHAMA (TOKYO), JAPAN        Y P YOKOHAMA                           JP  YOK          Y     729       0 N  
+YPR PRINCE RUPERT, BC, CANADA      N P PRINCE RUPERT                  BC  CA  PRR     P08  N     235    8888 N  
+YSJ SAINT JOHN, NB, CANADA         N P SAINT JOHN                     NB  CA  SJB     P04  N     226    8888 N  
+YVR VANCOUVER, BC, CANADA          Y P VANCOUVER                      BC  CA  VAN     P08  N     229    8888 N  
+YYJ VICTORIA, BC, CANADA           N P VICTORIA                       BC  CA  VIC     P08  N     230    8888 N  
+YYT ST. JOHN'S, NL, CANADA         N P ST. JOHN'S                     NF  CA  SJF     P04  N     227    8888 N  
+YYY FUN DAY AT SEA                 Y P NOT A PORT (OCEAN)                                  N       0       0 N  
+ZEE ZEEBRUGGE (BRUSSELS), BELGIUM  N P ZEEBRUGGE                          BE  ZEE          Y     857       0 N S
+ZJO ZIHUATANEJO (IXTAPA), MEXICO   N P ZIHUATANEJO                        MX  ZIH     P07  N     322    8888 Y  

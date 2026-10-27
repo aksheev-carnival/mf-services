@@ -1,0 +1,353 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.    IRB59PXD. 
+       AUTHOR.        TATA CONSULTANCY SERVICES LTD.
+       DATE-WRITTEN.  OCTOBER 01, 2020. 
+
+************************************************************************
+      * 01-OCT-20     BK4     TCS LTD.               CQ219485          *
+      ******************************************************************
+      *REMARKS.       PRE XDINING DELTA                                *
+      *    GENERATES FLAT FILES WITH IBR & GBR BOOK NUM FOR NAVIGATOR  *
+      *    TO XDINING DELTA FEED JOB - IRB59XDD.                       *
+************************************************************************
+191541* 14-MAY-24     BK4     TCS LTD.               ADO1915411        *
+191541* CHANGES DONE TO NOT WRITE ENTRY WITH GBR BOOK NUM IN IRBITR    *
+191541* FILE.                                   *   
+************************************************************************
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER. UNISYS. 
+       OBJECT-COMPUTER. UNISYS  MEMORY SIZE 3 MODULES.  
+       SPECIAL-NAMES.   
+           PRINTER IS PRT   
+           PRINTER IS PRINTER   
+           CONSOLE IS CONSOLE   
+           CARD-READER IS CARD-READER.  
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT IRBDRN-FILE       ASSIGN TO DISC IRBDRN01D.   
+           SELECT GRBDRN-FILE       ASSIGN TO DISC GRBDRN01D.   
+           SELECT INP-ACT-CODE-FILE ASSIGN TO DISC IRBPXD01C.   
+           SELECT INP-DAYS-FILE     ASSIGN TO DISC IRBPXD02C.   
+           SELECT IRBITR-FILE       ASSIGN TO DISC IRBPXD01D.   
+           SELECT IRBGTR-FILE       ASSIGN TO DISC IRBPXD02D.   
+
+       DATA DIVISION.   
+       SUBSCHEMA SECTION.   
+       INVOKE SUBSCHEMA PST100UCOBSU
+              IN FILE SUBSCHEMAS OF SCHEMA PST100SCHEMA 
+              COPYING RECORDS    INTO COMMON
+              COPYING DATA-NAMES INTO COMMON
+              OVERLAY PAX-REC WITH PAX-CXF-REC  
+                                   PAX-VI-REC   
+              SAVE DATA INCLUDES DEFERRED-UPDATES   
+              DMCA  COMMON  
+              ERROR RECOVERY IS 9100-DATABASE-ERROR 
+              ROLLBACK       IS 9100-DATABASE-ERROR.
+
+       FILE SECTION.
+
+       FD  IRBDRN-FILE  
+           LABEL RECORDS ARE STANDARD.  
+       01  IRBDRN-REC.  
+           COPY IRP01TRF.   
+
+       FD  GRBDRN-FILE  
+           LABEL RECORDS ARE STANDARD.  
+       01  GRBDRN-REC.  
+           COPY GRP01TRF.   
+
+       FD  INP-ACT-CODE-FILE
+           LABEL RECORDS ARE STANDARD.  
+       01  INP-ACT-CODE-REC.
+           03 INP-ACT-CODE              PIC X(03).  
+
+       FD  INP-DAYS-FILE
+           LABEL RECORDS ARE STANDARD.  
+       01  INP-DAYS-REC.
+           03 CARD-NUM-OF-ADV-DAYS      PIC 9(02).  
+
+       FD  IRBITR-FILE  
+           LABEL RECORDS ARE STANDARD.  
+       01  IRBITR-REC.  
+           03 IRBITR-BOOK-NUM           PIC X(06).  
+           03 FILLER                    PIC X(01).  
+           03 IRBITR-BOOK-TYPE          PIC X(01).  
+
+       FD  IRBGTR-FILE  
+           LABEL RECORDS ARE STANDARD.  
+       01  IRBGTR-REC.  
+           03 IRBGTR-BOOK-NUM           PIC X(06).  
+
+       WORKING-STORAGE SECTION. 
+       01  WS-PROG-ID                   PIC X(08) VALUE 'IRB59PXD'. 
+       01  MCFLAG                       PIC 9(10) BINARY.   
+
+       01  WS-SAIL-DATE.
+           03 WS-SAIL-YY                PIC 9(04).  
+           03 WS-SAIL-MM                PIC 9(02).  
+           03 WS-SAIL-DD                PIC 9(02).  
+       01  WS-SAIL-DATE-N REDEFINES WS-SAIL-DATE
+                                        PIC 9(08).  
+
+       01  WS-MAX-CONSTANTS.
+           03 WS-MAX-INP-DATA-CNT       PIC 9(02) VALUE 99. 
+
+       01  WS-INP-DATA-ENTRY.   
+           03 WS-INP-ACT-CNT            PIC 9(02).  
+           03 WS-INP-ACT-CODE-TABLE     OCCURS 1 TO 99 TIMES
+                                        DEPENDING ON WS-INP-ACT-CNT.
+              05 WS-INP-ACT-CODE        PIC X(03).  
+
+       01  WS-MISC-NUMERIC. 
+           03 WS-NUM-OF-ADV-DAYS        PIC 9(02).  
+           03 WS-TOT-ITRF-READ          PIC 9(08).  
+           03 WS-TOT-ITRF-WRITE         PIC 9(08).  
+           03 WS-TOT-ITRF-SKIP          PIC 9(08).  
+           03 WS-TOT-GTRF-READ          PIC 9(08).  
+           03 WS-TOT-GTRF-WRITE         PIC 9(08).  
+           03 WS-TOT-GTRF-SKIP          PIC 9(08).  
+           03 WS-IN-ITRF-SAIL-DATE-8    PIC 9(08).  
+           03 WS-SUB                    PIC 9(05) BINARY.   
+
+       01  WS-MISC-ALPHA.   
+           03 WS-SKIP-ACTIVITY          PIC X(01).  
+
+       COPY DPP01CIW.   
+       COPY DPP01DTA.   
+       COPY DPP01ERR.   
+       COPY DPP01MCB.   
+       COPY DPP01SCO.   
+       COPY DPP12SCO.   
+       COPY DPP42ERR.   
+       COPY RSP00DMS.   
+       COPY RSP32DMS.   
+       COPY RSP64DMS.   
+       COPY RSP77GMD.   
+       COPY DPP02Y2K.   
+
+       COMMON-STORAGE SECTION.  
+
+       PROCEDURE DIVISION.  
+       0000-MAIN-LINE.  
+           COPY DPP01INT.   
+
+           PERFORM DPP12-BEGIN-THREAD THRU DPP12-BEGIN-THREAD-EXIT. 
+
+           IF  DPP01-SQL-ERROR-IND = 'Y'
+               GO TO DPP12-THREAD-ERROR-EXIT
+           END-IF.  
+
+       0100-INIT-PARA.  
+
+           OPEN INPUT  IRBDRN-FILE  
+                       GRBDRN-FILE  
+                       INP-ACT-CODE-FILE
+                       INP-DAYS-FILE.   
+           OPEN OUTPUT IRBITR-FILE  
+                       IRBGTR-FILE. 
+
+           MOVE ZEROES                  TO WS-MISC-NUMERIC  
+                                           WS-INP-ACT-CNT.  
+           MOVE SPACES                  TO WS-MISC-ALPHA.   
+
+       0200-READ-INP-ACT-CODE-FILE. 
+
+           READ INP-ACT-CODE-FILE   
+                AT END GO TO 0300-READ-INP-DAYS-FILE.   
+
+           ADD 1                        TO WS-INP-ACT-CNT.  
+
+           IF  WS-INP-ACT-CNT > WS-MAX-INP-DATA-CNT 
+               DISPLAY 'THE INPUT CODE COUNT HAS EXCEEDED ITS MAXIMUM LI
+      -                'MIT.'                     UPON PRINTER  
+               GO TO 9000-END-OF-JOB
+           END-IF.  
+
+           MOVE FUNCTION UPPER-CASE (INP-ACT-CODE)  
+                                        TO WS-INP-ACT-CODE  
+                                                       (WS-INP-ACT-CNT).
+
+           GO TO 0200-READ-INP-ACT-CODE-FILE.   
+
+       0300-READ-INP-DAYS-FILE. 
+
+           READ INP-DAYS-FILE   
+                AT END DISPLAY 'THE INP-DAYS-FILE IS EMPTY.'
+                                                  UPON PRINTER  
+                GO TO 9100-DATABASE-ERROR.  
+
+       0400-START-PROCESS.  
+
+           MOVE CARD-NUM-OF-ADV-DAYS    TO WS-NUM-OF-ADV-DAYS.  
+
+           PERFORM DPP10-ACCEPT-SYSTEM-DATE-TIME.   
+           MOVE DPP02-SYSTEM-DATE       TO DPP02-YYYYMMDD-DATE. 
+
+           IF  WS-NUM-OF-ADV-DAYS > 0   
+               MOVE WS-NUM-OF-ADV-DAYS  TO DPP02-NUMBER-DAYS
+           ELSE 
+               DISPLAY 'THE NUMBER OF DAYS IS NOT VALID.'   
+                                                  UPON PRINTER  
+               GO TO 9100-DATABASE-ERROR
+           END-IF.  
+
+           PERFORM DPP10-ADVANCE-YYYYMMDD-DATE. 
+           MOVE DPP02-YYYYMMDD-DATE     TO WS-SAIL-DATE-N.  
+           DISPLAY 'ADVANCED DATE : ' WS-SAIL-DATE-N
+                                                  UPON PRINTER. 
+
+       0500-READ-ITRF.  
+
+           MOVE 'N'                     TO WS-SKIP-ACTIVITY.
+
+           READ IRBDRN-FILE 
+                AT END GO TO 0700-READ-GTRF.
+
+           ADD 1                        TO WS-TOT-ITRF-READ.
+
+           MOVE IN-ITRF-SAIL-DATE       TO DPP02-YYMMDD-DATE.   
+           PERFORM DPP10-YYMMDD-TO-YYYYMMDD.
+           MOVE DPP02-YYYYMMDD-DATE     TO WS-IN-ITRF-SAIL-DATE-8.  
+
+           IF  WS-IN-ITRF-SAIL-DATE-8 >= DPP02-SYSTEM-DATE          AND 
+               WS-IN-ITRF-SAIL-DATE-8 <  WS-SAIL-DATE-N 
+               PERFORM VARYING WS-SUB FROM 1 BY 1   
+                       UNTIL WS-SUB > WS-INP-ACT-CNT
+                  IF  IN-ITRF-ACTIVITY-CODE = WS-INP-ACT-CODE (WS-SUB)  
+                      MOVE 'Y'          TO WS-SKIP-ACTIVITY 
+                      MOVE WS-INP-ACT-CNT   
+                                        TO WS-SUB   
+                  END-IF
+               END-PERFORM  
+           ELSE 
+               ADD 1                    TO WS-TOT-ITRF-SKIP 
+               GO TO 0500-READ-ITRF 
+           END-IF.  
+
+           IF  WS-SKIP-ACTIVITY = 'Y' OR IN-ITRF-BOOK-NUM NOT > SPACES  
+               ADD 1                    TO WS-TOT-ITRF-SKIP 
+               GO TO 0500-READ-ITRF 
+           END-IF.  
+
+       0600-WRITE-IRBITR.   
+
+           MOVE IN-ITRF-BOOK-NUM        TO IRBITR-BOOK-NUM. 
+           MOVE 'I'                     TO IRBITR-BOOK-TYPE.
+           ADD 1                        TO WS-TOT-ITRF-WRITE.   
+           WRITE IRBITR-REC.
+
+           GO TO 0500-READ-ITRF.
+
+       0700-READ-GTRF.  
+
+           MOVE 'N'                     TO WS-SKIP-ACTIVITY.
+
+           READ GRBDRN-FILE 
+                AT END GO TO 9000-END-OF-JOB.   
+
+           ADD 1                        TO WS-TOT-GTRF-READ.
+
+           IF  IN-GTRF-SAIL-DATE >= DPP02-SYSTEM-DATE               AND 
+               IN-GTRF-SAIL-DATE <  WS-SAIL-DATE-N  
+               PERFORM VARYING WS-SUB FROM 1 BY 1   
+                       UNTIL WS-SUB > WS-INP-ACT-CNT
+                  IF  IN-GTRF-ACTIVITY-CODE = WS-INP-ACT-CODE (WS-SUB)  
+                      MOVE 'Y'          TO WS-SKIP-ACTIVITY 
+                      MOVE WS-INP-ACT-CNT   
+                                        TO WS-SUB   
+                  END-IF
+               END-PERFORM  
+           ELSE 
+               ADD 1                    TO WS-TOT-GTRF-SKIP 
+               GO TO 0700-READ-GTRF 
+           END-IF.  
+
+           IF  WS-SKIP-ACTIVITY = 'Y' OR IN-GTRF-BOOK-NUM NOT > SPACES  
+               ADD 1                    TO WS-TOT-GTRF-SKIP 
+               GO TO 0700-READ-GTRF 
+           END-IF.  
+
+       0800-WRITE-IRBGTR.   
+
+           MOVE IN-GTRF-BOOK-NUM        TO IRBGTR-BOOK-NUM. 
+           WRITE IRBGTR-REC.
+           ADD 1                        TO WS-TOT-GTRF-WRITE.   
+
+           IF  IN-GTRF-IBR-BOOK-NUM > SPACES
+191541         AND (IN-GTRF-IBR-BOOK-NUM NOT = IN-GTRF-BOOK-NUM)
+               MOVE IN-GTRF-IBR-BOOK-NUM
+                                        TO IRBITR-BOOK-NUM  
+               MOVE 'G'                 TO IRBITR-BOOK-TYPE 
+               ADD 1                    TO WS-TOT-ITRF-WRITE
+               WRITE IRBITR-REC 
+           END-IF.  
+
+           GO TO 0700-READ-GTRF.
+
+       9000-END-OF-JOB. 
+           CLOSE IRBDRN-FILE
+                 GRBDRN-FILE
+                 INP-ACT-CODE-FILE  
+                 INP-DAYS-FILE  
+                 IRBITR-FILE
+                 IRBGTR-FILE.   
+
+           DISPLAY '******************************************' 
+                                                  UPON PRINTER. 
+           DISPLAY '**************FINAL TOTALS****************' 
+                                                  UPON PRINTER. 
+           DISPLAY '***TOTAL ITRF RECORDS READ          = ' 
+             WS-TOT-ITRF-READ                     UPON PRINTER. 
+           DISPLAY '***TOTAL ITRF RECORDS WRITE         = ' 
+             WS-TOT-ITRF-WRITE                    UPON PRINTER. 
+           DISPLAY '***TOTAL ITRF RECORDS SKIP          = ' 
+             WS-TOT-ITRF-SKIP                     UPON PRINTER. 
+           DISPLAY '***TOTAL GTRF RECORDS READ          = ' 
+             WS-TOT-GTRF-READ                     UPON PRINTER. 
+           DISPLAY '***TOTAL GTRF RECORDS WRITE         = ' 
+             WS-TOT-GTRF-WRITE                    UPON PRINTER. 
+           DISPLAY '***TOTAL GTRF RECORDS SKIP          = ' 
+             WS-TOT-GTRF-SKIP                     UPON PRINTER. 
+
+           GO TO DPP12-END-OF-JOB.  
+
+       9100-DATABASE-ERROR. 
+           DISPLAY 'ERROR-REC:    ' ERROR-RECORD  UPON PRINTER. 
+           DISPLAY 'ERROR-SET:    ' ERROR-SET     UPON PRINTER. 
+           DISPLAY 'ERROR-AREA:   ' ERROR-AREA    UPON PRINTER. 
+           DISPLAY 'ERROR-STATUS: ' ERROR-STATUS  UPON PRINTER. 
+           DISPLAY 'ERROR-NUM:    ' ERROR-NUM     UPON PRINTER. 
+
+           GO TO DPP12-DATABASE-ERROR.  
+
+       9200-EDIT-ERROR-MSG. 
+           PERFORM DPP12-EDIT-ERROR-MSG 
+              THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+
+           GO TO DPP12-END-OF-JOB.  
+
+       9210-EDIT-CONTINUE-MSG.  
+           PERFORM DPP12-EDIT-ERROR-MSG 
+              THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+
+       9300-SEVERE-ERROR-MSG.   
+           GO TO DPP12-SEVERE-ERROR-MSG.
+
+       9400-INFO-MSG.   
+           PERFORM DPP12-INFO-MSG   
+              THRU DPP12-INFO-MSG-EXIT. 
+
+       9500-RETURN-SUBROUTINE-ERROR.
+           GO TO DPP12-RETURN-SUBROUTINE-ERROR. 
+
+       9600-SAVE-SUBROUTINE-ERRORS. 
+           PERFORM DPP12-SAVE-SUBROUTINE-MSGS   
+              THRU DPP12-SAVE-SUBROUTINE-MSGS-X.
+
+       COPY DPP12BER.   
+       COPY DPP12ERR.   
+       COPY DPP12WDB.   
+       COPY DPP10Y2K.   

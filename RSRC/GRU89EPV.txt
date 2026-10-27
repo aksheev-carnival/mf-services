@@ -1,0 +1,1135 @@
+      ******************************************************************
+      * Program Name:  GRU89EPV.
+      * Programmer:    CARNIVAL CRUISE LINES, INC.  
+      * Date:          APRIL 2011.  
+      * Description:   To list packages that are available for  
+      *                a specific sailing and rate code.
+      ******************************************************************
+108267* 08-DEC-11     9RG     TCS LTD.               CQ108267          *
+108267* MULTI CURRENCY PROJECT.                                        *
+************************************************************************
+126237* 10-OCT-11     2AS     TCS LTD.               CQ126237          *
+126237* COMMENTED OUT THE REFERRENCE OF DELETED POLICY RECORDS.        *
+************************************************************************
+134403* 04-JAN-12     AJS     TCS LTD.               CQ134403          *
+134403* CHANGES FOR GAINING THE MULTIPLE INITAL BENEFITS.              *
+************************************************************************
+133617* 16-MAR-12     RJ2     TCS LTD.               CQ133617          *
+133617* OPEN AREAS.                                                    *
+************************************************************************
+CCL-UK* 20-JUN-11     AG6     TCS LTD.               CCL-UK            *
+CCL-UK* CCLUK CHANGES: OPENED LOCALITY AND COUNTRY AREA                *
+************************************************************************
+114988*  FEB-13     DRA                            CQ114988            *
+114988*  Skip dummy overnight package ON1 for manual addition          *
+114988***************************************************************** 
+158823* 09-SEP-14     NY0   TCS LTD.              CQ158823             *
+158823* ADD BEGIN THREAD PER STANDARDIZATION PROCESS                   *
+************************************************************************
+156569* 12-MAY-15     PY0     TCS LTD.               CQ156569          *
+156569* EZAIR PROJECT CHANGES.                                         *
+************************************************************************
+165711* 29-JUN-15     RK2     TCS LTD.               CQ165711          *
+165711* CHANGES DONE TO ADD A NEW PROC FOR THE CALLING PARAMETER CHANGE*
+165711* DONE TO VARIOUS ROUTINES TO PASS THE OVERRIDE FLAGS.           *
+************************************************************************
+PPC470* 13-DEC-15     RK2     TCS LTD.               PPC470            *
+PPC470* PPC PROJECT CHANGES.                                           *
+************************************************************************
+PPC470* 16-JAN-17     SA9     TCS LTD.               PPC470            *
+PPC470* SAIL1-REC SAIL1-PACKAGES AREA CHANGES.                         *
+************************************************************************
+191950* 14-JAN-16     SG8     TCS LTD.               CQ191950          *
+191950* NEED TO HIDE “ON1 - COMPLIMENTARY OVERNIGHT HOTEL” PACKAGE IN  *
+191950* NAVIGATOR FOR ALL SHIPS AND SAILINGS.                          *
+************************************************************************
+192660* 05-JUL-16     RK2     TCS LTD.               CQ192660          *
+192660* SUPPORT MULTIPLE ERF NUMBERS PER AGENCY PROFILE TO PAYOUT      *
+192660* COMMISSIONS BASED ON BOOKINGS CURRENCY                         *
+************************************************************************
+214948* 17-APR-19     FUB     TCS LTD.               CQ214948          *
+214948* CHANGES DONE TO CORRECTLY POPULATE CUSTOMER-NUM FIELDS.        *
+************************************************************************
+CCLAUS* 02-DEC-19     XSY     TCS LTD.               CQCCLAUS          *
+CCLAUS* CARNIVAL AUSTRALIA PROJECT COUNTRY CODE CHANGES                *
+************************************************************************
+187917* 23-OCT-25     XB1     TCS LTD.              ADO1879173         *
+187917* CHANGES DONE FOR UNIACCESS TO EPORTAL CONVERSION.              *
+************************************************************************
+LOYLTY* 25-FEB-26     8XF     TCS LTD.               LOYLTY            *
+LOYLTY* ADDED MMISC-AMT AND MMISC-AMTX AS PART OF LOYLTY PROGRAM       *
+************************************************************************
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.    GRU89EPV. 
+       DATE-WRITTEN.  OCTOBER 1998. 
+       DATE-COMPILED.   
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER. UNISYS. 
+       OBJECT-COMPUTER. UNISYS. 
+       SPECIAL-NAMES.   
+           PRINTER IS PRT   
+           PRINTER IS PRINTER.  
+
+       DATA DIVISION.   
+       SUBSCHEMA SECTION.   
+       INVOKE SUBSCHEMA PST100UCOBSU
+              IN FILE SUBSCHEMAS OF SCHEMA PST100SCHEMA 
+              COPYING RECORDS    INTO COMMON
+              COPYING DATA-NAMES INTO COMMON
+              OVERLAY PAX-REC WITH PAX-CXF-REC  
+169014*                            PAX-FUT-REC  
+                                   PAX-VI-REC   
+              SAVE DATA INCLUDES DEFERRED-UPDATES   
+              DMCA  COMMON  
+              ERROR RECOVERY IS 9100-DATABASE-ERROR 
+              ROLLBACK       IS 9100-DATABASE-ERROR.
+
+       WORKING-STORAGE SECTION. 
+144449 01  WS-PROG-ID            PIC X(8) VALUE 'GRU89PAV'. 
+187917 01  MCFLAG                PIC 9(10) BINARY.  
+       01  WS-WORK-AREA.
+           05  WS-SYSTEM-DATETIME.  
+               07  WS-CURRENT-DATETIME           PIC 9(16). 
+           05  WS-EXPECTED-PARAMETERS            PIC 9(4).  
+           05  WS-PARAMETERS-RECEIVED            PIC 9(4).  
+           05  SUB                               PIC 9(5) BINARY.   
+           05  TPR-SUB                           PIC 9(5) BINARY.   
+           05  PAX-SUB                           PIC 9(5) BINARY.   
+           05  PPR-SUB                           PIC 9(5) BINARY.   
+           05  WS-PHASE-NUM                      PIC 9(5) BINARY.   
+           05  WS-PKG-TYPE                       PIC X. 
+           05  DPP03-OPEN-FLAG                   PIC X. 
+214948*    05  WS-CUSTOMER-NUM                   PIC 9(7) BINARY.   
+214948*    05  WS-ALT-CUSTOMER-NUM               PIC 9(7) BINARY.   
+214948     05  WS-CUSTOMER-NUM                   PIC X(07). 
+214948     05  WS-ALT-CUSTOMER-NUM               PIC X(07). 
+108267     05  WS-PRC-XCHG-RATE                  PIC 9(4)V9(6). 
+           05  N19-SIGNED                        PIC S9(5)  
+                   SIGN LEADING SEPARATE.   
+           05  N19-SIGN-STRIPPER REDEFINES N19-SIGNED.  
+               10  N19-SIGN                      PIC X(1).  
+               10  N19-UNSIGNED                  PIC 9(5).  
+
+129969     05  WS-PROGRAM-NAME                   PIC X(12)  
+129969                                           VALUE 'GRU89PAV'.  
+           COPY DPP01SCO.   
+           COPY DPP01CIW.   
+144449*    COPY DPP01OWS.   
+144449 COPY DPP01DTA.   
+144449 COPY DPP01ERR.   
+187917 COPY DPP01EWS.   
+144449 COPY DPP01MCB.   
+187917*COPY DPP01UWS.   
+144449 COPY DPP12SCO.   
+144449 COPY DPP42ERR.   
+187917 COPY ECP75ERR.   
+187917 COPY GRP-R-RUI-PAV.  
+144449 COPY RSP00DMS.   
+144449 COPY RSP32DMS.   
+144449 COPY RSP64DMS.   
+144449 COPY RSP77GMD.   
+           COPY RSP06GCI.   
+           COPY RSP23RGC.   
+           COPY RSP50INP.   
+           COPY RSP50OUT.   
+           COPY RSP51INP.   
+           COPY RSP51OUT.   
+           COPY RSP55PAV.   
+           COPY RSP89SEW.   
+165711     COPY RSP89SEZ.   
+144449*    COPY SSP00COM.   
+           COPY SLCPCOB.
+187917*    COPY UAP01MWS.   
+187917*    COPY RUIPAV-W-1294.  
+187917*    COPY RUIPAV-W-1296.  
+           COPY DPSSTATUSCOB.   
+           COPY INFO-BUFFER.
+           COPY RECOVERY-CONTROL-BLOCK. 
+163032 COPY SSP18GUD.   
+165711 COPY RSP90OVW.   
+PPC470 COPY TDP01SAW.   
+PPC470 COPY TDP02PKW.   
+PPC470 COPY SMP68EFF.   
+
+       COMMON-STORAGE SECTION.  
+       PROCEDURE DIVISION.  
+       0000-MAINLINE.   
+144449     COPY DPP01INT.   
+187917*    COPY UAP05INT.   
+PPC470     COPY TDP01INT.   
+187917*    PERFORM DPP12-TDINIT THRU DPP12-TDINIT-EXIT. 
+
+187917     MOVE SPACES TO DPP01-MCB-INPUT-MESSAGE.  
+
+187917     MOVE 63 TO DPP01-AUX-LENGTH. 
+187917     MOVE FUNCTION LENGTH (DPP01-MCB-INPUT-MESSAGE) TO
+187917                           DPP01-INPUT-MSG-LENGTH.
+187917     PERFORM DPP12-MCB-RECIEVE-MSG
+187917        THRU DPP12-MCB-RECIEVE-MSG-EXIT.  
+
+158823     PERFORM DPP12-BEGIN-THREAD THRU DPP12-BEGIN-THREAD-EXIT. 
+158823  
+158823     IF DPP01-SQL-ERROR-IND = 'Y' 
+158823        GO TO DPP12-THREAD-ERROR-EXIT.
+
+PPC470     EXEC SQL USE DEFAULT SCHEMA PSTRDMS END-EXEC.
+PPC470     EXEC SQL WHENEVER SQLERROR   
+PPC470       GO TO DPP12-RDMS-ERROR 
+PPC470     END-EXEC.
+
+144449 0100-INIT-DATABASE.  
+           MOVE 'GRUEPV'              TO TDPROGNAME.
+           MOVE FUNCTION CURRENT-DATE TO WS-SYSTEM-DATETIME.
+
+           MOVE 01010001 TO DPP01-ERROR-NUMBER. 
+           IMPART.  
+
+           OPEN GRP1-BOOK   
+                GRP1-CAT
+PPC470*        SAIL1-IDX
+PPC470*        SAIL1
+                ACSHIPNAME  
+                ACSHIPNAMX  
+                AGENCY-RATE 
+                AGENCY-ASSOC
+                AGENT   
+192660          AGENT-CURR      USAGE-MODE IS RETRIEVAL 
+                AGENT-COMP  
+144449*         SAILCURR
+144449*         CURR
+                AGENT-BUS   
+                AGENTGCAP   
+                AGENT-IDX   
+                AGENT-PHONE 
+                AGNT-PHO-IDX
+144449*         AGTRESTRI   
+154125*         HOLIDAY 
+154125*         HOLIDAY-IDX 
+                ITINERARY   
+PPC470*         POLICYTYPE  
+PPC470*         POLICYTYPX  
+PPC470*         SAIL-PHASE  
+163032*         SHIP
+PPC470*         BROCHURE-IDX
+PPC470*         BROCHURE
+156569*         CITY-SAL-IDX
+156569*         CITY-SAIL   
+163032*         COMPANY 
+                GRP1-PKG
+                PKG-DESC1X  
+                PKG-DESC1   
+PPC470*         MISC-RATE   
+PPC470*         MISC-RATEIDX
+144449*         FEE 
+169013*         PRICINGX
+PPC470*         PRICING 
+163032*         SECUSER 
+PPC470*         SAIL1PRICX  
+PPC470*         SAIL1PRICE  
+169013*         PRICESUMM   
+169013*         PRICESUMMX  
+                AGENT-TERMS 
+                PAX-PKG 
+LOYLTY          MMISC-AMT   
+LOYLTY          MMISC-AMTX  
+                TOUR-PACKAGE.   
+144449*    OPEN LOCALITY
+144449*         COUNTRY 
+144449     OPEN IBRPROMO.   
+PPC470*         PROMO-ITMX. 
+PPC470*         PROMO-ITEM. 
+
+           PERFORM GRP01-OPEN-RATE-RETRIEVAL THRU   
+                   GRP01-OPEN-EXIT. 
+
+           PERFORM IRP66-OPEN-IBR-RETRIEVAL 
+              THRU IRP66-OPEN-IBR-AREAS-EXIT.   
+
+           PERFORM DPP11-OPEN-PAX-RETRIEVAL THRU DPP11-EXIT.
+133617     PERFORM DPP45-OPEN-AVAIL-RETRIEVAL THRU DPP45-AVAIL-EXIT.
+
+           MOVE LOW-VALUES TO GRP1-BOOKING-REC  
+                              GRP1-BOOK-CAT-REC 
+PPC470*                       SAIL1-REC 
+PPC470*                       CLOSED1-CITY-REC  
+PPC470*                       SAIL1-POLICY-TYPE-REC 
+PPC470*                       SAIL1-NOTE-REC
+PPC470*                       SAIL1-PACKAGE-REC 
+                              SHIP-NAME-REC 
+                              AGENCY-RATE-CODE-DETAIL-REC   
+                              AGENCY-RATE-CODE-HDR-REC  
+                              AGENCY-ASSOCIATION-REC
+                              AGENT-REC 
+                              AGENT-TERMS-COMPANY-REC   
+                              AGENT-BUSINESS-REC
+                              AGENT-GRP-CAPACITY-REC
+                              AGENT-PHONE-REC   
+144449*                       SAIL1-AGT-RESTRICTION-RATE-REC
+144449*                       SAIL1-AGT-RESTRICTION-REC 
+154125*                       HOLIDAY-RATE-REC  
+154125*                       HOLIDAY-VACATION-REC  
+                              ITINERARY-REC 
+PPC470*                       POLICY-CONTROL-REC
+PPC470*                       POLICY-TYPE-ADD-INFO-REC  
+PPC470*                       POLICY-TYPE-MASTER-REC
+PPC470*                       POLICY-TYPE-PAYMENT-REC   
+PPC470*                       POLICY-TYPE-PENALTY-REC   
+PPC470*                       POLICY-TYPE-RULES-REC 
+PPC470*                       POLICY-COMP-REC   
+PPC470*                       POLICY-ADD-INFO-TEXT-REC  
+PPC470*                       POLICY-TYPE-RULES-TEXT-REC
+PPC470*                       POLICY-BONUS-COMM-REC 
+PPC470*                       SAIL-PHASE-NUM-REC
+163032*                       SHIP-REC  
+163032*                       SHIP-CLASS-REC
+PPC470*                       BROCHURE-RATE-REC 
+PPC470*                       BROCHURE-VACATION-REC 
+156569*                       CITY-CLOSED-PKG-REC   
+156569*                       CITY-SAILING-COUNT-REC
+156569*                       CITY-PHASE-NUM-REC
+163032*                       COMPANY-REC   
+163032*                       COMPANY-REFERENCE-REC 
+                              GRP1-PACKAGE-REC  
+                              PACKAGE-DESC1-REC 
+                              PACKAGE-PRICING-MASTER-REC
+                              PACKAGE-PRICING-CATEGORY-REC  
+                              GRP1-RATE-FIXED-REC   
+PPC470*                       PRICING-RESIDENT-STATE-REC
+PPC470*                       PRICING-ADD-INFO-REC  
+PPC470*                       PRICING-AGENT-REC 
+PPC470*                       PRICING-BONUS-COMM-REC
+PPC470*                       PRICING-CAT-CABIN-REC 
+PPC470*                       PRICING-CITY-EXCEPTION-REC
+PPC470*                       PRICING-CITY-REC  
+PPC470*                       PRICING-COMMISSION-REC
+PPC470*                       PRICING-COMP-REC  
+PPC470*                       PRICING-CONTROL-REC   
+PPC470*                       PRICING-CONTROL-SEQ-REC   
+PPC470*                       PRICING-DISCOUNT-REC  
+PPC470*                       PRICING-MASTER-REC
+PPC470*                       PRICING-MISC-REC  
+PPC470*                       PRICING-PACKAGE-REC   
+PPC470*                       PRICING-PAYMENT-REC   
+PPC470*                       PRICING-PENALTY-REC   
+PPC470*                       PRICING-RATE-REC  
+PPC470*                       PRICING-RULES-REC 
+PPC470*                       PRICING-SUPPLEMENT-REC
+PPC470*                       PRICING-VALID-GRP-TYPE-REC
+PPC470*                       PRICING-ADD-INFO-TEXT-REC 
+PPC470*                       PRICING-FEE-EXCEPTION-REC 
+PPC470*                       PRICING-RULES-TEXT-REC
+PPC470*                       SAIL1-PRICING-REC 
+169013*                       PRICING-MASTER-SUMM-REC   
+      *                       GRP1-RATE-CODE-CAT-REC
+                              GRP1-RATE-NEGOTIATED-REC  
+                              AGENT-PHONE-TABLE-REC 
+                              AGENT-CONTRACT-REC.   
+
+       0200-NEXT-MESSAGE.   
+144449*    COPY DPP05INT.   
+144449     PERFORM DPP12-GET-NEXT-MESSAGE   
+144449        THRU DPP12-GET-NEXT-MESSAGE-EXIT. 
+187917     MOVE DPP01-MCB-INPUT-MESSAGE TO X-INPUT-R-GRUPAV-BUFFER. 
+187917     PERFORM GRP00-R-RUI-PAV-INIT 
+187917        THRU GRP00-R-RUI-PAV-INIT-EXIT.   
+187917     MOVE ZEROES TO DPP01-ISUB.   
+
+214948*    MOVE ZERO TO WS-CUSTOMER-NUM 
+214948*                 WS-ALT-CUSTOMER-NUM.
+214948     MOVE SPACES TO WS-CUSTOMER-NUM   
+214948                    WS-ALT-CUSTOMER-NUM.  
+
+144449*    PERFORM DPP12-TDACCEPT THRU DPP12-TDACCEPT-EXIT. 
+
+144449*    PERFORM DPP12-TDNUMPRM THRU DPP12-TDNUMPRM-EXIT. 
+
+144449*    CALL 'SSO00MEM'. 
+
+187917*    PERFORM RUIPAV-RCV-STD-IN-PARAMS.
+
+187917*    PERFORM RUIPAV-RCV-STD-IN-SEC-PARAMS.
+
+           MOVE U-1294-PL-SEC-RULE-CODE-TBL TO  
+                RSP89-RPC-SEC-RULE-CODE-TBL.
+           MOVE U-1294-PL-SEC-RULE-DATA-TBL TO  
+                RSP89-RPC-SEC-RULE-DATA-TBL.
+
+       COPY RSP89INT.   
+165711 COPY RSP90INT.   
+PPC470 COPY SMP68INT.   
+PPC470     CALL 'SMO68INT' USING DPP01-COMMON-DATA-FIELDS   
+PPC470                           DPP01-COMMON-INFO  
+PPC470                           SMP68-INPUT-PARAMS 
+PPC470                           SMP68-OUTPUT-PARAMS.   
+
+PPC470     IF DPP01-SUB-MSG-CTR > ZERO  
+PPC470        IF DPP01-SUB-MSG-STATUS (1) > 1   
+PPC470           GO TO 9500-RETURN-SUBROUTINE-ERROR.
+
+187917*    EVALUATE U-1294-PI-STORED-PROCEDURE-NAM  
+187917*       WHEN 'SP_R_RUI_PAV'   
+156224*          MOVE 22 TO WS-EXPECTED-PARAMETERS  
+CCLAUS*          MOVE 25 TO WS-EXPECTED-PARAMETERS  
+187917*          MOVE C-1294-NUMBER-OF-PARAMETERS   
+187917*                  TO WS-EXPECTED-PARAMETERS  
+187917*       WHEN OTHER
+187917*          MOVE 86     TO DPP42-HOLD-MSG-INDEX
+187917*          GO TO DPP12-SEVERE-ERROR-MSG   
+187917*    END-EVALUATE.
+
+187917*    IF SL-NUMBER-OF-PARMS NOT = WS-EXPECTED-PARAMETERS   
+187917*       MOVE SL-NUMBER-OF-PARMS TO N19-SIGNED 
+187917*       MOVE N19-UNSIGNED       TO WS-PARAMETERS-RECEIVED 
+187917*       STRING WS-EXPECTED-PARAMETERS ' Parameters required - '   
+187917*              WS-PARAMETERS-RECEIVED ' Received, '   
+187917*              'contact Help Desk!'   
+187917*              DELIMITED BY SIZE INTO DPP42-HOLD-MSG-DESC 
+187917*       GO TO DPP12-SEVERE-ERROR-MSG. 
+
+187917*    PERFORM RUIPAV-RCV-RUI-PAV-PARAMS.   
+
+187917*    PERFORM RUIPAV-RCV-STD-OUT-PARAMS.   
+
+           MOVE WS-CURRENT-DATETIME TO U-1294-PO-DATE-TIME. 
+
+187917*    PERFORM RUIPAV-SET-STD-OUT-PARAMS.   
+
+163032 COPY SSP18INT.   
+
+163032     MOVE U-1294-PI-USERID          TO SSP18-I-NT-UID.
+
+163032     CALL 'SSC18GUD' USING DPP01-COMMON-DATA-FIELDS   
+163032                           DPP01-COMMON-INFO  
+163032                           SSP18-INPUT-PARAMS 
+163032                           SSP18-OUTPUT-PARAMS.   
+
+163032     IF DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1
+163032        GO TO 9500-RETURN-SUBROUTINE-ERROR.   
+
+           IF (U-1294-INDV-BOOK-NUM <= SPACES)  
+              GO TO 0300-CHECK-GRP-BOOKING. 
+
+       COPY RSP23INT.   
+
+           MOVE 'Y'                  TO RSP23-I-READ-IBR-IND
+                                        RSP23-I-READ-PAX-IND
+                                        RSP23-I-READ-PPR-IND.   
+           MOVE U-1294-INDV-BOOK-NUM TO RSP23-I-INDV-BOOK-NUM.  
+           MOVE 'A'                  TO RSP23-I-BOOK-TYPE.  
+
+           PERFORM RSP89-SET-RSO23RGC-SEC   
+              THRU RSP89-SET-RSO23RGC-SEC-EXIT. 
+
+           CALL 'RSO23RGC' USING DPP01-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 RSP23-RGC-INPUT
+                                 RSP06-GUEST-CABIN-INFO.
+
+144449*    PERFORM DPP12-ERROR-CHECK.   
+144449* 
+144449*    PERFORM DPP12-ERROR-SEND.
+
+144449     IF DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1
+144449        GO TO DPP12-RETURN-SUBROUTINE-ERROR.  
+
+           IF U-1294-GROUP-BOOK-NUM > SPACES
+              IF (U-1294-GROUP-BOOK-NUM NOT = RSP06-IBR-GROUP-BOOK-NUM) 
+144449           MOVE 0001  TO DPP42-HOLD-MSG-INDEX 
+144449           MOVE SPACE TO DPP42-HOLD-MSG-DESC  
+                 GO TO 9200-EDIT-ERROR  
+              END-IF
+           ELSE 
+              MOVE RSP06-IBR-GROUP-BOOK-NUM TO U-1294-GROUP-BOOK-NUM.   
+
+           IF U-1294-SHIP-CODE <= SPACES AND
+                 U-1294-SAIL-DATE <= ZERO AND   
+                 U-1294-DURATION-DAYS <= ZERO   
+              MOVE RSP06-IBR-SHIP-CODE     TO U-1294-SHIP-CODE  
+              MOVE RSP06-IBR-SAIL-DATE     TO U-1294-SAIL-DATE  
+              MOVE RSP06-IBR-DURATION-DAYS TO U-1294-DURATION-DAYS. 
+
+           MOVE RSP06-IBR-CUSTOMER-NUM     TO WS-CUSTOMER-NUM.  
+           MOVE RSP06-IBR-ALT-CUSTOMER-NUM TO WS-ALT-CUSTOMER-NUM.  
+
+       0300-CHECK-GRP-BOOKING.  
+           IF U-1294-GROUP-BOOK-NUM <= SPACES   
+              GO TO 0400-GET-SAILING.   
+
+           MOVE U-1294-GROUP-BOOK-NUM     TO GBR1-BOOK-NUM. 
+
+           FETCH GRP1-BOOKING-REC  RECORD   
+                 ON ERROR GO TO 10000-FETCH-GBR1-ERROR. 
+
+           IF U-1294-SHIP-CODE > SPACES OR  
+                 U-1294-SAIL-DATE > ZERO OR 
+                 U-1294-DURATION-DAYS > ZERO
+              IF (U-1294-SHIP-CODE NOT = GBR1-SHIP-CODE) OR 
+                    (U-1294-SAIL-DATE NOT = GBR1-SAIL-DATE ) OR 
+                    (U-1294-DURATION-DAYS NOT = GBR1-DURATION-DAYS) 
+144449           MOVE 0001  TO DPP42-HOLD-MSG-INDEX 
+144449           MOVE SPACE TO DPP42-HOLD-MSG-DESC  
+                 GO TO 9200-EDIT-ERROR  
+              END-IF
+           ELSE 
+              MOVE GBR1-SHIP-CODE     TO U-1294-SHIP-CODE   
+              MOVE GBR1-SAIL-DATE     TO U-1294-SAIL-DATE   
+              MOVE GBR1-DURATION-DAYS TO U-1294-DURATION-DAYS.  
+
+           IF U-1294-INDV-BOOK-NUM <= SPACES
+              MOVE GBR1-CUSTOMER-NUM     TO WS-CUSTOMER-NUM 
+              MOVE GBR1-ALT-CUSTOMER-NUM TO WS-ALT-CUSTOMER-NUM.
+
+       0400-GET-SAILING.
+           PERFORM RSP50-INIT-INPUTS THRU RSP50-INIT-INPUTS-EXIT.   
+
+           MOVE 'ER'                 TO RSP50-I-CONNECTION-CODE.
+           MOVE 'C'                  TO RSP50-I-COMPANY-CODE.   
+           MOVE U-1294-CURRENCY-CODE TO RSP50-I-CURRENCY-CODE.  
+
+mcatst*    IF U-1294-AGT-PHONE-NUM > SPACES 
+      *       MOVE E-1294-AGT-PHONE-NUM TO RSP50-I-PHONE-NUM
+      *    ELSE 
+      *       MOVE WS-CUSTOMER-NUM      TO RSP50-I-CUSTOMER-NUM.
+
+MCATST*    IF E-1294-AGT-ALT-PHONE-NUM > ZERO   
+      *       MOVE E-1294-AGT-ALT-PHONE-NUM TO RSP50-I-ALT-PHONE-NUM
+      *    ELSE 
+      *       MOVE WS-ALT-CUSTOMER-NUM      TO RSP50-I-ALT-CUSTOMER-NUM.
+
+CCLAUS     MOVE U-1294-PHONE-COUNTRY-CODE TO RSP50-I-PHN-COUNTRY-CODE.  
+CCLAUS     MOVE U-1294-ALT-PHONE-COUNTRY-CODE   
+CCLAUS                                  TO RSP50-I-ALT-PHN-COUNTRY-CODE.
+
+108267     IF U-1294-INDV-BOOK-NUM > SPACES 
+108267        MOVE U-1294-INDV-BOOK-NUM  TO RSP50-I-IBR-BOOK-NUM
+           ELSE 
+MCATST       IF U-1294-AGT-PHONE-NUM > SPACES   
+MCATST          MOVE U-1294-AGT-PHONE-NUM TO RSP50-I-PHONE-NUM  
+MCATST       ELSE   
+MCATST          MOVE WS-CUSTOMER-NUM TO RSP50-I-CUSTOMER-NUM
+MCATST       END-IF 
+MCATST       IF U-1294-AGT-ALT-PHONE-NUM > ZERO 
+MCATST          MOVE U-1294-AGT-ALT-PHONE-NUM TO RSP50-I-ALT-PHONE-NUM  
+MCATST       ELSE   
+MCATST          MOVE WS-ALT-CUSTOMER-NUM TO RSP50-I-ALT-CUSTOMER-NUM
+MCATST       END-IF 
+MCATST     END-IF.  
+
+           PERFORM RSP89-SET-RSO50VAA-SEC   
+              THRU RSP89-SET-RSO50VAA-SEC-EXIT. 
+           CALL 'RSO50VAA' USING DPP01-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 RSP50-AGENCY-INPUT 
+                                 RSP50-AGENCY-OUTPUT
+165711                           RSP90-OVERRIDE-FLAGS-INFO. 
+
+
+144449*    PERFORM DPP12-ERROR-CHECK.   
+144449* 
+144449*    PERFORM DPP12-ERROR-SEND.
+
+144449     IF DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1
+144449        GO TO DPP12-RETURN-SUBROUTINE-ERROR.  
+           COPY RSP51INT.   
+PPC470     COPY TDP02PKI.   
+
+           IF U-1294-GROUP-BOOK-NUM > SPACES
+              MOVE GBR1-POLICY-TYPE TO RSP51-I-POLICY-TYPE  
+              MOVE 'Y'              TO RSP51-I-PROT-POLICY-PHASE-IND
+              MOVE GBR1-POLICY-PHASE-NUM TO RSP51-I-POLICY-PHASE-NUM
+              MOVE 'G'              TO RSP51-I-BOOK-TYPE
+              MOVE GBR1-BOOK-NUM    TO RSP51-I-GRP-BOOK-NUM 
+           ELSE 
+              MOVE 'I'              TO RSP51-I-BOOK-TYPE
+              IF U-1294-INDV-BOOK-NUM > SPACES AND  
+                   RSP06-IBR-POLICY-TYPE > SPACES AND   
+                   RSP06-IBR-POLICY-PHASE-NUM > ZERO
+                 MOVE RSP06-IBR-POLICY-TYPE TO RSP51-I-POLICY-TYPE  
+                 MOVE RSP06-IBR-POLICY-PHASE-NUM  TO
+                      RSP51-I-POLICY-PHASE-NUM  
+                 MOVE 'Y' TO
+                      RSP51-I-PROT-POLICY-PHASE-IND 
+              ELSE  
+                 MOVE 'N'            TO RSP51-I-PROT-POLICY-PHASE-IND   
+                 MOVE '****'         TO RSP51-I-POLICY-TYPE.
+           MOVE 'B'                   TO RSP51-I-REQUEST-TYPE.  
+           MOVE U-1294-SAIL-DATE      TO RSP51-I-SAIL-DATE. 
+           MOVE U-1294-SHIP-CODE      TO RSP51-I-SHIP-CODE. 
+           MOVE U-1294-DURATION-DAYS  TO RSP51-I-DURATION-DAYS. 
+
+           PERFORM RSP89-SET-RSO51SAV-SEC   
+              THRU RSP89-SET-RSO51SAV-SEC-EXIT. 
+           CALL 'RSO51SAV' USING DPP01-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 RSP51-SAILING-AVAIL-INPUT  
+                                 RSP51-SAILING-AVAIL-OUTPUT 
+                                 RSP50-AGENCY-OUTPUT
+165711                           RSP90-OVERRIDE-FLAGS-INFO. 
+
+144449*    PERFORM DPP12-ERROR-CHECK.   
+144449* 
+144449*    PERFORM DPP12-ERROR-SEND.
+
+144449     IF DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1
+144449        GO TO DPP12-RETURN-SUBROUTINE-ERROR.  
+187917*    PERFORM RUIPAV-DSC-RUI-PARAMS.   
+
+108267     IF U-1294-GROUP-BOOK-NUM > SPACES
+108267        MOVE GBR1-PRC-XCHG-RATE       TO WS-PRC-XCHG-RATE 
+108267     ELSE 
+108267        IF U-1294-INDV-BOOK-NUM > SPACES  
+108267           MOVE IBR-PRC-XCHG-RATE     TO WS-PRC-XCHG-RATE 
+108267        ELSE  
+108267           MOVE RSP51-O-PRC-XCHG-RATE TO WS-PRC-XCHG-RATE 
+108267        END-IF
+108267     END-IF.  
+
+           MOVE U-1294-PI-USERID  TO DPP01-USERID.  
+PPC470     MOVE TDP01-SAIL-ID     TO TDP02-I-SPKG-SAIL-ID.  
+           MOVE TDP01-SHIP-CODE   TO TDP02-I-SPKG-SHIP-CODE.
+
+PPC470*    FETCH FIRST SAIL1-PACKAGE-REC WITHIN SAIL1-PACKAGE-SET SET   
+PPC470*          ON ERROR GO TO 10100-SPKG-FETCH-ERROR. 
+PPC470     PERFORM TDP02-FETCH-FIRST-SPKG THRU TDP02-FETCH-SPKG-EXIT.   
+
+PPC470     IF TDP02-SPKG-SQLERR 
+PPC470        MOVE 1001   TO DPP42-HOLD-MSG-INDEX   
+PPC470        GO TO 9150-RDMS-ERROR 
+PPC470     END-IF.  
+
+PPC470     IF TDP02-END-OF-SPKG 
+PPC470       MOVE SPACE TO DPP42-HOLD-MSG-DESC  
+PPC470       MOVE WS-PROGRAM-NAME    TO DPP42-HOLD-MSG-SOURCE   
+PPC470       STRING 'Packages are not availabe for this sailing:  ' 
+PPC470       DELIMITED BY SIZE INTO DPP42-HOLD-MSG-DESC 
+PPC470       PERFORM DPP12-INFO-MSG 
+PPC470       MOVE 1001   TO DPP42-HOLD-MSG-INDEX
+187917       PERFORM 11000-SEND-OUTPUT  
+187917          THRU 11000-SEND-OUTPUT-EXIT 
+PPC470       GO TO 9000-END-OF-JOB  
+PPC470     END-IF.  
+PPC470     IF TDP02-PROC-ERROR > ZEROES 
+PPC470        GO TO 9150-RDMS-ERROR 
+PPC470     END-IF.  
+           GO TO 0600-PROCESS-SPKG-REC. 
+       0500-NEXT-SPKG-REC.  
+PPC470*    FETCH NEXT SAIL1-PACKAGE-REC WITHIN SAIL1-PACKAGE-SET SET
+PPC470*          AT END GO TO 9000-END-OF-JOB   
+PPC470*          ON ERROR GO TO 10200-SPKG-FETCH-ERROR. 
+PPC470     PERFORM TDP02-FETCH-NEXT-SPKG THRU   
+PPC470             TDP02-FETCH-SPKG-EXIT.   
+           IF TDP02-END-OF-SPKG 
+187917        PERFORM 11000-SEND-OUTPUT 
+187917           THRU 11000-SEND-OUTPUT-EXIT
+PPC470        GO TO 9000-END-OF-JOB 
+PPC470     END-IF.  
+           IF TDP02-SPKG-SQLERR 
+PPC470          GO TO 10200-SPKG-FETCH-ERROR
+PPC470     END-IF.  
+
+       0600-PROCESS-SPKG-REC.   
+191950  
+PPC470*    IF  SPKG-PACKAGE-CODE = 'ON1'
+PPC470     IF  TDP02-SPKG-PKG-CODE = 'ON1'  
+191950         GO TO 0500-NEXT-SPKG-REC 
+191950     END-IF.  
+191950  
+187917     ADD 1 TO U-1296-SUB. 
+187917     IF U-1296-SUB > 10   
+187917        MOVE  WS-PROG-ID         TO DPP42-HOLD-MSG-SOURCE 
+187917        MOVE 'Output response buffer U-1296 reached max limit'
+187917              TO DPP42-HOLD-MSG-DESC  
+187917        GO TO 9200-EDIT-ERROR 
+187917     END-IF.  
+           MOVE SPACES           TO U-1296-PKG-CODE (U-1296-SUB)
+                                    U-1296-CAR-CODE (U-1296-SUB)
+                                    U-1296-XFR-CODE (U-1296-SUB)
+                                    U-1296-RUIPAV (U-1296-SUB)  
+                                    U-1296-PKG-DESCRIPTION (U-1296-SUB) 
+114988                           U-1296-OVER-NIGHT-PKG-IND (U-1296-SUB) 
+                                    U-1296-PRE-AVAIL-IND (U-1296-SUB)   
+                                    U-1296-PST-AVAIL-IND (U-1296-SUB).  
+           MOVE ZEROS            TO U-1296-MAX-OCCUPANCY (U-1296-SUB)   
+                                    U-1296-PRE-PHASE-NUM (U-1296-SUB)   
+                                    U-1296-PST-PHASE-NUM (U-1296-SUB).  
+           MOVE LOW-VALUES       TO U-1296-PRE-CAR-RATE-TBL (U-1296-SUB)
+                                    U-1296-PST-CAR-RATE-TBL (U-1296-SUB)
+                                    U-1296-PRE-PKG-RATE-TBL (U-1296-SUB)
+                                    U-1296-PST-PKG-RATE-TBL (U-1296-SUB)
+                                    U-1296-PRE-XFR-RATE-TBL (U-1296-SUB)
+                                   U-1296-PST-XFR-RATE-TBL (U-1296-SUB).
+           COPY RSP55INT.   
+
+           MOVE 'N'                      TO RSP55-I-ELEC-DIST-IND.  
+           MOVE RSP51-I-BOOK-TYPE        TO RSP55-I-BOOK-TYPE.  
+           MOVE U-1294-GROUP-BOOK-NUM    TO RSP55-I-GRP-BOOK-NUM.   
+PPC470*    MOVE SPKG-PACKAGE-CODE        TO RSP55-I-PACKAGE-CODE.   
+PPC470     MOVE TDP02-SPKG-PKG-CODE      TO RSP55-I-PACKAGE-CODE.   
+PPC470*    MOVE RSP51-O-SEASON-CODE      TO RSP55-I-SEASON-CODE.
+
+RE1011     PERFORM RSP89-SET-RSO55PAV-SEC   
+RE1011        THRU RSP89-SET-RSO55PAV-SEC-EXIT. 
+
+           CALL 'RSO55PAV' USING DPP01-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 RSP55-PACKAGE-AVAIL-INPUT  
+                                 RSP55-PACKAGE-AVAIL-OUTPUT 
+                                 RSP51-SAILING-AVAIL-OUTPUT 
+                                 RSP50-AGENCY-OUTPUT
+165711                           RSP90-OVERRIDE-FLAGS-INFO. 
+
+144449*    PERFORM DPP12-ERROR-CHECK.   
+144449* 
+144449*    PERFORM DPP12-ERROR-SEND.
+
+144449     IF DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1
+144449        GO TO DPP12-RETURN-SUBROUTINE-ERROR.  
+
+           MOVE RSP55-O-PRE-PACKAGE-AVAIL-IND TO
+                                    U-1296-PRE-AVAIL-IND (U-1296-SUB).  
+           MOVE RSP55-O-PST-PACKAGE-AVAIL-IND TO
+                                    U-1296-PST-AVAIL-IND (U-1296-SUB).  
+           MOVE RSP55-O-PACKAGE-DESC          TO
+                                    U-1296-PKG-DESCRIPTION (U-1296-SUB).
+           IF RSP55-O-CAR-IND = 'N' OR 'I'  
+              MOVE RSP55-O-CAR-IND            TO
+                                    U-1296-CAR-CODE (U-1296-SUB)
+           ELSE 
+              MOVE 'O'                        TO
+                                    U-1296-CAR-CODE (U-1296-SUB).   
+
+           IF RSP55-O-TRANSFER-IND = 'N' OR 'I' 
+              MOVE RSP55-O-TRANSFER-IND       TO
+                                    U-1296-XFR-CODE (U-1296-SUB)
+           ELSE 
+              MOVE 'O'                        TO
+                                    U-1296-XFR-CODE (U-1296-SUB).   
+
+           MOVE RSP55-I-PACKAGE-CODE          TO
+                                    U-1296-PKG-CODE (U-1296-SUB).   
+           MOVE RSP55-O-MAX-PAX               TO
+                                    U-1296-MAX-OCCUPANCY (U-1296-SUB).  
+
+           IF RSP55-O-REQ-CNT > ZERO
+              MOVE RSP55-O-PACKAGE-PHASE-NUM (1) TO 
+                                    U-1296-PRE-PHASE-NUM (U-1296-SUB)   
+                                    U-1296-PST-PHASE-NUM (U-1296-SUB).  
+
+           IF U-1294-INDV-BOOK-NUM  <= SPACES   
+              GO TO 0800-CHECK-AVAIL.   
+
+           IF RSP06-TPR-CNT <= ZERO 
+              GO TO 0800-CHECK-AVAIL.   
+
+           IF RSP06-IBR-CANCEL-DATE > ZERO  
+              GO TO 0800-CHECK-AVAIL.   
+
+           IF (RSP06-IBR-SAIL-DATE NOT = U-1294-SAIL-DATE) OR   
+                 (RSP06-IBR-SHIP-CODE NOT = U-1294-SHIP-CODE) OR
+                 (RSP06-IBR-DURATION-DAYS NOT = U-1294-DURATION-DAYS)   
+              GO TO 0800-CHECK-AVAIL.   
+
+            MOVE ZERO TO TPR-SUB.   
+
+       0700-CHECK-NEXT-TPR-ENTRY.   
+           ADD 1 TO TPR-SUB.
+
+           IF TPR-SUB > RSP06-TPR-CNT   
+              GO TO 0800-CHECK-AVAIL.   
+
+           IF (RSP06-TPR-PKG-CODE (TPR-SUB) NOT = RSP55-I-PACKAGE-CODE) 
+              GO TO 0700-CHECK-NEXT-TPR-ENTRY.  
+
+           IF RSP06-TPR-NUM-PAX (TPR-SUB) = ZERO
+              GO TO 0700-CHECK-NEXT-TPR-ENTRY.  
+
+           MOVE ZERO TO PAX-SUB.
+
+           PERFORM VARYING SUB FROM 1 BY 1 UNTIL SUB > RSP06-PAX-CNT
+              IF RSP06-PAX-BOOK-NUM (SUB) = 
+                    RSP06-TPR-BOOK-NUM (TPR-SUB 1) AND  
+                    RSP06-PAX-SEQ-NUM (SUB) =   
+                    RSP06-TPR-SEQ-NUM (TPR-SUB 1)   
+                 MOVE SUB TO PAX-SUB
+                 MOVE RSP06-PAX-CNT TO SUB  
+              END-IF
+           END-PERFORM. 
+
+           IF PAX-SUB = ZERO
+              GO TO 0700-CHECK-NEXT-TPR-ENTRY.  
+
+           MOVE ZERO TO PPR-SUB.
+
+           PERFORM VARYING SUB FROM 1 BY 1  
+                   UNTIL SUB > RSP06-PPR-CNT (PAX-SUB)  
+              IF RSP06-PPR-PKG-NUM (PAX-SUB SUB) =  
+                    RSP06-TPR-PKG-NUM (TPR-SUB) 
+                 MOVE SUB                     TO PPR-SUB
+                 MOVE RSP06-PPR-CNT (PAX-SUB) TO SUB
+              END-IF
+           END-PERFORM. 
+
+           IF PPR-SUB = ZERO
+              GO TO 0700-CHECK-NEXT-TPR-ENTRY.  
+
+           IF RSP06-TPR-PKG-TYPE (TPR-SUB) = 'A'
+              MOVE 'Y' TO U-1296-PST-AVAIL-IND (U-1296-SUB) 
+              MOVE RSP06-PPR-PKG-PHASE-NUM (PAX-SUB PPR-SUB) TO 
+                   U-1296-PST-PHASE-NUM (U-1296-SUB)
+           ELSE 
+              MOVE 'Y' TO U-1296-PRE-AVAIL-IND (U-1296-SUB) 
+              MOVE RSP06-PPR-PKG-PHASE-NUM (PAX-SUB PPR-SUB) TO 
+                   U-1296-PRE-PHASE-NUM (U-1296-SUB).   
+
+           GO TO 0700-CHECK-NEXT-TPR-ENTRY. 
+
+       0800-CHECK-AVAIL.
+
+           IF (U-1296-PRE-AVAIL-IND (U-1296-SUB) NOT = 'Y') AND 
+              (U-1296-PST-AVAIL-IND (U-1296-SUB) NOT = 'Y') 
+              GO TO 0500-NEXT-SPKG-REC. 
+
+           IF U-1296-PRE-AVAIL-IND (U-1296-SUB) = 'Y'  AND  
+                   U-1296-PST-AVAIL-IND (U-1296-SUB) = 'Y'  
+              MOVE U-1296-PRE-PHASE-NUM (U-1296-SUB)
+                                        TO WS-PHASE-NUM 
+              MOVE ' '                  TO WS-PKG-TYPE  
+              PERFORM 8000-PRICE-PACKAGE THRU 8099-EXIT 
+           IF (U-1296-PRE-PHASE-NUM (U-1296-SUB) NOT
+                         = U-1296-PST-PHASE-NUM (U-1296-SUB))   
+                 MOVE U-1296-PST-PHASE-NUM (U-1296-SUB) 
+                                           TO WS-PHASE-NUM  
+                 MOVE 'A'                  TO WS-PKG-TYPE   
+                 PERFORM 8000-PRICE-PACKAGE THRU 8099-EXIT  
+              END-IF
+           ELSE 
+              IF U-1296-PRE-AVAIL-IND (U-1296-SUB) = 'Y'
+                 MOVE U-1296-PRE-PHASE-NUM (U-1296-SUB) 
+                                           TO WS-PHASE-NUM  
+                 MOVE 'B'                  TO WS-PKG-TYPE   
+                 PERFORM 8000-PRICE-PACKAGE THRU 8099-EXIT  
+              ELSE  
+                 MOVE U-1296-PST-PHASE-NUM (U-1296-SUB) 
+                                           TO WS-PHASE-NUM  
+                 MOVE 'A'                  TO WS-PKG-TYPE   
+                 PERFORM 8000-PRICE-PACKAGE THRU 8099-EXIT. 
+
+           IF (U-1296-PRE-AVAIL-IND (U-1296-SUB) NOT = 'Y') AND 
+                 (U-1296-PST-AVAIL-IND (U-1296-SUB) NOT = 'Y')  
+              GO TO 0500-NEXT-SPKG-REC. 
+
+187917*    PERFORM RUIPAV-NULL-RUI-PARAMS.  
+
+187917*    PERFORM DPP12-SEND-ROW.  
+
+           GO TO 0500-NEXT-SPKG-REC.
+
+       8000-PRICE-PACKAGE.  
+           IF (PDR1-COMPANY-CODE NOT = RSP50-I-COMPANY-CODE) OR 
+                 (PDR1-PKG-CODE NOT = U-1296-PKG-CODE (U-1296-SUB)) OR  
+                 (PDR1-PHASE-NUM NOT = WS-PHASE-NUM)
+              MOVE RSP50-I-COMPANY-CODE TO PDR1-COMPANY-CODE
+              MOVE U-1296-PKG-CODE (U-1296-SUB)      TO PDR1-PKG-CODE   
+              MOVE WS-PHASE-NUM                      TO PDR1-PHASE-NUM  
+              FETCH PACKAGE-DESC1-REC RECORD
+                    ON ERROR GO TO 10300-FETCH-PDR1-ERROR   
+              IF (PDR1-COMPANY-CODE NOT = RSP50-I-COMPANY-CODE) OR  
+                   (PDR1-PKG-CODE NOT = U-1296-PKG-CODE (U-1296-SUB)) OR
+                   (PDR1-PHASE-NUM NOT = WS-PHASE-NUM)  
+                 GO TO 10300-FETCH-PDR1-ERROR.  
+
+           FETCH FIRST PACKAGE-PRICING-MASTER-REC   
+                 WITHIN PACKAGE-DESC1-PRICING-SET SET   
+                 ON ERROR GO TO 8090-PRICING-ERROR. 
+
+           GO TO 8020-PROCESS-PPMR. 
+
+       8010-NEXT-PPMR.  
+           FETCH NEXT PACKAGE-PRICING-MASTER-REC
+                 WITHIN PACKAGE-DESC1-PRICING-SET SET   
+                 ON ERROR GO TO 8090-PRICING-ERROR. 
+
+       8020-PROCESS-PPMR.   
+PPC470*    IF (SAIL1-BASE-CURRENCY-CODE NOT = PPMR-CURRENCY-CODE)   
+PPC470     IF (TDP01-BASE-CURRENCY-CODE NOT = PPMR-CURRENCY-CODE)   
+              GO TO 8010-NEXT-PPMR. 
+
+PPC470*    IF (PPMR-SEASON-CODE NOT = SPACES AND RSP51-O-SEASON-CODE)   
+PPC470*       GO TO 8010-NEXT-PPMR. 
+
+PPC470*    IF PPMR-BROCHURE-TYPE (1) = SPACES AND   
+PPC470*          PPMR-BROCHURE-TYPE (2) = SPACES AND
+PPC470*          PPMR-BROCHURE-TYPE (3) = SPACES AND
+PPC470*          PPMR-BROCHURE-TYPE (4) = SPACES AND
+PPC470*          PPMR-BROCHURE-TYPE (5) = SPACES AND
+PPC470*          PPMR-BROCHURE-TYPE (6) = SPACES AND
+PPC470*          PPMR-BROCHURE-TYPE (7) = SPACES AND
+PPC470*          PPMR-BROCHURE-TYPE (8) = SPACES AND
+PPC470*          PPMR-BROCHURE-TYPE (9) = SPACES AND
+PPC470*          PPMR-BROCHURE-TYPE (10) = SPACES   
+PPC470*       NEXT SENTENCE 
+PPC470*    ELSE 
+PPC470*       IF RSP50-O-BROCHURE-TYPE = PPMR-BROCHURE-TYPE (1) OR  
+PPC470*                                  PPMR-BROCHURE-TYPE (2) OR  
+PPC470*                                  PPMR-BROCHURE-TYPE (3) OR  
+PPC470*                                  PPMR-BROCHURE-TYPE (4) OR  
+PPC470*                                  PPMR-BROCHURE-TYPE (5) OR  
+PPC470*                                  PPMR-BROCHURE-TYPE (6) OR  
+PPC470*                                  PPMR-BROCHURE-TYPE (7) OR  
+PPC470*                                  PPMR-BROCHURE-TYPE (8) OR  
+PPC470*                                  PPMR-BROCHURE-TYPE (9) OR  
+PPC470*                                  PPMR-BROCHURE-TYPE (10)
+PPC470*          NEXT SENTENCE  
+PPC470*       ELSE  
+PPC470*          GO TO 8010-NEXT-PPMR.  
+
+           FETCH FIRST PACKAGE-PRICING-CATEGORY-REC 
+                 WITHIN PACKAGE-PRICING-CATEGORY-SET SET
+                 ON ERROR GO TO 8090-PRICING-ERROR. 
+
+           IF RSP55-O-REQ-CNT = ZERO
+              MOVE PDR1-DESCRIPTION     TO  
+                                  U-1296-PKG-DESCRIPTION (U-1296-SUB)   
+              MOVE PDR1-MAX-PAX         TO  
+                                  U-1296-MAX-OCCUPANCY (U-1296-SUB) 
+              IF PDR1-CAR-IND = 'N' OR 'I'  
+                 MOVE PDR1-CAR-IND TO U-1296-CAR-CODE (U-1296-SUB)  
+              ELSE  
+                 MOVE 'O'          TO U-1296-CAR-CODE (U-1296-SUB)  
+              END-IF
+              IF PDR1-TRANSFER-IND = 'N' OR 'I' 
+                 MOVE PDR1-TRANSFER-IND TO U-1296-XFR-CODE (U-1296-SUB) 
+              ELSE  
+                 MOVE 'O'               TO U-1296-XFR-CODE (U-1296-SUB).
+
+114988     IF U-1296-PKG-CODE (U-1296-SUB) = 'ON1'  
+114988        MOVE 'Y' TO U-1296-OVER-NIGHT-PKG-IND (U-1296-SUB)
+114988     ELSE 
+114988        MOVE 'N' TO U-1296-OVER-NIGHT-PKG-IND (U-1296-SUB).   
+
+            IF WS-PKG-TYPE = 'A'
+               GO TO 8030-UPDATE-PST-PRICING.   
+
+            IF PDR1-TRANSFER-IND = 'C'  
+               PERFORM VARYING SUB FROM 1 BY 1 UNTIL SUB > 5
+108267            COMPUTE U-1296-PRE-XFR-RATE (U-1296-SUB SUB) ROUNDED =
+108267                    PPCR-PKG-ADLT-CAR-RATE (SUB) *
+108267                    WS-PRC-XCHG-RATE  
+                  IF SUB < 3
+108267                COMPUTE U-1296-PRE-XFR-RATE (U-1296-SUB SUB)  
+108267                 ROUNDED = U-1296-PRE-XFR-RATE (U-1296-SUB SUB) + 
+108267                       ( PPMR-XFR-RATE * WS-PRC-XCHG-RATE )   
+                  END-IF
+               END-PERFORM  
+            ELSE
+               IF (PDR1-TRANSFER-IND NOT = 'N') 
+                  PERFORM VARYING SUB FROM 1 BY 1 UNTIL SUB > 5 
+108267               COMPUTE U-1296-PRE-XFR-RATE (U-1296-SUB SUB)   
+108267                ROUNDED = PPCR-PKG-ADLT-RATE (SUB) *  
+108267                          WS-PRC-XCHG-RATE
+108267               COMPUTE U-1296-PRE-XFR-RATE (U-1296-SUB SUB)   
+108267                ROUNDED = U-1296-PRE-XFR-RATE (U-1296-SUB SUB) +  
+108267                          ( PPMR-XFR-RATE * WS-PRC-XCHG-RATE )
+               END-PERFORM. 
+
+            IF (PDR1-CAR-IND NOT = 'N') 
+               PERFORM VARYING SUB FROM 1 BY 1 UNTIL SUB > 5
+108267            COMPUTE U-1296-PRE-CAR-RATE (U-1296-SUB SUB) ROUNDED =
+108267                    PPCR-PKG-ADLT-CAR-RATE (SUB) *
+108267                    WS-PRC-XCHG-RATE  
+               END-PERFORM. 
+
+            IF PDR1-CAR-IND = 'I'   
+               PERFORM VARYING SUB FROM 1 BY 1 UNTIL SUB > 5
+108267            COMPUTE U-1296-PRE-PKG-RATE (U-1296-SUB SUB) ROUNDED =
+108267                    PPCR-PKG-ADLT-CAR-RATE (SUB) *
+108267                    WS-PRC-XCHG-RATE  
+               END-PERFORM  
+            ELSE
+               PERFORM VARYING SUB FROM 1 BY 1 UNTIL SUB > 5
+108267            COMPUTE U-1296-PRE-PKG-RATE (U-1296-SUB SUB) ROUNDED =
+108267                    PPCR-PKG-ADLT-RATE (SUB) *
+108267                    WS-PRC-XCHG-RATE  
+                  IF (PDR1-TRANSFER-IND = 'I')  
+108267               COMPUTE U-1296-PRE-PKG-RATE (U-1296-SUB SUB)   
+108267                ROUNDED = U-1296-PRE-PKG-RATE (U-1296-SUB SUB) +  
+108267                          ( PPMR-XFR-RATE * WS-PRC-XCHG-RATE )
+                  END-IF
+               END-PERFORM. 
+
+       8030-UPDATE-PST-PRICING. 
+            IF (WS-PKG-TYPE = 'B')  
+               GO TO 8099-EXIT. 
+
+            IF PDR1-TRANSFER-IND = 'C'  
+               PERFORM VARYING SUB FROM 1 BY 1 UNTIL SUB > 5
+108267            COMPUTE U-1296-PST-XFR-RATE (U-1296-SUB SUB) ROUNDED =
+108267                    PPCR-PKG-ADLT-CAR-RATE (SUB) *
+108267                    WS-PRC-XCHG-RATE  
+                  IF SUB < 3
+108267               COMPUTE U-1296-PST-XFR-RATE (U-1296-SUB SUB)   
+108267                ROUNDED = U-1296-PST-XFR-RATE (U-1296-SUB SUB) +  
+108267                          ( PPMR-XFR-RATE * WS-PRC-XCHG-RATE )
+                  END-IF
+               END-PERFORM  
+            ELSE
+               IF (PDR1-TRANSFER-IND NOT = 'N') 
+                  PERFORM VARYING SUB FROM 1 BY 1 UNTIL SUB > 5 
+108267               COMPUTE U-1296-PST-XFR-RATE (U-1296-SUB SUB)   
+108267                ROUNDED = PPCR-PKG-ADLT-RATE (SUB) *  
+108267                          WS-PRC-XCHG-RATE
+108267               COMPUTE U-1296-PST-XFR-RATE (U-1296-SUB SUB)   
+108267                ROUNDED = U-1296-PST-XFR-RATE (U-1296-SUB SUB) +  
+108267                          ( PPMR-XFR-RATE * WS-PRC-XCHG-RATE )
+               END-PERFORM. 
+
+            IF (PDR1-CAR-IND NOT = 'N') 
+               PERFORM VARYING SUB FROM 1 BY 1 UNTIL SUB > 5
+108267            COMPUTE U-1296-PST-CAR-RATE (U-1296-SUB SUB) ROUNDED =
+108267                    PPCR-PKG-ADLT-CAR-RATE (SUB) *
+108267                    WS-PRC-XCHG-RATE  
+               END-PERFORM. 
+
+            IF PDR1-CAR-IND = 'I'   
+               PERFORM VARYING SUB FROM 1 BY 1 UNTIL SUB > 5
+108267            COMPUTE U-1296-PST-PKG-RATE (U-1296-SUB SUB) ROUNDED =
+108267                    PPCR-PKG-ADLT-CAR-RATE (SUB) *
+108267                    WS-PRC-XCHG-RATE  
+               END-PERFORM  
+            ELSE
+               PERFORM VARYING SUB FROM 1 BY 1 UNTIL SUB > 5
+108267            COMPUTE U-1296-PST-PKG-RATE (U-1296-SUB SUB) ROUNDED =
+108267                    PPCR-PKG-ADLT-RATE (SUB) *
+108267                    WS-PRC-XCHG-RATE  
+                  IF (PDR1-TRANSFER-IND = 'I')  
+108267                  COMPUTE U-1296-PST-PKG-RATE (U-1296-SUB SUB)
+108267                   ROUNDED = U-1296-PST-PKG-RATE (U-1296-SUB SUB) 
+108267                           + ( PPMR-XFR-RATE * WS-PRC-XCHG-RATE ) 
+                  END-IF
+               END-PERFORM. 
+
+           GO TO 8099-EXIT. 
+
+       8090-PRICING-ERROR.  
+           IF WS-PKG-TYPE = ' ' 
+              MOVE 'N' TO U-1296-PRE-AVAIL-IND (U-1296-SUB) 
+                          U-1296-PST-AVAIL-IND (U-1296-SUB) 
+           ELSE 
+              IF WS-PKG-TYPE = 'A'  
+                 MOVE 'N' TO U-1296-PST-AVAIL-IND (U-1296-SUB)  
+              ELSE  
+                 MOVE 'N' TO U-1296-PRE-AVAIL-IND (U-1296-SUB). 
+
+       8099-EXIT.   
+           EXIT.
+
+       9000-END-OF-JOB. 
+
+133848*    GO TO DPP12-END-OF-JOB.  
+144449     GO TO DPP12-END-OF-JOB.  
+
+       9100-DATABASE-ERROR. 
+           GO TO DPP12-DATABASE-ERROR.  
+PPC470 9150-RDMS-ERROR. 
+PPC470     GO TO DPP12-RDMS-ERROR.  
+       9200-EDIT-ERROR. 
+144449     PERFORM DPP12-EDIT-ERROR-MSG 
+144449        THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+
+133848*    GO TO DPP12-END-OF-JOB.  
+144449*    GO TO DPP12-END-OF-JOB.  
+187917*    GO TO 9000-END-OF-JOB.   
+187917     GO TO DPP12-END-OF-JOB.  
+
+187917*9300-UASL-ERROR. 
+187917*    GO TO DPP12-UASL-ERROR.  
+
+163032 9500-RETURN-SUBROUTINE-ERROR.
+163032     GO TO DPP12-RETURN-SUBROUTINE-ERROR. 
+
+       10000-FETCH-GBR1-ERROR.  
+144449     MOVE 1000   TO DPP42-HOLD-MSG-INDEX. 
+
+           IF ERROR-NUM = '0007' OR '0013'  
+              GO TO 9200-EDIT-ERROR 
+           ELSE 
+              GO TO 9100-DATABASE-ERROR.
+
+PPC470*10100-SPKG-FETCH-ERROR.  
+PPC470*    MOVE 1001   TO DPP42-HOLD-MSG-INDEX. 
+
+PPC470*    IF ERROR-NUM = '0007' OR '0013'  
+PPC470*       MOVE SPACE TO DPP42-HOLD-MSG-DESC 
+PPC470*       MOVE WS-PROGRAM-NAME    TO DPP42-HOLD-MSG-SOURCE  
+PPC470*       STRING 'Packages are not availabe for this sailing:  '
+PPC470*        DELIMITED BY SIZE INTO DPP42-HOLD-MSG-DESC   
+PPC470*       PERFORM DPP12-INFO-MSG
+PPC470*       GO TO 9000-END-OF-JOB 
+PPC470*    ELSE 
+PPC470*       GO TO 9100-DATABASE-ERROR.
+
+       10200-SPKG-FETCH-ERROR.  
+144449     MOVE 1003   TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       10300-FETCH-PDR1-ERROR.  
+144449     MOVE 1003   TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9100-DATABASE-ERROR.   
+
+187917 11000-SEND-OUTPUT.   
+
+187917     PERFORM DPP12-OUTPUT-INFOMSG-TABLE   
+187917        THRU DPP12-OUTPUT-INFOMSG-TABLE-X.
+187917     IF DPP01-ISUB > 0
+187917        PERFORM VARYING DPP01-SUB FROM 1 BY 1 
+187917                UNTIL DPP01-SUB > DPP01-ISUB  
+187917           MOVE DPP01-INFO-MSG-SOURCE (DPP01-SUB) 
+187917                          TO U-1294-INFMSG-MSG-SOURCE (DPP01-SUB) 
+187917           MOVE DPP01-INFO-MSG-DESC (DPP01-SUB)   
+187917                          TO U-1294-INFMSG-MSG-DESC (DPP01-SUB)   
+187917           MOVE DPP01-INFO-MSG-STATUS (DPP01-SUB) 
+187917                          TO U-1294-INFMSG-MSG-STATUS (DPP01-SUB) 
+187917           MOVE DPP01-INFO-MSG-INDEX (DPP01-SUB)  
+187917                          TO U-1294-INFMSG-MSG-NUM (DPP01-SUB)
+187917           MOVE DPP01-INFO-MSG-BOOK-NUM (DPP01-SUB)   
+187917                          TO U-1294-INFMSG-BOOK-NUM (DPP01-SUB)   
+187917        END-PERFORM   
+187917     END-IF.  
+187917     MOVE FUNCTION LENGTH (X-OUTPUT-R-GRUPAV-BUFFER)  
+187917                                   TO DPP01-PLENGHT.  
+187917     MOVE X-OUTPUT-R-GRUPAV-BUFFER TO DPP01-MCB-OUTPUT-MESSAGE.   
+187917     PERFORM ECP75-SEND-OUTPUT
+187917        THRU ECP75-SEND-OUTPUT-EXIT.  
+
+187917 11000-SEND-OUTPUT-EXIT.  
+187917     EXIT.
+
+           COPY DPP11POP.   
+187917 COPY DPP12EER.   
+187917*    COPY DPP12UMI.   
+144449 COPY DPP12ERR.   
+187917 COPY DPP12MMI.   
+187917*COPY DPP12UER.   
+144449 COPY DPP12WDB.   
+134403*    COPY DPP12USE.   
+144449*    COPY DPP12USE REPLACING DPP12-END-OF-JOB 
+144449*                            BY DPP12-END-OF-JOB. 
+133617     COPY DPP45AOP.   
+187917 COPY ECP75MSG.   
+           COPY GRP01CAT.   
+187917 COPY GRP-R-RUI-PAV-INT.  
+           COPY RSP50INT.   
+187917*    COPY RUIPAV-P-1294.  
+187917*    COPY RUIPAV-R-1296.  
+163032*    COPY DPP79SEC.   
+           COPY RSP89LOD.   
+RE1011     COPY RSP89PAV.   
+           COPY RSP89RGC.   
+           COPY RSP89SAV.   
+           COPY RSP89VAA.   
+           COPY IRP66OIB.   
+PPC470     COPY TDP01SAP.   
+PPC470     COPY TDP02PKP.   

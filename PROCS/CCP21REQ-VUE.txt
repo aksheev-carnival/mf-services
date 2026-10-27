@@ -1,0 +1,1337 @@
+CCP21REQ PROC   
+      ******************************************************************
+      *  ISSDM00043734                                  RSA 09/18/2006 *
+      *  CONFIRMATION STATUS PROCEDURE.                                *
+      *                                                                *
+      *  WORKING-STORAGE SECTION MUST INCLUDE:                         *
+      *   COPY DPP03PWS                                                *
+      *   COPY CCP04ITW                                                *
+      *   COPY CCP04REW                                                *
+      *                                                                *
+      *  PROCEDURE DIVISION MUST INCLUDE:                              *
+      *   COPY CCP04ITI                                                *
+      *   COPY CCP04REQ                                                *
+      *   COPY DPP17PFR - see additional DPP17PFR requirements         *
+      *                                                                *
+      *  To Execute (for EACH PAX):                                    *
+      *   IF CALLING PROGRAM HAS FETCHED the COMPANY-REC,              *
+      *      SET CCP04-CMP-FETCHED = 'Y'                               *
+      *                                                                *
+      *   CALLING PROGRAM MUST HAVE SUCCESSFULLY PERFORMED             *
+      *      "DPP17-BUILD-COMPLETE-GUEST THRU DPP17-EXIT" FOR GUEST.   *
+      *                                                                *
+      *   1. PERFORM CCP04-INIT-VARIABLES THRU ccp04-PEXIT.            *
+      *   OR                                                           *
+      *   2. PERFORM CCP04-INIT-VARIABLES THRU ccp04-INIT-EXIT.        *
+      *   3. PERFORM CCP04-PROCESS REQUIREMENTS THRU ccp04-PEXIT.      *
+      *                                                                *
+      *  Output:                                                       *
+      *   1.  CCP04-ERROR-IND - When = "N", no errors                  *
+      *                         When = "Y", proc errored.              *
+      *   2.  CCP04-ERROR-MSG - Blank without errors, WITH ERRORS, it  *
+      *                         will contain TEXT of the error.        *
+      *   3.  CCP04-INS-FAIL-IND ("Y": some required INS-INFO missing) *
+      *                          ("N": ALL required INS-INFO verified) *
+      *   4.  CCP04-COP-FAIL-IND ("Y": some required COP-INFO missing) *
+      *                          ("N": ALL required COP-INFO verified) *
+      *   5.  CCP04-OUT-REQ-TABLE - ALL REQUIREMENTS FOR REQUESTED PAX *
+      *                             FOR ENTIRE ITINERARY               *
+C57276*       WHEN CCP04-OUT-MISSING-INFO = 'Y', REQ'D DATA FOR GUEST  *
+C57276*                                          IS MISSING.           *
+C57276*       WHEN CCP04-OUT-MISSING-INFO = 'O', OPTIONAL DATA FOR     *
+C57276*                                          GUEST IS MISSING.     *
+C57276*                 THIS IS USED BY IRR70APS TO FLAG MISSING DATA. *
+      ******************************************************************
+137336* 19-APR-12     PJ1     TCS LTD.               CQ137336          *
+137336* ISSUE WITH ONLINE CHECK IN FIXED                               *
+************************************************************************
+159175* 22-OCT-13     5NS     TCS LTD.               CQ159175          *
+159175* ONLINE CHECK IN SHOULD BE COMPLETE IF DOCUMENTS ENTERED        *
+************************************************************************
+148695* 29-MAY-14     DOB     TCS LTD.               CQ148695          *
+148695* USE PPHOR PHONE NUM AND TYPE FOR PAX SINCE PAX COMMENTED-OUT   *
+************************************************************************
+156569* 06-MAY-15     PY0     TCS LTD.               CQ156569          *
+156569* EZAIR PROJECT CHANGES.                                         *
+************************************************************************
+208137* 19-APR-12     AJS     TCS LTD.               CQ208137          *
+208137* ISSUE CITY AND ISSUE DATE FIELDS ARE BEING REMOVED FROM OLC.   *
+************************************************************************
+209469* 26-DEC-17     TEK     TCS LTD.               CQ209469          *
+209469* ZIP CODE AND STATE CODE ARE MANDATORY FIELDS ONLY FOR THE      *
+209469* COUNTRY CODE 'US' AND 'CA' IN THE NEW OLC.                     *
+*********************************************************************** 
+209469* 13-FEB-18     TEK     TCS LTD.               CQ209469          *
+209469* CODE CHANGES TO MAKE THE PRIMARY/HOME PHONE NUMBER FIELD AS    *
+209469* OPTIONAL IN THE NEW OLC DESIGN.                                *
+************************************************************************
+209494* 21-JUN-18    2AS      TCS LTD.               CQ209494          *
+209494* CHANGES DONE TO ADD BIRTH CERTIFICATE OPTION FOR CANADIAN      *
+209494* CHILDREN 15 AND UNDER.                                         *
+************************************************************************
+PPC470* 01-DEC-17     9AA     TCS LTD.               PPC470            *
+PPC470* PPC PROJECT CHANGES.                                           *
+************************************************************************
+189311* 22-JUL-25    1HP      TCS LTD.               ADO1893112        *
+189311* CHANGES ARE DONE TO SEND PASSPORT AS ONLY REQUIRED DOCUMENT ON *
+189311* JOURNEY CURISES MENTION IN ADO.                                *
+************************************************************************
+226201* 10-JUL-26    VUE      TCS LTD.               ADO2262014        *
+226201* CHANGES ARE DONE TO DISPLAY THE DOCUMENTS ACCORDING TO GUEST   *
+226201* AGE FOR AU DOMESTIC SAILING.                                   *
+************************************************************************
+
+       CCP04-INIT-VARIABLES.
+           MOVE 'N'    TO CCP04-INS-FAIL-IND,   
+                          CCP04-COP-FAIL-IND,   
+                          CCP04-END-IMI-IND,
+C73528                    CCP04-REQ-IND,
+C73528                    CCP04-OPT-IND,
+                          CCP04-GET-NEXT-PORT-IND,  
+                          CCP04-ERROR-IND.  
+C60521     MOVE 'N'    TO CCP04-GUEST-FAIL-IND, 
+C60521                    CCP04-IMMIG-FAIL-IND, 
+C60521                    CCP04-CONTRACT-FAIL-IND,  
+C60521                    CCP04-SAIL-SIGN-FAIL-IND  
+C60521                    CCP04-SEL-SHIP-IND.   
+
+           INITIALIZE CCP04-ALL-ENTRY.  
+           MOVE SPACES TO CCP04-CHECK-IND,  
+                          CCP04-ERROR-MSG,  
+                          CCP04-EXC-FOUND-IND,  
+                          CCP04-NAT-CODE.   
+
+           MOVE ZEROES TO CCP04-TODAY-PORT-DATE,
+                          CCP04-EFF-BEG-DATE,   
+                          CCP04-EFF-END-DATE,   
+                          CCP04-AGRDT-SUB,  
+                          CCP04-IT-SUB, 
+                          CCP04-GT-SUB, 
+                          CCP04-IT-SUB, 
+                          CCP04-RC-SUB, 
+                          CCP04-RT-SUB, 
+                          CCP04-EDT-SUB,
+                          CCP04-PIID-SUB,   
+                          CCP04-SUBA,   
+                          CCP04-SUBB,   
+                          CCP04-SUBC,   
+C73528                    CCP04-COUNT,  
+                          CCP04-SUBD.   
+
+           MOVE 'C' TO CCP04-PIAR-VALID-SW. 
+FUNPAS*                CCP04-PICOT-VALID-SW .   
+122022*                CCP04-PICRC-VALID-SW.
+           MOVE 'I' TO CCP04-PICF-VALID-SW  
+SOTPRJ                 CCP04-PICH-VALID-SW. 
+
+      ************************************************************* 
+      * INITIALIZE TABLES                                         * 
+      ************************************************************* 
+           INITIALIZE CCP04-WRK-REQ-TABLE.  
+           INITIALIZE CCP04-OUT-REQ-TABLE.  
+       CCP04-INIT-EXIT. 
+           EXIT.
+
+       CCP04-PROCESS-REQUIREMENTS.  
+           IF CCP04-CMP-FETCHED = 'N' OR SPACE  
+163032        MOVE SPACES                TO  SSP05-I-AN-PARAMS  
+163032        MOVE 'C'                   TO  SSP05-I-COMPANY-CODE   
+163032        CALL 'SSC05GCD' USING DPP01-COMMON-DATA-FIELDS
+163032                              DPP01-COMMON-INFO   
+163032                              SSP05-INPUT-PARAMS  
+163032                              SSP05-OUTPUT-PARAMS 
+163032        IF DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1 
+163032           GO TO 9500-RETURN-SUBROUTINE-ERROR 
+163032        END-IF
+              MOVE 'Y' TO CCP04-CMP-FETCHED 
+           END-IF.  
+
+           IF CCP04-ISCXR-FETCHED = 'N' OR SPACE
+              MOVE 47071001        TO DPP01-ERROR-NUMBER
+              MOVE 1 TO PAGE-NUM   OF ITINSPEC-AREA-KEY 
+                        RECORD-NUM OF ITINSPEC-AREA-KEY 
+              MOVE 'ITINSPEC'      TO ITINSPEC-AREA-NAME
+              FETCH ITIN-SPECIFIC-CODE-XREF-REC RECORD  
+                 ON ERROR GO TO CCP04-PR-ERROR  
+              PERFORM CCP04-PROCESS-ITINERARY THRU ccp04-EXIT   
+              MOVE 'Y' TO CCP04-ISCXR-FETCHED   
+           END-IF.  
+
+       CCP04-PR-ERROR.  
+           IF ERROR-NUM > '0000'
+              MOVE 'Y' TO CCP04-ERROR-IND   
+              MOVE 'CMP-REC OR ISCXR-REC NOT FOUND' TO CCP04-ERROR-MSG  
+              GO TO CCP04-PERROR
+           END-IF.  
+
+C60521     MOVE 'N'                     TO CCP04-SEL-SHIP-IND.  
+C60521     IF CCP04-ALL-SHIP-IND = 'N'  
+C60521        MOVE DPP03-SAIL-DATE      TO CCP04-SAIL-DATE  
+C60521        PERFORM VARYING CCP04-SEL-SUB FROM 1 BY 1 
+C60521           UNTIL CCP04-SEL-SUB > ccp04-SEL-SHIP-COUNT OR  
+C60521                 CCP04-SEL-SHIP-IND = 'Y' 
+C60521           IF DPP03-SHIP-CODE =   
+C60521                    CCP04-SEL-SHIP (ccp04-SEL-SUB) AND
+C60521              CCP04-SAIL-DATE >=  
+C60521                    CCP04-SEL-DATE (ccp04-SEL-SUB)
+C60521              MOVE 'Y'            TO CCP04-SEL-SHIP-IND   
+C60521           END-IF 
+C60521        END-PERFORM   
+C60521     END-IF.  
+
+      ***************************************************************** 
+      ** LOAD COMPANY REQUIREMENTs TO "CCP04-WRK-TABLE".              * 
+      ***************************************************************** 
+           MOVE 'C' TO CCP04-CHECK-IND. 
+           PERFORM CCP04-CMP-REQUIREMENTS THRU ccp04-CREXIT 
+              VARYING CCP04-AGRDT-SUB FROM 1 BY 1   
+                UNTIL CCP04-AGRDT-SUB > 30. 
+           MOVE ' ' TO CCP04-CHECK-IND. 
+
+      ***************************************************************** 
+      ** LOAD ITINERARY-SPECIFIC RECORDS TO "CCP04-WRK-TABLE".       ** 
+      ***************************************************************** 
+           PERFORM CCP04-GUEST-ITIN-REQS THRU ccp04-GREXIT  
+              VARYING CCP04-IT-SUB FROM 1 BY 1  
+C57897*         UNTIL ((CCP04-IT-SUB > 14) OR   
+C57897          UNTIL ((CCP04-IT-SUB > 125) OR  
+                       (CCP04-O-PORT-CODE (ccp04-IT-SUB) = SPACES)) 
+
+      ********************************************************* 
+      ** MOVE CCP04-WRK-TABLE ENTRIES TO ccp04-OUT-REQ TABLE ** 
+      ********************************************************* 
+           MOVE 'N' TO CCP04-NOMORE-IND.
+
+           PERFORM VARYING CCP04-SUBA FROM 1 BY 1 UNTIL NO-MORE 
+              IF CCP04-WRK-DATA (ccp04-SUBA) > SPACES   
+                 MOVE CCP04-WRK-DATA (ccp04-SUBA)   
+                   TO CCP04-OUT-ENTRY (ccp04-SUBA)  
+              ELSE  
+C73528           MOVE CCP04-SUBA  TO ccp04-COUNT
+                 MOVE 'Y' TO CCP04-NOMORE-IND   
+             END-IF 
+           END-PERFORM. 
+
+C73528     PERFORM VARYING CCP04-SUBA FROM 1 BY 1   
+C73528               UNTIL CCP04-SUBA > ccp04-COUNT 
+C73528        IF CCP04-OUT-DOC-TYPE (ccp04-SUBA) = 'I'  
+C73528           IF CCP04-OUT-RQD-OR-OPT (ccp04-SUBA) = 'O' 
+C73528              MOVE 'Y'      TO CCP04-OPT-IND  
+C73528           ELSE   
+C73528             IF CCP04-OUT-RQD-OR-OPT (ccp04-SUBA) = 'R'   
+C73528                MOVE 'Y'    TO CCP04-REQ-IND  
+C73528             END-IF   
+C73528           END-IF 
+C73528        END-IF
+C73528     END-PERFORM. 
+C73528     IF (CCP04-OPT-IND = 'Y' AND ccp04-REQ-IND = 'Y') 
+C73528         PERFORM VARYING CCP04-SUBA FROM 1 BY 1   
+C73528                 UNTIL CCP04-SUBA > ccp04-COUNT   
+C73528           IF (CCP04-OUT-DOC-TYPE (ccp04-SUBA) = 'I') AND 
+C73528              (CCP04-OUT-RQD-OR-OPT (ccp04-SUBA) = 'O')   
+C73528               MOVE SPACES  TO CCP04-OUT-DOC-DESC   (ccp04-SUBA)  
+C73528               MOVE SPACES  TO CCP04-OUT-RQD-OR-OPT (ccp04-SUBA)  
+C73528           END-IF 
+C73528         END-PERFORM  
+C73528     END-IF.  
+       CCP04-PERROR.
+           IF CCP04-ERROR-IND = 'Y' 
+DISPLY*       DISPLAY 'CCP04-ERROR: ' ccp04-ERROR-MSG UPON PRINTER  
+              INITIALIZE CCP04-OUT-REQ-TABLE
+           END-IF.  
+
+       CCP04-PEXIT. 
+           EXIT.
+
+       CCP04-CMP-REQUIREMENTS.  
+163032     IF SSP05-O-ALL-GUEST-REQ-CODE (CCP04-AGRDT-SUB) NOT > SPACES 
+              MOVE 31 TO CCP04-AGRDT-SUB
+              GO TO CCP04-CREXIT
+           END-IF.  
+
+           MOVE 20000101 TO CCP04-WRK-EFF-BEG-DATE (ccp04-AGRDT-SUB).   
+           MOVE ZEROES   TO CCP04-WRK-EFF-END-DATE (ccp04-AGRDT-SUB).   
+           MOVE 'C'      TO CCP04-WRK-REC-TYPE (ccp04-AGRDT-SUB).   
+
+163032     MOVE SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB)
+C89405         TO CCP04-ALL-GUEST-OPT-CODE. 
+163032     IF SSP05-O-ALL-GUEST-REQ-CODE (CCP04-AGRDT-SUB) = 'COP'  
+              IF DPP03-PAX-FARE-TYPE = 'C'  
+163032          IF SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) =   
+163032                'R' OR 'F'
+                   PERFORM CCP04-VALIDATE-COP THRU ccp04-COP-EXIT   
+                   IF  (CCP04-PIAR-VALID-SW   = 'C')   AND  
+                      ((CCP04-PICF-VALID-SW   = 'C')   OR   
+                       (CCP04-PICH-VALID-SW   = 'C'))  OR   
+FUNCAR                ((CCP04-PIAR-CAR-PARKED = 'Y')   OR   
+FUNCAR                 (CCP04-PIAR-CAR-COP-VALID))  
+SOTPRJ                  PERFORM CCP04-SET-COP-IND THRU  
+SOTPRJ                          CCP04-SET-COP-EXIT  
+                        GO TO CCP04-COMPANY-MOVES   
+                   ELSE 
+163032                IF SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) = 
+163032                      'R' 
+C57276                   MOVE 'Y' TO CCP04-COP-FAIL-IND,
+C57276                               CCP04-ALL-MISSING-INFO 
+DISPLY*                  DISPLAY 'COP INFO MISSING' UPON PRINTER
+                         GO TO CCP04-COMPANY-MOVES  
+                      END-IF
+                   END-IF   
+                ELSE
+                   GO TO CCP04-COMPANY-MOVES
+                END-IF  
+              END-IF
+           END-IF.  
+
+163032     IF SSP05-O-ALL-GUEST-REQ-CODE (CCP04-AGRDT-SUB) = 'BDT'  
+163032        IF SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) = 'R' OR  
+163032                                                          'F' 
+                 IF DPP03-PAX-BIRTH-DATE > ZEROES   
+                    GO TO CCP04-COMPANY-MOVES   
+                 ELSE   
+163032              IF SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) =   
+163032                    'R'   
+C57276*                MOVE 'Y' TO CCP04-COP-FAIL-IND,  
+GEDOCS                 MOVE 'Y' TO CCP04-INS-FAIL-IND,  
+C57276                             CCP04-ALL-MISSING-INFO   
+C60521                             CCP04-GUEST-FAIL-IND 
+DISPLY*                DISPLAY 'BIRTH DATE REQUIRED' UPON PRINTER   
+                       GO TO CCP04-COMPANY-MOVES
+                    ELSE
+                       GO TO CCP04-COMPANY-MOVES
+                    END-IF  
+                 END-IF 
+              ELSE  
+                 GO TO CCP04-COMPANY-MOVES  
+              END-IF
+           END-IF.  
+
+163032     IF SSP05-O-ALL-GUEST-REQ-CODE (CCP04-AGRDT-SUB) = 'MED'  
+163032        IF SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) = 
+                                            'R' OR 'F' OR 'O' OR SPACE  
+                 GO TO CCP04-COMPANY-MOVES  
+           END-IF.  
+C89405  
+C89405*    The IDN code is saved in company record to indicate  
+C89405*    whether immigration document names are required.  At this
+C89405*    time OPT-CODE is expected to be 'F' (front-end). 
+C89405*    When it is 'F', it won't be required for FunPass complete
+C89405*    status.  However, the front-end needs to collect the 
+C89405*    names only if guest if fly-aweigh or BFA.  (CCR12BKD will
+C89405*    will convert 'F' to 'R' when sending to front end.)  
+C89405  
+163032     IF      ( SSP05-O-ALL-GUEST-REQ-CODE (CCP04-AGRDT-SUB)   
+C89405              = 'IDN')
+163032       IF      ( SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) 
+C89405                = 'R')
+C89405         IF      (DPP03-PIAR-DOC-FIRST-NAME <= SPACE) 
+C89405             OR  (DPP03-PIAR-DOC-LAST-NAME <= SPACE)  
+C89405           MOVE 'Y'            TO CCP04-INS-FAIL-IND, 
+C89405           MOVE 'Y'            TO CCP04-ALL-MISSING-INFO  
+C89405           MOVE 'Y'            TO CCP04-GUEST-FAIL-IND
+C89405         END-IF   
+C89405       ELSE   
+163032         IF      ( SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB)   
+C89405                  = 'F')  
+C89405           IF      (DPP03-PAX-FARE-TYPE = 'F')
+156569*              OR  (DPP03-PAX-BEST-FARE-AIR-IND = 'Y')
+C89405             GO TO CCP04-COMPANY-MOVES
+C89405           END-IF 
+C89405*          When the code is for front-end only, we want to convert
+C89405*          it to optional for cruise-only guests. 
+C89405           MOVE 'O'            TO CCP04-ALL-GUEST-OPT-CODE
+C89405         END-IF   
+C89405       END-IF 
+C89405       GO TO CCP04-COMPANY-MOVES  
+C89405     END-IF.  
+C89405  
+163032     IF SSP05-O-ALL-GUEST-REQ-CODE (CCP04-AGRDT-SUB) = 'HAD'  
+163032        IF SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) = 'R' OR  
+163032                                                          'F' 
+                 IF ((DPP03-PIAR-READ-IND = 'Y' OR 'C') AND 
+                     (DPP03-PIAR-ADDR1 > SPACES)  AND   
+                     (DPP03-PIAR-CITY > SPACES)   AND   
+                     (DPP03-PIAR-COUNTRY > SPACES)) 
+                      IF DPP03-PIAR-COUNTRY = 'US' OR 'CA'  
+209469*                                    OR 'VI' OR 'PR'  
+                         IF ((DPP03-PIAR-STATE NOT > SPACES) OR 
+                             (DPP03-PIAR-ZIP-CODE NOT > SPACES))
+163032                        IF SSP05-O-ALL-GUEST-OPT-CODE 
+                                         (CCP04-AGRDT-SUB) = 'R'
+C57276*                          MOVE 'Y' TO CCP04-COP-FAIL-IND,
+GEDOCS                           MOVE 'Y' TO CCP04-INS-FAIL-IND,
+C57276                                       CCP04-ALL-MISSING-INFO 
+C60521                                       CCP04-GUEST-FAIL-IND   
+DISPLY*                          DISPLAY 'HOME ADDR INCOMPLETE' 
+DISPLY*                             UPON PRINTER
+                                 GO TO CCP04-COMPANY-MOVES  
+                              ELSE  
+                                 GO TO CCP04-COMPANY-MOVES  
+                              END-IF
+                         ELSE   
+                              GO TO CCP04-COMPANY-MOVES 
+                         END-IF 
+                      ELSE  
+                         GO TO CCP04-COMPANY-MOVES  
+                      END-IF
+                 ELSE   
+163032              IF SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) =   
+163032                                                         'R'  
+C57276*                MOVE 'Y' TO CCP04-COP-FAIL-IND,  
+GEDOCS                 MOVE 'Y' TO CCP04-INS-FAIL-IND,  
+C57276                             CCP04-ALL-MISSING-INFO   
+C60521                             CCP04-GUEST-FAIL-IND 
+DISPLY*                DISPLAY 'HOME ADDR INCOMPLETE' UPON PRINTER  
+                       GO TO CCP04-COMPANY-MOVES
+                    END-IF  
+                 END-IF 
+              ELSE  
+                 GO TO CCP04-COMPANY-MOVES  
+              END-IF
+           END-IF.  
+
+163032     IF SSP05-O-ALL-GUEST-REQ-CODE (CCP04-AGRDT-SUB) = 'MNM'  
+163032        IF SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) = 'R' OR  
+163032                                                          'F' 
+                 IF ((DPP03-PIAR-READ-IND = 'Y' OR 'C') AND 
+C89405               (DPP03-PIAR-DOC-MIDDLE-NAME > SPACES)) 
+                      GO TO CCP04-COMPANY-MOVES 
+                 ELSE   
+163032              IF SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) =   
+163032                                                            'R'   
+C57276*                MOVE 'Y' TO CCP04-COP-FAIL-IND,  
+GEDOCS                 MOVE 'Y' TO CCP04-INS-FAIL-IND,  
+C57276                             CCP04-ALL-MISSING-INFO   
+C60521                             CCP04-GUEST-FAIL-IND 
+DISPLY*                DISPLAY 'MIDDLE NAME MISSING' UPON PRINTER   
+                       GO TO CCP04-COMPANY-MOVES
+                    ELSE
+                       GO TO CCP04-COMPANY-MOVES
+                    END-IF  
+                 END-IF 
+              ELSE  
+                 GO TO CCP04-COMPANY-MOVES  
+              END-IF
+           END-IF.  
+
+163032     IF SSP05-O-ALL-GUEST-REQ-CODE (CCP04-AGRDT-SUB) = 'HPN'  
+163032        IF SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) = 'R' OR  
+163032                                                          'F' 
+148695*          IF DPP03-PAX-PHONE-NUM > ZEROES
+148695*             GO TO CCP04-COMPANY-MOVES   
+148695*          ELSE   
+148695*             IF SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) =   
+148695*                                                           'R'   
+C57276*                MOVE 'Y' TO CCP04-COP-FAIL-IND,  
+148695*                MOVE 'Y' TO CCP04-INS-FAIL-IND,  
+148695*                            CCP04-ALL-MISSING-INFO   
+148695*                            CCP04-GUEST-FAIL-IND 
+DISPLY*                DISPLAY 'HOME PHONE REQUIRED' UPON PRINTER   
+148695*                GO TO CCP04-COMPANY-MOVES
+148695*             ELSE
+148695*                GO TO CCP04-COMPANY-MOVES
+148695*             END-IF  
+148695*          END-IF 
+156569*          IF DPP03-PPHOR-EXIST-IND = 'Y' 
+156569*             PERFORM VARYING CCP04-SUBA FROM 1 BY 1  
+156569*               UNTIL DPP03-PPHOR-PHONE-TYPE  
+156569*                          (CCP04-SUBA) = 'H' 
+156569*                  OR CCP04-SUBA > DPP03-PPHOR-PHONE-CNT  
+156569*                 CONTINUE
+156569*             END-PERFORM 
+156569* 
+156569*             IF CCP04-SUBA <= DPP03-PPHOR-PHONE-CNT  
+156569*                IF DPP03-PPHOR-PHONE-NUM (CCP04-SUBA) > ZEROES   
+156569*                   GO TO CCP04-COMPANY-MOVES 
+156569*                END-IF   
+156569*             END-IF  
+156569*          END-IF 
+156569           IF DPP03-PPHOR-EXIST-IND = 'Y' 
+156569              PERFORM VARYING CCP04-PPHOR-SUB FROM 1 BY 1 
+156569                UNTIL DPP03-PPHOR-PHONE-TYPE  
+156569                           (CCP04-PPHOR-SUB) = 'H'
+156569                   OR CCP04-PPHOR-SUB > DPP03-PPHOR-PHONE-CNT 
+156569                  CONTINUE
+156569              END-PERFORM 
+156569  
+156569              IF CCP04-PPHOR-SUB <= DPP03-PPHOR-PHONE-CNT 
+156569                 IF DPP03-PPHOR-PHONE-NUM (CCP04-PPHOR-SUB)   
+156569                                                         > ZEROES 
+156569                    GO TO CCP04-COMPANY-MOVES 
+156569                 END-IF   
+156569              END-IF  
+156569           END-IF 
+209469           GO TO CCP04-COMPANY-MOVES  
+209469*          IF SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB)
+209469*                                                      = 'R'  
+209469*             MOVE 'Y' TO CCP04-INS-FAIL-IND  
+209469*                         CCP04-ALL-MISSING-INFO  
+209469*                         CCP04-GUEST-FAIL-IND
+209469*             GO TO CCP04-COMPANY-MOVES   
+209469*          ELSE   
+209469*             GO TO CCP04-COMPANY-MOVES   
+209469*          END-IF 
+              ELSE  
+                 GO TO CCP04-COMPANY-MOVES  
+              END-IF
+           END-IF.  
+
+163032     IF SSP05-O-ALL-GUEST-REQ-CODE (CCP04-AGRDT-SUB) = 'COR'  
+163032        IF SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) = 'R' OR  
+163032                                                          'F' 
+                 IF ((DPP03-PIAR-READ-IND = 'Y' OR 'C') AND 
+                     (DPP03-PIAR-RESIDENCE-COUNTRY > SPACES))   
+                      GO TO CCP04-COMPANY-MOVES 
+                 ELSE   
+163032              IF SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) =   
+163032                                                            'R'   
+C57276*                MOVE 'Y' TO CCP04-COP-FAIL-IND,  
+GEDOCS                 MOVE 'Y' TO CCP04-INS-FAIL-IND,  
+C57276                             CCP04-ALL-MISSING-INFO   
+C60521                             CCP04-IMMIG-FAIL-IND 
+DISPLY*                DISPLAY 'RESIDENCY MISSING  ' UPON PRINTER   
+                       GO TO CCP04-COMPANY-MOVES
+                    ELSE
+C57276                 MOVE 'O' TO CCP04-ALL-MISSING-INFO   
+                       GO TO CCP04-COMPANY-MOVES
+                    END-IF  
+                 END-IF 
+              ELSE  
+                 GO TO CCP04-COMPANY-MOVES  
+              END-IF
+           END-IF.  
+
+163032     IF SSP05-O-ALL-GUEST-REQ-CODE (CCP04-AGRDT-SUB) = 'NAT'  
+163032        IF SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) = 'R' OR  
+163032                                                          'F' 
+                 IF DPP03-PAX-NATIONALITY-CODE  > SPACES
+                    GO TO CCP04-COMPANY-MOVES   
+                 ELSE   
+163032              IF SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) =   
+163032                                                           'R'
+C57276*                MOVE 'Y' TO CCP04-COP-FAIL-IND,  
+GEDOCS                 MOVE 'Y' TO CCP04-INS-FAIL-IND,  
+C57276                             CCP04-ALL-MISSING-INFO   
+C60521                             CCP04-IMMIG-FAIL-IND 
+DISPLY*                DISPLAY 'NATIONALITY MISSING' UPON PRINTER   
+                       GO TO CCP04-COMPANY-MOVES
+                    ELSE
+                       GO TO CCP04-COMPANY-MOVES
+                    END-IF  
+                 END-IF 
+              ELSE  
+                 GO TO CCP04-COMPANY-MOVES  
+              END-IF
+           END-IF.  
+
+163032     IF SSP05-O-ALL-GUEST-REQ-CODE (CCP04-AGRDT-SUB) = 'EMA'  
+163032        IF SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) = 'R' OR  
+163032                                                          'F' 
+                 IF ((DPP03-PIER-READ-IND = 'Y') AND
+                     (DPP03-PIER-EMAIL-ADDR > SPACES))  
+                      GO TO CCP04-COMPANY-MOVES 
+                 ELSE   
+163032              IF SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) =   
+163032                                                         'R'  
+C57276*                MOVE 'Y' TO CCP04-COP-FAIL-IND,  
+GEDOCS                 MOVE 'Y' TO CCP04-INS-FAIL-IND,  
+C57276                             CCP04-ALL-MISSING-INFO   
+C60521                             CCP04-GUEST-FAIL-IND 
+DISPLY*                DISPLAY 'EMAIL ADDR REQUIRED' UPON PRINTER   
+                       GO TO CCP04-COMPANY-MOVES
+                    ELSE
+                       GO TO CCP04-COMPANY-MOVES
+                    END-IF  
+                 END-IF 
+              ELSE  
+                 GO TO CCP04-COMPANY-MOVES  
+              END-IF
+           END-IF.  
+
+163032     IF SSP05-O-ALL-GUEST-REQ-CODE (CCP04-AGRDT-SUB) = 'PGI'  
+163032        IF SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) = 'R' OR  
+163032                                                          'F' 
+                 IF ((DPP03-PAX-PAST-IND = 'Y') AND 
+                     (DPP03-PAX-PAST-GUEST-NUM > ZEROES))   
+                     GO TO CCP04-COMPANY-MOVES  
+                 ELSE   
+163032              IF SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) =   
+163032                                                             'R'  
+C57276*                MOVE 'Y' TO CCP04-COP-FAIL-IND,  
+GEDOCS                 MOVE 'Y' TO CCP04-INS-FAIL-IND,  
+C57276                             CCP04-ALL-MISSING-INFO   
+C60521                             CCP04-GUEST-FAIL-IND 
+DISPLY*                DISPLAY 'PAST GUEST NUM REQD' UPON PRINTER   
+                       GO TO CCP04-COMPANY-MOVES
+                    ELSE
+                       GO TO CCP04-COMPANY-MOVES
+                    END-IF  
+                 END-IF 
+              ELSE  
+                 GO TO CCP04-COMPANY-MOVES  
+              END-IF
+           END-IF.  
+C10010  
+163032     IF SSP05-O-ALL-GUEST-REQ-CODE (CCP04-AGRDT-SUB) = 'NOK'  
+163032        IF SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) = 'R' OR  
+163032                                                          'F' 
+C10010          IF DPP03-PICR-READ-IND = 'Y'
+C10010               PERFORM VARYING CCP04-PICR-SUB FROM 1 BY 1 
+C10010                       UNTIL CCP04-PICR-SUB > 3   
+C10010                  MOVE DPP03-PICR-RELATIONSHIP (CCP04-PICR-SUB)   
+C10010                       TO CCP04-PICR-RELATIONSHIP 
+C10010                  IF CCP04-PICR-RELATIONSHIP > SPACES AND 
+C10010                     DPP03-PICR-FIRST-NAME (CCP04-PICR-SUB)   
+C10010                                              > SPACES AND
+C10010                     DPP03-PICR-LAST-NAME (CCP04-PICR-SUB)
+C10010                                              > SPACES AND
+C10010                     DPP03-PICR-PHONE-NUM (CCP04-PICR-SUB, 1) 
+C10010                                              > ZEROES AND
+C10010                     (CCP04-PICR-RELATIONSHIP (1:4)   
+C10010                                              NOT = 'SELF')   
+C10010                     GO TO CCP04-COMPANY-MOVES
+C10010                  END-IF  
+C10010               END-PERFORM
+C10010           END-IF 
+C10010         END-IF   
+C10010     END-IF.  
+C10010  
+163032     IF SSP05-O-ALL-GUEST-REQ-CODE (CCP04-AGRDT-SUB) = 'NOK'  
+163032        IF SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) = 'R' OR  
+163032                                                          'F' 
+163032              IF SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) =   
+163032                                                            'R'   
+C57276*                MOVE 'Y' TO CCP04-COP-FAIL-IND,  
+GEDOCS                 MOVE 'Y' TO CCP04-INS-FAIL-IND,  
+C57276                             CCP04-ALL-MISSING-INFO   
+C60521                             CCP04-GUEST-FAIL-IND 
+DISPLY*                DISPLAY 'NEXT-OF-KIN MISSING' UPON PRINTER   
+                       GO TO CCP04-COMPANY-MOVES
+                    ELSE
+C57276                 MOVE 'O' TO CCP04-ALL-MISSING-INFO   
+                       GO TO CCP04-COMPANY-MOVES
+                    END-IF  
+              ELSE  
+                 GO TO CCP04-COMPANY-MOVES  
+              END-IF
+           END-IF.  
+
+163032     IF SSP05-O-ALL-GUEST-REQ-CODE (CCP04-AGRDT-SUB) = 'CPC'  
+163032        IF SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) = 'R' OR  
+163032                                                          'F' 
+                 IF ((DPP03-PICC-READ-IND = 'Y')                   AND  
+                     (DPP03-PICC-GUARDIAN-INFO-CNT > 0)            AND  
+                     (DPP03-PICC-SELF-SGNOUT-ALD-IND = 'Y' OR 'N') AND  
+                     (DPP03-PICC-SWIMMING-ALD-IND = 'Y' OR 'N'))
+                      PERFORM VARYING CCP04-SUBA FROM 1 BY 1
+                        UNTIL CCP04-SUBA > DPP03-PICC-GUARDIAN-INFO-CNT 
+                        IF ((DPP03-PICC-GUARDIAN-FIRST-NAME (CCP04-SUBA)
+                                                               > SPACES)
+                        AND (DPP03-PICC-GUARDIAN-LAST-NAME (CCP04-SUBA) 
+                                                              > SPACES))
+                             CONTINUE   
+                        ELSE
+163032                       IF SSP05-O-ALL-GUEST-OPT-CODE  
+163032                                         (CCP04-AGRDT-SUB) = 'R'  
+                                MOVE 9 TO CCP04-SUBA
+                             END-IF 
+                        END-IF  
+                      END-PERFORM   
+                      IF CCP04-SUBA = 9 
+C57276*                  MOVE 'Y' TO CCP04-COP-FAIL-IND,
+GEDOCS                   MOVE 'Y' TO CCP04-INS-FAIL-IND,
+C57276                               CCP04-ALL-MISSING-INFO 
+C60521                               CCP04-GUEST-FAIL-IND   
+DISPLY*                  DISPLAY 'CMP-CNV INFO MISSNG' UPON PRINTER 
+                         GO TO CCP04-COMPANY-MOVES  
+                      END-IF
+                 END-IF 
+C60521        ELSE  
+C60521           GO TO CCP04-COMPANY-MOVES  
+              END-IF
+           END-IF.  
+
+C60521     IF CCP04-ALL-SHIP-IND = 'Y' OR   
+C60521        CCP04-SEL-SHIP-IND = 'Y'  
+163032        IF SSP05-O-ALL-GUEST-REQ-CODE (CCP04-AGRDT-SUB)    = 'CAR'
+163032           IF SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) = 'R'  
+C60521              IF DPP03-ACCEPTED-FLAG = 'Y'
+C60521                 GO TO CCP04-COMPANY-MOVES
+C60521              ELSE
+C60521                 MOVE 'Y' TO CCP04-CONTRACT-FAIL-IND, 
+C60521                             CCP04-ALL-MISSING-INFO   
+C60521                 GO TO CCP04-COMPANY-MOVES
+C60521              END-IF  
+C60521           ELSE   
+C60521              GO TO CCP04-COMPANY-MOVES   
+C60521           END-IF 
+C60521        END-IF
+163032        IF SSP05-O-ALL-GUEST-REQ-CODE (CCP04-AGRDT-SUB)    = 'SSR'
+163032           IF SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) = 'R'  
+C60521              IF DPP03-ONACCT-FLAG = 'Y'  
+C60521                 GO TO CCP04-COMPANY-MOVES
+C60521              ELSE
+C60521                 MOVE 'Y' TO CCP04-SAIL-SIGN-FAIL-IND,
+C60521                             CCP04-ALL-MISSING-INFO   
+C60521                 GO TO CCP04-COMPANY-MOVES
+C60521              END-IF  
+C60521           ELSE   
+C60521              GO TO CCP04-COMPANY-MOVES   
+C60521           END-IF 
+C60521        END-IF
+C60521     ELSE 
+C60521        MOVE 'Y'   TO CCP04-CONTRACT-FAIL-IND 
+C60521                      CCP04-SAIL-SIGN-FAIL-IND
+C60521                      CCP04-ALL-MISSING-INFO  
+C60521        GO TO CCP04-CREXIT
+C60521     END-IF.  
+
+       CCP04-COMPANY-MOVES. 
+           ADD 1 TO CCP04-SUBA. 
+C57276     IF CCP04-ALL-MISSING-INFO > SPACE
+C57276        MOVE CCP04-ALL-MISSING-INFO   
+C57276                   TO CCP04-WRK-MISSING-INFO (ccp04-AGRDT-SUB)
+C57276        MOVE SPACE TO CCP04-ALL-MISSING-INFO  
+C57276     END-IF.  
+163032     MOVE SSP05-O-ALL-GUEST-REQ-CODE (CCP04-AGRDT-SUB)
+             TO CCP04-WRK-REQ-CODE (ccp04-SUBA).
+C89405*    Rather than move CMP-ALL-GUEST-OPT-CODE directly we move 
+C89405*    holding value.  This will allow code above to change it  
+C89405*    according to business situation. 
+C89405     MOVE CCP04-ALL-GUEST-OPT-CODE
+             TO CCP04-WRK-RQD-OR-OPT (ccp04-SUBA).  
+           PERFORM VARYING CCP04-SUBB FROM 1 BY 1   
+                     UNTIL CCP04-SUBB > 50  
+             IF ISCXR-CODE (CCP04-SUBB) =   
+163032          SSP05-O-ALL-GUEST-REQ-CODE (CCP04-AGRDT-SUB)
+                  MOVE ISCXR-DOCUMENT-TYPE (CCP04-SUBB) 
+                    TO CCP04-WRK-DOC-TYPE (ccp04-SUBA)  
+                  MOVE ISCXR-DESCRIPTION (CCP04-SUBB)   
+                    TO CCP04-WRK-DOC-DESC (ccp04-SUBA)  
+                  MOVE 51 TO CCP04-SUBB 
+             END-IF 
+           END-PERFORM. 
+
+       CCP04-CREXIT.
+           EXIT.
+
+       CCP04-GUEST-ITIN-REQS.   
+
+           IF CCP04-O-PORT-CODE (ccp04-IT-SUB) = 'XXX'  
+              GO TO CCP04-GREXIT
+           END-IF.  
+
+           MOVE SPACES TO ISRR-PORT-CODE.   
+           MOVE CCP04-O-PORT-DATE (ccp04-IT-SUB)
+                       TO CCP04-TODAY-PORT-DATE.
+           MOVE CCP04-O-PORT-COUNTRY-CODE (ccp04-IT-SUB)
+                       TO ISRR-COUNTRY-CODE.
+
+           PERFORM CCP04-FETCH-ISRR THRU ccp04-FI-EXIT. 
+
+       CCP04-PROCESS-PORT.  
+
+      *******************************   
+      ** COUNTRY-ALL SPECIAL REQs  **   
+      *******************************   
+           MOVE 1   TO CCP04-GT-SUB.
+           MOVE 'A' TO CCP04-CHECK-IND. 
+           PERFORM CCP04-SET-ALL-ENTRY THRU ccp04-LEXIT.
+           MOVE ' ' TO CCP04-CHECK-IND. 
+
+           MOVE SPACES                     TO CCP04-NAT-CODE.   
+           MOVE DPP03-PAX-NATIONALITY-CODE TO CCP04-NAT-CODE.   
+           IF ((CCP04-NAT-CODE = 'US') OR   
+               (US-CITIZEN-EQ)) 
+                MOVE 'US' TO CCP04-NAT-CODE 
+           END-IF.  
+
+
+           MOVE ISRR-COUNTRY-CODE          TO CCP04-CNT-CODE.   
+
+      **********************************
+      ** CITIZEN SPECIAL REQUIREMENTS **
+      **********************************
+           IF CCP04-NAT-CODE = ISRR-COUNTRY-CODE OR 
+              ( US-CNT-PORT-EQ  
+                        AND CCP04-NAT-CODE = 'US')  
+              MOVE 2 TO CCP04-GT-SUB
+              IF ISRR-REQ-CODE (CCP04-GT-SUB 1) > SPACES
+                 MOVE 'Z' TO CCP04-CHECK-IND
+                 PERFORM CCP04-SET-ALL-ENTRY THRU ccp04-LEXIT   
+                 MOVE ' ' TO CCP04-CHECK-IND
+                 GO TO CCP04-FETCH-PORT 
+              END-IF
+           END-IF.  
+
+      ***********************************   
+      ** RESIDENT SPECIAL REQUIREMENTS **   
+      ***********************************   
+           IF (DPP03-PIAR-RESIDENCE-COUNTRY = ISRR-COUNTRY-CODE) OR 
+              (US-CNT-PORT-EQ   
+                        AND DPP03-PIAR-RESIDENCE-COUNTRY = 'US')
+              MOVE 3   TO CCP04-GT-SUB  
+              MOVE 'R' TO CCP04-CHECK-IND   
+              IF ISRR-REQ-CODE (CCP04-GT-SUB 1) > SPACES
+                 PERFORM CCP04-SET-ALL-ENTRY THRU ccp04-LEXIT   
+              MOVE ' ' TO CCP04-CHECK-IND   
+              GO TO CCP04-FETCH-PORT
+           END-IF.  
+
+      ************************************  
+      ** FOREIGNER SPECIAL REQUIREMENTS **  
+      ************************************  
+           MOVE SPACES         TO ISRR-PORT-CODE,   
+                                  CCP04-EXC-FOUND-IND.  
+           MOVE 'F'            TO CCP04-CHECK-IND.  
+           MOVE CCP04-NAT-CODE TO ISRR-PORT-CODE.   
+           PERFORM CCP04-FETCH-ISRR THRU ccp04-FI-EXIT. 
+           IF CCP04-EXC-FOUND-IND = 'Y' 
+              MOVE 2   TO CCP04-GT-SUB  
+              MOVE 'C' TO CCP04-CHECK-IND   
+              MOVE ' ' TO CCP04-EXC-FOUND-IND   
+              IF ISRR-REQ-CODE (CCP04-GT-SUB 1) > SPACES
+                 PERFORM CCP04-SET-ALL-ENTRY THRU ccp04-LEXIT   
+                 MOVE ' '    TO CCP04-CHECK-IND 
+                 GO TO CCP04-FETCH-PORT 
+              ELSE  
+                 MOVE SPACES TO ISRR-PORT-CODE  
+                 PERFORM CCP04-FETCH-ISRR THRU ccp04-FI-EXIT
+              END-IF
+           ELSE 
+              MOVE SPACES TO ISRR-PORT-CODE 
+              PERFORM CCP04-FETCH-ISRR THRU ccp04-FI-EXIT   
+           END-IF.  
+
+           MOVE 4      TO CCP04-GT-SUB. 
+           MOVE 'F'    TO CCP04-CHECK-IND.  
+           IF ISRR-REQ-CODE (CCP04-GT-SUB 1) > SPACES   
+              PERFORM CCP04-SET-ALL-ENTRY THRU ccp04-LEXIT  
+           END-IF.  
+           MOVE ' ' TO CCP04-CHECK-IND. 
+
+       CCP04-FETCH-PORT.
+           IF ISRR-PORT-CODE = SPACES   
+              MOVE CCP04-O-PORT-CODE (ccp04-IT-SUB) TO ISRR-PORT-CODE   
+              PERFORM CCP04-FETCH-ISRR THRU ccp04-FI-EXIT   
+              GO TO CCP04-PROCESS-PORT  
+           END-IF.  
+
+       CCP04-GREXIT.
+           EXIT.
+
+       CCP04-FETCH-ISRR.
+           MOVE 47061002 TO DPP01-ERROR-NUMBER. 
+DISPLY*    DISPLAY '## ISSR-CALC-KEY "' ISRR-CALC-KEY '"' UPON PRINTER. 
+           FETCH ITIN-SPECIFIC-REQ-REC RECORD   
+              ON ERROR GO TO CCP04-SF-ERROR.
+           IF CCP04-CHECK-IND = 'R' OR 'F'  
+              MOVE 'Y' TO CCP04-EXC-FOUND-IND   
+           END-IF.  
+           GO TO CCP04-FI-EXIT. 
+
+       CCP04-SF-ERROR.  
+           IF ERROR-NUM NOT = '0000' AND '0013' 
+              MOVE 'Y' TO CCP04-ERROR-IND   
+              MOVE 'ISRR-REC NOT FOUND' TO CCP04-ERROR-MSG  
+              GO TO CCP04-PERROR
+           END-IF.  
+
+           IF ERROR-NUM = '0013'
+              IF CCP04-CHECK-IND = 'R' OR 'F'   
+                 MOVE 'N' TO CCP04-EXC-FOUND-IND
+                 GO TO CCP04-FI-EXIT
+              ELSE  
+                 GO TO CCP04-GREXIT 
+              END-IF
+           END-IF.  
+
+       CCP04-FI-EXIT.   
+           EXIT.
+
+       CCP04-SET-ALL-ENTRY. 
+           PERFORM VARYING CCP04-RT-SUB FROM 1 BY 1 
+                     UNTIL CCP04-RT-SUB > 20
+              IF ISRR-REQ-CODE (CCP04-GT-SUB ccp04-RT-SUB) > SPACES 
+                INITIALIZE CCP04-ALL-ENTRY  
+                PERFORM VARYING CCP04-EDT-SUB FROM 1 BY 1   
+                          UNTIL CCP04-EDT-SUB > 5   
+                   MOVE ZEROES TO CCP04-EFF-BEG-DATE
+                                  CCP04-EFF-END-DATE
+                   MOVE ISRR-EFF-BEGIN-DATE 
+                      (CCP04-GT-SUB ccp04-RT-SUB CCP04-EDT-SUB) 
+                     TO CCP04-EFF-BEG-DATE  
+                   MOVE ISRR-EFF-END-DATE   
+                      (CCP04-GT-SUB ccp04-RT-SUB CCP04-EDT-SUB) 
+                     TO CCP04-EFF-END-DATE  
+                   IF (((CCP04-TODAY-PORT-DATE >= ccp04-EFF-BEG-DATE)   
+                   AND  (CCP04-EFF-BEG-DATE > ZEROES))  
+                   AND  ((CCP04-TODAY-PORT-DATE <= ccp04-EFF-END-DATE)  
+                    OR   (CCP04-EFF-END-DATE = ZEROES)))
+                          EVALUATE CCP04-CHECK-IND  
+                           WHEN 'A' 
+                             MOVE 'A' TO CCP04-ALL-REC-TYPE 
+                           WHEN 'Z' 
+                             MOVE 'Z' TO CCP04-ALL-REC-TYPE 
+                           WHEN 'R' 
+                             MOVE 'R' TO CCP04-ALL-REC-TYPE 
+                           WHEN 'F' 
+                             MOVE 'F' TO CCP04-ALL-REC-TYPE 
+                          END-EVALUATE  
+                          PERFORM CCP04-CHECK-DOC-TYPE THRU ccp04-CDEXIT
+                          PERFORM CCP04-MOVE-TO-WRK-TBL THRU ccp04-WEXIT
+                   END-IF   
+                END-PERFORM 
+              ELSE  
+                MOVE 21 TO CCP04-RT-SUB 
+              END-IF
+           END-PERFORM. 
+
+       CCP04-LEXIT. 
+           EXIT.
+
+       CCP04-MOVE-TO-WRK-TBL.   
+           MOVE 'N' TO CCP04-NOMORE-IND.
+           PERFORM VARYING CCP04-SUBA FROM 1 BY 1 UNTIL NO-MORE 
+              IF CCP04-WRK-REQ-CODE (ccp04-SUBA) NOT > SPACES   
+                 MOVE CCP04-ALL-ENTRY TO ccp04-WRK-ENTRY (CCP04-SUBA)   
+                 MOVE 'Y' TO CCP04-NOMORE-IND   
+              ELSE  
+                 IF CCP04-ALL-REQ-CODE = ccp04-WRK-REQ-CODE (CCP04-SUBA)
+                    IF CCP04-ALL-RQD-OR-OPT = 'R' OR 'F'
+                       MOVE CCP04-ALL-ENTRY 
+                         TO CCP04-WRK-ENTRY (ccp04-SUBA)
+                       MOVE 'Y' TO CCP04-NOMORE-IND 
+                    ELSE
+                       MOVE 'Y' TO CCP04-NOMORE-IND 
+                    END-IF  
+                 END-IF 
+              END-IF
+           END-PERFORM. 
+
+209494     IF DPP03-PAX-NATIONALITY-CODE = 'CA' AND 
+209494        DPP03-PAX-AGE <= 15   
+209494        MOVE 'N'            TO CCP04-NOMORE-IND   
+209494        PERFORM VARYING ccp04-SUBA FROM 1 BY 1 UNTIL NO-MORE  
+209494           IF CCP04-WRK-REQ-CODE (ccp04-SUBA) NOT > SPACES
+209494              MOVE CCP04-ALL-REC-TYPE 
+209494                            TO CCP04-WRK-REC-TYPE(ccp04-SUBA) 
+209494              MOVE 'B'      TO CCP04-WRK-REQ-CODE     (ccp04-SUBA)
+209494              MOVE 20060101 TO CCP04-WRK-EFF-BEG-DATE (ccp04-SUBA)
+209494              MOVE ZEROS    TO CCP04-WRK-EFF-END-DATE (ccp04-SUBA)
+209494              MOVE 'O'      TO CCP04-WRK-RQD-OR-OPT   (ccp04-SUBA)
+209494              MOVE 'I'      TO CCP04-WRK-DOC-TYPE     (ccp04-SUBA)
+209494              MOVE 'Birth Certificate   ' 
+209494                            TO CCP04-WRK-DOC-DESC (ccp04-SUBA)
+209494              MOVE 'Y'      TO CCP04-NOMORE-IND   
+209494           ELSE   
+209494              IF CCP04-WRK-REQ-CODE (ccp04-SUBA) = 'B'
+209494                 MOVE 'Y'   TO CCP04-NOMORE-IND   
+209494              END-IF  
+209494           END-IF 
+209494        END-PERFORM   
+209494  
+209494        MOVE 'N'            TO CCP04-NOMORE-IND   
+209494        PERFORM VARYING ccp04-SUBA FROM 1 BY 1 UNTIL NO-MORE  
+209494           IF CCP04-WRK-REQ-CODE (ccp04-SUBA) NOT > SPACES
+209494              MOVE 'Y'   TO CCP04-NOMORE-IND  
+209494           ELSE   
+209494              IF CCP04-WRK-DOC-TYPE   (ccp04-SUBA) = 'I' AND  
+209494                 CCP04-WRK-RQD-OR-OPT (ccp04-SUBA) = 'R'  
+209494                 MOVE 'O' TO CCP04-WRK-RQD-OR-OPT (ccp04-SUBA)
+209494              END-IF  
+209494           END-IF 
+209494        END-PERFORM   
+209494     END-IF.  
+
+189311     IF (DPP03-SAIL-DATE = 20250817 AND DPP03-SHIP-CODE = 'PR') OR
+189311        (DPP03-SAIL-DATE = 20251006 AND DPP03-SHIP-CODE = 'LE') OR
+189311        (DPP03-SAIL-DATE = 20251011 AND DPP03-SHIP-CODE = 'SP') OR
+189311        (DPP03-SAIL-DATE = 20251130 AND DPP03-SHIP-CODE = 'LI') OR
+189311        (DPP03-SAIL-DATE = 20260104 AND DPP03-SHIP-CODE = 'DR') OR
+189311        (DPP03-SAIL-DATE = 20260202 AND DPP03-SHIP-CODE = 'LE') OR
+189311        (DPP03-SAIL-DATE = 20260411 AND DPP03-SHIP-CODE = 'MI') OR
+189311        (DPP03-SAIL-DATE = 20260412 AND DPP03-SHIP-CODE = 'SP') OR
+189311        (DPP03-SAIL-DATE = 20260816 AND DPP03-SHIP-CODE = 'PR') OR
+189311        (DPP03-SAIL-DATE = 20260926 AND DPP03-SHIP-CODE = 'MI') OR
+189311        (DPP03-SAIL-DATE = 20261008 AND DPP03-SHIP-CODE = 'SP') OR
+189311        (DPP03-SAIL-DATE = 20261129 AND DPP03-SHIP-CODE = 'LI')   
+189311        INITIALIZE CCP04-WRK-REQ-TABLE
+189311        MOVE CCP04-ALL-REC-TYPE   
+189311                         TO CCP04-WRK-REC-TYPE     (1)
+189311        MOVE 'P'         TO CCP04-WRK-REQ-CODE     (1)
+189311        MOVE 20000101    TO CCP04-WRK-EFF-BEG-DATE (1)
+189311        MOVE ZEROS       TO CCP04-WRK-EFF-END-DATE (1)
+189311        MOVE 'R'         TO CCP04-WRK-RQD-OR-OPT   (1)
+189311        MOVE 'I'         TO CCP04-WRK-DOC-TYPE     (1)
+189311        MOVE 'Passport'   
+189311                         TO CCP04-WRK-DOC-DESC (1)
+189311     END-IF.  
+
+       CCP04-WEXIT. 
+           EXIT.
+
+       CCP04-CHECK-DOC-TYPE.
+           PERFORM VARYING CCP04-SUBD FROM 1 BY 1   
+                     UNTIL CCP04-SUBD > ISCXR-ISCXR-NUM-ENTRIES 
+              IF ISRR-REQ-CODE (CCP04-GT-SUB ccp04-RT-SUB) =
+                 ISCXR-CODE (CCP04-SUBD)
+                  IF ISCXR-DOCUMENT-TYPE (CCP04-SUBD) = 'G' 
+                     PERFORM CCP04-MOVE-GUEST THRU ccp04-GEXIT  
+                     GO TO CCP04-CDEXIT 
+                  END-IF
+                  IF ISCXR-DOCUMENT-TYPE (CCP04-SUBD) = 'I' 
+                     MOVE 'N' TO CCP04-END-IMI-IND  
+                     MOVE 1   TO CCP04-PIID-SUB 
+                     PERFORM CCP04-MOVE-IMMIG THRU ccp04-IMEXIT 
+                        VARYING CCP04-SUBC FROM 1 BY 1  
+                          UNTIL CCP04-END-IMI-IND = 'Y' 
+                  END-IF
+              END-IF
+           END-PERFORM. 
+
+       CCP04-CDEXIT.
+           EXIT.
+
+       CCP04-MOVE-GUEST.
+      ****************************************************************  
+      **  DESTINATION ADDRESS REQ ONLY APPLIES TO "US" RESIDENTS AT **  
+      **  THE LAST PORT ON THE ITINERARY.                           **  
+      ****************************************************************  
+           IF ISRR-REQ-CODE (CCP04-GT-SUB ccp04-RT-SUB) = 'DAD' 
+             CONTINUE   
+           ELSE 
+             GO TO CCP04-CONTINUE   
+           END-IF.  
+
+           IF CCP04-O-PORT-POSITION (ccp04-IT-SUB) = 'L'
+              IF ISRR-REQ-OR-OPT-IND
+                (CCP04-GT-SUB ccp04-RT-SUB CCP04-EDT-SUB) = 'R' OR 'F'  
+                 IF ((DPP03-PIDAR-ADDR1 > SPACES) AND   
+                     (DPP03-PIDAR-CITY > SPACES)  AND   
+                     (DPP03-PIDAR-STATE > SPACES) AND   
+                     (DPP03-PIDAR-ZIP-CODE > SPACES))   
+                      GO TO CCP04-CONTINUE  
+                 ELSE   
+                    IF (ISRR-REQ-OR-OPT-IND 
+                       (CCP04-GT-SUB ccp04-RT-SUB CCP04-EDT-SUB) = 'R'  
+159175                  AND DPP03-PIID-CNT = 0) 
+                        MOVE 'Y' TO CCP04-INS-FAIL-IND, 
+C57276                              CCP04-ALL-MISSING-INFO  
+C06521                              CCP04-IMMIG-FAIL-IND
+DISPLY*                 DISPLAY 'DEST ADDR MISSING ' UPON PRINTER   
+                    END-IF  
+                 END-IF 
+              END-IF
+           ELSE 
+              GO TO CCP04-GEXIT 
+           END-IF.  
+
+       CCP04-CONTINUE.  
+           MOVE CCP04-EFF-BEG-DATE  
+             TO CCP04-ALL-EFF-BEG-DATE. 
+           MOVE CCP04-EFF-END-DATE  
+             TO CCP04-ALL-EFF-END-DATE. 
+           MOVE ISRR-REQ-CODE (CCP04-GT-SUB ccp04-RT-SUB)   
+             TO CCP04-ALL-REQ-CODE. 
+           MOVE ISRR-REQ-OR-OPT-IND 
+                (CCP04-GT-SUB ccp04-RT-SUB CCP04-EDT-SUB)   
+             TO CCP04-ALL-RQD-OR-OPT.   
+           MOVE ISCXR-DOCUMENT-TYPE (CCP04-SUBD)
+             TO CCP04-ALL-DOC-TYPE. 
+           MOVE ISCXR-DESCRIPTION (CCP04-SUBD)  
+             TO CCP04-ALL-DOC-DESC. 
+
+       CCP04-GEXIT. 
+           EXIT.
+
+       CCP04-MOVE-IMMIG.
+           IF CCP04-PIID-SUB > DPP03-PIID-CNT   
+              MOVE ISRR-REQ-CODE (CCP04-GT-SUB ccp04-RT-SUB)
+                TO CCP04-FAIL-CODE  
+DISPLY*       DISPLAY 'IMMIG INFO MISSING: CODE "'  
+DISPLY*            ISRR-REQ-CODE (CCP04-GT-SUB ccp04-RT-SUB) '"'
+DISPLY*          UPON PRINTER   
+159175*       IF (ISRR-REQ-OR-OPT-IND   
+159175*          (CCP04-GT-SUB ccp04-RT-SUB CCP04-EDT-SUB) =
+159175*                 'R' OR 'F' ) OR 
+159175*           DPP03-PIID-CNT = 0
+159175        IF DPP03-PIID-CNT = 0 
+                  MOVE 'Y' TO CCP04-INS-FAIL-IND,   
+C57276                        CCP04-ALL-MISSING-INFO
+C60521                        CCP04-IMMIG-FAIL-IND  
+C57276        ELSE  
+C57276            MOVE 'O' TO CCP04-ALL-MISSING-INFO
+              END-IF
+              GO TO CCP04-ISRR-MOVES
+           END-IF.  
+
+           IF ISRR-REQ-CODE (CCP04-GT-SUB ccp04-RT-SUB) = 'P'   
+              IF DPP03-PIID-DOC-TYPE (CCP04-PIID-SUB) = 'P' 
+                 IF ((DPP03-PIID-DOC-NUM (CCP04-PIID-SUB) > ZEROES) AND 
+                     (DPP03-PIID-ISSUE-COUNTRY (CCP04-PIID-SUB) 
+                                                          > SPACES) AND 
+208137*              (DPP03-PIID-ISSUE-CITY (CCP04-PIID-SUB)
+208137*                                                   > SPACES) AND 
+208137*              (DPP03-PIID-ISSUE-DATE (CCP04-PIID-SUB)
+208137*                                                   > ZEROES) AND 
+                     (DPP03-PIID-EXP-DATE (CCP04-PIID-SUB) > ZEROES))   
+                      GO TO CCP04-ISRR-MOVES
+                 ELSE   
+                    MOVE ISRR-REQ-CODE (CCP04-GT-SUB ccp04-RT-SUB)  
+                             TO CCP04-FAIL-CODE 
+DISPLY*             DISPLAY 'IMMIG INFO MISSING: CODE "'
+DISPLY*                  ISRR-REQ-CODE (CCP04-GT-SUB ccp04-RT-SUB) '"'  
+DISPLY*                UPON PRINTER 
+                    IF ISRR-REQ-OR-OPT-IND  
+                       (CCP04-GT-SUB ccp04-RT-SUB CCP04-EDT-SUB)
+                                                          = 'R' OR 'F'  
+                       MOVE 'Y' TO CCP04-INS-FAIL-IND,  
+C57276                             CCP04-ALL-MISSING-INFO   
+C60521                             CCP04-IMMIG-FAIL-IND 
+                       GO TO CCP04-ISRR-MOVES   
+                    ELSE
+C57276                 MOVE 'O' TO CCP04-ALL-MISSING-INFO   
+                       GO TO CCP04-ISRR-MOVES   
+                    END-IF  
+                 END-IF 
+              ELSE  
+                 ADD 1 TO CCP04-PIID-SUB
+                 GO TO CCP04-MOVE-IMMIG 
+              END-IF
+           END-IF.  
+
+C76199* ****** Validations for passport card ***************************
+C76199     IF ISRR-REQ-CODE (CCP04-GT-SUB ccp04-RT-SUB) = 'Q'   
+C76199        IF DPP03-PIID-DOC-TYPE (CCP04-PIID-SUB) = 'Q' 
+C76199           IF ((DPP03-PIID-DOC-NUM (CCP04-PIID-SUB) > ZEROES) AND 
+C76199              (DPP03-PIID-EXP-DATE (CCP04-PIID-SUB) > ZEROES))
+C76199              GO TO CCP04-ISRR-MOVES  
+C76199           ELSE   
+C76199              MOVE ISRR-REQ-CODE (CCP04-GT-SUB ccp04-RT-SUB)  
+C76199                       TO CCP04-FAIL-CODE 
+C76199              MOVE 'O' TO CCP04-ALL-MISSING-INFO  
+C76199              GO TO CCP04-ISRR-MOVES  
+C76199           END-IF 
+C76199        ELSE  
+C76199           ADD 1 TO CCP04-PIID-SUB
+C76199           GO TO CCP04-MOVE-IMMIG 
+C76199        END-IF
+C76199     END-IF.  
+C76199******************************************************************
+eNOAD** ****** Validations for Birth Certificate ***********************
+eNOAD      IF ISRR-REQ-CODE (CCP04-GT-SUB ccp04-RT-SUB) = 'B'   
+eNOAD         IF DPP03-PIID-DOC-TYPE (CCP04-PIID-SUB) = 'B' 
+eNOAD            IF DPP03-PAX-AGE-CODE = 'Y' AND DPP03-PAX-AGE >= 19
+eNOAD               AND DPP03-SAIL-DATE > 30130101  
+eNOAD               IF (DPP03-PIID-DOC-NUM (CCP04-PIID-SUB) > SPACES)   
+eNOAD                   GO TO CCP04-ISRR-MOVES  
+eNOAD               ELSE
+eNOAD                   MOVE ISRR-REQ-CODE (CCP04-GT-SUB ccp04-RT-SUB)  
+eNOAD                             TO CCP04-FAIL-CODE
+eNOAD**                 DISPLAY 'SECONDARY DOCUMENT MISSING: CODE "'
+eNOAD**                    ISRR-REQ-CODE (CCP04-GT-SUB ccp04-RT-SUB) '"'
+eNOAD**                    UPON PRINTER 
+eNOAD                   MOVE 'Y' TO CCP04-INS-FAIL-IND, 
+eNOAD                               CCP04-ALL-MISSING-INFO  
+eNOAD                               CCP04-IMMIG-FAIL-IND
+eNOAD                   GO TO CCP04-ISRR-MOVES  
+eNOAD               END-IF  
+eNOAD            ELSE   
+eNOAD               GO TO CCP04-ISRR-MOVES  
+eNOAD            END-IF 
+eNOAD         ELSE  
+eNOAD            ADD 1 TO CCP04-PIID-SUB
+eNOAD            GO TO CCP04-MOVE-IMMIG 
+eNOAD         END-IF
+eNOAD      END-IF.  
+
+           IF ISRR-REQ-CODE (CCP04-GT-SUB ccp04-RT-SUB) =   
+              DPP03-PIID-DOC-TYPE (CCP04-PIID-SUB)  
+               IF ISRR-REQ-OR-OPT-IND   
+                  (CCP04-GT-SUB ccp04-RT-SUB CCP04-EDT-SUB) =   
+                                            'R' OR 'F' OR 'O' OR SPACE  
+                  GO TO CCP04-ISRR-MOVES
+               END-IF   
+           ELSE 
+               ADD 1 TO CCP04-PIID-SUB  
+               GO TO CCP04-MOVE-IMMIG   
+           END-IF.  
+
+       CCP04-ISRR-MOVES.
+           MOVE 'Y' TO CCP04-END-IMI-IND.   
+           MOVE CCP04-EFF-BEG-DATE  
+             TO CCP04-ALL-EFF-BEG-DATE. 
+           MOVE CCP04-EFF-END-DATE  
+             TO CCP04-ALL-EFF-END-DATE. 
+226201*    MOVE ISRR-REQ-CODE (CCP04-GT-SUB ccp04-RT-SUB)   
+226201*      TO CCP04-ALL-REQ-CODE.
+226201     IF ISRR-COUNTRY-CODE = 'AU' AND  
+226201        TDP01-ITINERARY-TYPE = 'D' AND
+226201        ((DPP03-PAX-AGE < 18 AND DPP03-PAX-AGE-CODE = 'Y') OR  
+226201         (DPP03-PAX-AGE-CODE = 'M'))
+226201        IF (ISRR-REQ-CODE (CCP04-GT-SUB ccp04-RT-SUB) = 'I') OR      
+226201           (ISRR-REQ-CODE (CCP04-GT-SUB ccp04-RT-SUB) = 'M') 
+226201            MOVE ISRR-REQ-CODE (CCP04-GT-SUB ccp04-RT-SUB) 
+226201              TO CCP04-ALL-REQ-CODE    
+226201        ELSE   
+226201            MOVE SPACES TO CCP04-ALL-REQ-CODE  
+226201        END-IF
+226201     ELSE 
+226201         MOVE ISRR-REQ-CODE (CCP04-GT-SUB ccp04-RT-SUB)   
+226201           TO CCP04-ALL-REQ-CODE  
+226201     END-IF.  
+           MOVE ISRR-REQ-OR-OPT-IND 
+                (CCP04-GT-SUB ccp04-RT-SUB CCP04-EDT-SUB)   
+             TO CCP04-ALL-RQD-OR-OPT.   
+           IF ISCXR-CODE (CCP04-SUBD) = 
+              ISRR-REQ-CODE (CCP04-GT-SUB ccp04-RT-SUB) 
+                MOVE ISCXR-DOCUMENT-TYPE (CCP04-SUBD)   
+                  TO CCP04-ALL-DOC-TYPE 
+                MOVE ISCXR-DESCRIPTION (CCP04-SUBD) 
+                  TO CCP04-ALL-DOC-DESC 
+           END-IF.  
+
+       CCP04-IMEXIT.
+           EXIT.
+
+       CCP04-VALIDATE-COP.  
+           IF DPP03-PIAR-WAS-FETCHED
+              MOVE 'I' TO CCP04-PICF-VALID-SW   
+              PERFORM CCP04-PICF-VALIDATION  THRU ccp04-PICFV-EXIT  
+                 VARYING CCP04-PICF-CNT FROM 1 BY 1 
+                   UNTIL CCP04-PICF-CNT > 6 
+SOTPRJ        PERFORM CCP04-PICF-CITY-VALIDATION THRU ccp04-PICFC-EXIT  
+SOTPRJ           VARYING CCP04-PICF-CNT FROM 1 BY 1 
+SOTPRJ             UNTIL CCP04-PICF-CNT > 6 
+              PERFORM CCP04-PICH-VALIDATION  THRU ccp04-PICHV-EXIT  
+SOTPRJ           VARYING CCP04-PICH-CNT FROM 1 BY 1 
+SOTPRJ             UNTIL CCP04-PICH-CNT > 2 
+122022*       PERFORM CCP04-PICOT-VALIDATION THRU ccp04-PICOTV-EXIT 
+122022*       PERFORM CCP04-PICRC-VALIDATION THRU ccp04-PICRCV-EXIT 
+           ELSE 
+              MOVE 'I' TO CCP04-PIAR-VALID-SW   
+           END-IF.  
+
+       CCP04-COP-EXIT.  
+           EXIT.
+
+SOTPRJ CCP04-SET-COP-IND.   
+SOTPRJ  
+163032      IF (SSP05-O-ALL-GUEST-OPT-CODE (CCP04-AGRDT-SUB) =  
+SOTPRJ                   'R' OR 'O' ) AND   
+SOTPRJ         CCP04-PICF-VALID-SW = 'I'      AND   
+FUNCAR       ((CCP04-PIAR-CAR-PARKED = ' ')   AND   
+FUNCAR        (CCP04-PIAR-CAR-INFO NOT = 'Z'))  
+SOTPRJ         MOVE 'Y'   TO CCP04-COP-FAIL-IND,
+SOTPRJ                       CCP04-ALL-MISSING-INFO 
+SOTPRJ      END-IF. 
+137336      IF  (CCP04-PICF-VALID-SW  <= SPACES )   OR  
+137336          (CCP04-PIAR-CAR-PARKED <= SPACES)   OR  
+137336          (CCP04-PIAR-CAR-INFO <= SPACES) 
+137336           MOVE 'Y' TO CCP04-COP-FAIL-IND 
+137336                       CCP04-ALL-MISSING-INFO 
+137336      END-IF. 
+SOTPRJ  
+SOTPRJ CCP04-SET-COP-EXIT.  
+SOTPRJ     EXIT.
+
+       CCP04-PICF-VALIDATION.   
+
+           IF DPP03-PICF-FROM-CITY(CCP04-PICF-CNT) NOT > SPACES 
+              GO TO CCP04-PICFV-EXIT.   
+C34124*    IF ((((DPP03-PICF-BFA-CNT (CCP04-PICF-CNT) > 0) AND  
+C34124     IF ((((DPP03-PICF-EXT-DATA-CNT (CCP04-PICF-CNT) > 0) AND 
+               (DPP03-PICF-SEGMENT-ID (CCP04-PICF-CNT) = 'O' OR 'D'))   
+C34124*    OR (DPP03-PICF-BFA-CNT (CCP04-PICF-CNT) = 0)) AND
+C34124     OR (DPP03-PICF-EXT-DATA-CNT (CCP04-PICF-CNT) = 0)) AND   
+                 ((DPP03-PICF-FROM-CITY (CCP04-PICF-CNT) > SPACES)  
+            AND (DPP03-PICF-TO-CITY (CCP04-PICF-CNT) > SPACES)  
+            AND (DPP03-PICF-AIRLINE-CODE (CCP04-PICF-CNT) > SPACES) 
+            AND (DPP03-PICF-FLIGHT-NUM (CCP04-PICF-CNT) > SPACES)   
+            AND (DPP03-PICF-DEPART-DATE (CCP04-PICF-CNT) > ZEROES)  
+            AND (DPP03-PICF-DEPART-TIME (CCP04-PICF-CNT) > ZEROES)  
+            AND (DPP03-PICF-ARRIVE-DATE (CCP04-PICF-CNT) > ZEROES)  
+            AND (DPP03-PICF-ARRIVE-TIME (CCP04-PICF-CNT) > ZEROES)  
+            ))  
+                 MOVE 'C' TO CCP04-PICF-VALID-SW
+           ELSE 
+C34124     IF ((DPP03-PICF-EXT-DATA-CNT (CCP04-PICF-CNT) > 0) AND   
+C34124*    IF ((DPP03-PICF-BFA-CNT (CCP04-PICF-CNT) > 0) AND
+               (DPP03-PICF-SEGMENT-ID (CCP04-PICF-CNT) = 'I' OR 'A'))   
+                   CONTINUE 
+              ELSE  
+                   MOVE 'I' TO CCP04-PICF-VALID-SW  
+              END-IF
+           END-IF.  
+
+       CCP04-PICFV-EXIT.
+           EXIT.
+
+SOTPRJ CCP04-PICF-CITY-VALIDATION.  
+SOTPRJ  
+SOTPRJ      IF  DPP03-PICF-TO-CITY   (CCP04-PICF-CNT) > SPACES AND  
+SOTPRJ          DPP03-PICF-FROM-CITY (CCP04-PICF-CNT) > SPACES AND  
+SOTPRJ          DPP03-PICF-TO-CITY   (CCP04-PICF-CNT) = 
+SOTPRJ          DPP03-PICF-FROM-CITY (CCP04-PICF-CNT)   
+C97218*         MOVE 'I'    TO CCP04-PICF-VALID-SW  
+C97218          IF DPP03-PICF-FROM-CITY (CCP04-PICF-CNT) NOT = 'UNK'
+C97218             MOVE 'I'    TO CCP04-PICF-VALID-SW   
+C97218          END-IF  
+SOTPRJ      END-IF. 
+SOTPRJ  
+SOTPRJ CCP04-PICFC-EXIT.
+SOTPRJ     EXIT.
+SOTPRJ  
+       CCP04-PICH-VALIDATION.   
+SOTPRJ     IF ((DPP03-PICH-HOTEL-NAME (CCP04-PICH-CNT) > SPACES) AND
+SOTPRJ         (DPP03-PICH-HOTEL-CITY (CCP04-PICH-CNT) > SPACES) AND
+SOTPRJ         (DPP03-PICH-CHECK-IN-DATE(CCP04-PICH-CNT) > ZEROES) AND  
+160400*        (DPP03-PICH-CHECK-IN-DATE(CCP04-PICH-CNT) NUMERIC) AND   
+SOTPRJ         (DPP03-PICH-CHECK-OUT-DATE(CCP04-PICH-CNT) > ZEROES) AND 
+160400*        (DPP03-PICH-CHECK-OUT-DATE(CCP04-PICH-CNT) NUMERIC) AND  
+SOTPRJ         (DPP03-PICH-CHECK-IN-DATE(CCP04-PICH-CNT)
+PPC470                                   > DPP03-SAIL-DATE))
+PPC470*                                  > SAIL1-SAIL-DATE))
+SOTPRJ*         CONTINUE
+SOTPRJ*    ELSE 
+                MOVE 'C' TO CCP04-PICH-VALID-SW.
+SOTPRJ*    END-IF.  
+
+       CCP04-PICHV-EXIT.
+           EXIT.
+
+122022*CCP04-PICOT-VALIDATION.  
+122022*     IF ((DPP03-PICOT-TRANS-TYPE > SPACES)   AND 
+122022*         (DPP03-PICOT-TRANS-TYPE ALPHABETIC) AND 
+122022*         (DPP03-PICOT-TRANS-CO > SPACES)     AND 
+122022*         (DPP03-PICOT-TRANS-NUM > SPACES)    AND 
+122022*         (DPP03-PICOT-DEPART-CITY > SPACES)  AND 
+122022*         (DPP03-PICOT-DEPART-DATE > ZEROES)  AND 
+122022*         (DPP03-PICOT-DEPART-DATE NUMERIC)   AND 
+122022*         (DPP03-PICOT-ARRIVE-DATE > ZEROES)  AND 
+122022*         (DPP03-PICOT-ARRIVE-DATE NUMERIC))  
+122022*          CONTINUE   
+122022*    ELSE 
+122022*         MOVE 'I' TO CCP04-PICOT-VALID-SW
+122022*    END-IF.  
+122022* 
+122022*CCP04-PICOTV-EXIT.   
+122022*    EXIT.
+
+122022*CCP04-PICRC-VALIDATION.  
+122022*    IF ((DPP03-PICRC-CO-NAME      > SPACES) AND  
+122022*        (DPP03-PICRC-CONF-NUM     > SPACES) AND  
+122022*        (DPP03-PICRC-PICKUP-CITY  > SPACES) AND  
+122022*        (DPP03-PICRC-DROPOFF-CITY > SPACES) AND  
+122022*        (DPP03-PICRC-DROPOFF-DATE > ZERO)   AND  
+122022*        (DPP03-PICRC-DROPOFF-DATE IS NUMERIC))   
+122022*         CONTINUE
+122022*    ELSE 
+122022*         MOVE 'I' TO CCP04-PICRC-VALID-SW
+122022*    END-IF.  
+122022* 
+122022*CCP04-PICRCV-EXIT.   
+122022*    EXIT.
+
+ END PROC   

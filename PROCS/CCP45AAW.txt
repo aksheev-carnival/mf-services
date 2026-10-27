@@ -1,0 +1,76 @@
+CCP45AAW PROC   
+************************************************************************
+C85260* 15-NOV-10     AUS     TCS LTD.               CQ85260           *
+C85260* WORKING STORAGE PROC DEFINED TO STORE ATCR-AGENCY-INDICATORS AS*
+C85260* PER NEW AGENT ACCOUNT COMMENT CODE. MAKE SURE THAT MKP40RIW IS *
+C85260* BEING COPIED INTO THE MAIN PROGRAM.                            *
+************************************************************************
+168921* 12-AUG-14     BK4     TCS LTD.               CQ168921          *
+168921* REMOVE ANAR RECORD CODE (GETTING ARCHIVED).                    *
+************************************************************************
+192660* 05-JUL-16     HK2     TCS LTD.               CQ192660          *
+192660* SUPPORT MULTIPLE ERF NUMBERS PER AGENCY PROFILE TO PAYOUT      *
+192660* COMMISSIONS BASED ON BOOKINGS CURRENCY                         *
+************************************************************************
+CCLAUS* 03-DEC-19     9US     TCS LTD.               CCLAUS            *    
+CCLAUS* CARNIVAL AUSTRALIA PROJECT CHANGES.                            *    
+************************************************************************    
+       01  CCP45-SEGMENT.   
+          03  CCP45-PHNSVC-MAX                PIC 9.
+144449    03  CCP45-AGENT-DBK PIC 1(36) BINARY-1.   
+          03  CCP45-ALT-AGY-FOUND             PIC X.
+          03  CCP45-PAX-TOTAL                 PIC 9.
+          03  CCP45-PAX-SUB                   PIC 9.
+          03  CCP45-BOOK-NUM                  PIC X(6). 
+168921*   03  CCP45-ANAR-BOOK-NUM             PIC X(6). 
+168921*   03  CCP45-ANAR-PAX-IND              PIC X.
+168921*   03  CCP45-ANAR-PAX-SEQ              PIC 9(5). 
+168921    03  FILLER                          PIC X(12).
+          03  CCP45-DIRECT-IND                PIC X.
+          03  CCP45-HOLDPHONE-FAX             PIC X(20).
+          03  CCP45-AGENT-PHONE-NUM           PIC X(10).
+GCBPRJ    03  CCP45-AGENT-PHONE-NUMBER REDEFINES
+GCBPRJ        CCP45-AGENT-PHONE-NUM           PIC 9(10).
+          03  CCP45-AGENT-FAX-NUM             PIC X(10).
+GCBPRJ    03  CCP45-AGENT-FAX-NUMBER REDEFINES  
+GCBPRJ        CCP45-AGENT-FAX-NUM             PIC 9(10).
+          03  CCP45-AGY-FOUND                 PIC X.
+          03  CCP45-HOLDPHONE-NUM.  
+              05  CCP45-PHONE-NUMBER OCCURS 20 TIMES   PIC X.   
+          03  CCP45-PHONE-NUM REDEFINES CCP45-HOLDPHONE-NUM  PIC X(20). 
+          03  CCP45-PHONE-TO-SUB              PIC 99.   
+          03  CCP45-PHONE-FROM-SUB            PIC 99.   
+          03  CCP45-SP-TAKEOVER-SW            PIC X.
+          03  CCP45-USER-ID.
+              05  CCP45-INTERNET-ID           PIC X(10).
+              05  CCP45-CUSTOMER-NUM          PIC X(7). 
+              05  CCP45-SECURITY-ID           PIC X.
+              05  CCP45-FILLER                PIC X(2). 
+          03  CCP45-ALT-STORE                 PIC X.
+C85260    03  CCP45-VALIDATE-DATA             PIC X(01).
+C85260    03  CCP45-ACCR-DESC-SUB             PIC 9(02).
+C85260    03  CCP45-SUB1                      PIC 9(03).
+C85260    03  CCP45-AGENT-ACCT-COMMENT-CODE   PIC X(01).
+128275    03  CCP45-HOLD-PHONE-DIGITS         PIC 9(02).
+128275    03  CCP45-AGENT-DIGITS              PIC 9(02).
+128275    03  CCP45-HOLD-INTL-PHONE-NUM.
+128275        05  CCP45-COUNTRY-NUM           PIC 9(03).
+128275        05  CCP45-PHONE-CITY-NUM        PIC 9(04).
+128275        05  CCP45-LOC-PHONE-NUM         PIC 9(10).
+128275    03  CCP45-INTL-AGENT-PHONE-NUM.   
+128275        05  CCP45-AGENT-AREA-NUM        PIC 9(03).
+128275        05  CCP45-AGENT-LOCAL-NUM       PIC 9(07).
+CCLAUS    03  CCP45-SUB                       PIC 9(03).
+CCLAUS    03  CCP45-PHONE-MIN-LEN             PIC 9(02).
+CCLAUS    03  CCP45-PHONE-MAX-LEN             PIC 9(02).
+CCLAUS    03  CCP45-FAKE-PHONE-NUM            PIC 9(10).
+CCLAUS    03  CCP45-INTL-PHONE-NUM            PIC 9(15).
+
+192660 01  CCP45-CU-SUB                       PIC 9(05) BINARY. 
+
+ END
+
+CCP45INT PROC   
+           INITIALIZE CCP45-SEGMENT.
+
+ END

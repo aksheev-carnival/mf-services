@@ -1,0 +1,194 @@
+REQ:
+<wsAdvBrdGuestInfoRequest xmlns="http://services.carnival.com/OnlineCheckin/AdvBrdGuestInfo/v1.0">
+    <MessageHeader SegmentId="MSGHDR" xmlns="">
+      <MessageId>CCABGIR1</MessageId>
+      <SessionId>AKSH003</SessionId>
+      <CruiseLineCode>CCL</CruiseLineCode>
+      <SystemId>EMP</SystemId>
+      <UserId>APIS             1</UserId>
+      <UserName></UserName>
+      <AgencyId></AgencyId>
+      <AgencyPhoneNumber></AgencyPhoneNumber>
+      <AgencyARCNumber></AgencyARCNumber>
+      <UICode>C</UICode>
+      <VersionNum>1.0</VersionNum>
+      <AttemptCnt>1</AttemptCnt>
+      <SendDescriptionInd>Y</SendDescriptionInd>
+      <BookNum>DM2Z31</BookNum>
+    </MessageHeader>
+    <AdvBrdGuestInfoRequest SegmentId="ABGIR1" xmlns="">
+      <SynchronizationId>SL202611010062026101820054912</SynchronizationId>
+      <Action>U</Action>
+      <Guest SeqNumber="1">
+        <GuestInfoAction>U</GuestInfoAction>
+        <TravelPlansAction>R</TravelPlansAction>
+        <TravelDocumentsAction>R</TravelDocumentsAction>
+        <GuestInfo>
+          <FirstName>KEVIN</FirstName>
+          <Title Code="F" />
+          <LastName>GUEST</LastName>
+          <MiddleName />
+          <NameValidInd>N</NameValidInd>
+          <Gender Code="F" />
+          <Age Code="Y" />
+          <Email>LRSALVADOR71@GMAIL.COM</Email>
+          <EmailOptinInd>N</EmailOptinInd>
+          <BirthDate>1971-07-31</BirthDate>
+          <PastGuestInd>N</PastGuestInd>
+          <PastGuestNumber>0</PastGuestNumber>
+          <PregnanceQuesAnsInd>N</PregnanceQuesAnsInd>
+          <ResidencyInd>Y</ResidencyInd>
+          <CountryOfResidence Code="US" />
+          <Nationality Code="US" />
+          <Address>
+            <AddressType>H</AddressType>
+            <Street1>315 S PINTO ST</Street1>
+            <Street2 />
+            <City>SAN ANTONIO</City>
+            <StateCode>TX</StateCode>
+            <CountryCode>US</CountryCode>
+            <ZipCode>782074217</ZipCode>
+          </Address>
+          <ContactPhone TypeCode="H" TypeDescription="" Number="2109081734" />
+          <OptOutInd>Y</OptOutInd>
+        </GuestInfo>
+      </Guest>
+      <Guest SeqNumber="2">
+        <GuestInfoAction>R</GuestInfoAction>
+        <TravelPlansAction>R</TravelPlansAction>
+        <TravelDocumentsAction>R</TravelDocumentsAction>
+      </Guest>
+      <StgChkInAction>R</StgChkInAction>
+      <TableId />
+    </AdvBrdGuestInfoRequest>
+  </wsAdvBrdGuestInfoRequest>
+
+RES:
+<?xml version="1.0"?>
+<ns:wsAdvBrdGuestInfoResponse xmlns:ns="http://services.carnival.com/OnlineCheckin/AdvBrdGuestInfo/v1.0">
+    <MessageHeader SegmentId="MSGHDR">
+        <MessageId>CCABGIR2</MessageId>
+        <SessionId>AKSH003</SessionId>
+        <CruiseLineCode>CCL</CruiseLineCode>
+        <SystemId>EMP</SystemId>
+        <UserId>APIS             1</UserId>
+        <UserName>Copyright (C) 2000 Carnival Corporation.  All rights reserved.</UserName>
+        <UICode>C</UICode>
+        <VersionNum>1.0</VersionNum>
+        <AttemptCnt>1</AttemptCnt>
+        <SendDescriptionInd>Y</SendDescriptionInd>
+    </MessageHeader>
+    <AdvBrdGuestInfoResponse>
+        <OnlineCheckinInfo SegmentId="ABGIR2">
+            <BookingNum>DM2Z31</BookingNum>
+            <SynchronizationID>SL202611010062026101902060615</SynchronizationID>
+            <Guest SeqNumber="1">
+                <GuestInfo>
+                    <Title Code="MR"/>
+                    <FirstName>KEVIN</FirstName>
+                    <LastName>GUEST</LastName>
+                    <Gender Code="M"/>
+                    <Age Code="Y" Amount="55"/>
+                    <Email>LRSALVADOR71@GMAIL.COM</Email>
+                    <EmailOptionInd>N</EmailOptionInd>
+                    <BirthDate>1971-07-31</BirthDate>
+                    <PastGuestInd>N</PastGuestInd>
+                    <PastGuestNumber>0</PastGuestNumber>
+                    <ResidencyInd>Y</ResidencyInd>
+                    <CountryofResidence Code="US"/>
+                    <Nationality Code="US"/>
+                    <ContactPhone TypeCode="H" Number="2109081734" SendTextMsgInd="false"/>
+                    <Address>
+                        <AddressType>H</AddressType>
+                        <Street1>315 S PINTO ST</Street1>
+                        <City>SAN ANTONIO</City>
+                        <StateCode>TX</StateCode>
+                        <CountryCode>US</CountryCode>
+                        <ZipCode>782074217</ZipCode>
+                    </Address>
+                    <DataValidations Code="BDT" Description="Birth Date" RequiredInd="R"/>
+                    <DataValidations Code="CAR" Description="CONTRACT ACCEPTANCE" RequiredInd="R"/>
+                    <DataValidations Code="COP" Description="Cruise Only Pax" RequiredInd="R"/>
+                    <DataValidations Code="COR" Description="Country of Residence" RequiredInd="R"/>
+                    <DataValidations Code="CPC" Description="Camp Carnival" RequiredInd="O"/>
+                    <DataValidations Code="EMA" Description="Email Address" RequiredInd="O"/>
+                    <DataValidations Code="HAD" Description="Home Address" RequiredInd="R"/>
+                    <DataValidations Code="HPN" Description="Home Phone" RequiredInd="R"/>
+                    <DataValidations Code="IDN" Description="Name on IMI Doc" RequiredInd="O"/>
+                    <DataValidations Code="MED" Description="Medical Info" RequiredInd="O"/>
+                    <DataValidations Code="MNM" Description="Middle Name" RequiredInd="O"/>
+                    <DataValidations Code="NAT" Description="Nationality" RequiredInd="R"/>
+                    <DataValidations Code="NOK" Description="Next of Kin Info" RequiredInd="R"/>
+                    <DataValidations Code="PGI" Description="Past Guest Number" RequiredInd="O"/>
+                    <DataValidations Code="SSR" Description="SAIL SIGN ACCEPTANCE" RequiredInd="R"/>
+                    <DataValidations Code="P" Description="Passport" RequiredInd="O"/>
+                    <DataValidations Code="I" Description="AU Birth Certificate" RequiredInd="O"/>
+                    <DataValidations Code="M" Description="Medicare Card" RequiredInd="O"/>
+                    <DataValidations Code="O" Description="Other Valid AU Docs" RequiredInd="O"/>
+                    <OptOutInd>Y</OptOutInd>
+                </GuestInfo>
+                <StatusInds>
+                    <CompleteInd>N</CompleteInd>
+                    <CruiseOnlyInfoCompleteInd>N</CruiseOnlyInfoCompleteInd>
+                    <ContractCompleteInd>N</ContractCompleteInd>
+                    <OnbdAcctCompleteInd>N</OnbdAcctCompleteInd>
+                    <PersonalInfoCompleteInd>N</PersonalInfoCompleteInd>
+                    <ImmigrationDocCompleteInd>N</ImmigrationDocCompleteInd>
+                </StatusInds>
+            </Guest>
+            <Guest SeqNumber="2">
+                <GuestInfo>
+                    <Title Code="MRS"/>
+                    <FirstName>ANNE</FirstName>
+                    <LastName>GUEST</LastName>
+                    <Gender Code="F"/>
+                    <Age Code="Y" Amount="74"/>
+                    <Email>KEVIN.GUEST@GMAIL.COM</Email>
+                    <BirthDate>1952-02-28</BirthDate>
+                    <PastGuestInd>Y</PastGuestInd>
+                    <PastGuestNumber>0</PastGuestNumber>
+                    <ResidencyInd>N</ResidencyInd>
+                    <Nationality Code="AU"/>
+                    <ContactPhone TypeCode="H" Number="4442874400" SendTextMsgInd="false"/>
+                    <Address>
+                        <AddressType>H</AddressType>
+                        <Street1>Unit 70</Street1>
+                        <Street2>5 Woodlands Ave</Street2>
+                        <City>Breakfast Point</City>
+                        <StateCode>N1</StateCode>
+                        <CountryCode>AU</CountryCode>
+                        <ZipCode>2137</ZipCode>
+                    </Address>
+                    <DataValidations Code="BDT" Description="Birth Date" RequiredInd="R"/>
+                    <DataValidations Code="CAR" Description="CONTRACT ACCEPTANCE" RequiredInd="R"/>
+                    <DataValidations Code="COP" Description="Cruise Only Pax" RequiredInd="R"/>
+                    <DataValidations Code="COR" Description="Country of Residence" RequiredInd="R"/>
+                    <DataValidations Code="CPC" Description="Camp Carnival" RequiredInd="O"/>
+                    <DataValidations Code="EMA" Description="Email Address" RequiredInd="O"/>
+                    <DataValidations Code="HAD" Description="Home Address" RequiredInd="R"/>
+                    <DataValidations Code="HPN" Description="Home Phone" RequiredInd="R"/>
+                    <DataValidations Code="IDN" Description="Name on IMI Doc" RequiredInd="O"/>
+                    <DataValidations Code="MED" Description="Medical Info" RequiredInd="O"/>
+                    <DataValidations Code="MNM" Description="Middle Name" RequiredInd="O"/>
+                    <DataValidations Code="NAT" Description="Nationality" RequiredInd="R"/>
+                    <DataValidations Code="NOK" Description="Next of Kin Info" RequiredInd="R"/>
+                    <DataValidations Code="PGI" Description="Past Guest Number" RequiredInd="O"/>
+                    <DataValidations Code="SSR" Description="SAIL SIGN ACCEPTANCE" RequiredInd="R"/>
+                    <DataValidations Code="P" Description="Passport" RequiredInd="O"/>
+                    <DataValidations Code="I" Description="AU Birth Certificate" RequiredInd="O"/>
+                    <DataValidations Code="M" Description="Medicare Card" RequiredInd="O"/>
+                    <DataValidations Code="O" Description="Other Valid AU Docs" RequiredInd="O"/>
+                </GuestInfo>
+                <StatusInds>
+                    <CompleteInd>N</CompleteInd>
+                    <CruiseOnlyInfoCompleteInd>N</CruiseOnlyInfoCompleteInd>
+                    <ContractCompleteInd>N</ContractCompleteInd>
+                    <OnbdAcctCompleteInd>N</OnbdAcctCompleteInd>
+                    <PersonalInfoCompleteInd>N</PersonalInfoCompleteInd>
+                    <ImmigrationDocCompleteInd>N</ImmigrationDocCompleteInd>
+                </StatusInds>
+            </Guest>
+            <CheckInEnabledInd>N</CheckInEnabledInd>
+        </OnlineCheckinInfo>
+    </AdvBrdGuestInfoResponse>
+</ns:wsAdvBrdGuestInfoResponse>

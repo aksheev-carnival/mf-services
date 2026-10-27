@@ -1,0 +1,1306 @@
+SXP11EHW PROC   
+
+************************************************************************
+      *             EXCURSION HISTORY | WORKING-STORAGE                *
+************************************************************************
+C67814* 30-AUG-10     GS9     SHERLOCK TECHNOLOGY    CQ67814           *
+C67814* ADDING ESDR-GROUPS-ALLOC TO INPUT                              *
+************************************************************************
+SCRUM * 02-NOV-10     GS9     SHERLOCK TECHNOLOGY    CQ96793 - SCRUM   *
+SCRUM * Adding History for Status and Poularity indicators.            *
+************************************************************************
+200243* 22-MAR-17     BK4     TCS LTD.               CQ200243          *
+200243* SAILING DEPARTURE PRICE OVERRIDE CHANGES.                      *
+************************************************************************
+208566* 02-NOV-18     PY0     TCS LTD.               CQ208566          *
+208566* MOVING EETR,EACR,EADR AND EPCR TO RDMS FROM DMS.               *
+************************************************************************
+214585* 21-JAN-19     2AS     TCS LTD.               CQ214585          *
+214585* CHANGES RELATED TO HYBRIS UPDATE.                              *
+************************************************************************
+       01  SXP11-EXC-MASTER-REC.
+           03  SXP11-EMR-EXC-ID                  PIC X(06). 
+           03  SXP11-EMR-EXC-NAME                PIC X(50). 
+           03  SXP11-EMR-ABBREV-NAME             PIC X(20). 
+           03  SXP11-EMR-VENDOR-ID               PIC 9(07). 
+           03  SXP11-EMR-ADVISORY-BITS           OCCURS 72 TIMES.   
+               05  SXP11-EMR-ADVISORY-BIT        PIC 1. 
+           03  SXP11-EMR-ACTIVITY-BITS           OCCURS 72 TIMES.   
+               05  SXP11-EMR-ACTIVITY-BIT        PIC 1. 
+           03  SXP11-EMR-PORT-CODE               PIC X(03). 
+           03  SXP11-EMR-MIN-PORT-TIME-DURAT     PIC 9(03)V99.  
+           03  SXP11-EMR-MIN-PORT-TIME-DUR-TY    PIC X(01). 
+           03  SXP11-EMR-EXC-DURATION            PIC 9(03)V99.  
+           03  SXP11-EMR-DURATION-TYPE           PIC X(01). 
+           03  SXP11-EMR-BEGIN-DATE              PIC 9(08). 
+           03  SXP11-EMR-END-DATE                PIC 9(08). 
+           03  SXP11-EMR-MIN-AGE                 PIC 9(02). 
+           03  SXP11-EMR-MIN-AGE-TYPE            PIC X(01). 
+           03  SXP11-EMR-BOOK-TYPE               PIC X(01). 
+           03  SXP11-EMR-CREATION-DATE           PIC 9(08). 
+           03  SXP11-EMR-DEFAULT-PS-CUTOFF-DA    PIC 9(02). 
+           03  SXP11-EMR-SHIPBOARD-CUTOFF-HRS    PIC 9(02). 
+           03  SXP11-EMR-1099-IND                PIC X(01). 
+           03  SXP11-EMR-PRESALES-SOLD-IND       PIC X(01). 
+           03  SXP11-EMR-SHIP-DEPT-LOCATION      PIC 9(04). 
+           03  SXP11-EMR-SHIP-DEPT-NUM           PIC 9(04). 
+           03  SXP11-EMR-TKT-DETAIL-TABLE        OCCURS 5 TIMES.
+               05  SXP11-EMR-TKT-NUM             PIC 9(01). 
+               05  SXP11-EMR-TKT-DESC            PIC X(20). 
+           03  SXP11-EMR-TAX-IND                 PIC X(01). 
+           03  SXP11-EMR-TAX-DESC                PIC X(20). 
+           03  SXP11-EMR-TAX-PCT                 PIC V999    USAGE COMP.
+           03  SXP11-EMR-COMM-IND                PIC X(01). 
+           03  SXP11-EMR-COMM-DETAIL-DESC        PIC X(20). 
+           03  SXP11-EMR-COMM-PCT                PIC V999    USAGE COMP.
+           03  SXP11-EMR-GRATUITY-IND            PIC X(01). 
+           03  SXP11-EMR-GRATUITY-DESC           PIC X(20). 
+           03  SXP11-EMR-GRATUITY-PCT            PIC V999    USAGE COMP.
+           03  SXP11-EMR-COST-TABLE              OCCURS 5 TIMES.
+               05  SXP11-EMR-MIN-VOLUME          PIC 9(05)   USAGE COMP.
+               05  SXP11-EMR-MAX-VOLUME          PIC 9(05)   USAGE COMP.
+               05  SXP11-EMR-COST-TYPE           OCCURS 5 TIMES.
+                   07  SXP11-EMR-COST-CODE       PIC X(01). 
+                   07  SXP11-EMR-COST            PIC 9(05)V99   
+                                                             USAGE COMP.
+           03  SXP11-EMR-ALT-EXC-TABLE           OCCURS 5 TIMES.
+               05  SXP11-EMR-ALT-EXC-ID          PIC X(06). 
+           03  SXP11-EMR-EXC-TYPE                PIC X(02). 
+           03  SXP11-EMR-VENDOR-REF-NUM          PIC X(20). 
+           03  SXP11-EMR-AVAIL-IMPACT-IND        PIC X(01). 
+SCRUM      03  SXP11-EMR-STATUS                  PIC X. 
+SCRUM      03  SXP11-EMR-POPULAR-CODE            PIC X. 
+SCRUM      03  SXP11-EMR-ONBOARD-CODE            PIC X. 
+SCRUM      03  FILLER                            PIC X(8).  
+SCRUM *    03  FILLER                            PIC X(11). 
+
+       01  SXP11-EXC-DEPARTURE-REC. 
+           03  SXP11-EDR-CALC-KEY.  
+               05  SXP11-EDR-EXC-ID              PIC X(06). 
+               05  SXP11-EDR-BEGIN-DATE          PIC 9(08). 
+               05  SXP11-EDR-BEGIN-TIME          PIC 9(04). 
+           03  SXP11-EDR-END-DATE                PIC 9(08). 
+           03  SXP11-EDR-END-TIME                PIC 9(04). 
+           03  SXP11-EDR-ON-ARRIVAL-IND          PIC X(01). 
+           03  SXP11-EDR-AT-YOUR-LEISURE-IND     PIC X(01). 
+           03  SXP11-EDR-AUTO-SHIP-ALLOC-IND     PIC X(01). 
+           03  SXP11-EDR-TOTAL-ALLOC             PIC 9(05)   USAGE COMP.
+           03  SXP11-EDR-TOTAL-SOLD              PIC 9(05)   USAGE COMP.
+           03  SXP11-EDR-PRESALES-ALLOC          PIC 9(05)   USAGE COMP.
+           03  SXP11-EDR-PRESALES-SOLD           PIC 9(05)   USAGE COMP.
+           03  SXP11-EDR-DAY-OF-WEEK             PIC X(03). 
+           03  SXP11-EDR-BEGIN-BOOK-DATE         PIC 9(08). 
+           03  SXP11-EDR-AVAIL-STATUS            PIC X(01). 
+           03  SXP11-EDR-MIN-SALES-REQ           PIC 9(05)   USAGE COMP.
+           03 FILLER                             PIC X(38). 
+
+       01  SXP11-EXC-SAILING-DEPART-REC.
+           03  SXP11-ESDR-CALC-KEY. 
+               05  SXP11-ESDR-SHIP-CODE           PIC X(02).
+               05  SXP11-ESDR-SAIL-DATE           PIC 9(08).
+               05  SXP11-ESDR-DURATION-DAYS       PIC 9(03).
+               05  SXP11-ESDR-EXC-ID              PIC X(06).
+               05  SXP11-ESDR-EXC-DATE            PIC 9(08).
+           03  SXP11-ESDR-EXC-TIME                PIC 9(04).
+           03  SXP11-ESDR-STATUS                  PIC X(01).
+           03  SXP11-ESDR-TOTAL-ALLOC             PIC 9(05)  USAGE COMP.
+           03  SXP11-ESDR-PRESALES-ALLOC          PIC 9(05)  USAGE COMP.
+           03  SXP11-ESDR-START-TIME-BUFF-TY      PIC X(01).
+           03  SXP11-ESDR-START-TIME-BUFF         PIC 9(03).
+           03  SXP11-ESDR-END-TIME-BUFF-TYPE      PIC X(01).
+           03  SXP11-ESDR-END-TIME-BUFF           PIC 9(03).
+           03  SXP11-ESDR-AUTO-SHIP-ALLOC-IND     PIC X(01).
+200243*    03  FILLER                             PIC X(02).
+200243     03  SXP11-ESDR-PRC-OVERRIDE-CODE       PIC X(01).
+200243     03  FILLER                             PIC X(01).
+           03  SXP11-ESDR-OPERATIONAL-LIMIT       PIC 9(05)  USAGE COMP.
+           03  SXP11-ESDR-PRICING-TABLE           OCCURS 5 TIMES.   
+               05  SXP11-ESDR-PRICE-CODE          PIC X(01).
+               05  SXP11-ESDR-TOTAL-SOLD          PIC 9(05)  USAGE COMP.
+               05  SXP11-ESDR-PRESALES-SOLD       PIC 9(05)  USAGE COMP.
+               05  SXP11-ESDR-PRICE-AVAIL         PIC X(01).
+               05  SXP11-ESDR-PRICE-MAX-CAPACITY  PIC 9(05)  USAGE COMP.
+               05  SXP11-ESDR-PRICE               PIC 9(05)V99  
+                                                             USAGE COMP.
+           03  SXP11-ESDR-BASE-PRICE              PIC 9(05)V99  
+                                                             USAGE COMP.
+           03  SXP11-ESDR-EXC-TYPE                PIC X(02).
+           03  SXP11-ESDR-EXC-END-DATE            PIC 9(08).
+           03  SXP11-ESDR-EXC-END-TIME            PIC 9(04).
+           03  SXP11-ESDR-ON-ARRIVAL-IND          PIC X(01).
+           03  SXP11-ESDR-AT-YOUR-LEISURE-IND     PIC X(01).
+C67814     03  SXP11-ESDR-GROUPS-ALLOC            PIC 9(5) USAGE COMP.  
+C67814     03  FILLER                             PIC X(19).
+C67814*    03  FILLER                             PIC X(21).
+
+************************************************************************
+      * ADD HERE SOME MORE FIELDS NEEDED FOR EDITING BINARY DATA       *
+************************************************************************
+
+       01  SXP11-EDIT-PCT                         PIC .999. 
+       01  SXP11-EDIT-NUM1                        PIC 9(03).99. 
+       01  SXP11-EDIT-NUM2                        PIC 9(05).
+       01  SXP11-EDIT-NUM3                        PIC 9(05).99. 
+       01  SXP11-SUB                              PIC 9(02).
+       01  SXP11-SUB1                             PIC 9(01).
+       01  SXP11-SUB2                             PIC 9(01).
+       01  SXP11-TEMP-DESC                        PIC X(30).
+214585 01  SXP11-SX-PRC-CHG                       PIC X(01).
+214585 01  SXP11-SX-INV-CHG                       PIC X(01).        
+
+ END PROC   
+
+SXP11COM PROC   
+
+************************************************************************
+      * PARA TO COMPARE ALL THE FIELDS OF EMR RECORD AND BUILD THE     *
+      * HISTORY COMMENT.                                               *
+************************************************************************
+200243* 22-MAR-17     BK4     TCS LTD.               CQ200243          *
+200243* SAILING DEPARTURE PRICE OVERRIDE CHANGES.                      *
+************************************************************************
+
+       SXP11-MASTER-HIST-COMMENT.   
+
+           IF  SXP11-EMR-EXC-NAME NOT = EMR-EXC-NAME
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'EEN'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'EMR EXC NAME: '         SXP11-EMR-EXC-NAME   
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-ABBREV-NAME NOT = EMR-ABBREV-NAME  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'EAN'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'ABBREVATED NAME: '      SXP11-EMR-ABBREV-NAME
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-VENDOR-ID NOT = EMR-VENDOR-ID  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'EVI'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'VENDOR ID: '            SXP11-EMR-VENDOR-ID  
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           MOVE 06011618                    TO DPP01-ERROR-NUMBER.  
+
+208566*    FETCH EXC-ADVISORY-REC RECORD.   
+
+208566     EXEC SQL DECLARE EXC_ADVISORY_CUR CURSOR 
+208566         SELECT ADVISORY_DESC 
+208566           FROM EXC_ADVISORY  
+208566     END-EXEC.
+
+208566     EXEC SQL 
+208566          OPEN EXC_ADVISORY_CUR   
+208566     END-EXEC.
+
+208566     EXEC SQL WHENEVER NOT FOUND  
+208566          CONTINUE
+208566     END-EXEC.
+
+           MOVE SPACES                      TO SXP09-COMMENT.   
+           MOVE 1                           TO SXP09-PNTR.  
+
+           PERFORM VARYING SXP11-SUB FROM 1 BY 1
+               UNTIL SXP11-SUB > 72 
+               IF  SXP11-EMR-ADVISORY-BIT (SXP11-SUB) NOT = 
+                   EMR-ADVISORY-BIT       (SXP11-SUB)   
+                   MOVE 'ADV'               TO SXP09-ACTIVITY-CODE  
+                   MOVE SPACES              TO SXP11-TEMP-DESC  
+208566*            MOVE EADR-DESC (SXP11-SUB)   
+208566*                                     TO SXP11-TEMP-DESC  
+208566             EXEC SQL 
+208566                  FETCH NEXT EXC_ADVISORY_CUR 
+208566                        INTO :SXP11-TEMP-DESC 
+208566             END-EXEC 
+                   INSPECT SXP11-TEMP-DESC REPLACING ALL ' ' BY '^' 
+                   INSPECT SXP11-TEMP-DESC REPLACING ALL '^^' BY '  '   
+                   IF  SXP11-EMR-ADVISORY-BIT (SXP11-SUB) = 1   
+                       STRING SXP11-TEMP-DESC   
+                       DELIMITED BY SPACE INTO SXP09-COMMENT
+                                                 WITH POINTER SXP09-PNTR
+                       STRING ' UNSELECTED,'
+                       DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+                   ELSE 
+                       STRING SXP11-TEMP-DESC   
+                       DELIMITED BY SPACE INTO SXP09-COMMENT
+                                                 WITH POINTER SXP09-PNTR
+                       STRING ' SELECTED,'  
+                       DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+                   END-IF   
+                   ADD 1                    TO SXP09-PNTR   
+               END-IF   
+           END-PERFORM. 
+
+208566     EXEC SQL 
+208566          CLOSE EXC_ADVISORY_CUR  
+208566     END-EXEC.
+
+           IF  SXP09-ACTIVITY-CODE = 'ADV'                           AND
+               SXP09-PNTR > 1   
+               INSPECT SXP09-COMMENT REPLACING ALL '^' BY ' '   
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           MOVE 06001619                    TO DPP01-ERROR-NUMBER.  
+
+208566*    FETCH EXC-ACTIVITY-REC RECORD.   
+
+208566     EXEC SQL DECLARE EXC_ACTIVITY_CUR CURSOR 
+208566         SELECT ACTIVITY_DESC 
+208566           FROM EXC_ACTIVITY  
+208566     END-EXEC.
+
+208566     EXEC SQL 
+208566          OPEN EXC_ACTIVITY_CUR   
+208566     END-EXEC.
+
+208566     EXEC SQL WHENEVER NOT FOUND  
+208566          CONTINUE
+208566     END-EXEC.
+
+           MOVE SPACES                      TO SXP09-COMMENT.   
+           MOVE 1                           TO SXP09-PNTR.  
+
+           PERFORM VARYING SXP11-SUB FROM 1 BY 1
+               UNTIL SXP11-SUB > 72 
+               IF  SXP11-EMR-ACTIVITY-BIT (SXP11-SUB) NOT = 
+                   EMR-ACTIVITY-BIT       (SXP11-SUB)   
+                   MOVE 'ACT'               TO SXP09-ACTIVITY-CODE  
+                   MOVE SPACES              TO SXP11-TEMP-DESC  
+208566*            MOVE EACR-DESC (SXP11-SUB)   
+208566*                                     TO SXP11-TEMP-DESC  
+208566             EXEC SQL 
+208566                  FETCH NEXT EXC_ACTIVITY_CUR 
+208566                        INTO :SXP11-TEMP-DESC 
+208566             END-EXEC 
+                   INSPECT SXP11-TEMP-DESC REPLACING ALL ' ' BY '^' 
+                   INSPECT SXP11-TEMP-DESC REPLACING ALL '^^' BY '  '   
+                   IF  SXP11-EMR-ACTIVITY-BIT (SXP11-SUB) = 1   
+                       STRING SXP11-TEMP-DESC   
+                       DELIMITED BY SPACE INTO SXP09-COMMENT
+                                                 WITH POINTER SXP09-PNTR
+                       STRING ' UNSELECTED,'
+                       DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+                   ELSE 
+                       STRING SXP11-TEMP-DESC   
+                       DELIMITED BY SPACE INTO SXP09-COMMENT
+                                                 WITH POINTER SXP09-PNTR
+                       STRING ' SELECTED,'  
+                       DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+                   END-IF   
+                   ADD 1                    TO SXP09-PNTR   
+               END-IF   
+           END-PERFORM. 
+
+208566     EXEC SQL 
+208566          CLOSE EXC_ACTIVITY_CUR  
+208566     END-EXEC.
+
+           IF  SXP09-ACTIVITY-CODE = 'ACT'                           AND
+               SXP09-PNTR > 1   
+               INSPECT SXP09-COMMENT REPLACING ALL '^' BY ' '   
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-PORT-CODE NOT = EMR-PORT-CODE  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'EPC'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'PORT CODE: '            SXP11-EMR-PORT-CODE  
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-MIN-PORT-TIME-DURAT NOT =  
+               EMR-MIN-PORT-TIME-DURATION   
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'PTD'                   TO SXP09-ACTIVITY-CODE  
+               MOVE SXP11-EMR-MIN-PORT-TIME-DURAT   
+                                            TO SXP11-EDIT-NUM1  
+               STRING 'MIN PORT TIME DURATION: '
+                                               SXP11-EDIT-NUM1  
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-MIN-PORT-TIME-DUR-TY NOT = 
+               EMR-MIN-PORT-TIME-DUR-TYPE   
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'PTT'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'MIN PORT DURATION TYPE: '
+               SXP11-EMR-MIN-PORT-TIME-DUR-TY   
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-EXC-DURATION NOT = EMR-EXC-DURATION
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'EDU'                   TO SXP09-ACTIVITY-CODE  
+               MOVE SXP11-EMR-EXC-DURATION  TO SXP11-EDIT-NUM1  
+               STRING 'EXC DURATION: '         SXP11-EDIT-NUM1  
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-DURATION-TYPE NOT = EMR-DURATION-TYPE  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'EDT'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'EXC DURATION TYPE: '    SXP11-EMR-DURATION-TYPE  
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-BEGIN-DATE NOT = EMR-BEGIN-DATE
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'EED'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'BEGIN DATE: '           SXP11-EMR-BEGIN-DATE 
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-END-DATE NOT = EMR-END-DATE
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'EET'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'END DATE: '             SXP11-EMR-END-DATE   
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-MIN-AGE NOT = EMR-MIN-AGE  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'EMA'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'MIN AGE: '              SXP11-EMR-MIN-AGE
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-MIN-AGE-TYPE NOT = EMR-MIN-AGE-TYPE
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'MAT'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'MIN AGE TYPE: '         SXP11-EMR-MIN-AGE-TYPE   
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-BOOK-TYPE NOT = EMR-BOOK-TYPE  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'EBT'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'BOOK TYPE: '            SXP11-EMR-BOOK-TYPE  
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-CREATION-DATE NOT = EMR-CREATION-DATE  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'ECC'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'EXC CREATION: '         SXP11-EMR-CREATION-DATE  
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-DEFAULT-PS-CUTOFF-DA NOT = 
+               EMR-DEFAULT-PS-CUTOFF-DAYS   
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'EDP'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'DEFAULT PRE SALES CUTOFF DAYS: ' 
+               SXP11-EMR-DEFAULT-PS-CUTOFF-DA   
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-SHIPBOARD-CUTOFF-HRS NOT = 
+               EMR-SHIPBOARD-CUTOFF-HRS 
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'ESC'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'SHIPBOARD CUTOFF HOURS: '
+               SXP11-EMR-SHIPBOARD-CUTOFF-HRS   
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-1099-IND NOT = EMR-1099-IND
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'E1I'                   TO SXP09-ACTIVITY-CODE  
+               STRING '1099 IND: '             SXP11-EMR-1099-IND   
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-PRESALES-SOLD-IND NOT = EMR-PRESALES-SOLD-IND  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'EPS'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'PRESALES SOLD IND: ' 
+               SXP11-EMR-PRESALES-SOLD-IND  
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-SHIP-DEPT-LOCATION NOT = EMR-SHIP-DEPT-LOCATION
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'ESL'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'SHIP DEPARTURE LOCATION : '  
+               SXP11-EMR-SHIP-DEPT-LOCATION 
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-SHIP-DEPT-NUM NOT = EMR-SHIP-DEPT-NUM  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'ESD'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'SHIP DEPTARTURE NUMBER: '
+                                               SXP11-EMR-SHIP-DEPT-NUM  
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           MOVE SPACES                      TO SXP09-COMMENT.   
+           MOVE 1                           TO SXP09-PNTR.  
+
+           PERFORM VARYING SXP11-SUB FROM 1 BY 1
+               UNTIL SXP11-SUB > 5  
+               MOVE 'ETD'                   TO SXP09-ACTIVITY-CODE  
+               IF  SXP11-EMR-TKT-NUM (SXP11-SUB) NOT =  
+                   EMR-TKT-NUM       (SXP11-SUB)
+                   STRING 'TICKET NUMBER: '    SXP11-EMR-TKT-NUM
+                                               (SXP11-SUB)  
+                   DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+                   ADD 1                    TO SXP09-PNTR   
+               END-IF   
+               IF  SXP11-EMR-TKT-DESC (SXP11-SUB) NOT = 
+                   EMR-TKT-DESC       (SXP11-SUB)   
+                   STRING 'TICKET DESCRIPTION: '
+                                               SXP11-EMR-TKT-DESC   
+                                               (SXP11-SUB)  
+                   DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+                   ADD 1                    TO SXP09-PNTR   
+               END-IF   
+           END-PERFORM. 
+
+           IF  SXP09-ACTIVITY-CODE = 'ETD'                           AND
+               SXP09-PNTR > 1   
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF   
+
+           IF  SXP11-EMR-TAX-IND NOT = EMR-TAX-IND  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'ETI'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'TAX INDICATOR: '        SXP11-EMR-TAX-IND
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-TAX-DESC NOT = EMR-TAX-DESC
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'TDE'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'TAX DESCRIPTION: '      SXP11-EMR-TAX-DESC   
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-TAX-PCT NOT = EMR-TAX-PCT  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'ETP'                   TO SXP09-ACTIVITY-CODE  
+               MOVE SXP11-EMR-TAX-PCT       TO SXP11-EDIT-PCT   
+               STRING 'TAX PERCENTAGE: '       SXP11-EDIT-PCT   
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-COMM-IND NOT = EMR-COMM-IND
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'ECI'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'COMMISSION INDICATOR: '  
+                                               SXP11-EMR-COMM-IND   
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-COMM-DETAIL-DESC NOT = EMR-COMM-DETAIL-DESC
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'ECD'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'COMMISSION DESCRIPTION: '
+               SXP11-EMR-COMM-DETAIL-DESC   
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-COMM-PCT NOT = EMR-COMM-PCT
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'ECP'                   TO SXP09-ACTIVITY-CODE  
+               MOVE SXP11-EMR-COMM-PCT      TO SXP11-EDIT-PCT   
+               STRING 'COMMISSION PERCENTAGE: ' 
+                                               SXP11-EDIT-PCT   
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-GRATUITY-IND NOT = EMR-GRATUITY-IND
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'EGI'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'GRATUITY IND: '         SXP11-EMR-GRATUITY-IND   
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-GRATUITY-DESC NOT = EMR-GRATUITY-DESC  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'EGD'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'GRATUITY DESCRIPTION: ' SXP11-EMR-GRATUITY-DESC  
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-GRATUITY-PCT NOT = EMR-GRATUITY-PCT
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'EGP'                   TO SXP09-ACTIVITY-CODE  
+               MOVE SXP11-EMR-GRATUITY-PCT  TO SXP11-EDIT-PCT   
+               STRING 'GRATUITY PERCENTAGE: '  SXP11-EDIT-PCT   
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           PERFORM VARYING SXP11-SUB2 FROM 1 BY 1   
+               UNTIL SXP11-SUB2 > 5 
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               STRING 'CT' SXP11-SUB2 DELIMITED BY SIZE 
+                                            INTO SXP09-ACTIVITY-CODE
+               IF  SXP11-EMR-MIN-VOLUME (SXP11-SUB2) NOT =  
+                   EMR-MIN-VOLUME       (SXP11-SUB2)
+                   MOVE SXP11-EMR-MIN-VOLUME (SXP11-SUB2)   
+                                            TO SXP11-EDIT-NUM2  
+                   STRING 'MINIMUM PRICE: '    SXP11-EDIT-NUM2  
+                   DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+                   ADD 1                    TO SXP09-PNTR   
+               END-IF   
+               IF  SXP11-EMR-MAX-VOLUME (SXP11-SUB2) NOT =  
+                   EMR-MAX-VOLUME       (SXP11-SUB2)
+                   MOVE SXP11-EMR-MAX-VOLUME (SXP11-SUB2)   
+                                            TO SXP11-EDIT-NUM2  
+                   STRING 'MAXIMUM PRICE: '    SXP11-EDIT-NUM2  
+                   DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+                   ADD 1                    TO SXP09-PNTR   
+               END-IF   
+               PERFORM VARYING SXP11-SUB1 FROM 1 BY 1   
+                   UNTIL SXP11-SUB1 > 5 
+                   IF  SXP11-EMR-COST-CODE (SXP11-SUB2 SXP11-SUB1) NOT =
+                       EMR-COST-CODE       (SXP11-SUB2 SXP11-SUB1)  
+                       STRING 'COST CODE: ' 
+                       SXP11-EMR-COST-CODE (SXP11-SUB2 SXP11-SUB1)  
+                       DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+                       ADD 1                TO SXP09-PNTR   
+                   END-IF   
+                   IF  SXP11-EMR-COST (SXP11-SUB2 SXP11-SUB1) NOT = 
+                       EMR-COST       (SXP11-SUB2 SXP11-SUB1)   
+                       MOVE SXP11-EMR-COST (SXP11-SUB2 SXP11-SUB1)  
+                                            TO SXP11-EDIT-NUM3  
+                       EVALUATE SXP11-EMR-COST-CODE 
+                                (SXP11-SUB2 SXP11-SUB1) 
+                           WHEN 'A' 
+                                STRING 'ADULT COST: '   
+                                               SXP11-EDIT-NUM3  
+                                DELIMITED BY SIZE INTO SXP09-COMMENT
+                                                 WITH POINTER SXP09-PNTR
+                           WHEN 'C' 
+                                STRING 'CHILD COST: '   
+                                               SXP11-EDIT-NUM3  
+                                DELIMITED BY SIZE INTO SXP09-COMMENT
+                                                 WITH POINTER SXP09-PNTR
+                           WHEN 'I' 
+                                STRING 'INFANT COST: '  
+                                               SXP11-EDIT-NUM3  
+                                DELIMITED BY SIZE INTO SXP09-COMMENT
+                                                 WITH POINTER SXP09-PNTR
+                           WHEN 'T' 
+                                STRING 'TEEN COST: '
+                                               SXP11-EDIT-NUM3  
+                                DELIMITED BY SIZE INTO SXP09-COMMENT
+                                                 WITH POINTER SXP09-PNTR
+                           WHEN 'S' 
+                                STRING 'SENIOR COST: '  
+                                               SXP11-EDIT-NUM3  
+                                DELIMITED BY SIZE INTO SXP09-COMMENT
+                                                 WITH POINTER SXP09-PNTR
+                       END-EVALUATE 
+                       ADD 1                TO SXP09-PNTR   
+                   END-IF   
+               END-PERFORM  
+               IF  SXP09-PNTR > 1   
+                   PERFORM SXP09-EXC-MASTER-HIST THRU   
+                           SXP09-EXC-MASTER-HIST-EXIT   
+               END-IF   
+           END-PERFORM. 
+
+           MOVE SPACES                      TO SXP09-COMMENT.   
+           MOVE 1                           TO SXP09-PNTR.  
+
+           PERFORM VARYING SXP11-SUB FROM 1 BY 1
+               UNTIL SXP11-SUB > 5  
+               IF  SXP11-EMR-ALT-EXC-ID (SXP11-SUB) NOT =   
+                   EMR-ALT-EXC-ID   (SXP11-SUB) 
+                   MOVE 'EAE'               TO SXP09-ACTIVITY-CODE  
+                   STRING 'EXCURSION ID: '     SXP11-EMR-ALT-EXC-ID 
+                                               (SXP11-SUB)  
+                   DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               END-IF   
+           END-PERFORM. 
+
+           IF  SXP09-ACTIVITY-CODE = 'EAE'                           AND
+               SXP09-PNTR > 1   
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-EXC-TYPE NOT = EMR-EXC-TYPE
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'ETY'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'EXCURSION TYPE: '       SXP11-EMR-EXC-TYPE   
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-VENDOR-REF-NUM NOT = EMR-VENDOR-REF-NUM
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'EVR'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'VENDOR REFERENCE NUM: ' SXP11-EMR-VENDOR-REF-NUM 
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+           IF  SXP11-EMR-AVAIL-IMPACT-IND NOT = EMR-AVAIL-IMPACT-IND
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'EAI'                   TO SXP09-ACTIVITY-CODE  
+               STRING ' AVAILABLE IMPACT IND: ' 
+               SXP11-EMR-AVAIL-IMPACT-IND   
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-MASTER-HIST THRU   
+                       SXP09-EXC-MASTER-HIST-EXIT   
+           END-IF.  
+
+SCRUM      IF  SXP11-EMR-STATUS NOT = EMR-STATUS
+SCRUM          MOVE SPACES                  TO SXP09-COMMENT
+SCRUM          MOVE 1                       TO SXP09-PNTR   
+SCRUM          MOVE 'EES'                   TO SXP09-ACTIVITY-CODE  
+SCRUM          STRING ' EMR STATUS IND: '   
+SCRUM          SXP11-EMR-STATUS 
+SCRUM          DELIMITED BY SIZE INTO SXP09-COMMENT 
+SCRUM                                            WITH POINTER SXP09-PNTR
+SCRUM          PERFORM SXP09-EXC-MASTER-HIST THRU   
+SCRUM                  SXP09-EXC-MASTER-HIST-EXIT   
+SCRUM      END-IF.  
+
+SCRUM      IF  SXP11-EMR-POPULAR-CODE NOT = EMR-POPULAR-CODE
+SCRUM          MOVE SPACES                  TO SXP09-COMMENT
+SCRUM          MOVE 1                       TO SXP09-PNTR   
+SCRUM          MOVE 'EPO'                   TO SXP09-ACTIVITY-CODE  
+SCRUM          STRING ' EMR POPULAR CODE: ' 
+SCRUM          SXP11-EMR-POPULAR-CODE   
+SCRUM          DELIMITED BY SIZE INTO SXP09-COMMENT 
+SCRUM                                            WITH POINTER SXP09-PNTR
+SCRUM          PERFORM SXP09-EXC-MASTER-HIST THRU   
+SCRUM                  SXP09-EXC-MASTER-HIST-EXIT   
+SCRUM      END-IF.  
+
+SCRUM      IF  SXP11-EMR-ONBOARD-CODE NOT = EMR-ONBOARD-CODE
+SCRUM          MOVE SPACES                  TO SXP09-COMMENT
+SCRUM          MOVE 1                       TO SXP09-PNTR   
+SCRUM          MOVE 'EOC'                   TO SXP09-ACTIVITY-CODE  
+SCRUM          STRING ' EMR ONBOARD CODE: ' 
+SCRUM          SXP11-EMR-ONBOARD-CODE   
+SCRUM          DELIMITED BY SIZE INTO SXP09-COMMENT 
+SCRUM                                            WITH POINTER SXP09-PNTR
+SCRUM          PERFORM SXP09-EXC-MASTER-HIST THRU   
+SCRUM                  SXP09-EXC-MASTER-HIST-EXIT   
+SCRUM      END-IF.  
+
+       SXP11-MASTER-HIST-COMMENT-EXIT.  
+           EXIT.
+
+************************************************************************
+      * PARA TO COMPARE ALL THE FIELDS OF EDR RECORD AND BUILD THE     *
+      * HISTORY COMMENT.                                               *
+************************************************************************
+
+       SXP11-DEP-HIST-COMMENT.  
+
+           IF  SXP11-EDR-END-DATE NOT = EDR-END-DATE
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'DED'                   TO SXP09-ACTIVITY-CODE  
+               IF  SXP11-EDR-END-DATE < ZEROES  
+                   MOVE ZEROES              TO SXP11-EDR-END-DATE   
+               END-IF   
+               STRING 'END DATE: '             SXP11-EDR-END-DATE   
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-DEP-HIST THRU  
+                       SXP09-EXC-DEP-HIST-EXIT  
+           END-IF.  
+
+           IF  SXP11-EDR-END-TIME NOT = EDR-END-TIME
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'DET'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'END TIME: '             SXP11-EDR-END-TIME   
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-DEP-HIST THRU  
+                       SXP09-EXC-DEP-HIST-EXIT  
+           END-IF.  
+
+           IF  SXP11-EDR-ON-ARRIVAL-IND NOT = EDR-ON-ARRIVAL-IND
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'EOA'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'ON ARRIVAL IND: '       SXP11-EDR-ON-ARRIVAL-IND 
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-DEP-HIST THRU  
+                       SXP09-EXC-DEP-HIST-EXIT  
+           END-IF.  
+
+           IF  SXP11-EDR-AT-YOUR-LEISURE-IND NOT =  
+               EDR-AT-YOUR-LEISURE-IND  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'DLI'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'LEISURE IND: '   
+               SXP11-EDR-AT-YOUR-LEISURE-IND
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-DEP-HIST THRU  
+                       SXP09-EXC-DEP-HIST-EXIT  
+           END-IF.  
+
+           IF  SXP11-EDR-AUTO-SHIP-ALLOC-IND NOT =  
+               EDR-AUTO-SHIP-ALLOC-IND  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'ASA'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'AUTO SHIP ALLOC IND: '   
+               SXP11-EDR-AUTO-SHIP-ALLOC-IND
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-DEP-HIST THRU  
+                       SXP09-EXC-DEP-HIST-EXIT  
+           END-IF.  
+
+           IF  SXP11-EDR-TOTAL-ALLOC NOT = EDR-TOTAL-ALLOC  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'ETA'                   TO SXP09-ACTIVITY-CODE  
+               MOVE SXP11-EDR-TOTAL-ALLOC   TO SXP11-EDIT-NUM2  
+               STRING 'TOTAL ALLOC: '          SXP11-EDIT-NUM2  
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-DEP-HIST THRU  
+                       SXP09-EXC-DEP-HIST-EXIT  
+           END-IF.  
+
+           IF  SXP11-EDR-TOTAL-SOLD NOT = EDR-TOTAL-SOLD
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'ETS'                   TO SXP09-ACTIVITY-CODE  
+               MOVE SXP11-EDR-TOTAL-SOLD    TO SXP11-EDIT-NUM2  
+               STRING 'TOTAL SOLD: '           SXP11-EDIT-NUM2  
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-DEP-HIST THRU  
+                       SXP09-EXC-DEP-HIST-EXIT  
+           END-IF.  
+
+           IF  SXP11-EDR-PRESALES-ALLOC NOT = EDR-PRESALES-ALLOC
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'EPA'                   TO SXP09-ACTIVITY-CODE  
+               MOVE SXP11-EDR-PRESALES-ALLOC
+                                            TO SXP11-EDIT-NUM2  
+               STRING 'PRESALES ALLOC: '       SXP11-EDIT-NUM2  
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-DEP-HIST THRU  
+                       SXP09-EXC-DEP-HIST-EXIT  
+           END-IF.  
+
+           IF  SXP11-EDR-PRESALES-SOLD NOT = EDR-PRESALES-SOLD  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'ESP'                   TO SXP09-ACTIVITY-CODE  
+               MOVE SXP11-EDR-PRESALES-SOLD TO SXP11-EDIT-NUM2  
+               STRING 'PRESALES SOLD:  '       SXP11-EDIT-NUM2  
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-DEP-HIST THRU  
+                       SXP09-EXC-DEP-HIST-EXIT  
+           END-IF.  
+
+           IF  SXP11-EDR-DAY-OF-WEEK NOT = EDR-DAY-OF-WEEK  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'DOW'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'DAY OF WEEK: '          SXP11-EDR-DAY-OF-WEEK
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-DEP-HIST THRU  
+                       SXP09-EXC-DEP-HIST-EXIT  
+           END-IF.  
+
+           IF  SXP11-EDR-BEGIN-BOOK-DATE NOT = EDR-BEGIN-BOOK-DATE  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'BBD'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'BEGIN BOOK DATE: '      SXP11-EDR-BEGIN-BOOK-DATE
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-DEP-HIST THRU  
+                       SXP09-EXC-DEP-HIST-EXIT  
+           END-IF.  
+
+           IF  SXP11-EDR-AVAIL-STATUS NOT = EDR-AVAIL-STATUS
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'EAS'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'AVAIL STATUS: '         SXP11-EDR-AVAIL-STATUS   
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-DEP-HIST THRU  
+                       SXP09-EXC-DEP-HIST-EXIT  
+           END-IF.  
+
+           IF  SXP11-EDR-MIN-SALES-REQ NOT = EDR-MIN-SALES-REQ  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'MSR'                   TO SXP09-ACTIVITY-CODE  
+               MOVE SXP11-EDR-MIN-SALES-REQ TO SXP11-EDIT-NUM2  
+               STRING 'MIN SALES: '            SXP11-EDIT-NUM2  
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-DEP-HIST THRU  
+                       SXP09-EXC-DEP-HIST-EXIT  
+           END-IF.  
+
+       SXP11-DEP-HIST-COMMENT-EXIT. 
+           EXIT.
+
+************************************************************************
+      * PARA TO COMPARE ALL THE FIELDS OF ESDR RECORD AND BUILD THE    *
+      * HISTORY COMMENT.                                               *
+************************************************************************
+
+       SXP11-SAIL-HIST-COMMENT. 
+        
+214585     MOVE SPACES                      TO SXP11-SX-PRC-CHG 
+214585                                         SXP11-SX-INV-CHG.        
+
+           IF  SXP11-ESDR-EXC-TIME NOT = ESDR-EXC-TIME  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'STI'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'EXC TIME: '             SXP11-ESDR-EXC-TIME  
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-SAIL-DEP-HIST THRU 
+                       SXP09-EXC-SAIL-DEP-HIST-EXIT 
+           END-IF.  
+
+           IF  SXP11-ESDR-STATUS NOT = ESDR-STATUS  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'SDS'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'STATUS: '               SXP11-ESDR-STATUS
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-SAIL-DEP-HIST THRU 
+                       SXP09-EXC-SAIL-DEP-HIST-EXIT 
+           END-IF.  
+
+           IF  SXP11-ESDR-TOTAL-ALLOC NOT = ESDR-TOTAL-ALLOC
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'STA'                   TO SXP09-ACTIVITY-CODE  
+               MOVE SXP11-ESDR-TOTAL-ALLOC  TO SXP11-EDIT-NUM2  
+               STRING 'TOTAL ALLOC: '          SXP11-EDIT-NUM2  
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-SAIL-DEP-HIST THRU 
+                       SXP09-EXC-SAIL-DEP-HIST-EXIT 
+           END-IF.  
+
+           IF  SXP11-ESDR-PRESALES-ALLOC NOT = ESDR-PRESALES-ALLOC  
+214585         MOVE 'Y'                     TO SXP11-SX-INV-CHG             
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'SPA'                   TO SXP09-ACTIVITY-CODE  
+               MOVE SXP11-ESDR-PRESALES-ALLOC   
+                                            TO SXP11-EDIT-NUM2  
+               STRING 'PRESALES ALLOC: '       SXP11-EDIT-NUM2  
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-SAIL-DEP-HIST THRU 
+                       SXP09-EXC-SAIL-DEP-HIST-EXIT 
+           END-IF.  
+
+           IF  SXP11-ESDR-START-TIME-BUFF-TY NOT =  
+               ESDR-START-TIME-BUFF-TYPE
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'STT'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'START TIME TYPE: '   
+               SXP11-ESDR-START-TIME-BUFF-TY
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-SAIL-DEP-HIST THRU 
+                       SXP09-EXC-SAIL-DEP-HIST-EXIT 
+           END-IF.  
+
+           IF  SXP11-ESDR-START-TIME-BUFF NOT = ESDR-START-TIME-BUFF
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'STB'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'START TIME: '
+               SXP11-ESDR-START-TIME-BUFF   
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-SAIL-DEP-HIST THRU 
+                       SXP09-EXC-SAIL-DEP-HIST-EXIT 
+           END-IF.  
+
+           IF  SXP11-ESDR-END-TIME-BUFF-TYPE NOT =  
+               ESDR-END-TIME-BUFF-TYPE  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'ETT'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'END TIME TYPE: ' 
+               SXP11-ESDR-END-TIME-BUFF-TYPE
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-SAIL-DEP-HIST THRU 
+                       SXP09-EXC-SAIL-DEP-HIST-EXIT 
+           END-IF.  
+
+           IF  SXP11-ESDR-END-TIME-BUFF NOT = ESDR-END-TIME-BUFF
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'ETB'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'END TIME: '  
+               SXP11-ESDR-END-TIME-BUFF 
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-SAIL-DEP-HIST THRU 
+                       SXP09-EXC-SAIL-DEP-HIST-EXIT 
+           END-IF.  
+
+           IF  SXP11-ESDR-AUTO-SHIP-ALLOC-IND NOT = 
+               ESDR-AUTO-SHIP-ALLOC-IND 
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'ESA'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'AUTO ALLOC IND: '
+               SXP11-ESDR-AUTO-SHIP-ALLOC-IND   
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-SAIL-DEP-HIST THRU 
+                       SXP09-EXC-SAIL-DEP-HIST-EXIT 
+           END-IF.  
+
+           IF  SXP11-ESDR-OPERATIONAL-LIMIT NOT = ESDR-OPERATIONAL-LIMIT
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'SOL'                   TO SXP09-ACTIVITY-CODE  
+               MOVE SXP11-ESDR-OPERATIONAL-LIMIT
+                                            TO SXP11-EDIT-NUM2  
+               STRING 'OPER LIMIT: '           SXP11-EDIT-NUM2  
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-SAIL-DEP-HIST THRU 
+                       SXP09-EXC-SAIL-DEP-HIST-EXIT 
+           END-IF.  
+
+           PERFORM VARYING SXP11-SUB2 FROM 1 BY 1   
+               UNTIL SXP11-SUB2 > 5 
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               STRING 'PT' SXP11-SUB2 DELIMITED BY SIZE 
+                                            INTO SXP09-ACTIVITY-CODE
+               IF  SXP11-ESDR-PRICE-CODE (SXP11-SUB2) NOT = 
+                   ESDR-PRICE-CODE       (SXP11-SUB2)   
+214585             MOVE 'Y'                 TO SXP11-SX-PRC-CHG                         
+                   STRING 'PRICE CODE: '       SXP11-ESDR-PRICE-CODE
+                                               (SXP11-SUB2) 
+                   DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+                   ADD 1                    TO SXP09-PNTR   
+               END-IF   
+               IF  SXP11-ESDR-TOTAL-SOLD (SXP11-SUB2) NOT = 
+                   ESDR-TOTAL-SOLD       (SXP11-SUB2)   
+                   MOVE SXP11-ESDR-TOTAL-SOLD (SXP11-SUB2)  
+                                            TO SXP11-EDIT-NUM2  
+                   STRING 'TOTAL SOLD: '       SXP11-EDIT-NUM2  
+                   DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+                   ADD 1                    TO SXP09-PNTR   
+               END-IF   
+               IF  SXP11-ESDR-PRESALES-SOLD (SXP11-SUB2) NOT =  
+                   ESDR-PRESALES-SOLD       (SXP11-SUB2)
+214585             MOVE 'Y'                 TO SXP11-SX-INV-CHG                     
+                   MOVE SXP11-ESDR-PRESALES-SOLD (SXP11-SUB2)   
+                                            TO SXP11-EDIT-NUM2  
+                   STRING 'PRESALES SOLD: '    SXP11-EDIT-NUM2  
+                   DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+                   ADD 1                    TO SXP09-PNTR   
+               END-IF   
+               IF  SXP11-ESDR-PRICE-AVAIL (SXP11-SUB2) NOT =
+                   ESDR-PRICE-AVAIL       (SXP11-SUB2)  
+214585             MOVE 'Y'                 TO SXP11-SX-PRC-CHG                                             
+                   STRING 'PRICE AVAIL: '      SXP11-ESDR-PRICE-AVAIL   
+                                               (SXP11-SUB2) 
+                   DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+                   ADD 1                    TO SXP09-PNTR   
+               END-IF   
+               IF  SXP11-ESDR-PRICE-MAX-CAPACITY (SXP11-SUB2) NOT = 
+                   ESDR-PRICE-MAX-CAPACITY       (SXP11-SUB2)   
+214585             MOVE 'Y'                 TO SXP11-SX-PRC-CHG                                             
+                   MOVE SXP11-ESDR-PRICE-MAX-CAPACITY (SXP11-SUB2)  
+                                            TO SXP11-EDIT-NUM2  
+                   STRING 'MAX CAPACITY: '     SXP11-EDIT-NUM2  
+                   DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+                   ADD 1                    TO SXP09-PNTR   
+               END-IF   
+               IF  SXP11-ESDR-PRICE (SXP11-SUB2) NOT =  
+                   ESDR-PRICE       (SXP11-SUB2)
+214585             MOVE 'Y'                 TO SXP11-SX-PRC-CHG                                         
+                   MOVE SXP11-ESDR-PRICE (SXP11-SUB2)   
+                                            TO SXP11-EDIT-NUM3  
+                   STRING 'PRICE: '            SXP11-EDIT-NUM3  
+                   DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+                   ADD 1                    TO SXP09-PNTR   
+               END-IF   
+               IF SXP09-PNTR > 1
+                  PERFORM SXP09-EXC-SAIL-DEP-HIST THRU  
+                          SXP09-EXC-SAIL-DEP-HIST-EXIT  
+               END-IF   
+           END-PERFORM. 
+
+           IF  SXP11-ESDR-BASE-PRICE NOT = ESDR-BASE-PRICE  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'SBP'                   TO SXP09-ACTIVITY-CODE  
+               MOVE SXP11-ESDR-BASE-PRICE   
+                                            TO SXP11-EDIT-NUM3  
+               STRING 'BASE PRICE: '           SXP11-EDIT-NUM3  
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                             WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-SAIL-DEP-HIST THRU 
+                       SXP09-EXC-SAIL-DEP-HIST-EXIT 
+           END-IF.  
+
+           IF  SXP11-ESDR-EXC-TYPE NOT = ESDR-EXC-TYPE  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'STY'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'EXC TYPE: '             SXP11-ESDR-EXC-TYPE  
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-SAIL-DEP-HIST THRU 
+                       SXP09-EXC-SAIL-DEP-HIST-EXIT 
+           END-IF.  
+
+           IF  SXP11-ESDR-EXC-END-DATE NOT = ESDR-EXC-END-DATE  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'SED'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'EXC END DATE: '         SXP11-ESDR-EXC-END-DATE  
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-SAIL-DEP-HIST THRU 
+                       SXP09-EXC-SAIL-DEP-HIST-EXIT 
+           END-IF.  
+
+           IF  SXP11-ESDR-EXC-END-TIME NOT = ESDR-EXC-END-TIME  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'SET'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'EXC END TIME: '         SXP11-ESDR-EXC-END-TIME  
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-SAIL-DEP-HIST THRU 
+                       SXP09-EXC-SAIL-DEP-HIST-EXIT 
+           END-IF.  
+
+           IF  SXP11-ESDR-ON-ARRIVAL-IND NOT = ESDR-ON-ARRIVAL-IND  
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'OAI'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'ON ARRIVAL IND: '       SXP11-ESDR-ON-ARRIVAL-IND
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-SAIL-DEP-HIST THRU 
+                       SXP09-EXC-SAIL-DEP-HIST-EXIT 
+           END-IF.  
+
+           IF  SXP11-ESDR-AT-YOUR-LEISURE-IND NOT = 
+               ESDR-AT-YOUR-LEISURE-IND 
+               MOVE SPACES                  TO SXP09-COMMENT
+               MOVE 1                       TO SXP09-PNTR   
+               MOVE 'SLI'                   TO SXP09-ACTIVITY-CODE  
+               STRING 'AT YOUR LEISURE IND: '   
+               SXP11-ESDR-AT-YOUR-LEISURE-IND   
+               DELIMITED BY SIZE INTO SXP09-COMMENT 
+                                                 WITH POINTER SXP09-PNTR
+               PERFORM SXP09-EXC-SAIL-DEP-HIST THRU 
+                       SXP09-EXC-SAIL-DEP-HIST-EXIT 
+           END-IF.  
+
+C67814     IF  SXP11-ESDR-GROUPS-ALLOC NOT =
+C67814         ESDR-GROUPS-ALLOC
+214585         MOVE 'Y'                     TO SXP11-SX-INV-CHG 
+C67814         MOVE SPACES                  TO SXP09-COMMENT
+C67814         MOVE 1                       TO SXP09-PNTR   
+C67814         MOVE 'GRP'                   TO SXP09-ACTIVITY-CODE  
+C67814         MOVE SXP11-ESDR-GROUPS-ALLOC TO SXP11-EDIT-NUM2  
+C67814         STRING 'ESDR GROUPS ALLOC: ' SXP11-EDIT-NUM2 
+C67814         DELIMITED BY SIZE INTO SXP09-COMMENT 
+C67814                                           WITH POINTER SXP09-PNTR
+C67814         PERFORM SXP09-EXC-SAIL-DEP-HIST THRU 
+C67814                 SXP09-EXC-SAIL-DEP-HIST-EXIT 
+C67814     END-IF.  
+200243  
+200243     IF  SXP11-ESDR-PRC-OVERRIDE-CODE NOT =   
+200243         ESDR-PRC-OVERRIDE-CODE   
+200243         MOVE SPACES                  TO SXP09-COMMENT
+200243         MOVE 1                       TO SXP09-PNTR   
+200243         MOVE 'SPR'                   TO SXP09-ACTIVITY-CODE  
+200243         IF  SXP11-ESDR-PRC-OVERRIDE-CODE = 'N'   
+200243             STRING 'ESDR PRC OVRD: ' SXP11-ESDR-PRC-OVERRIDE-CODE
+200243             DELIMITED BY SIZE INTO SXP09-COMMENT 
+200243                                      WITH POINTER SXP09-PNTR 
+200243         ELSE 
+200243             STRING 'ESDR PRC OVRD RMVD: '
+200243                    SXP11-ESDR-PRC-OVERRIDE-CODE  
+200243             DELIMITED BY SIZE INTO SXP09-COMMENT 
+200243                                      WITH POINTER SXP09-PNTR 
+200243         END-IF   
+200243         PERFORM SXP09-EXC-SAIL-DEP-HIST THRU 
+200243                 SXP09-EXC-SAIL-DEP-HIST-EXIT 
+200243     END-IF.  
+
+       SXP11-SAIL-HIST-COMMENT-EXIT.
+           EXIT.
+ END PROC   
+

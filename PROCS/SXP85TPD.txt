@@ -1,0 +1,151 @@
+SXP85TWS PROC   
+************************************************************************
+216747* 01-JUL-19     BK4     TCS LTD.               CQ216747          *
+216747* CHANGES DONE TO REPORT REVERSE UPDATE FAILURE AT HYBRIS END.   *
+************************************************************************
+
+       01  SXP85-SUB                                PIC 9(02) BINARY.   
+       01  SXP85-SCHEMA                             PIC X(03).  
+       01  SXP85-NTF-MESSAGE.   
+           03 SXP85-NTF-MESSAGE-ID                  PIC X(10).  
+           03 SXP85-NTF-ESDR-CALC-KEY               PIC X(31).  
+           03 SXP85-NTF-ESDR-PRESALES-ALLOC         PIC 9(05).  
+           03 SXP85-NTF-ESDR-GROUPS-ALLOC           PIC 9(05).  
+           03 SXP85-NTF-ESDR-PRESALES-SOLD          PIC 9(05).  
+           03 FILLER                                PIC X(04).  
+216747 01  SXP85-DESCRIPTION.   
+216747     03 SXP85-REMOTE-HOST-NAME                PIC X(12).  
+216747     03 SXP85-TCP-PORT                        PIC 9(04).  
+216747     03 SXP85-TCP-WAIT-MS                     PIC 9(05).  
+216747     03 SXP85-SWITCH                          PIC X(03).  
+
+ END
+
+SXP85TPD PROC   
+
+       SXP85-SEND-UPD.  
+
+           IF ESDR-EXC-TYPE NOT = 'EX'  
+              GO TO SXP85-SEND-UPD-EXIT 
+           END-IF.  
+
+           MOVE SPACES              TO REMOTE-HOST-NAME 
+                                       SXP85-SCHEMA 
+                                       IP-ADDRESS   
+                                       SXP85-NTF-MESSAGE-ID 
+                                       SXP85-NTF-ESDR-CALC-KEY  
+216747                                 SXP85-REMOTE-HOST-NAME   
+216747                                 SXP85-SWITCH.
+
+
+           MOVE ZEROS               TO SXP85-NTF-ESDR-PRESALES-ALLOC
+                                       SXP85-NTF-ESDR-GROUPS-ALLOC  
+                                       SXP85-NTF-ESDR-PRESALES-SOLD 
+216747                                 SXP85-TCP-PORT   
+216747                                 SXP85-TCP-WAIT-MS.   
+
+
+215347*    CALL 'UCSFDASC$' USING DMCA, SXP85-SCHEMA, 3.
+215347*    IF SXP85-SCHEMA = 'PRD'  
+215347*       MOVE 'CCLPRDWMAPI8'   TO REMOTE-HOST-NAME 
+215347*    ELSE 
+215347*       PERFORM SXP85-FETCH-LISTENER THRU 
+215347*               SXP85-FETCH-LISTENER-EXIT 
+215347*    END-IF.  
+
+215347     PERFORM SXP85-FETCH-LISTENER THRU SXP85-FETCH-LISTENER-EXIT. 
+
+216747*    IF SSP09-O-DESCRIPTION (19:3) = 'OFF'
+216747     IF SXP85-SWITCH = 'OFF'  
+215347        GO TO SXP85-SEND-UPD-EXIT 
+215347     END-IF.  
+
+           MOVE 'CCSXUPD1'          TO SXP85-NTF-MESSAGE-ID.
+
+           STRING ESDR-CALC-KEY DELIMITED BY SIZE   
+                  ESDR-EXC-TIME DELIMITED BY SIZE   
+                  INTO SXP85-NTF-ESDR-CALC-KEY. 
+
+           MOVE ESDR-PRESALES-ALLOC TO SXP85-NTF-ESDR-PRESALES-ALLOC.   
+
+           MOVE ESDR-GROUPS-ALLOC   TO SXP85-NTF-ESDR-GROUPS-ALLOC. 
+
+           PERFORM VARYING SXP85-SUB FROM 1 BY 1 UNTIL SXP85-SUB > 5
+              COMPUTE SXP85-NTF-ESDR-PRESALES-SOLD   =  
+                      ESDR-PRESALES-SOLD (SXP85-SUB) +  
+                      SXP85-NTF-ESDR-PRESALES-SOLD  
+           END-PERFORM. 
+
+215347     MOVE SPACES TO send-buffer.  
+
+           CALL "TCPSUB" USING SXP85-NTF-MESSAGE   60             , 
+                               RECEIVE-BUFFER,  RECEIVE-BUFFER-SIZE,
+                               REMOTE-HOST-NAME,
+216747*                        IP-ADDRESS,      TCP-PORT, 45000 ,   
+216747                         IP-ADDRESS,      TCP-PORT, TCP-WAIT-MS , 
+                               RETURN-STATUS,   RETURN-FUNCTION.
+
+           IF RETURN-STATUS NOT = 0 
+216747        DISPLAY 'REVERSE INVENTORY UPDATE FAILED' UPON PRINTER
+              DISPLAY 'PASSOFF MSG: '    SXP85-NTF-MESSAGE  
+                      ' STATUS = '       COMAPI-AUX-STATUS  
+                      ' MAIN STATUS = '  COMAPI-MAIN-STATUS 
+                       UPON PRINTER 
+216747*       GO TO 9100-DATABASE-ERROR 
+216747        GO TO SXP85-SEND-UPD-EXIT 
+           END-IF.  
+
+216747*    IF FUNCTION UPPER-CASE (RECEIVE-BUFFER (33:7)) = 'FAILURE'   
+216747*       MOVE 1                      TO DPP42-HOLD-MSG-INDEX   
+216747*       MOVE 'SXP85TPD'             TO DPP42-HOLD-MSG-SOURCE  
+216747*       GO TO 9200-EDIT-ERROR-MSG 
+216747*    END-IF.  
+
+216747     IF RECEIVE-BUFFER (40:1) NOT = 1 AND 4   
+216747        DISPLAY 'REVERSE INVENTORY UPDATE FAILED' UPON PRINTER
+216747        DISPLAY 'PASSOFF MSG: '    SXP85-NTF-MESSAGE  
+216747                ' RESPONSE: ' RECEIVE-BUFFER UPON PRINTER 
+216747        GO TO SXP85-SEND-UPD-EXIT 
+216747     END-IF.  
+
+       SXP85-SEND-UPD-EXIT. 
+           EXIT.
+
+       SXP85-FETCH-LISTENER.
+           COPY SSP09INT.   
+
+215347*    MOVE 'SINV-WMAPI  SINV'  TO SSP09-I-CALC-KEY.
+
+215347     CALL 'UCSFDASC$' USING DMCA, SXP85-SCHEMA, 3.
+
+215347     STRING 'SINV-UPD-' SXP85-SCHEMA  
+215347             DELIMITED BY SIZE INTO SSP09-I-CODE. 
+215347     MOVE 'RUPD'              TO SSP09-I-TYPE.
+
+           CALL 'SSC09GCD' USING DPP01-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 SSP09-INPUT-PARAMS 
+                                 SSP09-OUTPUT-PARAMS.   
+
+           IF DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1
+              GO TO 9100-DATABASE-ERROR 
+           END-IF.  
+
+215347*    MOVE SSP09-O-DESCRIPTION TO REMOTE-HOST-NAME.
+216747*    MOVE SSP09-O-DESCRIPTION (1:12) TO REMOTE-HOST-NAME. 
+216747*    MOVE SSP09-O-DESCRIPTION (14:4) TO TCP-PORT. 
+
+216747     UNSTRING SSP09-O-DESCRIPTION DELIMITED BY '-' INTO   
+216747              SXP85-REMOTE-HOST-NAME  
+216747              SXP85-TCP-PORT  
+216747              SXP85-TCP-WAIT-MS   
+216747              SXP85-SWITCH.   
+
+216747     MOVE SXP85-REMOTE-HOST-NAME     TO REMOTE-HOST-NAME. 
+216747     MOVE SXP85-TCP-PORT             TO TCP-PORT. 
+216747     MOVE SXP85-TCP-WAIT-MS          TO TCP-WAIT-MS.  
+
+       SXP85-FETCH-LISTENER-EXIT.   
+           EXIT.
+
+ END

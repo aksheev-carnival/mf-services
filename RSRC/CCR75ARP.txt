@@ -1,0 +1,1125 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.    CCR75ARP. 
+       AUTHOR.        TATA CONSULTANCY SERVICES LTD.
+       DATE-WRITTEN.  NOVEMBER 23, 2017.
+
+      ******************************************************************
+      * 23-NOV-17     RVC     TCS LTD.               CQ208113          *
+      ******************************************************************
+      *REMARKS.                                                        *
+      *    THIS PROGRAM RETURNS THE BOOKING INFORMATION FROM MAINFRAME *
+      *    RELATED TO AGENT REWARD PROGRAM WHICH WILL BE TAKEN CARE BY *
+      *    INCENTIVE SOLUTIONS.                                        *
+      *    CCINF1/CCINF2 AGENT REWARD PROGRAM REQUEST/RESPONSE.        *
+      ******************************************************************
+214948* 09-APR-19     FUB     TCS LTD.               CQ214948          *
+214948* CHANGES DONE TO INCORPORATE ALPHANUMERIC AGENCY CUSTOMER NUM.  *
+************************************************************************
+CCLAUS* 11-NOV-19     FUB     TCS LTD                CCLAUS            *
+CCLAUS* CARNIVAL AUSTRALIA CHANGES.                                    *
+************************************************************************
+862033* 21-FEB-22     NQJ     TCS LTD.               AZO862033         *
+862033* ADDED CHECK TO SET DEPOSIT PAID INDICATOR.                     *
+************************************************************************
+PPC470* 10-DEC-20     9US     TCS LTD.               PPC470            *
+PPC470* PPC PROJECT CHANGES.                                           *
+************************************************************************
+153106* 20-DEC-22     1HP     TCS LTD.               ADO1531067        *
+153106* ADDED PREPAID GRATUITY DETAILS IN BOOKING DISPLAY PROGRAM      *
+************************************************************************
+166853* 01-MAY-23      VSY                          ADO1668539         *
+166853* SPLIT ACBR AREA AGNT-BOOK INTO MULTIPLE AREAS AGNT-BOOK-N.     *
+************************************************************************
+192384* 31-MAY-24      SK6    TCS LTD.              ADO1923845         *
+192384* TO FIX ERROR FROM RSO50. RSP06 CURR WAS MOVING TO RSP50 EVEN   *
+192384* WHEN BOOKING IS NOT FETCHED.                                   *
+************************************************************************
+186084* 09-AUG-24     PVK     TCS LTD.               ADO1860847        *
+186084* CHANGES DONE FOR TRADE SALES PROJECT                           *
+************************************************************************
+CCLCOM* 25-SEP-25     TEK     TCS LTD.               CCLCOM            *
+CCLCOM* HYBRIS COMBINED ORDER MODEL CHANGES                            *
+************************************************************************
+LOYLTY* 23-JUN-26     8XF     TCS LTD.               LOYLTY            *
+LOYLTY* ADDED MMISC-AMT AND MMISC-AMTX AS PART OF LOYLTY PROGRAM       *
+************************************************************************
+231872* 16-SEP-26     XB1     TCS LTD.               ADO2318724        *
+231872* DISABLE ONLINE BOOKING VALIDATION.                             *
+************************************************************************
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER. UNISYS. 
+       OBJECT-COMPUTER. UNISYS  MEMORY SIZE 3 MODULES.  
+       SPECIAL-NAMES.   
+           PRINTER IS PRT   
+           PRINTER IS PRINTER.  
+
+       DATA DIVISION.   
+       SUBSCHEMA SECTION.   
+       INVOKE SUBSCHEMA PST100UCOBSU
+           IN FILE SUBSCHEMAS OF SCHEMA PST100SCHEMA
+           COPYING RECORDS    INTO COMMON   
+           COPYING DATA-NAMES INTO COMMON   
+           OVERLAY PAX-REC WITH PAX-CXF-REC 
+      *                         PAX-FUT-REC 
+                                PAX-VI-REC  
+           SAVE DATA INCLUDES DEFERRED-UPDATES  
+           DMCA COMMON  
+           ERROR RECOVERY IS 9100-DATABASE-ERROR
+           ROLLBACK       IS 9100-DATABASE-ERROR.   
+
+       WORKING-STORAGE SECTION. 
+       01  WS-PROG-ID                     PIC  X(08) VALUE 'CCR75ARP'.  
+       01  MCFLAG                         PIC  9(10) BINARY.
+
+      * MISCELLANEOUS VARABLES------------------------------------------
+
+       01  WS-MISC-NUMERIC. 
+           03 WS-ESUB                     PIC  9(05) BINARY.
+           03 WS-SAIL-RETURN-DATE         PIC  9(08).   
+           03 WS-SHOREX-CNT               PIC  9(05) BINARY.
+           03 WS-FST-TM-PAX-CNT           PIC  9(05) BINARY.
+           03 WS-PST-PAX-CNT              PIC  9(05) BINARY.
+           03 WS-CRVNL-LVE-CNT            PIC  9(05) BINARY.
+           03 WS-TRANSFER-CNT             PIC  9(05) BINARY.
+           03 WS-SPA-CNT                  PIC  9(05) BINARY.
+           03 WS-CHEERS-CNT               PIC  9(05) BINARY.
+153106     03 WS-PP-GRATS-CNT             PIC  9(05) BINARY.
+           03 INFO-SHORT-TERMID           PIC  9(05).   
+           03 WS-SAIL-SUB                 PIC  9(05) BINARY.
+           03 WS-PAX-SUB                  PIC  9(05) BINARY.
+           03 WS-CODR-SUB                 PIC  9(05) BINARY.
+           03 WS-XFR-SUB                  PIC  9(05) BINARY.
+231872*    03 WS-HOLD-SSP03               PIC  X(804).  
+           03 WS-AGENT-ERROR-SW           PIC S9(05) VALUE ZEROES.  
+              88 WS-AGENT-ACCESS-ERR      VALUE 22 THRU 27  
+                                                47 49 THRU 53 63.   
+              88 WS-AGT-BK-ERR            VALUE 43. 
+           03 WS-BOOKING-ERROR-SW         PIC S9(05) VALUE ZEROES.  
+              88 WS-BOOK-NOT-FOUND        VALUE 04 37 38.   
+
+       01  WS-MISC-ALPHA.   
+           03 INFO-USERID                 PIC  X(12).   
+           03 WS-XFR-EXIST                PIC  X(01).   
+           03 INFO-PROGRAM-ID.  
+              05 INFO-PROG-APP            PIC  X(02).   
+              05 INFO-PROG-ID             PIC  X(03).   
+              05 INFO-PROG-SEQ            PIC  X(01).   
+           03 WS-CDER-CODE. 
+              05  WS-CDER-CODE-FILLER     PIC  X(07).   
+              05  WS-CODR-ITEM-NUM        PIC  X(05).   
+           03 WS-CDER-TYPE                PIC  X(04).   
+           03 WS-CDER-DESCRIPTION.  
+              05  WS-DESC-FILLER          PIC  X(48).   
+              05  WS-CLAIM-DUR            PIC  9(04).   
+
+       01  WS-XFR-TABLE.
+           03 WS-PAX-XFR-CNT              PIC  9(02) BINARY.
+           03 WS-PAX-XFR-ENTRY            OCCURS 10 TIMES.  
+              05 WS-PTFR-PAX-SEQ-NUM      PIC 9(05).
+              05 WS-PTFR-PRE-POST-IND     PIC X(01).
+
+CCLAUS 01  WS-TEMP-DATE                 PIC 9(08).  
+CCLAUS 01  WS-TEMP-TIME                 PIC 9(08).  
+CCLCOM 01  WS-FEATURE-FLAG1             PIC X(03).  
+
+       COPY CCP00CTW.   
+       COPY CCP00SWS.   
+       COPY CCP45AAW.   
+       COPY DPP01CIW.   
+       COPY DPP01DTA.   
+       COPY DPP01DWS.   
+       COPY DPP01ERR.   
+       COPY DPP01MCB.   
+       COPY DPP01SCO.   
+       COPY DPP12SCO.   
+       COPY DPP42ERR.   
+       COPY RSP00DMS.   
+       COPY RSP32DMS.   
+       COPY RSP50INP.   
+       COPY RSP50OUT.   
+       COPY RSP49INP.   
+       COPY RSP49OUT.   
+       COPY RSP64DMS.   
+       COPY RSP77GMD.   
+       COPY SSP03GAD.   
+       COPY SSP05GCD.   
+       COPY RSP90OVW.   
+       COPY IRP66IBR.   
+       COPY CCP10ARW.   
+       COPY DPP03PWS.   
+       COPY DPP34CWS.   
+       COPY DPP02Y2K.   
+       COPY DPP15ACW.   
+       COPY RSP23RGC.   
+       COPY CCP01AWS.   
+       COPY CCP10AWS.   
+       COPY CCP11AWS.   
+       COPY CCP24PWS.   
+       COPY RSP06GCI.   
+       COPY SSP09GCD.   
+       COPY SSP10DTA.   
+       COPY SSP10UCD.   
+       COPY SSP00PTR.   
+       COPY SXP32EXC.   
+       COPY BVP02CDR.   
+CCLAUS COPY RSP86GLD.   
+PPC470 COPY TDP01SAW.   
+PPC470 COPY SMP68EFF.   
+
+       COMMON-STORAGE SECTION.  
+
+       PROCEDURE DIVISION.  
+       0000-MAIN-LINE.  
+           COPY DPP01INT.   
+PPC470     COPY TDP01INT.   
+
+           EXEC SQL USE DEFAULT SCHEMA PSTRDMS END-EXEC.
+
+           PERFORM DPP12-MCB-INIT   
+              THRU DPP12-MCB-INIT-EXIT. 
+           PERFORM DPP12-BEGIN-THREAD   
+              THRU DPP12-BEGIN-THREAD-EXIT. 
+
+           EXEC SQL WHENEVER SQLERROR   
+               GO TO 9150-RDMS-ERROR
+           END-EXEC.
+
+       0100-INIT-DATABASE.  
+      *  IF the program doesn't access the schema then the impart and   
+      *  opens are not necessary and DPP12NDB should be used instead of 
+      *  DPP12WDB, THE 0100-INIT-DATABASE PARA IS STILL REQUIRED.   
+
+           IMPART.  
+
+      * Open database areas and Init required database entities 
+      * 
+           PERFORM DPP15-OPEN-ASTRF-AREA
+              THRU DPP15-ASTRF-OPEN-EXIT.   
+           OPEN ASTRF-CTL.  
+
+           PERFORM IRP66-OPEN-IBR-RETRIEVAL 
+              THRU IRP66-OPEN-IBR-AREAS-EXIT.   
+
+           MOVE 'R'                     TO DPP03-OPEN-FLAG. 
+           PERFORM DPP11-OPEN-PAX-AREAS 
+              THRU DPP11-EXIT.  
+PPC470*    PERFORM DPP65-OPEN-SPGR-RETRIEVAL
+PPC470*       THRU DPP65-EXIT.  
+           PERFORM DPP45-OPEN-AVAIL-RETRIEVAL   
+              THRU DPP45-AVAIL-EXIT.
+           PERFORM GRP01-OPEN-RATE-RETRIEVAL
+              THRU GRP01-OPEN-EXIT. 
+           PERFORM DPP04-OPEN-PAX-RETRIEVAL THRU
+                   DPP04-OPEN-PAX-AREAS-EXIT.   
+
+           OPEN ERROR-DESC  
+                AGENT-IDX   
+                AGENT-CURR  
+                AGENT-PHONE 
+                AGENT-EMAIL 
+                AGNT-PHO-IDX
+                AGENT   
+                AGENCY-ASSOC
+                AGENT-COMP  
+166853*         AGNT-BOOK   
+                AGENCY-RATE 
+                AGENT-TERMS 
+                AGENT-BUS   
+                AGENT-HIST  
+                AGENTGCAP   
+                AGENCY-CONN 
+                AGENTCOM
+                AGENT-MO-YR 
+                CIF0
+                CIF1
+                CIF2
+                CIF3
+                CIF4
+                CIF5
+                CIF6
+                CIF7
+                CIF8
+                CIF9
+                PAXXFER 
+PPC470*         PRICING 
+                TOUR-PACKAGE
+PPC470          GRP1-BOOK   
+LOYLTY          MMISC-AMT   
+LOYLTY          MMISC-AMTX. 
+PPC470*         SAIL1-IDX   
+PPC470*         GRP1-BOOK   
+PPC470*         SAIL1.  
+166853     PERFORM MKP17-OPEN-ACBR-RETRIEVAL
+166853        THRU MKP17-OPEN-ACBR-AREAS-EXIT.  
+
+       0200-NEXT-MESSAGE.   
+       COPY SMP68INT.   
+           CALL 'SMO68INT' USING DPP01-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 SMP68-INPUT-PARAMS 
+                                 SMP68-OUTPUT-PARAMS.   
+
+           IF DPP01-SUB-MSG-CTR > ZERO  
+              IF DPP01-SUB-MSG-STATUS (1) > 1   
+                 GO TO 9500-RETURN-SUBROUTINE-ERROR.
+
+      D    DISPLAY 'CCR75ARP HIT' UPON PRINTER. 
+           COPY CCP75INT.   
+           COPY CCP00INT.   
+           COPY CCP01INT.   
+           COPY CCP10INT.   
+           COPY CCP11INT.   
+           COPY CCP45INT.   
+           COPY DPP02INT.   
+           COPY DPP03INT.   
+           COPY DPP34INT.   
+           COPY IRP36INT.   
+           COPY RSP50INT.   
+           COPY RSP49INT.   
+           COPY RSP23INT.   
+           MOVE SPACES                  TO CCL-CORP-SAIL-ID 
+PPC470*                                    CCL-CORP-RATE-CODE   
+                                           CCP00-MESSAGE-SOURCE 
+                                           CCP00-ADVISE-SOURCE  
+                                           CCP00-CONDITION-CODE 
+                                           CCP00-ADVISE-TEXT
+                                           CCP00-INDV-BOOK-NUM. 
+
+           ACCEPT DPP02-SYSTEM-DATE FROM DATE YYYYMMDD. 
+           ACCEPT DPP02-SYSTEM-TIME FROM TIME.  
+
+           PERFORM DPP12-GET-NEXT-MESSAGE   
+              THRU DPP12-GET-NEXT-MESSAGE-EXIT. 
+
+           IF CCMV-ERROR-SUB > ZERO 
+              MOVE CCMV-ERROR-SUB       TO MSGHDR-ADVISE-NUM (1)
+              MOVE 'CCP50P01'           TO MSGHDR-ADVISE-SOURCE (1) 
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+           IF CCM-INQUIRY-SW NOT = 'OFF'
+              ADD 1                     TO CCMV-ADV-SUB 
+              MOVE 0001                 TO MSGHDR-ADVISE-CODE   
+                                                          (CCMV-ADV-SUB)
+              GO TO 8900-PROGRAM-ERROR  
+           END-IF.  
+
+           MOVE P-TC                    TO INFO-PROGRAM-ID. 
+           MOVE P-PID                   TO INFO-SHORT-TERMID.   
+
+           COPY RSP90INT.   
+
+           MOVE MSGHDR-USER-ID          TO CCP45-USER-ID.   
+           MOVE SPACES                  TO INFO-USERID. 
+           STRING '@' SSP03-O-LOCATION-CODE DELIMITED BY SIZE   
+                                        INTO INFO-USERID.   
+
+           MOVE INFO-USERID (1:3)       TO DPP01-3CHAR-USERID   
+                                           DPP01-USERID.
+
+           MOVE ZEROES                  TO WS-SHOREX-CNT
+                                           WS-CRVNL-LVE-CNT 
+                                           WS-TRANSFER-CNT  
+                                           WS-SPA-CNT   
+                                           WS-PST-PAX-CNT   
+                                           WS-FST-TM-PAX-CNT
+                                           WS-CHEERS-CNT
+                                           WS-AGENT-ERROR-SW
+                                           WS-BOOKING-ERROR-SW  
+                                           WS-SAIL-RETURN-DATE  
+                                           WS-PAX-XFR-CNT   
+153106                                     WS-PP-GRATS-CNT. 
+
+       1000-VALIDATE-AGENT. 
+
+      *    Call RSO50VAA for AGENCY validation. 
+
+           IF ARINF1-BOOK-NUM > SPACES  
+              MOVE FUNCTION UPPER-CASE (ARINF1-BOOK-NUM)
+                                        TO CCP00-INDV-BOOK-NUM  
+           END-IF.  
+
+           MOVE FUNCTION UPPER-CASE(ARINF1-BOOK-NUM)
+                                        TO CCS-BOOK-NUM 
+                                           CCP00-INDV-BOOK-NUM. 
+192384*    MOVE RSP06-IBR-CURRENCY-CODE TO CCP00-INPUT-CURRENCY-CODE.   
+
+           PERFORM CCP10-VALIDATE-AGENT 
+              THRU CCP10-VALIDATE-AGENT-EXIT.   
+
+           IF CCMV-ERROR-SUB > ZERO 
+192384        PERFORM CCP75-OUTPUT-CCERRMSG 
+192384           THRU CCP75-OUTPUT-CCERRMSG-EXIT
+192384        GO TO 9000-END-OF-JOB 
+
+192384*       MOVE DPP01-SUB-MSG-INDEX (1)  
+192384*                                 TO WS-AGENT-ERROR-SW
+192384*       IF WS-AGENT-ACCESS-ERR
+192384*          MOVE 0002              TO MSGHDR-ADVISE-CODE   
+192384*                                                   (CCMV-ADV-SUB)
+192384*       ELSE  
+192384*          IF WS-AGT-BK-ERR   
+192384*             MOVE 0004           TO MSGHDR-ADVISE-CODE   
+192384*                                                   (CCMV-ADV-SUB)
+192384*          ELSE   
+192384*              MOVE 0003          TO MSGHDR-ADVISE-CODE   
+192384*                                                   (CCMV-ADV-SUB)
+192384*          END-IF 
+192384*       END-IF
+192384*       GO TO 8900-PROGRAM-ERROR  
+           END-IF.  
+
+           MOVE RSP50-O-CUSTOMER-NUM    TO MSGHDR-AGENCY-ID.
+           MOVE RSP50-O-AGENT-NAME      TO ARINF2-AGENT-NAME.   
+
+186084*    IF AGENT-CONTRACT-NUM NOT =  SPACES AND  
+186084*                                 LOW-VALUES AND  
+186084*                                 ZEROES  
+186084*       MOVE AGENT-CONTRACT-NUM   TO ARINF2-AFFILIATE-CONTRACT-NUM
+186084*    END-IF.  
+
+186084     MOVE ZEROES                 TO ARINF2-AFFILIATE-CONTRACT-NUM.
+
+           IF AGENT-OWNER-CONTRACT-NUM  NOT = SPACES AND
+                                        LOW-VALUES AND  
+                                        ZEROES  
+              MOVE AGENT-OWNER-CONTRACT-NUM 
+                                        TO ARINF2-OWNER-CONTRACT-NUM
+           END-IF.  
+
+186084*    IF AGENT-SUPER-CONTRACT-NUM  NOT = ZEROES
+186084*        MOVE AGENT-SUPER-CONTRACT-NUM
+186084*                                 TO ARINF2-MASTER-CONTRACT-NUM   
+186084*    END-IF.  
+
+186084     IF AGENT-MASTER-CONTRACT-NUM  NOT = ZEROES   
+186084         MOVE AGENT-MASTER-CONTRACT-NUM   
+186084                                  TO ARINF2-MASTER-CONTRACT-NUM   
+186084     END-IF.  
+
+CCLCOM     MOVE 'SHXSPA-MIG'  TO SSP09-I-CODE.  
+CCLCOM     MOVE 'FLAG'        TO SSP09-I-TYPE.  
+CCLCOM  
+CCLCOM     CALL 'SSC09GCD' USING DPP01-COMMON-DATA-FIELDS   
+CCLCOM                           DPP01-COMMON-INFO  
+CCLCOM                           SSP09-INPUT-PARAMS 
+CCLCOM                           SSP09-OUTPUT-PARAMS.   
+CCLCOM  
+CCLCOM     IF DPP01-SUB-MSG-CTR > 0 AND 
+CCLCOM        DPP01-SUB-MSG-STATUS (1) > 1  
+CCLCOM        GO TO 9100-DATABASE-ERROR 
+CCLCOM     END-IF.  
+CCLCOM     MOVE SSP09-O-DESCRIPTION TO WS-FEATURE-FLAG1.
+
+       1200-FETCH-BOOKING.  
+      *    Fetch the booking if it is provided in input in order to 
+      *    determine what type of changes have been requested.  
+           COPY RSP23INT.   
+
+           MOVE FUNCTION UPPER-CASE (ARINF1-BOOK-NUM)   
+                                        TO RSP23-I-INDV-BOOK-NUM.   
+214948*    MOVE SPACE                   TO RSP23-I-SHIP-CODE.   
+214948     MOVE SPACE                   TO RSP23-I-SHIP-CODE
+214948                                     RSP23-I-CUSTOMER-NUM.
+214948*    MOVE 0                       TO RSP23-I-DURATION-DAYS
+214948     MOVE 0                       TO RSP23-I-DURATION-DAYS.   
+214948*                                    RSP23-I-CUSTOMER-NUM.
+           MOVE 'Y'                     TO RSP23-I-READ-PAX-IND 
+                                           RSP23-I-READ-PIER-IND
+                                           RSP23-I-READ-PTFR-IND
+                                           RSP23-I-READ-CIF-IND 
+                                           RSP23-I-READ-PIAR-IND.   
+           MOVE 'A'                     TO RSP23-I-BOOK-TYPE.   
+
+           CALL 'RSO23RGC' USING       DPP01-COMMON-DATA-FIELDS 
+                                       DPP01-COMMON-INFO
+                                       RSP23-RGC-INPUT  
+                                       RSP06-GUEST-CABIN-INFO.  
+
+           IF DPP01-SUB-MSG-CTR > ZERO AND DPP01-SUB-MSG-STATUS (1) > 1 
+              ADD 1                     TO CCMV-ADV-SUB 
+              MOVE DPP01-SUB-MSG-INDEX (1)  
+                                        TO WS-BOOKING-ERROR-SW  
+              IF WS-BOOK-NOT-FOUND  
+                 MOVE 0004              TO MSGHDR-ADVISE-CODE   
+                                                          (CCMV-ADV-SUB)
+              ELSE  
+                 MOVE 0005              TO MSGHDR-ADVISE-CODE   
+                                                          (CCMV-ADV-SUB)
+              END-IF
+              GO TO 8900-PROGRAM-ERROR  
+           END-IF.  
+
+           IF AGENT-DIRECT-IND = 'Y'
+                ADD 1                   TO CCMV-ADV-SUB 
+                MOVE 0006               TO MSGHDR-ADVISE-CODE   
+                                                          (CCMV-ADV-SUB)
+                GO TO 8900-PROGRAM-ERROR
+           END-IF.  
+
+CCLAUS     IF RSP06-IBR-LOCALITY-CODE = RSP86-O-LOCALITY-CODE   
+CCLAUS        GO TO 1210-CONT-AFTER-LOCALITY
+CCLAUS     END-IF.  
+CCLAUS  
+CCLAUS COPY RSP86INT.   
+CCLAUS  
+CCLAUS     MOVE RSP06-IBR-LOCALITY-CODE  TO RSP86-I-LOCALITY-CODE.  
+CCLAUS     CALL 'RSC86GLD' USING DPP01-COMMON-DATA-FIELDS   
+CCLAUS                           DPP01-COMMON-INFO  
+CCLAUS                           RSP86-INPUT-PARAMS 
+CCLAUS                           RSP86-OUTPUT-PARAMS.   
+CCLAUS  
+CCLAUS     IF (DPP01-SUB-MSG-CTR > 0 AND
+CCLAUS         DPP01-SUB-MSG-STATUS (1) > 1)
+CCLAUS        ADD 1                     TO CCMV-ADV-SUB 
+CCLAUS        MOVE DPP01-SUB-MSG-SOURCE (1) 
+CCLAUS                                  TO MSGHDR-ADVISE-SOURCE 
+CCLAUS                                                    (CCMV-ADV-SUB)
+CCLAUS        MOVE CCP00-ADVISE-CODE    TO MSGHDR-ADVISE-CODE   
+CCLAUS                                                    (CCMV-ADV-SUB)
+CCLAUS        MOVE DPP01-SUB-MSG-INDEX (1)  
+CCLAUS                                  TO CCP00-ADVISE-CODE
+CCLAUS        PERFORM CCP75-OUTPUT-CCERRMSG THRU
+CCLAUS                CCP75-OUTPUT-CCERRMSG-EXIT
+CCLAUS        GO TO 9000-END-OF-JOB 
+CCLAUS     END-IF.  
+CCLAUS  
+CCLAUS 1210-CONT-AFTER-LOCALITY.
+
+           MOVE RSP06-IBR-BOOK-NUM      TO ARINF2-BOOK-NUM. 
+           MOVE RSP06-IBR-SHIP-CODE     TO ARINF2-SHIP-CODE.
+           MOVE RSP06-IBR-SAIL-DATE     TO ARINF2-SAIL-DATE.
+           MOVE RSP06-IBR-DURATION-DAYS TO ARINF2-DURATION-DAYS.
+           MOVE RSP06-IBR-SAIL-DATE     TO ARINF2-SAIL-END-DATE.
+           MOVE RSP06-IBR-BOOK-TYPE     TO ARINF2-BOOK-TYPE.
+           MOVE RSP06-IBR-GROUP-BOOK-NUM
+                                        TO ARINF2-GRP-BOOK-NUM. 
+           MOVE RSP06-IBR-BOOK-STATUS   TO ARINF2-BOOK-STATUS.  
+CCLAUS*    MOVE RSP06-IBR-BOOK-DATE     TO ARINF2-BOOK-DATE.
+CCLAUS     MOVE RSP06-IBR-BOOK-DATE     TO WS-TEMP-DATE.
+CCLAUS     MOVE ZEROES                  TO WS-TEMP-TIME.
+CCLAUS     MOVE RSP06-IBR-BOOK-TIME     TO WS-TEMP-TIME (1:6).  
+CCLAUS     IF RSP86-O-TIME-ZONE-CODE = 'AET'
+CCLAUS        PERFORM 4110-CONVERT-DATE-TIME THRU   
+CCLAUS                4110-CONVERT-DATE-TIME-EXIT   
+CCLAUS     END-IF.  
+CCLAUS     MOVE WS-TEMP-DATE            TO ARINF2-BOOK-DATE.
+CCLAUS  
+CCLAUS*    MOVE RSP06-IBR-CANCEL-DATE   TO ARINF2-CANCEL-DATE.  
+CCLAUS     MOVE RSP06-IBR-CANCEL-DATE   TO WS-TEMP-DATE.
+CCLAUS     MOVE ZEROES                  TO WS-TEMP-TIME.
+CCLAUS     MOVE RSP06-IBR-CANCEL-TIME   TO WS-TEMP-TIME (1:6).  
+CCLAUS     IF RSP06-IBR-CANCEL-DATE > ZEROES AND
+CCLAUS        RSP86-O-TIME-ZONE-CODE = 'AET'
+CCLAUS        PERFORM 4110-CONVERT-DATE-TIME THRU   
+CCLAUS                4110-CONVERT-DATE-TIME-EXIT   
+CCLAUS     END-IF.  
+CCLAUS     MOVE WS-TEMP-DATE            TO ARINF2-CANCEL-DATE.  
+CCLAUS  
+CCLAUS*    MOVE RSP06-IBR-OPTION-DATE   TO ARINF2-DEPOSIT-DATE. 
+CCLAUS     MOVE RSP06-IBR-OPTION-DATE   TO WS-TEMP-DATE.
+CCLAUS     MOVE ZEROES                  TO WS-TEMP-TIME.
+CCLAUS     MOVE RSP06-IBR-OPTION-TIME   TO WS-TEMP-TIME (1:4).  
+CCLAUS     IF RSP86-O-TIME-ZONE-CODE = 'AET'
+CCLAUS        PERFORM 4110-CONVERT-DATE-TIME THRU   
+CCLAUS                4110-CONVERT-DATE-TIME-EXIT   
+CCLAUS     END-IF.  
+CCLAUS     MOVE WS-TEMP-DATE            TO ARINF2-DEPOSIT-DATE. 
+
+           MOVE RSP06-IBR-FINAL-DATE    TO ARINF2-FNL-PYMT-DATE.
+PPC470*    MOVE RSP06-PAX-RATE-CODE(1)  
+PPC470*                                 TO ARINF2-RATE-CODE.
+PPC470     MOVE RSP06-PAX-OFFER-CODE(1)(1:3)
+PPC470                                  TO ARINF2-RATE-CODE.
+           IF  RSP06-IBR-GTEE-CATEGORY-CODE > SPACES
+               MOVE RSP06-IBR-GTEE-CATEGORY-CODE
+                                        TO ARINF2-CAT-CODE  
+           ELSE 
+               MOVE RSP06-IBR-CATEGORY-CODE 
+                                        TO ARINF2-CAT-CODE  
+           END-IF.  
+           MOVE RSP06-IBR-AGENCY-CONN-CODE  
+                                        TO ARINF2-BOOK-CHANNEL. 
+           MOVE RSP06-IBR-SAIL-DATE     TO DPP02-YYYYMMDD-DATE. 
+           MOVE RSP06-IBR-DURATION-DAYS TO DPP02-NUMBER-DAYS.   
+
+           PERFORM DPP10-ADVANCE-YYYYMMDD-DATE. 
+
+           MOVE DPP02-YYYYMMDD-DATE     TO WS-SAIL-RETURN-DATE  
+                                           ARINF2-SAIL-END-DATE.
+
+           MOVE 'N'                     TO ARINF2-DEPOSIT-PAID-IND. 
+
+862033*    IF RSP06-IB-TOTAL-PAYMENT-AMT >= RSP06-IBR-DEPOSIT-AMT   
+862033     IF RSP06-IBR-DEPOSIT-AMT > 0  AND
+862033        RSP06-IB-TOTAL-PAYMENT-AMT >= RSP06-IBR-DEPOSIT-AMT   
+              MOVE 'Y'                  TO ARINF2-DEPOSIT-PAID-IND  
+           ELSE 
+               IF RSP06-IBR-DEPOSIT-TYPE-1 > SPACE OR   
+                  RSP06-IBR-DEPOSIT-TYPE-2 > SPACE  
+                  MOVE 'Y'              TO ARINF2-DEPOSIT-PAID-IND  
+               END-IF   
+           END-IF.  
+
+           EVALUATE ARINF1-AGENT-CALL-TYPE  
+           WHEN 'C' 
+               CONTINUE 
+           WHEN 'D' 
+               GO TO 1600-PROCESS-GUESTS
+           WHEN OTHER   
+                ADD 1                   TO CCMV-ADV-SUB 
+                MOVE 0007               TO MSGHDR-ADVISE-CODE   
+                                                          (CCMV-ADV-SUB)
+                GO TO 8900-PROGRAM-ERROR
+           END-EVALUATE.
+
+       1300-FETCH-CLAIM-DUR.
+
+       COPY SSP09INT.   
+           MOVE 'ARPCLAIM-DUR'          TO WS-CDER-CODE.
+           MOVE WS-CDER-CODE            TO SSP09-I-CODE.
+           MOVE 'CLAM'                  TO SSP09-I-TYPE.
+
+           CALL 'SSC09GCD' USING DPP01-COMMON-DATA-FIELDS   
+                                  DPP01-COMMON-INFO 
+                                  SSP09-INPUT-PARAMS
+                                  SSP09-OUTPUT-PARAMS.  
+
+           IF DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1
+              IF (DPP01-SUB-MSG-SOURCE (1) = 'SSC09GCD' AND 
+                  DPP01-SUB-MSG-INDEX  (1) = 2) OR  
+                 (DPP01-SUB-MSG-SOURCE (1) = 'SSC10LCD' AND 
+                  DPP01-SUB-MSG-INDEX  (1) = 5) 
+                  ADD 1                 TO CCMV-ADV-SUB 
+                  MOVE 0008             TO MSGHDR-ADVISE-CODE   
+                                                          (CCMV-ADV-SUB)
+                  GO TO 8900-PROGRAM-ERROR  
+              ELSE  
+                 MOVE DPP01-SUB-MSG-SOURCE (1)  
+                                        TO  
+                      MSGHDR-ADVISE-SOURCE (CCMV-ADV-SUB)   
+                 MOVE DPP01-SUB-MSG-INDEX (1)   
+                                        TO  
+                      MSGHDR-ADVISE-NUM (CCMV-ADV-SUB)  
+                 PERFORM CCP75-OUTPUT-CCERRMSG  
+                    THRU CCP75-OUTPUT-CCERRMSG-EXIT 
+                 GO TO 9000-END-OF-JOB  
+           END-IF.  
+
+           MOVE SSP09-O-DESCRIPTION     TO WS-CDER-DESCRIPTION. 
+
+       1400-VALIDATE-DAYS.  
+
+           PERFORM DPP10-ACCEPT-SYSTEM-DATE-TIME.   
+
+           IF WS-CLAIM-DUR <= ZEROES
+              ADD 1                     TO CCMV-ADV-SUB 
+              MOVE 0009                 TO MSGHDR-ADVISE-CODE   
+                                                      (CCMV-ADV-SUB)
+              GO TO 8900-PROGRAM-ERROR  
+           END-IF.  
+
+           MOVE DPP02-SYSTEM-DATE       TO DPP02-YYYYMMDD-DATE. 
+           MOVE WS-CLAIM-DUR            TO DPP02-NUMBER-DAYS.   
+           PERFORM DPP10-DEMINISH-YYYYMMDD-DATE.
+
+           IF DPP02-YYYYMMDD-DATE > RSP06-IBR-BOOK-DATE 
+              ADD 1                     TO CCMV-ADV-SUB 
+              MOVE 0010                 TO MSGHDR-ADVISE-CODE   
+                                                      (CCMV-ADV-SUB)
+              GO TO 8900-PROGRAM-ERROR  
+           END-IF.  
+
+231872*1500-VALIDATE-CHANNEL.   
+
+231872*    MOVE SSP03-OUTPUT-PARAMS     TO WS-HOLD-SSP03.   
+
+231872*COPY SSP03INT.   
+
+231872*    MOVE RSP06-IBR-AGENCY-CONN-CODE  
+231872*                                 TO SSP03-I-AGENCY-CONN-CODE.
+231872*    MOVE RSP06-IBR-LOCATION-CODE 
+231872*                                 TO SSP03-I-LOCATION-CODE.   
+
+231872*    CALL 'SSC03GAD' USING DPP01-COMMON-DATA-FIELDS   
+231872*                          DPP01-COMMON-INFO  
+231872*                          SSP03-INPUT-PARAMS 
+231872*                          SSP03-OUTPUT-PARAMS.   
+
+231872*    IF DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1
+231872*       GO TO DPP12-RETURN-SUBROUTINE-ERROR.  
+
+231872*    MOVE WS-HOLD-SSP03           TO SSP03-OUTPUT-PARAMS. 
+
+231872*    IF ( SSP03-O-INTERNAL-CHANNEL-FLG = 1 AND
+231872*         SSP03-O-CONSUMER-FLG = 1       ) OR 
+231872*       ( RSP06-IBR-AGENCY-CONN-CODE = 'IR' OR 'ER' ) 
+231872*       ADD 1                     TO CCMV-ADV-SUB 
+231872*       MOVE 0014                 TO MSGHDR-ADVISE-CODE   
+231872*                                               (CCMV-ADV-SUB)
+231872*       GO TO 8900-PROGRAM-ERROR  
+231872*    END-IF.  
+
+       1600-PROCESS-GUESTS. 
+
+           MOVE 'N'                     TO ARINF2-GUEST-AGENT-IND.  
+
+           PERFORM VARYING WS-PAX-SUB   FROM 1 BY 1 UNTIL   
+                   WS-PAX-SUB > RSP06-PAX-CNT   
+               IF (FUNCTION UPPER-CASE  
+                  (RSP06-PAX-FIRST-NAME (WS-PAX-SUB)) = 
+                  FUNCTION UPPER-CASE (ARINF1-AGT-FST-NAME)) AND
+                  (FUNCTION UPPER-CASE  
+                  (RSP06-PAX-LAST-NAME (WS-PAX-SUB)) =  
+                  FUNCTION UPPER-CASE (ARINF1-AGT-LST-NAME))
+                  MOVE 'Y'              TO ARINF2-GUEST-AGENT-IND   
+               END-IF   
+               IF  RSP06-CIF-EXIST-IND (WS-PAX-SUB) = 'N'   
+                   ADD 1                TO WS-FST-TM-PAX-CNT
+               ELSE 
+                   IF  RSP06-CIF-EXIST-IND (WS-PAX-SUB) = 'Y'   
+                       IF  RSP06-CIF-TIER-CODE (WS-PAX-SUB) = '00'  
+                           ADD 1        TO WS-FST-TM-PAX-CNT
+                       ELSE 
+                           ADD 1        TO WS-PST-PAX-CNT   
+                       END-IF   
+                   END-IF   
+               END-IF   
+           END-PERFORM. 
+
+           MOVE RSP06-PAX-CNT           TO ARINF2-GUEST-CNT.
+           MOVE WS-PST-PAX-CNT          TO ARINF2-PAST-GUEST-CNT
+           MOVE WS-FST-TM-PAX-CNT       TO ARINF2-FST-TIME-GST-CNT. 
+           MOVE ZERO                    TO WS-PAX-SUB.  
+
+153106 1700-PROCESS-GRATS-CNT.  
+
+153106      ADD 1                       TO WS-PAX-SUB.  
+153106  
+153106      IF WS-PAX-SUB > RSP06-PAX-CNT   
+153106          GO TO 1750-PROCESS-GRATS-CNT-EXIT   
+153106      END-IF. 
+
+153106      IF RSP06-PAX-PP-GRATS-IND(WS-PAX-SUB) = 'Y' 
+153106         ADD 1         TO WS-PP-GRATS-CNT 
+153106      END-IF. 
+153106      GO TO 1700-PROCESS-GRATS-CNT.   
+
+153106 1750-PROCESS-GRATS-CNT-EXIT. 
+153106     MOVE ZERO                    TO WS-PAX-SUB.  
+
+       1800-PROCESS-TRANSFERS.  
+           ADD 1                        TO WS-PAX-SUB.  
+
+           IF  WS-PAX-SUB > RSP06-PAX-CNT   
+               GO TO 2000-FIND-META-CAT 
+           END-IF.  
+
+           IF RSP06-PTFR-TRANSFER-CNT(WS-PAX-SUB) > ZEROES  
+              PERFORM VARYING  WS-XFR-SUB  FROM 1 BY 1 UNTIL
+                   WS-XFR-SUB > RSP06-PTFR-TRANSFER-CNT(WS-PAX-SUB) 
+                 IF RSP06-PTFR-CANCEL-DATE (WS-PAX-SUB WS-XFR-SUB)  
+                                                     <= ZEROES  
+                    AND RSP06-PTFR-PURCHASE-SRC (WS-PAX-SUB WS-XFR-SUB) 
+                                                      = 'S' 
+                     ADD 1              TO WS-TRANSFER-CNT  
+                                           WS-PAX-XFR-CNT   
+                     MOVE RSP06-PTFR-PAX-SEQ-NUM (WS-PAX-SUB)   
+                                        TO  
+                                  WS-PTFR-PAX-SEQ-NUM (WS-PAX-XFR-CNT)  
+                     MOVE RSP06-PTFR-PRE-POST-IND   
+                                       (WS-PAX-SUB WS-XFR-SUB)  
+                                        TO  
+                                   WS-PTFR-PRE-POST-IND (WS-PAX-XFR-CNT)
+                  END-IF
+              END-PERFORM   
+           END-IF.  
+
+           GO TO 1800-PROCESS-TRANSFERS.
+
+       2000-FIND-META-CAT.  
+
+PPC470*    MOVE RSP06-IBR-SAIL-DATE     TO SAIL1-SAIL-DATE. 
+PPC470*    MOVE RSP06-IBR-SHIP-CODE     TO SAIL1-SHIP-CODE. 
+PPC470*    MOVE RSP06-IBR-DURATION-DAYS TO SAIL1-DURATION-DAYS. 
+PPC470*    FETCH SAIL1-REC RECORD.  
+PPC470* 
+PPC470*    IF RSP06-IBR-SAIL-DATE = SAIL1-SAIL-DATE AND 
+PPC470*       RSP06-IBR-SHIP-CODE = SAIL1-SHIP-CODE AND 
+PPC470*       RSP06-IBR-DURATION-DAYS = SAIL1-DURATION-DAYS 
+PPC470*       CONTINUE  
+PPC470*    ELSE 
+PPC470*       GO TO 9100-DATABASE-ERROR 
+PPC470*    END-IF.  
+PPC470* 
+PPC470*    PERFORM VARYING WS-SAIL-SUB FROM 1 BY 1 UNTIL
+PPC470*            WS-SAIL-SUB > SAIL1-CATEGORY-CNT 
+PPC470* 
+PPC470*        IF  SAIL1-CATEGORY-CODE (WS-SAIL-SUB) = ARINF2-CAT-CODE  
+PPC470*            MOVE SAIL1-LEAD-CATEGORY-CODE (WS-SAIL-SUB)  
+PPC470*                                 TO ARINF2-METACAT-CODE  
+PPC470*            MOVE SAIL1-CATEGORY-CNT  
+PPC470*                                 TO WS-SAIL-SUB  
+PPC470*        END-IF   
+PPC470*    END-PERFORM. 
+
+PPC470     MOVE RSP06-IBR-SAIL-DATE     TO TDP01-I-SAIL-DATE-YYYYMMDD.  
+PPC470     MOVE RSP06-IBR-SHIP-CODE     TO TDP01-I-SHIP-CODE.   
+PPC470     MOVE RSP06-IBR-DURATION-DAYS TO TDP01-I-DUR-DAYS.
+
+PPC470     PERFORM TDP01-RET-SAIL-DETAILS THRU  
+PPC470             TDP01-RET-SAIL-DETAILS-EXIT. 
+PPC470  
+PPC470     IF TDP01-SAIL-SQLERR 
+PPC470        GO TO 9150-RDMS-ERROR 
+PPC470     END-IF.  
+
+PPC470     MOVE ARINF2-CAT-CODE TO TDP01-I-SCAT-CODE.   
+PPC470     PERFORM TDP01-RET-SGL-SCAT   
+PPC470        THRU TDP01-RET-SGL-SCAT-EXIT. 
+PPC470  
+PPC470     IF TDP01-SCAT-SQLERR OR  
+PPC470                   TDP01-PROC-ERROR > 0   
+PPC470                   GO TO 9150-RDMS-ERROR  
+PPC470                END-IF.   
+
+PPCPDT     MOVE TDP01-META-CODE (1) TO ARINF2-METACAT-CODE. 
+
+PPCPDT*    PERFORM VARYING WS-SAIL-SUB FROM 1 BY 1 UNTIL
+PPCPDT*            WS-SAIL-SUB > TDP01-SAIL-CAT-CNT 
+PPCPDT* 
+PPCPDT*        IF  TDP01-CATEGORY-CODE (WS-SAIL-SUB) = ARINF2-CAT-CODE  
+PPCPDT*            MOVE TDP01-META-CODE (WS-SAIL-SUB)   
+PPCPDT*                                 TO ARINF2-METACAT-CODE  
+PPCPDT*            MOVE TDP01-SAIL-CAT-CNT  
+PPCPDT*                                 TO WS-SAIL-SUB  
+PPCPDT*        END-IF   
+PPCPDT*    END-PERFORM. 
+
+       3000-CALL-SXC32EXC.  
+
+           MOVE LOW-VALUES              TO SXO32-I-BOOK-NUM.
+      *    COPY DPP01INT.   
+
+CCLCOM     IF WS-FEATURE-FLAG1 = 'ON'   
+CCLCOM        GO TO 5000-CALL-BVC02CDR. 
+
+           IF  RSP06-IBR-SHORE-EXC-SEQ-NUM > 0  
+               MOVE RSP06-IBR-BOOK-NUM  
+                                        TO SXO32-I-BOOK-NUM 
+               CALL 'SXC32EXC' USING DPP01-COMMON-DATA-FIELDS   
+                                     DPP01-COMMON-INFO  
+                                     SXO32-INPUT-DATA   
+                                     SXO32-OUTPUT-DATA  
+
+               IF  SXO32-O-ERROR-REASON = 'INVALID BOOKING NUMBER'  
+                   MOVE 0011            TO MSGHDR-ADVISE-CODE (1)   
+                   MOVE DPP01-SUB-MSG-SOURCE (1)
+                                        TO  
+                        MSGHDR-ADVISE-SOURCE (CCMV-ADV-SUB) 
+                   MOVE DPP01-SUB-MSG-INDEX (1) 
+                                        TO  
+                        MSGHDR-ADVISE-NUM (CCMV-ADV-SUB)
+                   PERFORM CCP75-OUTPUT-CCERRMSG
+                      THRU CCP75-OUTPUT-CCERRMSG-EXIT   
+                   GO TO 9000-END-OF-JOB
+               END-IF   
+               GO TO 3500-PROCESS-SHOREX
+           END-IF.  
+
+           GO TO 5000-CALL-BVC02CDR.
+
+       3500-PROCESS-SHOREX. 
+           MOVE ZEROES                  TO WS-PAX-SUB.  
+
+       3510-PROCESS-SHOREX-CNT. 
+
+           ADD 1                        TO WS-PAX-SUB.  
+
+           IF WS-PAX-SUB > RSP06-PAX-CNT
+              GO TO 5000-CALL-BVC02CDR  
+           END-IF.  
+
+           IF SXO32-O-PAX-EXC-CNT (WS-PAX-SUB) >= 1 
+
+              PERFORM VARYING WS-ESUB FROM 1 BY 1   
+                 UNTIL WS-ESUB > SXO32-O-PAX-EXC-CNT (WS-PAX-SUB)   
+
+                 IF SXO32-O-EXC-ATRN-IND (WS-PAX-SUB WS-ESUB) = 'Y' 
+                    IF WS-PAX-XFR-CNT > ZEROES  
+                       MOVE 'N'         TO WS-XFR-EXIST 
+                       MOVE ZEROES      TO WS-XFR-SUB   
+
+                       PERFORM 4000-VALIDATE-XFR
+                          THRU 4000-VALIDATE-XFR-EXIT   
+
+                       IF WS-XFR-EXIST = 'N'
+                          ADD 1         TO WS-TRANSFER-CNT  
+                       END-IF   
+                    ELSE
+                       ADD 1            TO WS-TRANSFER-CNT  
+                    END-IF  
+                  ELSE  
+                     IF SXO32-O-EXC-CLVE-IND (WS-PAX-SUB WS-ESUB)  = 'Y'
+                        ADD 1           TO WS-CRVNL-LVE-CNT 
+                     ELSE   
+                        ADD 1           TO WS-SHOREX-CNT
+                     END-IF 
+                 END-IF 
+              END-PERFORM   
+           END-IF.  
+
+           IF SXO32-O-PAX-SPA-CNT (WS-PAX-SUB) >= 1 
+              PERFORM VARYING WS-ESUB FROM 1 BY 1   
+                 UNTIL WS-ESUB > SXO32-O-PAX-SPA-CNT (WS-PAX-SUB)   
+                 ADD 1                  TO WS-SPA-CNT   
+              END-PERFORM   
+           END-IF.  
+
+           GO TO 3510-PROCESS-SHOREX-CNT.   
+
+       4000-VALIDATE-XFR.   
+           ADD 1                        TO WS-XFR-SUB.  
+
+           IF WS-XFR-SUB > WS-PAX-XFR-CNT   
+              GO TO 4000-VALIDATE-XFR-EXIT  
+           END-IF.  
+
+           IF WS-PTFR-PAX-SEQ-NUM (WS-XFR-SUB) =
+                                        SXO32-O-PAX-SEQ-NUM (WS-PAX-SUB)
+
+PPC470*       IF SAIL1-SAIL-DATE = SXO32-O-EXC-DATE (WS-PAX-SUB WS-ESUB)
+PPC470        IF TDP01-SAIL-DATE-YYYYMMDD = 
+PPC470                             SXO32-O-EXC-DATE (WS-PAX-SUB WS-ESUB)
+                 AND WS-PTFR-PRE-POST-IND (WS-XFR-SUB) = 'I'
+                 MOVE 'Y'               TO WS-XFR-EXIST 
+                 GO TO 4000-VALIDATE-XFR-EXIT   
+              END-IF
+
+              IF WS-SAIL-RETURN-DATE
+                                 = SXO32-O-EXC-DATE (WS-PAX-SUB WS-ESUB)
+                 AND WS-PTFR-PRE-POST-IND (WS-XFR-SUB) = 'O'
+                 MOVE 'Y'               TO WS-XFR-EXIST 
+                 GO TO 4000-VALIDATE-XFR-EXIT   
+              END-IF
+           END-IF.  
+
+           GO TO 4000-VALIDATE-XFR. 
+
+       4000-VALIDATE-XFR-EXIT.  
+           EXIT.
+
+CCLAUS 4110-CONVERT-DATE-TIME.  
+CCLAUS     PERFORM DPP10-INIT-TMZ-VARS THRU 
+CCLAUS             DPP10-INIT-TMZ-VARS-EXIT.
+CCLAUS  
+CCLAUS     MOVE 'USD'                   TO DPP02-TMZ-FRM-BASE-CURRENCY. 
+CCLAUS     MOVE 'AUD'                   TO DPP02-TMZ-TO-BASE-CURRENCY.  
+CCLAUS     MOVE WS-TEMP-DATE            TO DPP02-TMZ-INP-DATE.  
+CCLAUS     MOVE WS-TEMP-TIME            TO DPP02-TMZ-INP-TIME8. 
+CCLAUS  
+CCLAUS     PERFORM DPP10-CHANGE-TIMEZONE THRU   
+CCLAUS             DPP10-CHANGE-TIMEZONE-EXIT.  
+CCLAUS  
+CCLAUS     IF DPP02-TMZ-ERROR-NUM > 0   
+CCLAUS        MOVE DPP02-TMZ-ERROR-NUM  TO MSGHDR-ADVISE-CODE (1)   
+CCLAUS        MOVE 'DPP10TMZ'           TO MSGHDR-ADVISE-SOURCE (1) 
+CCLAUS        PERFORM CCP75-OUTPUT-CCERRMSG THRU
+CCLAUS                CCP75-OUTPUT-CCERRMSG-EXIT
+CCLAUS        GO TO 9000-END-OF-JOB 
+CCLAUS     END-IF.  
+CCLAUS  
+CCLAUS     MOVE DPP02-TMZ-OUT-DATE      TO WS-TEMP-DATE.
+CCLAUS     MOVE DPP02-TMZ-OUT-TIME8     TO WS-TEMP-TIME.
+CCLAUS  
+CCLAUS 4110-CONVERT-DATE-TIME-EXIT. 
+CCLAUS     EXIT.
+
+       5000-CALL-BVC02CDR.  
+
+           COPY BVP02INT.   
+           MOVE RSP06-IBR-SHIP-CODE     TO BVP02-I-SHIP-CODE.   
+           MOVE RSP06-IBR-SAIL-DATE     TO BVP02-I-SAIL-DATE.   
+           MOVE RSP06-IBR-CABIN-NUM     TO BVP02-I-CABIN-NUM.   
+           MOVE RSP06-IBR-BOOK-TYPE     TO BVP02-I-BOOK-TYPE.   
+           MOVE 'A'                     TO BVP02-I-STATUS-IND.  
+
+           IF  RSP06-IBR-BOOK-TYPE = 'I'
+               MOVE RSP06-IBR-BOOK-NUM  TO BVP02-I-BOOK-NUM 
+           ELSE 
+               MOVE RSP06-IBR-GROUP-BOOK-NUM
+                                        TO BVP02-I-BOOK-NUM 
+           END-IF.  
+
+           CALL 'BVC02CDR'    USING DPP01-COMMON-DATA-FIELDS
+                                    DPP01-COMMON-INFO   
+                                    BVP02-CO-INPUT-DATA 
+                                    BVP02-CO-OUTPUT-DATA.   
+
+           IF DPP01-SUB-MSG-CTR > ZERO AND DPP01-SUB-MSG-STATUS(1) > 1  
+              ADD 1                     TO CCMV-ADV-SUB 
+              MOVE DPP01-SUB-MSG-SOURCE (1) 
+                                        TO  
+                   MSGHDR-ADVISE-SOURCE (CCMV-ADV-SUB)  
+              MOVE DPP01-SUB-MSG-INDEX (1)  
+                                        TO  
+                   MSGHDR-ADVISE-NUM (CCMV-ADV-SUB) 
+              MOVE 0012                 TO MSGHDR-ADVISE-CODE (1)   
+
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+
+               GO TO 8000-FINISH-OUTPUT 
+
+           END-IF.  
+
+           IF BVP02-O-CODR-CNT <= 0 
+              GO TO 8000-FINISH-OUTPUT  
+           END-IF.  
+
+           MOVE ZEROES                  TO WS-CODR-SUB. 
+
+       5500-FIND-CDER.  
+
+       COPY SSP09INT.   
+           ADD 1                        TO WS-CODR-SUB. 
+
+           IF WS-CODR-SUB > BVP02-O-CODR-CNT
+              GO TO 8000-FINISH-OUTPUT  
+           END-IF.  
+
+           IF BVP02-O-CODR-CANCEL-IND(WS-CODR-SUB) = 'C'
+              GO TO 5500-FIND-CDER  
+           END-IF.  
+
+           MOVE 'CHEERS-'               TO WS-CDER-CODE-FILLER. 
+           MOVE BVP02-O-CODR-ITEM-NUM (WS-CODR-SUB) 
+                                        TO WS-CODR-ITEM-NUM.
+           MOVE WS-CDER-CODE            TO SSP09-I-CODE.
+           MOVE 'CODR'                  TO SSP09-I-TYPE.
+
+           CALL 'SSC09GCD' USING DPP01-COMMON-DATA-FIELDS   
+                                  DPP01-COMMON-INFO 
+                                  SSP09-INPUT-PARAMS
+                                  SSP09-OUTPUT-PARAMS.  
+
+           IF DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1
+              IF (DPP01-SUB-MSG-SOURCE (1) = 'SSC09GCD' AND 
+                  DPP01-SUB-MSG-INDEX  (1) = 2) OR  
+                 (DPP01-SUB-MSG-SOURCE (1) = 'SSC10LCD' AND 
+                  DPP01-SUB-MSG-INDEX  (1) = 5) 
+                 GO TO 5500-FIND-CDER   
+              ELSE  
+                 MOVE DPP01-SUB-MSG-SOURCE (1)  
+                                        TO  
+                      MSGHDR-ADVISE-SOURCE (CCMV-ADV-SUB)   
+                 MOVE DPP01-SUB-MSG-INDEX (1)   
+                                        TO  
+                      MSGHDR-ADVISE-NUM (CCMV-ADV-SUB)  
+                 PERFORM CCP75-OUTPUT-CCERRMSG  
+                    THRU CCP75-OUTPUT-CCERRMSG-EXIT 
+                 GO TO 9000-END-OF-JOB  
+              END-IF
+           END-IF.  
+
+           ADD BVP02-O-CODR-ITEM-QTY (WS-CODR-SUB)  
+                                        TO WS-CHEERS-CNT.   
+
+           GO TO 5500-FIND-CDER.
+
+       8000-FINISH-OUTPUT.  
+
+           MOVE WS-SHOREX-CNT           TO ARINF2-SHOREX-CNT.   
+           MOVE WS-CRVNL-LVE-CNT        TO ARINF2-CARNIVAL-LIVE-CNT.
+           MOVE WS-TRANSFER-CNT         TO ARINF2-TRANSFER-CNT. 
+           MOVE WS-SPA-CNT              TO ARINF2-SPA-CNT.  
+           MOVE WS-CHEERS-CNT           TO ARINF2-CHEERS-CNT.   
+153106     MOVE WS-PP-GRATS-CNT         TO ARINF2-PP-GRATS-CNT. 
+
+           PERFORM CCP75-ARINF2-OUTPUT  
+              THRU CCP75-ARINF2-OUTPUT-EXIT.
+           GO TO 9000-END-OF-JOB.   
+
+       8900-PROGRAM-ERROR.  
+
+           MOVE 'CCR75ARP'              TO MSGHDR-ADVISE-SOURCE 
+                                                         (CCMV-ADV-SUB).
+           IF CCP45-SECURITY-ID = 'T'   
+              MOVE SPACES               TO MSGHDR-AGENCY-ID 
+           END-IF.  
+
+           PERFORM CCP75-OUTPUT-CCERRMSG
+              THRU CCP75-OUTPUT-CCERRMSG-EXIT.  
+           GO TO 9000-END-OF-JOB.   
+
+       9000-END-OF-JOB. 
+           GO TO DPP12-END-OF-JOB.  
+
+       9100-DATABASE-ERROR. 
+           MOVE 0013                    TO MSGHDR-ADVISE-CODE (1).  
+           ADD 1                        TO CCMV-ADV-SUB 
+           MOVE 'CCR75ARP'              TO MSGHDR-ADVISE-SOURCE 
+                                                        (CCMV-ADV-SUB). 
+           PERFORM CCP75-OUTPUT-CCERRMSG
+              THRU CCP75-OUTPUT-CCERRMSG-EXIT.  
+           GO TO DPP12-DATABASE-ERROR.  
+
+       9150-RDMS-ERROR. 
+           GO TO DPP12-RDMS-ERROR.  
+
+       9200-EDIT-ERROR-MSG. 
+           PERFORM DPP12-EDIT-ERROR-MSG 
+              THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+
+           GO TO DPP12-END-OF-JOB.  
+
+       9210-EDIT-CONTINUE-MSG.  
+           PERFORM DPP12-EDIT-ERROR-MSG 
+              THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+
+       9300-SEVERE-ERROR-MSG.   
+           GO TO DPP12-SEVERE-ERROR-MSG.
+
+       9400-INFO-MSG.   
+           PERFORM DPP12-INFO-MSG   
+              THRU DPP12-INFO-MSG-EXIT. 
+
+       9500-RETURN-SUBROUTINE-ERROR.
+           GO TO DPP12-RETURN-SUBROUTINE-ERROR. 
+
+       9600-SAVE-SUBROUTINE-ERRORS. 
+           PERFORM DPP12-SAVE-SUBROUTINE-MSGS   
+              THRU DPP12-SAVE-SUBROUTINE-MSGS-X.
+
+       COPY CCP10CCS.   
+       COPY CCP50P02.   
+       COPY CCP60ARP.   
+       COPY CCP75P02.   
+       COPY CCP75ARP.   
+       COPY DPP12API.   
+       COPY DPP12AMI.   
+       COPY DPP12ERR.   
+       COPY DPP12WDB.   
+       COPY DPP10Y2K.   
+       COPY DPP11POP.   
+       COPY DPP33CIU.   
+       COPY IRP66OIB.   
+       COPY IRP66RIB.   
+       COPY CCP10CCC.   
+       COPY CCP11CCC.   
+       COPY DPP15OAS.   
+       COPY CCP76AP1.   
+       COPY CCP77AP2.   
+       COPY CCP82AP1.   
+       COPY CCP99PP1.   
+PPC470*COPY DPP65SPO.   
+       COPY DPP45AOP.   
+       COPY GRP01CAT.   
+       COPY DPP04PIR.   
+CCLAUS COPY DPP10TMZ.   
+PPC470 COPY TDP01SAP.   
+PPC470 COPY TDP01SCP.   
+166853 COPY MKP17OAC.   

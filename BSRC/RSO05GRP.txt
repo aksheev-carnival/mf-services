@@ -1,0 +1,989 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.    RSO05GRP. 
+       AUTHOR.  
+       DATE-WRITTEN.  May 2018. 
+       DATE-COMPILED.   
+      ****************************************************************  
+      ****************************************************************  
+      * Description:                                                 *  
+      *     Uses offer id and sail id to return gifts applicable on  *  
+      *     that offer                                               *  
+      ****************************************************************  
+      * Input      DPP01-COMMON-DATA-FIELDS                          *  
+      *            DPP01-COMMON-INFO                                 *  
+      *            SUBROUTINE-INPUT                                  *  
+      * Output     SUBROUTINE-OUTPUT                                 *  
+      * Calling Sequence                                             *  
+      *                                                              *  
+      *          CALL 'RSO05GRP' USING DPP01-COMMON-DATA-FIELDS      *  
+      *                                DPP01-COMMON-INFO             *  
+      *                                RSP05-INPUT-PARAMS            *  
+      *                                RSP05-OUTPUT-PARAMS  
+      *                                RSP06-GUEST-CABIN-INFO.       *  
+      *                                                              *  
+      *    Subroutine inputs can be many, meaning they do not have   *  
+      *    to be under one group, they could be SUBROUTINE-INPUT1,   *  
+      *    SUBROUTINE-INPUT2 etc. Same rules apply to outputs too.   *  
+      *                                                              *  
+      * Return Status Values:                                        *  
+      *                00       OK                                   *  
+      *                01       Informational                        *  
+      *                02       Edit Error                           *  
+      *                03       Fatal or Severe Error                *  
+      ****************************************************************  
+************************************************************************
+PRCCMB* 12-JUN-25     HPL     TCS LTD.               ADO2039448        *
+PRCCMB* PRICING COMBINABILITY CHANGES RELATED TO GIFTS.                *
+************************************************************************
+242205* 13-FEB-26     VYM     TCS LTD.               ADO2242205        *
+242205* ONE NEW FIELD RSP05-CAB-GUEST-SUB HAS BEEN ADDED FOR THE       *
+242205* CALCULATION OF ITEM NUM AND DISCOUNT CODE.                     *
+************************************************************************
+423536* 26-AUG-26     SK6     TCS LTD.               ADO2423536        *
+423536* INCORRECT FLAG VALUE WAS USED FOR TARGET+1 GIFT SETUP. CORRECT *
+423536* CORRECT VALUE IS S. MORE CHANGES WERE DONE TO CORRECTLY SHOW   *
+423536* GIFT ITEM FOR TARGET+1.                                        *
+************************************************************************
+418859* 31-AUG-26     VYM     TCS LTD.               ADO2418859        *
+418859* IF SINGLE_ONE_GIFT_IND IND VALUE IS 'N' WE ARE AWARDING GUEST  *
+418859* WITH 2 GIFTS.                                                  *
+************************************************************************
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER. UNISYS-2200.
+       OBJECT-COMPUTER. UNISYS-2200 MEMORY 3 MODULES.   
+       SPECIAL-NAMES.   PRINTER IS PRINTER  
+                        CONSOLE IS CONSOLE. 
+
+       DATA DIVISION.   
+
+       SUBSCHEMA SECTION.   
+       INVOKE SUBSCHEMA PST100UCOBSU
+              IN FILE SUBSCHEMAS OF SCHEMA PST100SCHEMA 
+              COPYING RECORDS    INTO COMMON
+              COPYING DATA-NAMES INTO COMMON
+              OVERLAY PAX-REC WITH PAX-CXF-REC  
+169014*                            PAX-FUT-REC  
+                                   PAX-VI-REC   
+              DMCA  COMMON  
+              SAVE DATA INCLUDES DEFERRED-UPDATES   
+              ERROR RECOVERY IS 9100-DATABASE-ERROR.
+
+       WORKING-STORAGE SECTION. 
+
+       01  WS-PROG-ID                         PIC X(8) VALUE 'RSO05GRP'.
+       01  MCFLAG                             PIC 9(10) BINARY. 
+
+       01  WS-MISC-N-VARS.  
+           03  WS-GITM-BUND-DET-SUB           PIC 9(05) BINARY. 
+           03  WS-SUB                         PIC 9(05) BINARY. 
+           03  WS-OUT-SUB                     PIC 9(05) BINARY. 
+           03  WS-GITM-CNT                    PIC 9(05) BINARY. 
+           03  NSUB                           PIC 9(02) BINARY. 
+           03  OGSUB                          PIC 9(02) BINARY. 
+           03  OCSUB                          PIC 9(02) BINARY. 
+           03  GITM-SUB                       PIC 9(02) BINARY. 
+           03  GSUB                           PIC 9(05) BINARY. 
+           03  WS-GDSUB                       PIC 9(05) BINARY. 
+           03  WS-GISUB                       PIC 9(05) BINARY. 
+           03  WS-PAX-AGE                     PIC 9(05) BINARY. 
+242205     03  WS-CAB-GUEST-SUB               PIC 9(02) BINARY. 
+PRCCMB     03  WS-PAX-SUB                     PIC 9(02) BINARY. 
+PRCCMB     03  WS-GST-SUB                     PIC 9(02) BINARY. 
+PRCCMB     03  WS-TARGETED-PAX-SEQ-NUM        PIC 9(02) BINARY. 
+PRCCMB     03  WS-TARGETED-OFFER-ID           PIC 9(11) BINARY. 
+PRCCMB     03  WS-GIFT-PROMO-PCT              PIC 9(02)V99 BINARY.  
+           03  WS-OFFER-ENTRY OCCURS 4 TIMES.   
+               05 WS-OFFER-ID                 PIC 9(11) BINARY. 
+           03  WS-GITM-ENTRY-N OCCURS 36 TIMES. 
+               05 WS-GITM-PTR                 PIC 1(36) BINARY-1.   
+
+
+       01  WS-MISC-AN-VARS. 
+           03  WS-FOUND-IND                   PIC X(01).
+           03  WS-FOUND-ITEM-IND              PIC X(01).
+           03  WS-APPLY-CAB-GIFT-IND          PIC X(01).
+           03  WS-PAX-GIFT-CODE               PIC X(08).
+423536*    03  WS-COMPANION-SELECTED          PIC X(01).
+PRCCMB     03  WS-TARGETED-IND                PIC X(01).
+           03  WS-PAX-ALT-GIFT-IND            PIC X(01).
+           03  WS-GITM-ENTRY OCCURS 36 TIMES.   
+               05 WS-GITM-CODE                PIC X(08).
+               05 WS-GITM-BUNDLE-CODE         PIC X(02).
+               05 FILLER                      PIC X(02).
+
+
+       01  WS-GITM-ENTRY-SIZE                 PIC 1(36) BINARY-1
+423536*                                       VALUE 368.
+423536                                        VALUE 388.
+
+       01  WS-GIFT-ENTRY-SIZE                 PIC 1(36) BINARY-1
+PRCCMB*                                       VALUE 60. 
+418859*                                       VALUE 64. 
+418859                                        VALUE 65. 
+
+       01  WS-GITM-MEM-TABLE.   
+           03  WS-GITM-MEM-ENTRY OCCURS 36 TIMES.   
+               05 WS-GITM-MEM-PTR             PIC 1(36) BINARY-1.   
+
+       01  WS-GIFT-MEM-TABLE.   
+           03  WS-GIFT-MEM-ENTRY OCCURS 200 TIMES.  
+               05 WS-GIFT-MEM-PTR             PIC 1(36) BINARY-1.   
+
+       01  WS-GIFT-REC. 
+           03 WS-GIFT-ITEM-TYPE            PIC X(02).   
+           03 WS-GIFT-ITEM-CODE            PIC X(08).   
+           03 WS-GIFT-BUND-CODE            PIC X(02).   
+           03 WS-GIFT-TYPE                 PIC X(01).   
+           03 WS-GIFT-CODE                 PIC X(08).   
+           03 WS-GUEST-TYPE                PIC X(01).   
+           03 WS-POSITION-CODE             PIC X(01).   
+           03 WS-GUEST-CABIN-CODE          PIC X(01).   
+           03 WS-REFUNDABLE-IND            PIC X(01).   
+           03 WS-DEPARTMENT-CODE           PIC X(08).   
+           03 WS-MINIMUM-AGE               PIC S9(06) USAGE BINARY. 
+           03 WS-ALT-GIFT-CODE             PIC X(08).   
+           03 WS-ALT-REFUNDABLE-IND        PIC X(01).   
+           03 WS-ALT-DEPARTMENT-CODE       PIC X(08).   
+           03 WS-TICKET-IND                PIC X(01).   
+           03 WS-DELIVERY-LOCATION-CODE    PIC X(01).   
+           03 WS-DELIVERY-CODE             PIC X(01).   
+           03 WS-DELIVERY-DAY-NUM          PIC S9(06) USAGE BINARY. 
+           03 WS-COURTESY-OF-CODE          PIC X(01).   
+           03 WS-PROMOTIONAL-PCT           PIC 9(02)V99 USAGE BINARY.   
+           03 WS-ALT-PROMOTIONAL-PCT       PIC 9(02)V99 USAGE BINARY.   
+418859     03 WS-SNG-ONE-GFT-IND           pic X(01).   
+
+       COPY DPP02Y2K.   
+       COPY DPP01DTA.   
+       COPY DPP42ERR.   
+       COPY DPP42SWS.   
+       COPY RSP05CON.   
+       COPY RSP05GWS.   
+       COPY SSP00COM.   
+
+       COMMON-STORAGE SECTION.  
+
+       LINKAGE SECTION. 
+       COPY DPP01SCO.   
+       COPY DPP01CIW.   
+       COPY RSP05GRP.   
+       COPY RSP06GCI.   
+
+       PROCEDURE DIVISION USING DPP01-COMMON-DATA-FIELDS
+                                DPP01-COMMON-INFO   
+                                RSP05-INPUT-PARAMS  
+                                RSP05-OUTPUT-PARAMS 
+                                RSP06-GUEST-CABIN-INFO. 
+
+       0000-MAINLINE.   
+           COPY DPP42INT.   
+           MOVE LOW-VALUES             TO RSP05-OUTPUT-PARAMS   
+                                          WS-MISC-N-VARS.   
+           MOVE SPACES                 TO WS-MISC-AN-VARS.  
+423536*    MOVE 'N'                    TO WS-COMPANION-SELECTED.
+PRCCMB     MOVE ZEROES                 TO WS-PAX-SUB
+PRCCMB                                    WS-TARGETED-PAX-SEQ-NUM.  
+           EXEC SQL 
+            USE DEFAULT SCHEMA PSTRDMS  
+           END-EXEC.
+
+           EXEC SQL WHENEVER SQLERROR   
+                GO TO 9150-RDMS-ERROR   
+           END-EXEC.
+
+           MOVE WS-PROG-ID             TO DPP42-HOLD-MSG-SOURCE.
+
+       0100-VALIDATE-INPUT. 
+
+           IF  RSP05-I-BOOK-NUM NOT = RSP06-IBR-BOOK-NUM
+               MOVE 01                 TO DPP42-HOLD-MSG-INDEX  
+               GO TO 9200-EDIT-ERROR-MSG
+           END-IF.  
+
+           EXEC SQL WHENEVER SQLERROR   
+                GO TO 9150-RDMS-ERROR   
+           END-EXEC.
+
+PRCCMB     PERFORM 7000-FIND-TARGETED-GUEST THRU
+PRCCMB             7099-FIND-TARGETED-GUEST-EXIT.   
+       0500-PROCESS-PAX.
+
+           ADD 1 TO NSUB.   
+
+           IF NSUB > RSP06-PAX-CNT  
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+           MOVE 'N'                    TO WS-FOUND-IND. 
+
+           PERFORM VARYING WS-SUB FROM 1 BY 1   
+              UNTIL WS-SUB > RSP06-GUEST-OFFER-CNT  
+              IF RSP06-OFFER-ID (WS-SUB) = RSP06-PAX-OFFER-ID (NSUB) AND
+                 RSP06-GUEST-SEQ-NUM (WS-SUB) = 
+                                   RSP06-PAX-SEQ-NUM (NSUB) 
+                 MOVE 'Y'              TO WS-FOUND-IND  
+                 MOVE WS-SUB           TO OGSUB 
+                 MOVE RSP06-GUEST-OFFER-CNT TO WS-SUB   
+              END-IF
+           END-PERFORM. 
+
+           IF WS-FOUND-IND = 'Y'
+              GO TO 1000-PROCESS-OFFER  
+           END-IF.  
+
+           PERFORM VARYING WS-SUB FROM 1 BY 1   
+              UNTIL WS-SUB > RSP06-GUEST-OFFER-CNT  
+              IF RSP06-OFFER-ID (WS-SUB) = RSP06-PAX-OFFER-ID (NSUB) AND
+                 RSP06-GUEST-SEQ-NUM (WS-SUB) <= ZEROES 
+                 MOVE 'Y'              TO WS-FOUND-IND  
+                 MOVE WS-SUB           TO OGSUB 
+                 MOVE RSP06-GUEST-OFFER-CNT TO WS-SUB   
+              END-IF
+           END-PERFORM. 
+
+           IF WS-FOUND-IND = 'Y'
+              GO TO 1000-PROCESS-OFFER  
+           END-IF.  
+
+           MOVE 03                     TO DPP42-HOLD-MSG-INDEX. 
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+       1000-PROCESS-OFFER.  
+
+           MOVE ZEROES                 TO OCSUB.
+
+           IF NSUB = 1  
+              MOVE 'Y'                 TO WS-APPLY-CAB-GIFT-IND 
+           ELSE 
+              MOVE 'N'                 TO WS-APPLY-CAB-GIFT-IND 
+           END-IF.  
+
+           MOVE 'N'                    TO WS-FOUND-IND. 
+           PERFORM VARYING WS-SUB FROM 1 BY 1   
+              UNTIL WS-SUB > 4 OR (WS-FOUND-IND = 'Y')  
+              IF WS-OFFER-ID (WS-SUB) = RSP06-PAX-OFFER-ID (NSUB)   
+                 MOVE 'Y'              TO WS-FOUND-IND  
+              END-IF
+           END-PERFORM. 
+
+           IF WS-FOUND-IND = 'N'
+              PERFORM VARYING WS-SUB FROM 1 BY 1
+                 UNTIL WS-SUB > 4 OR (WS-OFFER-ID (WS-SUB) <= ZEROES)   
+                 CONTINUE   
+              END-PERFORM   
+              IF WS-SUB <= 4
+                 MOVE RSP06-PAX-OFFER-ID (NSUB) TO WS-OFFER-ID (WS-SUB) 
+              END-IF
+           END-IF.  
+
+       1200-PROCESS-COMPONENT.  
+
+           ADD 1 TO OCSUB.  
+
+           IF OCSUB > RSP06-ENTITY-CNT (OGSUB)  
+              GO TO 0500-PROCESS-PAX
+           END-IF.  
+
+           IF RSP06-GIFT-ITEM-CODE (OGSUB OCSUB) <= SPACES  
+              GO TO 1200-PROCESS-COMPONENT  
+           END-IF.  
+
+           MOVE 'N'                    TO WS-FOUND-IND. 
+           PERFORM VARYING WS-SUB FROM 1 BY 1   
+              UNTIL WS-SUB > WS-GITM-CNT
+              IF WS-GITM-CODE (WS-SUB) =
+                               RSP06-GIFT-ITEM-CODE (OGSUB OCSUB) AND   
+                 WS-GITM-BUNDLE-CODE (GITM-SUB) =   
+                               RSP06-GIFT-BUNDLE-CODE (OGSUB OCSUB) 
+                 MOVE 'Y'              TO WS-FOUND-IND  
+                 MOVE WS-SUB           TO GITM-SUB  
+                 MOVE WS-GITM-PTR (GITM-SUB)
+                                       TO RSP05-INT-GITM-PTR
+                 MOVE WS-GITM-CNT      TO WS-SUB
+              END-IF
+           END-PERFORM. 
+
+           IF WS-FOUND-IND = 'Y'
+              GO TO 2500-BUILD-PAX-DETAILS  
+           END-IF.  
+
+           MOVE 'N'                    TO WS-FOUND-IND. 
+
+           EXEC SQL 
+              SELECT 'Y'
+                INTO WS-FOUND-IND   
+                FROM ITM_GIFT_DETAIL
+               WHERE ITEM_TYPE   = 'BV' 
+                 AND ITEM_CODE   = :RSP06-GIFT-ITEM-CODE (OGSUB OCSUB)  
+                 AND BUNDLE_CODE = :RSP06-GIFT-BUNDLE-CODE (OGSUB OCSUB)
+                 AND GIFT_TYPE   = 'G'  
+                 AND GIFT_CODE   > ' '  
+               FETCH FIRST 1 ROW ONLY   
+           END-EXEC.
+
+           IF WS-FOUND-IND = 'N'
+              GO TO 1200-PROCESS-COMPONENT  
+           END-IF.  
+
+       1500-GET-GIFT-ITEM.  
+
+           ADD 1                       TO RSP05-O-GITM-COUNT
+                                          WS-GITM-CNT.  
+
+           IF RSP05-O-GITM-COUNT > RSP05-GITM-MAX   
+              MOVE 04                  TO DPP42-HOLD-MSG-INDEX  
+              GO TO 9200-EDIT-ERROR-MSG 
+           END-IF.  
+
+           MOVE RSP05-O-GITM-COUNT     TO WS-OUT-SUB.   
+           MOVE WS-GITM-CNT            TO GITM-SUB. 
+
+           PERFORM 5000-INIT-OUTPUT-ENTRY THRU  
+                   5000-INIT-OUTPUT-ENTRY-EXIT. 
+
+           MOVE 'BV'                   TO RSP05-GITM-TYPE.  
+           MOVE RSP06-GIFT-ITEM-CODE (OGSUB OCSUB) TO   
+                                          WS-GITM-CODE (GITM-SUB)   
+                                          RSP05-GITM-CODE.  
+           MOVE RSP06-GIFT-BUNDLE-CODE (OGSUB OCSUB) TO 
+                                         WS-GITM-BUNDLE-CODE (GITM-SUB) 
+                                         RSP05-BUND-CODE.   
+           MOVE RSP05-INT-GITM-PTR     TO WS-GITM-PTR (GITM-SUB).   
+
+           EXEC SQL 
+              SELECT ITGB.DESCRIPTION   
+                    ,ITGB.SINGLE_GIFT_VALUE 
+                    ,ITGB.DOUBLE_GIFT_VALUE 
+                    ,ITGB.TRIPLE_GIFT_VALUE 
+                    ,ITGB.QUAD_GIFT_VALUE   
+                    ,ITGB.QUINT_GIFT_VALUE  
+               INTO :RSP05-BUND-DESCRIPTION 
+                    ,:RSP05-BUND-SINGLE-GIFT-VALUE  
+                    ,:RSP05-BUND-DOUBLE-GIFT-VALUE  
+                    ,:RSP05-BUND-TRIPLE-GIFT-VALUE  
+                    ,:RSP05-BUND-QUAD-GIFT-VALUE
+                    ,:RSP05-BUND-QUINT-GIFT-VALUE   
+               FROM ITM_GIFT_BUNDLE ITGB
+              WHERE ITGB.ITEM_TYPE   = :RSP05-GITM-TYPE AND 
+                    ITGB.ITEM_CODE   = :RSP05-GITM-CODE AND 
+                    ITGB.BUNDLE_CODE = :RSP05-BUND-CODE 
+              FETCH FIRST 1 ROW ONLY
+           END-EXEC.
+
+           IF SQLCODE = 100 
+              MOVE 04                  TO DPP42-HOLD-MSG-INDEX  
+              GO TO 9200-EDIT-ERROR-MSG 
+           END-IF.  
+
+       1800-GET-GIFT-DETAIL.
+
+           EXEC SQL DECLARE GIFT_ITM_DETAIL_CUR  CURSOR FOR RETENTION   
+               SELECT   
+                   ITGD.ITEM_TYPE   
+                  ,ITGD.ITEM_CODE   
+                  ,ITGD.BUNDLE_CODE 
+                  ,ITGD.GIFT_TYPE   
+                  ,ITGD.GIFT_CODE   
+                  ,ITGD.GUEST_TYPE  
+                  ,IFNULL(ITGD.POSITION_CODE,' ')   
+                  ,ITGD.GUEST_CABIN_CODE
+                  ,ITGD.REFUNDABLE_IND  
+                  ,IFNULL(ITGD.DEPARTMENT_CODE,' ') 
+                  ,IFNULL(ITGD.MINIMUM_AGE,0)   
+                  ,IFNULL(ITGD.ALT_GIFT_CODE,' ')   
+                  ,ITGD.ALT_REFUNDABLE_IND  
+                  ,IFNULL(ITGD.ALT_DEPARTMENT_CODE,' ') 
+                  ,ITGD.TICKET_IND  
+                  ,IFNULL(ITGD.DELIVERY_LOCATION_CODE,' ')  
+                  ,IFNULL(ITGD.DELIVERY_CODE,' ')   
+                  ,IFNULL(ITGD.DELIVERY_DAY_NUM,0)  
+                  ,IFNULL(ITGD.COURTESY_OF_CODE,' ')
+PRCCMB            ,IFNULL(ITGD.PROMOTIONAL_PCT,0)   
+PRCCMB            ,IFNULL(ITGD.ALT_PROMOTIONAL_PCT,0)   
+418859            ,SINGLE_ONE_GIFT_IND  
+               FROM ITM_GIFT_DETAIL ITGD
+               WHERE
+                    ITGD.ITEM_TYPE =   :RSP05-GITM-TYPE AND 
+                    ITGD.ITEM_CODE =   :RSP05-GITM-CODE AND 
+                    ITGD.BUNDLE_CODE = :RSP05-BUND-CODE AND 
+                    ITGD.GIFT_TYPE = 'G' AND
+                    ITGD.GIFT_CODE > ' '
+           END-EXEC.
+
+           EXEC SQL 
+               OPEN GIFT_ITM_DETAIL_CUR 
+           END-EXEC.
+
+       2000-FETCH-GIFT-DETAIL.  
+
+           EXEC SQL 
+               FETCH NEXT GIFT_ITM_DETAIL_CUR   
+               INTO :WS-GIFT-ITEM-TYPE  
+                   ,:WS-GIFT-ITEM-CODE  
+                   ,:WS-GIFT-BUND-CODE  
+                   ,:WS-GIFT-TYPE   
+                   ,:WS-GIFT-CODE   
+                   ,:WS-GUEST-TYPE  
+                   ,:WS-POSITION-CODE   
+                   ,:WS-GUEST-CABIN-CODE
+                   ,:WS-REFUNDABLE-IND  
+                   ,:WS-DEPARTMENT-CODE 
+                   ,:WS-MINIMUM-AGE 
+                   ,:WS-ALT-GIFT-CODE   
+                   ,:WS-ALT-REFUNDABLE-IND  
+                   ,:WS-ALT-DEPARTMENT-CODE 
+                   ,:WS-TICKET-IND  
+                   ,:WS-DELIVERY-LOCATION-CODE  
+                   ,:WS-DELIVERY-CODE   
+                   ,:WS-DELIVERY-DAY-NUM
+                   ,:WS-COURTESY-OF-CODE
+PRCCMB             ,:WS-PROMOTIONAL-PCT 
+PRCCMB             ,:WS-ALT-PROMOTIONAL-PCT 
+418859             ,:WS-SNG-ONE-GFT-IND 
+           END-EXEC.
+
+           IF SQLCODE = 100 
+              EXEC SQL  
+                   CLOSE GIFT_ITM_DETAIL_CUR
+              END-EXEC  
+              GO TO 2500-BUILD-PAX-DETAILS  
+           END-IF.  
+
+           ADD 1                       TO RSP05-O-GIFT-COUNT.   
+
+           IF RSP05-O-GIFT-COUNT > RSP05-GIFT-MAX   
+              MOVE 05                  TO DPP42-HOLD-MSG-INDEX  
+              GO TO 9200-EDIT-ERROR-MSG 
+           END-IF.  
+
+           MOVE RSP05-O-GIFT-COUNT     TO WS-OUT-SUB.   
+
+           PERFORM 6000-INIT-OUTPUT-ENTRY THRU  
+                   6000-INIT-OUTPUT-ENTRY-EXIT. 
+
+           MOVE WS-GIFT-REC            TO RSP05-GIFT-TABLE. 
+
+           ADD 1                       TO RSP05-BUND-GIFT-DTL-CNT.  
+
+           IF RSP05-BUND-GIFT-DTL-CNT > 20  
+              MOVE 06                  TO DPP42-HOLD-MSG-INDEX  
+              GO TO 9200-EDIT-ERROR-MSG 
+           END-IF.  
+
+           MOVE RSP05-BUND-GIFT-DTL-CNT TO WS-GITM-BUND-DET-SUB.
+           MOVE RSP05-GIFT-TYPE        TO RSP05-B-GIFT-TYPE 
+                                              (WS-GITM-BUND-DET-SUB).   
+           MOVE RSP05-GIFT-CODE        TO RSP05-B-GIFT-CODE 
+                                              (WS-GITM-BUND-DET-SUB).   
+423536     MOVE 'N'                    TO RSP05-B-COMPANION-SELECTED
+423536                                        (WS-GITM-BUND-DET-SUB).   
+           MOVE RSP05-INT-GIFT-PTR     TO RSP05-B-GIFT-PTR  
+                                              (WS-GITM-BUND-DET-SUB).   
+
+           GO TO 2000-FETCH-GIFT-DETAIL.
+
+       2500-BUILD-PAX-DETAILS.  
+
+           MOVE ZEROES                 TO GSUB. 
+
+       2500-PROCESS-GIFT-DETAILS.   
+
+           ADD 1 TO GSUB.   
+
+           IF GSUB > RSP05-BUND-GIFT-DTL-CNT
+              GO TO 1200-PROCESS-COMPONENT  
+           END-IF.  
+
+           MOVE RSP05-B-GIFT-PTR (GSUB) TO RSP05-INT-GIFT-PTR.  
+
+           IF RSP05-GUEST-CABIN-CODE = 'C'  
+              IF WS-APPLY-CAB-GIFT-IND = 'Y'
+                 GO TO 3000-ADD-TO-CAB  
+              ELSE  
+                 GO TO 2500-PROCESS-GIFT-DETAILS
+              END-IF
+           END-IF.  
+
+           IF RSP05-GUEST-TYPE = 'E' AND (NSUB < 3) 
+              GO TO 2500-PROCESS-GIFT-DETAILS   
+           END-IF.  
+
+           IF RSP05-GUEST-TYPE = 'F' AND (NSUB > 2) 
+              GO TO 2500-PROCESS-GIFT-DETAILS   
+           END-IF.  
+
+           IF RSP06-PAX-AGE-CODE (NSUB) = 'M'   
+              COMPUTE WS-PAX-AGE = RSP06-PAX-AGE (NSUB) / 12
+           ELSE 
+              MOVE RSP06-PAX-AGE (NSUB) TO WS-PAX-AGE   
+           END-IF.  
+
+           IF WS-PAX-AGE < RSP05-MINIMUM-AGE
+              IF RSP05-ALT-GIFT-CODE > SPACES   
+                 MOVE RSP05-ALT-GIFT-CODE TO WS-PAX-GIFT-CODE   
+PRCCMB           MOVE RSP05-ALT-GIFT-PROMO-PCT  
+PRCCMB                                    TO WS-GIFT-PROMO-PCT  
+                 MOVE 'Y'                 TO WS-PAX-ALT-GIFT-IND
+              ELSE  
+                 GO TO 2500-PROCESS-GIFT-DETAILS
+              END-IF
+           ELSE 
+              MOVE RSP05-GIFT-CODE        TO WS-PAX-GIFT-CODE   
+PRCCMB        MOVE RSP05-GIFT-PROMO-PCT   TO WS-GIFT-PROMO-PCT  
+              MOVE 'N'                    TO WS-PAX-ALT-GIFT-IND
+           END-IF.  
+
+423536*    IF RSP05-GUEST-TYPE NOT = 'T' AND 'P'
+423536     IF RSP05-GUEST-TYPE NOT = 'T' AND 'S'
+PRCCMB        GO TO 2500-CONTINUE   
+PRCCMB     END-IF.  
+PRCCMB  
+PRCCMB     IF  RSP06-IBR-BOOK-NUM > SPACES  
+PRCCMB         GO TO 2500-FIND-TARGETED-BOOKED-GST. 
+
+PRCCMB     IF  RSP05-I-TGO-REDEEMED-PG-NUM NOT > SPACES AND 
+PRCCMB         WS-TARGETED-PAX-SEQ-NUM > 0  
+PRCCMB         MOVE RSP06-PAX-PAST-GUEST-NUM (WS-TARGETED-PAX-SEQ-NUM)  
+PRCCMB           TO RSP05-I-TGO-REDEEMED-PG-NUM 
+PRCCMB     END-IF.  
+
+PRCCMB 2500-FND-TARGETED-SHOPPING-GST.  
+PRCCMB  
+PRCCMB     IF  RSP05-I-TGO-REDEEMED-PG-NUM > SPACES 
+PRCCMB         IF  RSP05-I-TGO-REDEEMED-PG-NUM =
+PRCCMB             RSP06-PAX-PAST-GUEST-NUM (NSUB)  
+PRCCMB             CONTINUE 
+PRCCMB         ELSE 
+423536*            IF  RSP05-GUEST-TYPE = 'P'      AND  
+423536*                WS-COMPANION-SELECTED = 'N'  
+423536*                MOVE 'Y'        TO WS-COMPANION-SELECTED 
+423536             IF  RSP05-GUEST-TYPE = 'S'      AND  
+423536                 RSP05-B-COMPANION-SELECTED (GSUB) = 'N'  
+423536                 MOVE 'Y'        TO   
+423536                                 RSP05-B-COMPANION-SELECTED (GSUB)
+PRCCMB             ELSE 
+PRCCMB                 GO TO 2500-PROCESS-GIFT-DETAILS  
+PRCCMB             END-IF   
+PRCCMB         END-IF   
+PRCCMB     ELSE 
+PRCCMB         GO TO 2500-PROCESS-GIFT-DETAILS  
+PRCCMB     END-IF.  
+PRCCMB  
+PRCCMB     GO TO 2500-CONTINUE. 
+PRCCMB  
+PRCCMB 2500-FIND-TARGETED-BOOKED-GST.   
+PRCCMB  
+PRCCMB     IF  WS-TARGETED-PAX-SEQ-NUM = ZEROES 
+PRCCMB         GO TO 2500-PROCESS-GIFT-DETAILS  
+PRCCMB     END-IF.  
+PRCCMB  
+423536*    IF  RSP05-GUEST-TYPE = 'T' OR 'P'
+423536     IF  RSP05-GUEST-TYPE = 'T' OR 'S'
+PRCCMB         IF  WS-TARGETED-PAX-SEQ-NUM = NSUB   
+PRCCMB             CONTINUE 
+PRCCMB         ELSE 
+423536*            IF  RSP05-GUEST-TYPE = 'P'      AND  
+423536*                WS-COMPANION-SELECTED = 'N'  
+423536*                MOVE 'Y'        TO WS-COMPANION-SELECTED 
+423536             IF  RSP05-GUEST-TYPE = 'S'      AND  
+423536                 RSP05-B-COMPANION-SELECTED (GSUB) = 'N'  
+423536                 MOVE 'Y'        TO   
+423536                                 RSP05-B-COMPANION-SELECTED (GSUB)
+PRCCMB             ELSE 
+PRCCMB                 GO TO 2500-PROCESS-GIFT-DETAILS  
+PRCCMB             END-IF   
+PRCCMB         END-IF   
+PRCCMB     ELSE 
+PRCCMB         GO TO 2500-PROCESS-GIFT-DETAILS  
+PRCCMB     END-IF.  
+PRCCMB  
+PRCCMB 2500-CONTINUE.   
+
+           MOVE 'N'                    TO WS-FOUND-IND. 
+           PERFORM VARYING WS-SUB FROM 1 BY 1   
+              UNTIL WS-SUB > RSP05-PAX-GIFT-CODE-CNT (NSUB) 
+              IF RSP05-PAX-GIFT-CODE (NSUB WS-SUB) = WS-PAX-GIFT-CODE   
+                 AND RSP05-PAX-ALT-GIFT-IND (NSUB WS-SUB) = 
+                          WS-PAX-ALT-GIFT-IND   
+                 MOVE 'Y'              TO WS-FOUND-IND  
+                 MOVE WS-SUB           TO WS-GDSUB  
+                 MOVE RSP05-PAX-GIFT-CODE-CNT (NSUB) TO WS-SUB  
+              END-IF
+           END-PERFORM. 
+
+           IF WS-FOUND-IND = 'Y'
+              MOVE 'N'                 TO WS-FOUND-ITEM-IND 
+              PERFORM VARYING WS-SUB FROM 1 BY 1
+                 UNTIL WS-SUB > RSP05-PAX-GITM-CNT (NSUB WS-GDSUB)  
+                 IF RSP05-PAX-GITM-CODE (NSUB WS-GDSUB WS-SUB) =
+                    RSP05-GIFT-ITEM-CODE   AND  
+                    RSP05-PAX-BUND-CODE (NSUB WS-GDSUB WS-SUB) =
+                    RSP05-GIFT-BUND-CODE
+                    MOVE 'Y'              TO WS-FOUND-ITEM-IND  
+                    MOVE WS-SUB           TO WS-GISUB   
+                    MOVE RSP05-PAX-GITM-CNT (NSUB WS-GDSUB) TO WS-SUB   
+                 END-IF 
+              END-PERFORM   
+              IF WS-FOUND-ITEM-IND = 'Y'
+                 ADD 1 TO RSP05-PAX-GIFT-CNT (NSUB WS-GDSUB WS-GISUB)   
+              ELSE  
+                 ADD 1                 TO RSP05-PAX-GITM-CNT
+                                                 (NSUB WS-GDSUB)
+                 MOVE RSP05-PAX-GITM-CNT (NSUB WS-GDSUB)
+                                       TO WS-GISUB  
+                 MOVE 1 TO RSP05-PAX-GIFT-CNT (NSUB WS-GDSUB WS-GISUB)  
+                 MOVE RSP05-INT-GIFT-PTR
+                      TO RSP05-PAX-GIFT-PTR (NSUB WS-GDSUB WS-GISUB)
+                 MOVE RSP05-INT-GITM-PTR
+                      TO RSP05-PAX-GITM-PTR (NSUB WS-GDSUB WS-GISUB)
+                 MOVE RSP05-GIFT-ITEM-CODE  
+                      TO RSP05-PAX-GITM-CODE (NSUB WS-GDSUB WS-GISUB)   
+                 MOVE RSP05-GIFT-BUND-CODE  
+                      TO RSP05-PAX-BUND-CODE(NSUB WS-GDSUB WS-GISUB)
+              END-IF
+           ELSE 
+              ADD 1 TO RSP05-PAX-GIFT-CODE-CNT (NSUB)   
+              MOVE RSP05-PAX-GIFT-CODE-CNT (NSUB) TO WS-GDSUB   
+              MOVE WS-PAX-ALT-GIFT-IND TO   
+                                  RSP05-PAX-ALT-GIFT-IND (NSUB WS-GDSUB)
+              MOVE WS-PAX-GIFT-CODE    TO   
+                                  RSP05-PAX-GIFT-CODE (NSUB WS-GDSUB)   
+PRCCMB        MOVE WS-GIFT-PROMO-PCT   TO RSP05-PAX-GIFT-PROMO-PCT  
+PRCCMB                                                (NSUB WS-GDSUB)   
+              MOVE 1                   TO RSP05-PAX-GITM-CNT
+                                                 (NSUB WS-GDSUB)
+              MOVE RSP05-PAX-GITM-CNT (NSUB WS-GDSUB)   
+                                       TO WS-GISUB  
+              MOVE 1 TO RSP05-PAX-GIFT-CNT (NSUB WS-GDSUB WS-GISUB) 
+              MOVE RSP05-INT-GIFT-PTR   
+                   TO RSP05-PAX-GIFT-PTR (NSUB WS-GDSUB WS-GISUB)   
+              MOVE RSP05-INT-GITM-PTR   
+                   TO RSP05-PAX-GITM-PTR (NSUB WS-GDSUB WS-GISUB)   
+              MOVE RSP05-GIFT-ITEM-CODE 
+                   TO RSP05-PAX-GITM-CODE (NSUB WS-GDSUB WS-GISUB)  
+              MOVE RSP05-GIFT-BUND-CODE 
+                   TO RSP05-PAX-BUND-CODE(NSUB WS-GDSUB WS-GISUB)   
+           END-IF.  
+
+418859     IF RSP06-PAX-CNT = 1 AND RSP05-SNG-ONE-GIFT-IND = 'N'
+418859        COMPUTE RSP05-PAX-GIFT-CNT (NSUB WS-GDSUB WS-GISUB)   
+              = RSP05-PAX-GIFT-CNT (NSUB WS-GDSUB WS-GISUB) * 2 
+418859     END-IF.  
+
+           GO TO 2500-PROCESS-GIFT-DETAILS. 
+
+       3000-ADD-TO-CAB. 
+
+           MOVE 'N'                    TO WS-FOUND-IND. 
+           PERFORM VARYING WS-SUB FROM 1 BY 1   
+242205*      UNTIL WS-SUB > RSP06-PAX-CNT   
+242205       UNTIL WS-FOUND-IND = 'Y' OR
+242205             WS-SUB > RSP06-PAX-CNT   
+              IF RSP06-PAX-AGE-CODE (WS-SUB) = 'M'  
+                 COMPUTE WS-PAX-AGE = RSP06-PAX-AGE (WS-SUB) / 12   
+              ELSE  
+                 MOVE RSP06-PAX-AGE (WS-SUB) TO WS-PAX-AGE  
+              END-IF
+
+              IF WS-PAX-AGE >= RSP05-MINIMUM-AGE
+                 MOVE 'Y'                 TO WS-FOUND-IND   
+242205           MOVE  WS-SUB             TO WS-CAB-GUEST-SUB   
+              END-IF
+           END-PERFORM. 
+
+           IF WS-FOUND-IND = 'N'
+              IF RSP05-ALT-GIFT-CODE > SPACES   
+                 MOVE RSP05-ALT-GIFT-CODE TO WS-PAX-GIFT-CODE   
+PRCCMB           MOVE RSP05-ALT-GIFT-PROMO-PCT  
+PRCCMB                                    TO WS-GIFT-PROMO-PCT  
+                 MOVE 'Y'                 TO WS-PAX-ALT-GIFT-IND
+              ELSE  
+                 GO TO 2500-PROCESS-GIFT-DETAILS
+              END-IF
+           ELSE 
+              MOVE RSP05-GIFT-CODE       TO WS-PAX-GIFT-CODE
+PRCCMB        MOVE RSP05-GIFT-PROMO-PCT  TO WS-GIFT-PROMO-PCT   
+              MOVE 'N'                   TO WS-PAX-ALT-GIFT-IND 
+           END-IF.  
+
+           MOVE 'N'                    TO WS-FOUND-IND. 
+           PERFORM VARYING WS-SUB FROM 1 BY 1   
+              UNTIL WS-SUB > RSP05-CAB-GIFT-CODE-CNT
+              IF RSP05-CAB-GIFT-CODE (WS-SUB) = WS-PAX-GIFT-CODE
+                 AND RSP05-CAB-ALT-GIFT-IND (WS-SUB) =  
+                          WS-PAX-ALT-GIFT-IND   
+                 MOVE 'Y'              TO WS-FOUND-IND  
+                 MOVE WS-SUB           TO WS-GDSUB  
+                 MOVE RSP05-CAB-GIFT-CODE-CNT TO WS-SUB 
+              END-IF
+           END-PERFORM. 
+
+           IF WS-FOUND-IND = 'Y'
+              MOVE 'N'                 TO WS-FOUND-ITEM-IND 
+              PERFORM VARYING WS-SUB FROM 1 BY 1
+                 UNTIL WS-SUB > RSP05-CAB-GITM-CNT (WS-GDSUB)   
+                 IF RSP05-CAB-GITM-CODE (WS-GDSUB WS-SUB) = 
+                    RSP05-GIFT-ITEM-CODE   AND  
+                    RSP05-CAB-BUND-CODE (WS-GDSUB WS-SUB) = 
+                    RSP05-GIFT-BUND-CODE
+                    MOVE 'Y'              TO WS-FOUND-ITEM-IND  
+                    MOVE WS-SUB           TO WS-GISUB   
+                    MOVE RSP05-CAB-GITM-CNT (WS-GDSUB) TO WS-SUB
+                 END-IF 
+              END-PERFORM   
+              IF WS-FOUND-ITEM-IND = 'Y'
+                 ADD 1 TO RSP05-CAB-GIFT-CNT (WS-GDSUB WS-GISUB)
+              ELSE  
+                 ADD 1                 TO RSP05-CAB-GITM-CNT
+                                                 (WS-GDSUB) 
+                 MOVE RSP05-CAB-GITM-CNT (WS-GDSUB) 
+                                       TO WS-GISUB  
+                 MOVE 1 TO RSP05-CAB-GIFT-CNT (WS-GDSUB WS-GISUB)   
+                 MOVE RSP05-INT-GIFT-PTR
+                      TO RSP05-CAB-GIFT-PTR (WS-GDSUB WS-GISUB) 
+                 MOVE RSP05-INT-GITM-PTR
+                      TO RSP05-CAB-GITM-PTR (WS-GDSUB WS-GISUB) 
+                 MOVE RSP05-GIFT-ITEM-CODE  
+                      TO RSP05-CAB-GITM-CODE (WS-GDSUB WS-GISUB)
+                 MOVE RSP05-GIFT-BUND-CODE  
+                      TO RSP05-CAB-BUND-CODE(WS-GDSUB WS-GISUB) 
+              END-IF
+           ELSE 
+              ADD 1 TO RSP05-CAB-GIFT-CODE-CNT  
+              MOVE RSP05-CAB-GIFT-CODE-CNT TO WS-GDSUB  
+              MOVE WS-PAX-ALT-GIFT-IND TO   
+                                  RSP05-CAB-ALT-GIFT-IND (WS-GDSUB) 
+              MOVE WS-PAX-GIFT-CODE    TO   
+                                  RSP05-CAB-GIFT-CODE (WS-GDSUB)
+PRCCMB        MOVE WS-GIFT-PROMO-PCT   TO RSP05-CAB-GIFT-PROMO-PCT  
+PRCCMB                                                (WS-GDSUB)
+242205        MOVE WS-CAB-GUEST-SUB    TO RSP05-CAB-GUEST-SUB   
+242205                                                (WS-GDSUB)
+              MOVE 1                   TO RSP05-CAB-GITM-CNT
+                                                 (WS-GDSUB) 
+              MOVE RSP05-CAB-GITM-CNT (WS-GDSUB)
+                                       TO WS-GISUB  
+              MOVE 1 TO RSP05-CAB-GIFT-CNT (WS-GDSUB WS-GISUB)  
+              MOVE RSP05-INT-GIFT-PTR   
+                   TO RSP05-CAB-GIFT-PTR (WS-GDSUB WS-GISUB)
+              MOVE RSP05-INT-GITM-PTR   
+                   TO RSP05-CAB-GITM-PTR (WS-GDSUB WS-GISUB)
+              MOVE RSP05-GIFT-ITEM-CODE 
+                   TO RSP05-CAB-GITM-CODE (WS-GDSUB WS-GISUB)   
+              MOVE RSP05-GIFT-BUND-CODE 
+                   TO RSP05-CAB-BUND-CODE(WS-GDSUB WS-GISUB)
+           END-IF.  
+
+           GO TO 2500-PROCESS-GIFT-DETAILS. 
+
+       5000-INIT-OUTPUT-ENTRY.  
+
+           IF WS-OUT-SUB <= SSP00-RSO05-GITM-PTR-CNT
+              MOVE WS-GITM-MEM-PTR (WS-OUT-SUB) 
+                                         TO RSP05-O-GITM-PTR(WS-OUT-SUB)
+              GO TO 5500-INIT-ENTRY 
+           END-IF.  
+
+           ADD 1                       TO SSP00-RSO05-GITM-PTR-CNT. 
+
+           IF SSP00-RSO05-GITM-PTR-CNT > RSP05-GITM-MAX 
+              MOVE 06                  TO DPP42-HOLD-MSG-INDEX  
+              GO TO 9200-EDIT-ERROR-MSG 
+           END-IF.  
+
+           CALL 'UCOBMALLOC$' USING WS-GITM-ENTRY-SIZE  
+                                    SSP00-NEW-PTR   
+                                    SSP00-STATUS.   
+
+           IF (SSP00-STATUS NOT = 0)
+             DISPLAY 'GITM ENTRY RSO05GRP/16 - '
+                   WS-GITM-ENTRY-SIZE '/' SSP00-NEW-PTR '/' SSP00-STATUS
+             DISPLAY '*** GITM DYNAMIC MEMORY ALLOCATION ERROR '
+                     'STATUS: ' SSP00-STATUS ' (DECIMAL) ' UPON PRINTER 
+              CALL 'FEABT'  
+           END-IF.  
+
+           MOVE SSP00-NEW-PTR          TO   
+                WS-GITM-MEM-PTR (SSP00-RSO05-GITM-PTR-CNT)  
+                RSP05-O-GITM-PTR (WS-OUT-SUB).  
+
+           IF SSP00-RSO05-GITM-PTR-CNT = 1  
+              MOVE RSP05-O-GITM-PTR (WS-OUT-SUB)
+                                       TO RSP05-INT-GITM-PTR
+              IF (FUNCTION LENGTH (RSP05-GITM-TABLE) NOT =  
+                    WS-GITM-ENTRY-SIZE) 
+                 DISPLAY '*** GITM ENTRY SIZE MISMATCH DEFINED: '   
+                         WS-GITM-ENTRY-SIZE '  ACTUAL: '
+                         FUNCTION LENGTH (RSP05-GITM-TABLE) 
+                         UPON PRINTER   
+                 MOVE 07               TO DPP42-HOLD-MSG-INDEX  
+                 GO TO 9200-EDIT-ERROR-MSG  
+              END-IF
+           END-IF.  
+
+       5500-INIT-ENTRY. 
+           MOVE RSP05-O-GITM-PTR (WS-OUT-SUB)   
+                                       TO RSP05-INT-GITM-PTR.   
+           MOVE LOW-VALUES             TO RSP05-GITM-TABLE. 
+
+       5000-INIT-OUTPUT-ENTRY-EXIT. 
+           EXIT.
+
+       6000-INIT-OUTPUT-ENTRY.  
+
+           IF WS-OUT-SUB <= SSP00-RSO05-GIFT-PTR-CNT
+              MOVE WS-GIFT-MEM-PTR (WS-OUT-SUB) 
+                                       TO RSP05-O-GIFT-PTR (WS-OUT-SUB) 
+              GO TO 6500-INIT-ENTRY 
+           END-IF.  
+
+           ADD 1                       TO SSP00-RSO05-GIFT-PTR-CNT. 
+
+           IF SSP00-RSO05-GIFT-PTR-CNT > RSP05-GIFT-MAX 
+              MOVE 08                  TO DPP42-HOLD-MSG-INDEX  
+              GO TO 9200-EDIT-ERROR-MSG 
+           END-IF.  
+
+           CALL 'UCOBMALLOC$' USING WS-GIFT-ENTRY-SIZE  
+                                    SSP00-NEW-PTR   
+                                    SSP00-STATUS.   
+
+           IF (SSP00-STATUS NOT = 0)
+             DISPLAY 'GIFT ENTRY RSO05GRP/16 - '
+                   WS-GIFT-ENTRY-SIZE '/' SSP00-NEW-PTR '/' SSP00-STATUS
+             DISPLAY '*** GIFT DYNAMIC MEMORY ALLOCATION ERROR '
+                     'STATUS: ' SSP00-STATUS ' (DECIMAL) ' UPON PRINTER 
+              CALL 'FEABT'  
+           END-IF.  
+
+           MOVE SSP00-NEW-PTR          TO   
+                             WS-GIFT-MEM-PTR (SSP00-RSO05-GIFT-PTR-CNT) 
+                             RSP05-O-GIFT-PTR (WS-OUT-SUB). 
+
+           IF SSP00-RSO05-GIFT-PTR-CNT = 1  
+              MOVE RSP05-O-GIFT-PTR (WS-OUT-SUB)
+                                       TO RSP05-INT-GIFT-PTR
+              IF (FUNCTION LENGTH (RSP05-GIFT-TABLE) NOT =  
+                    WS-GIFT-ENTRY-SIZE) 
+                 DISPLAY '*** GIFT ENTRY SIZE MISMATCH DEFINED: '   
+                         WS-GIFT-ENTRY-SIZE '  ACTUAL: '
+                         FUNCTION LENGTH (RSP05-GIFT-TABLE) 
+                         UPON PRINTER   
+                 MOVE 09               TO DPP42-HOLD-MSG-INDEX  
+                 GO TO 9200-EDIT-ERROR-MSG  
+              END-IF
+           END-IF.  
+
+       6500-INIT-ENTRY. 
+           MOVE RSP05-O-GIFT-PTR (WS-OUT-SUB)   
+                                       TO RSP05-INT-GIFT-PTR.   
+           MOVE LOW-VALUES             TO RSP05-GIFT-TABLE. 
+
+       6000-INIT-OUTPUT-ENTRY-EXIT. 
+           EXIT.
+
+PRCCMB 7000-FIND-TARGETED-GUEST.
+PRCCMB  
+PRCCMB     ADD 1                       TO WS-PAX-SUB.   
+PRCCMB  
+PRCCMB     IF  WS-PAX-SUB > RSP06-PAX-CNT   
+PRCCMB         GO TO 7010-SEARCH-GST-OFF-TBL
+PRCCMB     END-IF.  
+
+PRCCMB     IF  RSP06-PPIR-EXIST-IND (WS-PAX-SUB) NOT = 'Y'  
+PRCCMB         GO TO 7000-FIND-TARGETED-GUEST   
+PRCCMB     END-IF.  
+PRCCMB  
+PRCCMB     PERFORM VARYING WS-SUB FROM 1 BY 1   
+PRCCMB         UNTIL WS-SUB > RSP06-PPIR-ENTRY-CNT (WS-PAX-SUB) 
+PRCCMB         IF  RSP06-PPIR-PERSON-TYPE (WS-PAX-SUB WS-SUB) = 'P' 
+PRCCMB             MOVE WS-PAX-SUB     TO WS-TARGETED-PAX-SEQ-NUM   
+PRCCMB             MOVE RSP06-PPIR-ENTRY-CNT (WS-PAX-SUB)   
+PRCCMB                                 TO WS-SUB
+PRCCMB         END-IF   
+PRCCMB     END-PERFORM. 
+
+PRCCMB     IF  WS-TARGETED-PAX-SEQ-NUM > 0  
+PRCCMB         GO TO 7099-FIND-TARGETED-GUEST-EXIT  
+PRCCMB     ELSE 
+PRCCMB         GO TO 7000-FIND-TARGETED-GUEST   
+PRCCMB     END-IF.  
+
+PRCCMB 7010-SEARCH-GST-OFF-TBL. 
+PRCCMB  
+PRCCMB     PERFORM VARYING WS-GST-SUB FROM 1 BY 1   
+PRCCMB         UNTIL WS-TARGETED-IND = 'Y'  
+PRCCMB            OR WS-GST-SUB > RSP06-GUEST-OFFER-CNT 
+PRCCMB         PERFORM VARYING WS-SUB FROM 1 BY 1   
+PRCCMB             UNTIL WS-TARGETED-IND = 'Y'  
+PRCCMB                OR WS-SUB > RSP06-ENTITY-CNT (WS-GST-SUB) 
+PRCCMB             IF RSP06-TARGETED-IND (WS-GST-SUB WS-SUB) = 'Y'  
+PRCCMB                MOVE 'Y'           TO WS-TARGETED-IND 
+PRCCMB                MOVE RSP06-OFFER-ID (WS-GST-SUB)  
+PRCCMB                                   TO WS-TARGETED-OFFER-ID
+PRCCMB             END-IF   
+PRCCMB         END-PERFORM  
+PRCCMB     END-PERFORM. 
+
+PRCCMB     IF WS-TARGETED-IND NOT = 'Y' 
+PRCCMB        GO TO 7099-FIND-TARGETED-GUEST-EXIT   
+PRCCMB     END-IF.  
+
+PRCCMB     MOVE ZEROES                 TO WS-PAX-SUB.   
+
+PRCCMB 7020-FIND-TARGETED-SEQ-NUM.  
+PRCCMB     ADD 1                       TO WS-PAX-SUB.   
+PRCCMB  
+PRCCMB     IF  WS-PAX-SUB > RSP06-PAX-CNT   
+PRCCMB         GO TO 7099-FIND-TARGETED-GUEST-EXIT  
+PRCCMB     END-IF.  
+PRCCMB  
+PRCCMB     IF  RSP06-PAX-AGE-CODE(WS-PAX-SUB)  = 'Y' AND
+PRCCMB         RSP06-PAX-AGE     (WS-PAX-SUB) >= 21  AND
+PRCCMB         RSP06-PAX-OFFER-ID(WS-PAX-SUB)  = WS-TARGETED-OFFER-ID   
+PRCCMB         MOVE WS-PAX-SUB         TO WS-TARGETED-PAX-SEQ-NUM   
+PRCCMB         GO TO 7099-FIND-TARGETED-GUEST-EXIT  
+PRCCMB     END-IF.  
+PRCCMB  
+PRCCMB     GO TO 7020-FIND-TARGETED-SEQ-NUM.
+PRCCMB  
+PRCCMB 7099-FIND-TARGETED-GUEST-EXIT.   
+PRCCMB     EXIT.
+
+       9000-END-OF-JOB. 
+           GO TO DPP42-END-OF-JOB.  
+
+       9100-DATABASE-ERROR. 
+           GO TO DPP42-DATABASE-ERROR.  
+
+       9150-RDMS-ERROR. 
+           GO TO DPP42-RDMS-ERROR.  
+
+       9200-EDIT-ERROR-MSG. 
+           PERFORM DPP42-EDIT-ERROR-MSG 
+              THRU DPP42-EDIT-ERROR-MSG-EXIT.   
+
+           GO TO DPP42-END-OF-JOB.  
+
+       9210-EDIT-CONTINUE-MSG.  
+           PERFORM DPP42-EDIT-ERROR-MSG 
+              THRU DPP42-EDIT-ERROR-MSG-EXIT.   
+
+       9300-SEVERE-ERROR-MSG.   
+           GO TO DPP42-SEVERE-ERROR-MSG.
+
+       9400-INFO-MSG.   
+           PERFORM DPP42-INFO-MSG   
+              THRU DPP42-INFO-MSG-EXIT. 
+
+       9500-RETURN-SUBROUTINE-ERROR.
+           GO TO DPP42-RETURN-SUBROUTINE-ERROR. 
+
+       9600-SAVE-SUBROUTINE-ERRORS. 
+           PERFORM DPP42-SAVE-SUBROUTINE-MSGS   
+              THRU DPP42-SAVE-SUBROUTINE-MSGS-X.
+
+       COPY DPP42SER.   
+       COPY DPP42WDB.   

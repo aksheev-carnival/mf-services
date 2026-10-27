@@ -1,0 +1,1481 @@
+      **************************************************************************
+      * PRD300SCHEMA  ***STAGED*** 23R3                      TIP SCHEMA   23R3 *
+      **************************************************************************
+      * ------------ SEE PRDSCH*LOG FOR DETAILS        ----------------------- *
+      * RMV DPB DOMCHK                                CQ000470  AD      1223M01*
+      * ------------ SEE PRDSCH*LOG FOR DETAILS        ----------------------- *
+      * RMV DN,A,R TIMEZONE                            CQ000470 DB      23R3 08*
+      * RMV DN,A,R SAILSUMM                            CQ000470 DB      23R3 07*
+      * RMV DN,A,R AGTRESTRI                           CQ000470 DB      23R3 06*
+      * RMV DN,A,R,S RATECOMB                          CQ000470 DB      23R3 05*
+      * RMV DN,A,R PRICESUMM                           CQ000470 DB      23R3 04*
+      * RMV A,R MSG DESC                               CQ000470 DB      23R3 03*
+      * CHG REC GPTRF                   ADD/RMV FIELDS CQ000470 DB      23R3 02*
+      * ADD FFFS API MESSAGE                           CQ000470 DB      23R3 01*
+      * ------------ SEE PRDSCH*LOG FOR DETAILS        ----------------------- *
+      * RSZ GPTRF   DARP COMMENT ONLY                           RM      0723M01*
+      * RSZ SECUSER DARP COMMENT ONLY                           RM      0623M01*
+      * ------------ SEE PRDSCH*LOG FOR DETAILS        ----------------------- *
+      * RMV A/R CODE DESC REC                          CQ218285 RM      20R1 10*
+      * ------------ SEE PRDSCH*LOG FOR DETAILS        ----------------------- *
+      * RSZ AREA GPTRF                                 CQ209898 RM      0518M01*
+      * ------------ SEE PRDSCH*LOG FOR DETAILS        ----------------------- *
+      * RMV MULTIPLE DN/A/R MOVE TO RDMS               CQ000470 DB      17R1 10*
+      * ------------ SEE PRDSCH*LOG FOR DETAILS        ----------------------- *
+      * ADD FFFS COMPANY                               CQ187869 RM      16R2 10*
+      * ------------ SEE PRDSCH*LOG FOR DETAILS        ----------------------- *
+      * AMV OLD COMMENTS < 14R3                                 DB      0415M01*
+      * ADD FFFS COMPANY                               CQ171289 DB      15R1 B0*
+      * ADD FFF COMPANY                                PBI71312 DB      15R1 90*
+      * ADD FFFS SHIP CLASS                            CQ178125 DB      15R1 81*
+      * ADD DBP DOMCHK                                 CQ173305 DB      15R1 20*
+      * ADD FFFS SAIL SUMMARY                          CQ173305 DB      15R1 10*
+      * ------------ SEE PRDSCH*LOG FOR DETAILS        ----------------------- *
+      * ADD FFF API MESSAGE                            PBI57673 DB      14R3 E0*
+      * ADD FFF SHIP CLASS REC                         CQ175659 DB      14R3 D0*
+      * MOD REC API MESSAGE ADD INDICATOR              CQ148695 DB      14R3 B0*
+      * ADD FFF SAIL SUMMARY                           CQ161361 DB      14R3 94*
+      * ADD DN/A/R PRICESUMM                           CQ169013 DB      14R3 74*
+      * ------------ SEE PRDSCH*LOG FOR DETAILS        ----------------------- *
+      * ADD FFF COMPANY                                CQ148695 DB      14R2 91*
+      * RFMT BEDCONFIG, ADD DN                                  DB      14R2 21*
+      * ADD DN/A/R/S/ FROM 100 SCHEMA                  CQ163032 DB      14R2 20*
+      * ------------ SEE PRDSCH*LOG FOR DETAILS        ----------------------- *
+      * RNM COR                                        CQ158601 DB      14R1 I0*
+      * ADD FFF SAIL SUMMARY                           CQXXXXXX DB      14R1 X0*
+      * RMV F2F, ADD FFF LOCALITY                      CQ144449 DB      14R1 D1*
+      * RMV F2F FEE                                    CQ144449 DB      14R1 D0*
+      * ------------ SEE PRDSCH*LOG FOR DETAILS        ----------------------- *
+      * ADD DN/A/R SAIL SUMMARY, CHG TO CALC           CQ161301 DB      13R3 D0*
+      * ADD FFF LOCALITY                               CQ154125 DB      13R3 C7*
+      * ADD DN/A/R TIMEZONE                            CQ154125 DB      13R3 C1*
+      * MOVE CODEDESC FROM 100 SCHEMA                  CQ154125 DB      13R3 C0*
+      * ---------------------------------------------------------------------- *
+      * ADD DN GENERIC RECORD NAME                     CQRAE    DB      13R2 I0*
+      * ADD FFF LOCALITY                               CQAUSTR2 DB      13R2 E2*
+      * ADD DN/A/R FINACOMP                            CQAUSTR2 DB      13R2 E1*
+      * ADD FFF FEE                                    CQAUSTR2 DB      13R2 E0*
+      * CHG DN/A CURR TO CURRDATA                      CQ144449 BD      13R2 C7*
+      * ADD DN/A/R DBENV                               CQ144449 BD      13R2 C5*
+      * CHG LOC MODE, ADD DN, FFF, RSZ MESG DESC       CQ144449 BD      13R2 C4*
+      * MAKE AGTRESTRI CALC, DROP MEMBER/SET           CQ144449 BD      13R2 C3*
+      * RMV FILLER AGT RESTRICTION                     CQ144449 BD      13R2 C3*
+      * RSZ AREA RATECOMB                              CQ144449 BD      13R2 C2*
+      * ADD DN/A/R COR                                 CQ14449  BD      13R2 C1*
+      * MOVE FROM 100 SCHEMA                           CQ14449  BD      13R2 C0*
+      *                                                                        *
+      **************************************************************************
+      **************************************************************************
+       IDENTIFICATION DIVISION.                                                 
+       SCHEMA         PRD300SCHEMA                                              
+       TIP FILE       26                                                        
+       DATA DIVISION.                                                           
+      *****************************************************************         
+       DATA NAME SECTION.                                                       
+      *****************************************************************         
+      *****************************************************************         
+      *01  AGTRESTRI-CALCAREA         USAGE AREA-NAME      CODE 255     23R3 06 
+       01  APICNTRL-CALCAREA          USAGE AREA-NAME      CODE 186     13R2 C0 
+       01  BEDCONFIG-CALCAREA         USAGE AREA-NAME      CODE 390     14R2 21 
+      *01  CODEDESC-CALCAREA          USAGE AREA-NAME      CODE 286     20R1 10 
+      *01  COMPANY-CALCAREA           USAGE AREA-NAME      CODE 031     17R1 10 
+       01  COR-AREA-KEY               USAGE AREA-KEY       CODE 242     13R2 C1 
+       01  COR-AREA-NAME              USAGE AREA-NAME      CODE 243     13R2 C1 
+      *01  CURRDATA-CALCAREA          USAGE AREA-NAME      CODE 206     17R1 10 
+      *01  CURRHIST-AREA-KEY          USAGE AREA-KEY       CODE 014     17R1 10 
+      *01  CURRHIST-AREA-NAME         USAGE AREA-NAME      CODE 029     17R1 10 
+      *01  COUNTRY-CALCAREA           USAGE AREA-NAME      CODE 136     17R1 10 
+       01  DBENV-CALCAREA             USAGE AREA-NAME      CODE 239     13R2 C0 
+      *01  FEE-CALCAREA               USAGE AREA-NAME      CODE 285     17R1 10 
+      *01  FINACOMP-CALCAREA          USAGE AREA-NAME      CODE 156     17R1 10 
+       01  GENERIC-DBK                USAGE DATABASE-KEY   CODE 160     13R2 C0 
+       01  GENERIC-RECORD-NAME        USAGE RECORD-NAME    CODE 502     13R2 I0 
+       01  GPTRF-CALCAREA             USAGE AREA-NAME      CODE 404     13R2 C0 
+      *01  LOCALITY-AREA-KEY          USAGE AREA-KEY       CODE 147     17R1 10 
+      *01  LOCALITY-AREA-NAME         USAGE AREA-NAME      CODE 148     17R1 10 
+      *01  LOCHIST-AREA-KEY           USAGE AREA-KEY       CODE 145     17R1 10 
+      *01  LOCHIST-AREA-NAME          USAGE AREA-NAME      CODE 146     17R1 10 
+      *01  LOCALITY-CALCAREA          USAGE AREA-NAME      CODE 121     17R1 10 
+       01  MSGDESC-CALCAREA           USAGE AREA-NAME      CODE 256     13R2 C4 
+      *01  PRICESUMM-CALCAREA         USAGE AREA-NAME      CODE 004     23R3 04 
+      *01  RATECOMB-CALCAREA          USAGE AREA-NAME      CODE 165     23R3 05 
+      *01  SAILCURR-CALCAREA          USAGE AREA-NAME      CODE 406     17R1 10 
+      *01  SAILSUMM-CALCAREA          USAGE AREA-NAME      CODE 244     23R3 07 
+       01  SECUSER-CALCAREA           USAGE AREA-NAME      CODE 292     14R2 20 
+      *01  SHIP-CALCAREA              USAGE AREA-NAME      CODE 271     17R1 10 
+      *01  TIER-HDR-AREA-KEY          USAGE AREA-KEY       CODE 407     17R1 10 
+      *01  TIER-HDR-AREA-NAME         USAGE AREA-NAME      CODE 408     17R1 10 
+      *01  TIMEZONE-CALCAREA          USAGE AREA-NAME      CODE 175     23R3 08 
+      *****************************************************************         
+      *****************************************************************         
+      *****************************************************************         
+       AREA SECTION.                                                           A
+      *****************************************************************        A
+      *   THE FOLLOWING COLUMNS NBRS CANNOT CHG FOR CCLDMPS TO WORK   *        A
+      *****************************************************************        A
+      * AREA                               COL.   8                            A
+      * (AREA) NAME                        COL.  25                            A
+      * AREA CODE                          COL.  25                            A
+      * ALLOCATE                           COL.  13                            A
+      * (ALLOCATE) NBR OF PGS              COL.  25                            A
+      * PAGES                              COL.  13                            A
+      * (PAGES)    NBR OF WORDS            COL.  25                            A
+      *****************************************************************        A
+      * SCHEMA CHANGE NOTES:                                                   A
+      *                                                                        A
+      *   *DARP ALLOCATE       MUST PRECEDE THE COMPILED ALLOCATE LINE         A
+      *                                                                        A
+      *   *OUT  PAGES          MUST FOLLOW THE COMPILED PAGES LINE             A
+      *****************************************************************        A
+       AREA CONTROL 4000 AREAS                                                 A
+       AREA LOOKS   INCLUDE   QUICK-BEFORE-LOOKS, AFTER-LOOKS                  A
+      *****************************************************************        A
+      *****************************************************************        A
+      ***************************************************************** 23R3 06A
+      *AREA             AGTRESTRI                                       23R3 06A
+      *     CODE          81                                            23R3 06A
+      *     MODE        DATA                                            23R3 06A
+      *     MAPS        TO TIP FILE                                     23R3 06A
+      *DARP ALLOCATE    6000      PAGES                                 23R3 06A
+      *     ALLOCATE    4001      PAGES                                 23R3 06A
+      *     DYNAMICALLY EXPANDABLE  TO 262142 PAGES                     23R3 06A
+      *     PAGES       448       WORDS                                 23R3 06A
+      ***************************************************************** 13R2 C0A
+       AREA             APICNTRL                                        13R2 C0A
+            CODE         335                                            13R2 C0A
+            MODE        DATA                                            13R2 C0A
+            MAPS        TO TIP FILE                                     13R2 C0A
+      *DARP ALLOCATE    200       PAGES                                 13R2 C0A
+            ALLOCATE    183       PAGES                                 13R2 C0A
+            DYNAMICALLY EXPANDABLE TO 262142 PAGES                      13R2 C0A
+            PAGES       896      WORDS                                  13R2 C0A
+      ***************************************************************** 14R2 20A
+       AREA             BEDCONFIG                                       14R2 20A
+            CODE        3251                                            14R2 20A
+            MODE        DATA                                            14R2 20A
+            MAPS        TO TIP FILE                                     14R2 20A
+            ALLOCATE    4         PAGES                                 14R2 20A
+                        1         OVERFLOW PAGES AT END                 14R2 20A
+            EXPANDABLE  TO 262142 PAGES                                 14R2 20A
+            PAGES       1792      WORDS                                 14R2 20A
+      ***************************************************************** 20R1 10A
+      *AREA             CODEDESC                                        20R1 10A
+      *     CODE          30                                            20R1 10A
+      *     MODE        DATA                                            20R1 10A
+      *     MAPS        TO TIP FILE                                     20R1 10A
+      *DARP ALLOCATE    100       PAGES                                 20R1 10A
+      *     ALLOCATE     83       PAGES                                 20R1 10A
+      *     DYNAMICALLY EXPANDABLE  TO 262143 PAGES                     20R1 10A
+      *     PAGES       896       WORDS                                 20R1 10A
+      ******************************************************************17R1 10A
+      *AREA             COMPANY                                         17R1 10A
+      *     CODE         340                                            17R1 10A
+      *     MODE        DATA                                            17R1 10A
+      *     MAPS        TO TIP FILE CODE 10905                          17R1 10A
+      *     ALLOCATE    4         PAGES                                 17R1 10A
+      *                 1         OVERFLOW PAGES AT END                 17R1 10A
+      *     EXPANDABLE  TO 262142 PAGES                                 17R1 10A
+      *     PAGES       1792      WORDS                                 17R1 10A
+      ****************************************************************  14R1 I0A
+       AREA             COR300                                          14R1 I0A
+            CODE        3067                                            13R2 C1A
+            MODE        DATA                                            13R2 C1A
+            MAPS        TO TIP FILE                                     13R2 C1A
+            ALLOCATE    4        PAGES                                  13R2 C1A
+            EXPANDABLE  TO 65535 PAGES                                  13R2 C1A
+            PAGES       448       WORDS                                 13R2 C1A
+      ****************************************************************  17R1 10A
+      *AREA             COUNTRY                                         17R1 10A
+      *     CODE         376                                            17R1 10A
+      *     MODE        DATA                                            17R1 10A
+      *     MAPS        TO TIP FILE CODE 10907                          17R1 10A
+      *DARP ALLOCATE    200      PAGES                                  17R1 10A
+      *     ALLOCATE    163      PAGES                                  17R1 10A
+      *     DYNAMICALLY EXPANDABLE TO 65535 PAGES                       17R1 10A
+      *     PAGES       448       WORDS                                 17R1 10A
+      ***************************************************************** 17R1 10A
+      *AREA             CURRDATA                                        17R1 10A
+      *     CODE         821                                            17R1 10A
+      *     MODE        DATA                                            17R1 10A
+      *     MAPS        TO TIP FILE CODE 10908                          17R1 10A
+      *DARP ALLOCATE    300       PAGES                                 17R1 10A
+      *     ALLOCATE    139       PAGES                                 17R1 10A
+      *     DYNAMICALLY EXPANDABLE TO 262143 PAGES                      17R1 10A
+      *     PAGES       1792      WORDS                                 17R1 10A
+      ***************************************************************** 17R1 10A
+      *AREA             CURRHIST                                        17R1 10A
+      *     CODE         341                                            17R1 10A
+      *     MODE        DATA                                            17R1 10A
+      *     MAPS        TO TIP FILE CODE 10909                          17R1 10A
+      ***** ATTENTION : UPDATE ALL REC DEF THRU CLAUSES WHEN RESIZING   17R1 10A
+      *     ALLOCATE    3000      PAGES                                 17R1 10A
+      *     EXPANDABLE  TO 262142 PAGES                                 17R1 10A
+      *     PAGES       1792      WORDS                                 17R1 10A
+      ***************************************************************** 13R2 C5A
+       AREA             DBENV                                           13R2 C5A
+            CODE         183                                            13R2 C5A
+            MODE        DATA                                            13R2 C5A
+            MAPS        TO TIP FILE                                     13R2 C5A
+      *DARP ALLOCATE    500       PAGES                                 13R2 C5A
+            ALLOCATE    371       PAGES                                 13R2 C5A
+            DYNAMICALLY EXPANDABLE TO 65535 PAGES                       13R2 C5A
+            PAGES       448       WORDS                                 13R2 C5A
+      ***************************************************************** 17R1 10A
+      *AREA             FEE                                             17R1 10A
+      *     CODE        3188                                            17R1 10A
+      *     MODE        DATA                                            17R1 10A
+      *     MAPS        TO TIP FILE CODE 10911                          17R1 10A
+      *DARP ALLOCATE    600       PAGES                                 17R1 10A
+      *     ALLOCATE    457       PAGES                                 17R1 10A
+      *     DYNAMICALLY EXPANDABLE  TO 131071 PAGES                     17R1 10A
+      *     PAGES       1792      WORDS                                 17R1 10A
+      ***************************************************************** 17R1 10A
+      *AREA             FINACOMP                                        17R1 10A
+      *     CODE         504                                            17R1 10A
+      *     MODE        DATA                                            17R1 10A
+      *     MAPS        TO TIP FILE CODE 10912                          17R1 10A
+      *DARP ALLOCATE    50        PAGES                                 17R1 10A
+      *     ALLOCATE    37        PAGES                                 17R1 10A
+      *     DYNAMICALLY EXPANDABLE  TO 131071 PAGES                     17R1 10A
+      *     PAGES       896       WORDS                                 17R1 10A
+      ***************************************************************** 0723M01A
+       AREA             GPTRF                                           0723M01A
+            CODE         240                                            13R2 C0A
+            MODE        DATA                                            13R2 C0A
+            MAPS        TO TIP FILE                                     13R2 C0A
+      *DARP ALLOCATE    50000    PAGES                                  0723M01A
+      *DOUT ALLOCATE    20000    PAGES                                  0723M01A
+            ALLOCATE    5003     PAGES                                  0518M01A
+      *OUT  ALLOCATE    1000     PAGES                                  0518M01A
+            DYNAMICALLY EXPANDABLE  TO 262142 PAGES                     13R2 C0A
+            PAGES       1792     WORDS                                  13R2 C0A
+      ****************************************************************  17R1 10A
+      *AREA             LOCALITY                                        17R1 10A
+      *     CODE         287                                            17R1 10A
+      *     MODE        DATA                                            17R1 10A
+      *     MAPS        TO TIP FILE CODE 10914                          17R1 10A
+      *DARP ALLOCATE    1000     PAGES                                  17R1 10A
+      *     ALLOCATE    761      PAGES                                  17R1 10A
+      *     DYNAMICALLY EXPANDABLE TO 65535 PAGES                       17R1 10A
+      *     PAGES       1792      WORDS                                 17R1 10A
+      ****************************************************************  17R1 10A
+      *AREA             LOCHIST                                         17R1 10A
+      *     CODE         288                                            17R1 10A
+      *     MODE        DATA                                            17R1 10A
+      *     MAPS        TO TIP FILE CODE 10915                          17R1 10A
+      *     ALLOCATE    4000     PAGES                                  17R1 10A
+      *     EXPANDABLE  TO 65535 PAGES                                  17R1 10A
+      *     PAGES       1792      WORDS                                 17R1 10A
+      ***************************************************************** 23R3 03A
+      *AREA             MSG-DESC                                        23R3 03A
+      *     CODE         628                                            23R3 03A
+      *     MODE        DATA                                            23R3 03A
+      *     MAPS        TO TIP FILE                                     23R3 03A
+      *DARP ALLOCATE    2000      PAGES                                 23R3 03A
+      *     ALLOCATE    1579      PAGES                                 23R3 03A
+      *     DYNAMICALLY EXPANDABLE  TO 262142 PAGES                     23R3 03A
+      *     PAGES       896       WORDS                                 23R3 03A
+      ***************************************************************** 23R3 04A
+      *AREA             PRICESUMM                                       23R3 04A
+      *     CODE         632                                            23R3 04A
+      *     MODE        DATA                                            23R3 04A
+      *     MAPS        TO TIP FILE                                     23R3 04A
+      *DARP ALLOCATE    1500      PAGES                                 23R3 04A
+      *     ALLOCATE    751       PAGES                                 23R3 04A
+      *     DYNAMICALLY EXPANDABLE  TO 131071 PAGES                     23R3 04A
+      *     PAGES       1792      WORDS                                 23R3 04A
+      *     LOAD        50        PERCENT                               23R3 04A
+      ***************************************************************** 23R3 05A
+      *AREA             RATECOMB                                        23R3 05A
+      *     CODE        3852                                            23R3 05A
+      *     MODE        DATA                                            23R3 05A
+      *     MAPS        TO TIP FILE                                     23R3 05A
+      *DARP ALLOCATE    220       PAGES                                 23R3 05A
+      *     ALLOCATE    180       PAGES                                 23R3 05A
+      *     DYNAMICALLY EXPANDABLE  TO 32767  PAGES                     23R3 05A
+      *     PAGES       896       WORDS                                 23R3 05A
+      ***************************************************************** 17R1 10A
+      *AREA             SAILCURR                                        17R1 10A
+      *     CODE         507                                            17R1 10A
+      *     MODE        DATA                                            17R1 10A
+      *     MAPS        TO TIP FILE CODE 10919                          17R1 10A
+      *DARP ALLOCATE    3500      PAGES                                 17R1 10A
+      *     ALLOCATE    3001      PAGES                                 17R1 10A
+      *     DYNAMICALLY EXPANDABLE  TO 131071 PAGES                     17R1 10A
+      *     PAGES       896       WORDS                                 17R1 10A
+      ***************************************************************** 23R3 07A
+      *AREA             SAILSUMM                                        23R3 07A
+      *     CODE         136                                            23R3 07A
+      *     MODE        DATA                                            23R3 07A
+      *     MAPS        TO TIP FILE                                     23R3 07A
+      *DARP ALLOCATE    900       PAGES                                 23R3 07A
+      *     ALLOCATE    451       PAGES                                 23R3 07A
+      *     DYNAMICALLY EXPANDABLE TO 131071 PAGES                      23R3 07A
+      *     PAGES       1792      WORDS                                 23R3 07A
+      ***************************************************************** 0623M01A
+       AREA             SECUSER                                         0623M01A
+            CODE         140                                            14R2 20A
+            MODE        DATA                                            14R2 20A
+            MAPS        TO TIP FILE                                     14R2 20A
+      *DARP ALLOCATE    4000      PAGES                                 0623M01A
+      *DOUT ALLOCATE    2000      PAGES                                 0623M01A
+            ALLOCATE    1009      PAGES                                 14R2 20A
+            DYNAMICALLY EXPANDABLE TO 262142 PAGES                      14R2 20A
+            PAGES       1792      WORDS                                 14R2 20A
+      ***************************************************************** 17R1 10A
+      *AREA             SHIP                                            17R1 10A
+      *     CODE         143                                            17R1 10A
+      *     MODE        DATA                                            17R1 10A
+      *     MAPS        TO TIP FILE CODE 10922                          17R1 10A
+      *     ALLOCATE    40        PAGES                                 17R1 10A
+      *                 10        OVERFLOW PAGES AT END                 17R1 10A
+      *     EXPANDABLE  TO 262142 PAGES                                 17R1 10A
+      *     PAGES       1792      WORDS                                 17R1 10A
+      ***************************************************************** 17R1 10A
+      *AREA             TIER                                            17R1 10A
+      *     CODE         361                                            17R1 10A
+      *     MODE        DATA                                            17R1 10A
+      *     MAPS        TO TIP FILE CODE 10923                          17R1 10A
+      *DARP ALLOCATE    50        PAGES                                 17R1 10A
+      *     ALLOCATE    41        PAGES                                 17R1 10A
+      *     DYNAMICALLY EXPANDABLE TO 131071 PAGES                      17R1 10A
+      *     PAGES       1792      WORDS                                 17R1 10A
+      ***************************************************************** 23R3 08A
+      *AREA             TIMEZONE                                        23R3 08A
+      *     CODE         999                                            23R3 08A
+      *     MODE        DATA                                            23R3 08A
+      *     MAPS        TO TIP FILE                                     23R3 08A
+      *DARP ALLOCATE    50        PAGES                                 23R3 08A
+      *     ALLOCATE    37        PAGES                                 23R3 08A
+      *     DYNAMICALLY EXPANDABLE  TO 65535  PAGES                     23R3 08A
+      *     PAGES       896       WORDS                                 23R3 08A
+      *****************************************************************         
+      *****************************************************************         
+      *****************************************************************         
+       RECORD SECTION.                                                          
+      ***************************************************************** 0509M02 
+      *      PERSONALLY IDENTIFIABLE INFORMATION CHAR (COLUMN 80)     * 0509M02 
+      * I  IDENTIFYING   K  HARD KEY     F  FINANCIAL   P  PREFERENCE * 0509M02 
+      * M  MEDICAL       S  SENSITIVE    Y  SYSTEM                    * 0509M02 
+      ***************************************************************** 0509M02 
+      ***************************************************************** 1223M01 
+       RECORD         API-MESSAGE-REC                                   1223M01 
+           CODE       270                                               13R2 C0 
+           LOCATION   CALC DMSCALC IN APICNTRL-CALCAREA                 13R2 C0 
+                                      USING AMR-CHANNEL-ID              13R2 C0 
+           DUPLICATES NOT ALLOWED                                       13R2 C0 
+           WITHIN     APICNTRL                                          13R2 C0 
+           MODE       ASCII COBOL                                       13R2 C0 
+      *OUT CHECK      PROCEDURE DOMCHK                                  1223M01 
+           03 AMR-CHANNEL-ID                  PIC X(5)                  13R2 C0 
+           03 AMR-LOCATION-CODE               PIC X(2)                  13R2 C0 
+           03 AMR-ADV-SUB                     PIC 9(2)    USAGE COMP    13R2 C0 
+           03 AMR-CODE-SUB                    PIC 9(2)    USAGE COMP    13R2 C0 
+           03 AMR-AGENCY-CONN-CODE            PIC X(2)                  13R2 C0 
+           03 AMR-AAR-KEY                     PIC X(2)                  13R2 C0 
+           03 AMR-ITRR-KEY                    PIC X(2)                  13R2 C0 
+           03 AMR-MESSAGE-CNT                 PIC 9(5)    USAGE COMP    13R2 C0 
+           03 AMR-CHANNEL-NAME                PIC X(40)                 13R2 C0 
+           03 AMR-SYSTEM-NAME                 PIC X(40)                 13R2 C0 
+           03 AMR-SUPPORT-PHONE               PIC 9(18)   USAGE COMP    13R2 C0 
+           03 AMR-LOCALITY-CODE               PIC X(04)                 13R2 C0 
+           03 AMR-CURRENCY-CODE               PIC X(03)                 13R2 C0 
+      *OUT 03 FILLER                          PIC X(17)                 14R3 E0 
+           03 AMR-MAX-AVL-CAB-COUNT           PIC 9(5)    USAGE COMP    14R3 E0 
+           03 FILLER                          PIC X(15)                 14R3 E0 
+           03 AMR-CONTROL-FLAGS                                         13R2 C0 
+              05 AMR-GMT-TIME-FLG             PIC 1                     13R2 C0 
+              05 AMR-INDV-BOOKING-FLG         PIC 1                     13R2 C0 
+              05 AMR-GRP-BOOKING-FLG          PIC 1                     13R2 C0 
+              05 AMR-LEAD-RATE-FLG            PIC 1                     13R2 C0 
+              05 AMR-SKIP-UNAVAIL-CAT-FLG     PIC 1                     13R2 C0 
+              05 AMR-PRODUCT-INS-RATE-FLG     PIC 1                     13R2 C0 
+              05 AMR-PRODUCT-PKG-AVAIL-FLG    PIC 1                     13R2 C0 
+              05 AMR-PRODUCT-MKT-CMT-FLG      PIC 1                     13R2 C0 
+              05 AMR-OVR-BOOKING-AGENT-FLG    PIC 1                     13R2 C0 
+              05 AMR-USE-MSGHDR-USER-ID-FLG   PIC 1                     13R2 C0 
+              05 AMR-VIEW-ADDITIONAL-INFO-FLG PIC 1                     13R2 C0 
+              05 AMR-SUPT-PRE-BK-SPCL-SRV     PIC 1                     13R2 C0 
+              05 AMR-SUPT-REVISION-SPCL-SRV   PIC 1                     13R2 C0 
+              05 AMR-GROUP-BEST-FARE-FLG      PIC 1                     13R2 C0 
+              05 AMR-TAKEOVER-FLG             PIC 1                     13R2 C0 
+              05 AMR-CHANNEL-ACTIVE-FLG       PIC 1                     13R2 C0 
+              05 AMR-LEAD-AVG-RATE-FLG        PIC 1                     13R2 C0 
+              05 AMR-MULTICURRENCY-FLG        PIC 1                     13R2 C0 
+              05 AMR-GIFT-CARD-FLG            PIC 1                     13R2 C0 
+              05 AMR-FORCE-PMT-FEE-ACCEPT-FLG PIC 1                     13R2 C0 
+              05 AMR-INTERNAL-CHANNEL-FLG     PIC 1                     13R2 C0 
+              05 AMR-CONSUMER-FLG             PIC 1                     13R2 C0 
+      *OUT    05 AMR-UNUSED-FLG23             PIC 1                     14R3 B0 
+              05 AMR-CHK-TXT-PREF-FLAG        PIC 1                     14R3 B0 
+      *OUT    05 AMR-UNUSED-FLG24             PIC 1                     23R3 01 
+              05 AMR-COUPON-ONLY-FLG          PIC 1                     23R3 01 
+      *OUT    05 AMR-UNUSED-FLG25             PIC 1                     23R3 01 
+              05 AMR-PPC-COMPLAINT-FLG        PIC 1                     23R3 01 
+              05 AMR-UNUSED-FLG26             PIC 1                     13R2 C0 
+              05 AMR-UNUSED-FLG27             PIC 1                     13R2 C0 
+              05 AMR-UNUSED-FLG28             PIC 1                     13R2 C0 
+              05 AMR-UNUSED-FLG29             PIC 1                     13R2 C0 
+              05 AMR-UNUSED-FLG30             PIC 1                     13R2 C0 
+              05 AMR-UNUSED-FLG31             PIC 1                     13R2 C0 
+              05 AMR-UNUSED-FLG32             PIC 1                     13R2 C0 
+              05 AMR-UNUSED-FLG33             PIC 1                     13R2 C0 
+              05 AMR-UNUSED-FLG34             PIC 1                     13R2 C0 
+              05 AMR-UNUSED-FLG35             PIC 1                     13R2 C0 
+              05 AMR-UNUSED-FLG36             PIC 1                     13R2 C0 
+           03 AMR-MESSAGE-CONTROL-FLAGS OCCURS 0 TO 50 TIMES            13R2 C0 
+                                        DEPENDING ON AMR-MESSAGE-CNT    13R2 C0 
+              05 AMR-MESSAGE-ID               PIC X(8)                  13R2 C0 
+              05 AMR-ALLOW-UNREG-SHOP-FLG     PIC 1                     13R2 C0 
+              05 AMR-SINGLE-RATE-FLG          PIC 1                     13R2 C0 
+              05 AMR-OVERRIDE-BKG-OWN-FLG     PIC 1                     13R2 C0 
+              05 AMR-CAT-RESTRICT-FLG         PIC 1                     13R2 C0 
+              05 AMR-VALIDATE-AGENT-FLG       PIC 1                     13R2 C0 
+              05 AMR-AGENT-COMMISSION-FLG     PIC 1                     13R2 C0 
+              05 AMR-AGENT-RATE-INFO-FLG      PIC 1                     13R2 C0 
+              05 AMR-OVR-RELATIONSHIP-FLG     PIC 1                     13R2 C0 
+              05 AMR-ALLOW-WHOLESALE-ONLY-FLG PIC 1                     13R2 C0 
+              05 AMR-ALLOW-NON-WHOLESALE-FLG  PIC 1                     13R2 C0 
+              05 AMR-ALLOW-RETAIL-ONLY-FLG    PIC 1                     13R2 C0 
+              05 AMR-PRICING-BEST-FARE-FLG    PIC 1                     13R2 C0 
+              05 AMR-OVRIDE-RESIDENT-FARE-FLG PIC 1                     13R2 C0 
+              05 AMR-MSG-UNUSED-FLG14         PIC 1                     13R2 C0 
+              05 AMR-MSG-UNUSED-FLG15         PIC 1                     13R2 C0 
+              05 AMR-MSG-UNUSED-FLG16         PIC 1                     13R2 C0 
+              05 AMR-MSG-UNUSED-FLG17         PIC 1                     13R2 C0 
+              05 AMR-MSG-UNUSED-FLG18         PIC 1                     13R2 C0 
+              05 AMR-MSG-UNUSED-FLG19         PIC 1                     13R2 C0 
+              05 AMR-MSG-UNUSED-FLG20         PIC 1                     13R2 C0 
+              05 AMR-MSG-UNUSED-FLG21         PIC 1                     13R2 C0 
+              05 AMR-MSG-UNUSED-FLG22         PIC 1                     13R2 C0 
+              05 AMR-MSG-UNUSED-FLG23         PIC 1                     13R2 C0 
+              05 AMR-MSG-UNUSED-FLG24         PIC 1                     13R2 C0 
+              05 AMR-MSG-UNUSED-FLG25         PIC 1                     13R2 C0 
+              05 AMR-MSG-UNUSED-FLG26         PIC 1                     13R2 C0 
+              05 AMR-MSG-UNUSED-FLG27         PIC 1                     13R2 C0 
+              05 AMR-MSG-UNUSED-FLG28         PIC 1                     13R2 C0 
+              05 AMR-MSG-UNUSED-FLG29         PIC 1                     13R2 C0 
+              05 AMR-MSG-UNUSED-FLG30         PIC 1                     13R2 C0 
+              05 AMR-MSG-UNUSED-FLG31         PIC 1                     13R2 C0 
+              05 AMR-MSG-UNUSED-FLG32         PIC 1                     13R2 C0 
+              05 AMR-MSG-UNUSED-FLG33         PIC 1                     13R2 C0 
+              05 AMR-MSG-UNUSED-FLG34         PIC 1                     13R2 C0 
+              05 AMR-MSG-UNUSED-FLG35         PIC 1                     13R2 C0 
+              05 AMR-MSG-UNUSED-FLG36         PIC 1                     13R2 C0 
+      ***************************************************************** 13R2 C0 
+       RECORD         API-SYSTEM-REC                                    13R2 C0 
+           CODE       271                                               13R2 C0 
+           LOCATION   CALC DMSCALC IN APICNTRL-CALCAREA                 13R2 C0 
+                                      USING ASR-CALC-KEY                13R2 C0 
+           DUPLICATES NOT ALLOWED                                       13R2 C0 
+           WITHIN     APICNTRL                                          13R2 C0 
+           MODE       ASCII COBOL                                       13R2 C0 
+           03 ASR-CALC-KEY                    PIC X(4)                  13R2 C0 
+      *       05 ASR-AGENCY-CONN-CODE         PIC X(2)                  13R2 C0 
+      *       05 ASR-LOCATION-CODE            PIC X(2)                  13R2 C0 
+           03 ASR-PNR-UPDATE-IND              PIC X                     13R2 C0 
+           03 ASR-PNR-DSPBKG-IND              PIC X                     13R2 C0 
+           03 ASR-PNR-PRICING-IND             PIC X                     13R2 C0 
+           03 ASR-PNR-ITIN-IND                PIC X                     13R2 C0 
+           03 ASR-PNR-REJECT-CNT              PIC 9(8)   USAGE COMP     13R2 C0 
+           03 ASR-PNR-TEST-IP-ADDRESS         PIC X(25)                 13R2 C0 
+           03 ASR-PNR-PROD-IP-ADDRESS         PIC X(25)                 13R2 C0 
+           03 FILLER                          PIC X(10)                 13R2 C0 
+      ***************************************************************** 1223M01 
+       RECORD         BED-CONFIGURATION-REC                             1223M01 
+           CODE       39                                                14R2 20 
+           LOCATION   CALC DMSCALC IN BEDCONFIG-CALCAREA                14R2 20 
+                      USING BED-TYPE-CODE                               14R2 20 
+           DUPLICATES NOT ALLOWED                                       14R2 20 
+           WITHIN     BEDCONFIG                                         14R2 20 
+           MODE       ASCII COBOL                                       14R2 20 
+      *OUT CHECK      PROCEDURE DOMCHK                                  1223M01 
+           03 BED-TYPE-CODE                 PIC X(2)                    14R2 20 
+           03 BED-DESCRIPTION               PIC X(40)                   14R2 20 
+           03 BED-QUEEN-BED-IND             PIC X                       14R2 20 
+           03 BED-TWIN-BED-IND              PIC X                       14R2 20 
+           03 BED-CNV-KING-BED-IND          PIC X                       14R2 20 
+           03 BED-UPPER-BED-IND             PIC X                       14R2 20 
+           03 BED-LOWER-BED-IND             PIC X                       14R2 20 
+           03 FILLER                        PIC X                       14R2 20 
+           03 BED-AGENCY-CONN-TABLE         OCCURS 10 TIMES             14R2 20 
+              05 BED-AGENCY-CONN-CODE       PIC X(2)                    14R2 20 
+              05 BED-AGENCY-CONN-BED-CODE   PIC X(4)                    14R2 20 
+              05 FILLER                     PIC X(2)                    14R2 21 
+      ***************************************************************** 20R1 10 
+      *RECORD         CODE-DESC-REC                                     20R1 10 
+      *    CODE       070                                               20R1 10 
+      *    LOCATION   CALC  DMSCALC IN CODEDESC-CALCAREA                20R1 10 
+      *                     USING CDER-CALC-KEY                         20R1 10 
+      *    DUPLICATES NOT ALLOWED                                       20R1 10 
+      *    WITHIN     CODEDESC                                          20R1 10 
+      *    MODE       ASCII COBOL                                       20R1 10 
+      *    CHECK      PROCEDURE DOMCHK                                  20R1 10 
+      *    03 CDER-CALC-KEY                PIC X(16)                    20R1 10 
+      *       05 CDER-CODE                 PIC X(12)                    20R1 10 
+      *       05 CDER-TYPE                 PIC X(4)                     20R1 10 
+      *    03 CDER-DESCRIPTION             PIC X(52)                    20R1 10 
+      *    03 CDER-INACTIVE-IND            PIC X                        20R1 10 
+      *    03 FILLER                       PIC X(7)                     20R1 10 
+      ***************************************************************** 17R1 10 
+      * RECORD         COMPANY-REC                                      17R1 10 
+      *     CODE       063                                              17R1 10 
+      *     LOCATION   CALC DMSCALC IN COMPANY-CALCAREA                 17R1 10 
+      *                             USING CMP-COMPANY-CODE              17R1 10 
+      *     DUPLICATES NOT ALLOWED                                      17R1 10 
+      *     WITHIN     COMPANY                                          17R1 10 
+      *     RESERVE    1 POINTERS                                       17R1 10 
+      *     MODE       ASCII COBOL                                      17R1 10 
+      *     CHECK      PROCEDURE DOMCHK                                 17R1 10 
+      *     03 CMP-COMPANY-CODE             PIC X(1)                    17R1 10 
+      **         CARNIVAL CRUISE LINES        = C                       17R1 10 
+      **         FIESTA MARINA CRUISES        = F                       17R1 10 
+      *     03 CMP-ACCT-COMPANY-CODE        PIC X(5)                    17R1 10 
+      **         ORACLE COMPANY CODE (CCL--)                            17R1 10 
+      *     03 CMP-COMPANY-NAME             PIC X(30)                   17R1 10 
+      *     03 CMP-ADDRESS-1                PIC X(30)                   17R1 10 
+      *     03 CMP-ADDRESS-2                PIC X(30)                   17R1 10 
+      *     03 CMP-ADDRESS-3                PIC X(30)                   17R1 10 
+      *     03 CMP-CITY-NAME                PIC X(25)                   17R1 10 
+      *     03 CMP-STATE-CODE               PIC XX                      17R1 10 
+      *     03 CMP-ZIP-CODE                 PIC X(11)                   17R1 10 
+      *     03 CMP-COUNTRY-CODE             PIC XX                      17R1 10 
+      *     03 CMP-PHONE-NUM                PIC 9(10)                   17R1 10 
+      *     03 CMP-VALID-CREDIT-CARDS   OCCURS 5 TIMES                  17R1 10 
+      *        05 CMP-VALID-CREDIT-CARD     PIC XX                      17R1 10 
+      *     03 CMP-PSUEDO-CITY              PIC X(5)                    17R1 10 
+      *     03 CMP-LETTER-CHG-ALLOWED       PIC 9(2)    USAGE COMP      17R1 10 
+      *     03 CMP-GROUP-BEST-FARE-FLG      PIC X(1)                    17R1 10 
+      *     03 CMP-TSA-SEND-DAYS            PIC 9(2)                    17R1 10 
+      *     03 CMP-MISC-FLAGS                                           17R1 10 
+      *       05 CMP-AUTO-GEN-CNF-FLG       PIC 1                       17R1 10 
+      *       05 CMP-CURRENCY-UPDATE-FLG    PIC 1                       17R1 10 
+      *       05 CMP-LOCALITY-UPDATE-FLG    PIC 1                       17R1 10 
+      *       05 FILLER                     PIC 1(6)                    17R1 10 
+      *     03 CMP-IR-FAX-PHONE-NUM         PIC 9(10)                   17R1 10 
+      *     03 CMP-IR-ADMIN-FAX-PHONE-NUM   PIC 9(10)                   17R1 10 
+      *     03 CMP-GR-FAX-PHONE-NUM         PIC 9(10)                   17R1 10 
+      *     03 CMP-GR-ADMIN-FAX-PHONE-NUM   PIC 9(10)                   17R1 10 
+      *     03 CMP-IR-PHONE-NUM             PIC 9(10)                   17R1 10 
+      *     03 CMP-GR-PHONE-NUM             PIC 9(10)                   17R1 10 
+      *     03 CMP-SGL-INV-DAYS-PRIOR       PIC 9(5)   USAGE COMP       17R1 10 
+      *     03 CMP-DISP-SAVED-CC-FLG        PIC X(1)                    17R1 10 
+      **       'D'  - DIRECT                                            17R1 10 
+      **       'T'  - TRAVEL                                            17R1 10 
+      **       'B'  - BOTH                                              17R1 10 
+      **       'N'  - NONE                                              17R1 10 
+      *     03 FILLER                       PIC X(1)                    17R1 10 
+      *     03 CMP-CURRENCY-CODE            PIC X(3)                    17R1 10 
+      *     03 CMP-BROCHURE-TYPE            PIC X                       17R1 10 
+      *     03 CMP-NATIONALITY-CODE         PIC X(2)                    17R1 10 
+      *     03 CMP-LANGUAGE-CODE            PIC X                       17R1 10 
+      *     03 CMP-INCL-GRP-IN-BEST-FARE-IND  PIC X                     17R1 10 
+      *     03 CMP-SPILL-CAPTURE-IND        PIC X                       17R1 10 
+      *     03 CMP-INTEREST-RATE-1          PIC V9(5)  USAGE COMP       17R1 10 
+      *     03 CMP-INTEREST-RATE-2          PIC V9(5)  USAGE COMP       17R1 10 
+      *     03 CMP-FACTOR-1                 PIC V9(10) USAGE COMP       17R1 10 
+      *     03 CMP-FACTOR-2                 PIC V9(10) USAGE COMP       17R1 10 
+      *     03 CMP-AMENITY-POINT-VALUE      PIC 9(11)V99  USAGE COMP    17R1 10 
+      *     03 CMP-ALLOW-REVISIONS-IND      PIC X(1)                    17R1 10 
+      *     03 CMP-REVISIONS-IND            PIC X(1)                    17R1 10 
+      *     03 CMP-ALL-GUEST-REQ-DATA-TABLE OCCURS 30 TIMES             17R1 10 
+      *        05 CMP-ALL-GUEST-REQ-CODE    PIC X(3)                    17R1 10 
+      *        05 CMP-ALL-GUEST-OPT-CODE    PIC X                       17R1 10 
+      **          VALUES   R = REQUIRED                                 17R1 10 
+      **                   O = OPTIONAL                                 17R1 10 
+      **                   F = REQUIRED FOR FRONT-END                   17R1 10 
+      *     03 CMP-GRP-HARD-MAX             PIC 9(5)    USAGE COMP      17R1 10 
+      *     03 CMP-GRP-SOFT-MAX             PIC 9(5)    USAGE COMP      17R1 10 
+      *     03 CMP-GROUP-LEADER-MAX         PIC 9(2)    USAGE COMP      17R1 10 
+      *     03 CMP-IR-DIRECT-PHONE-NUM      PIC 9(10)                   17R1 10 
+      *     03 CMP-GR-DIRECT-PHONE-NUM      PIC 9(10)                   17R1 10 
+      *     03 CMP-PVP-PHONE-NUM            PIC 9(10)                   17R1 10 
+      *     03 CMP-MIN-SENIOR-AGE           PIC 9(02) USAGE COMP        17R1 10 
+      *     03 CMP-UCC-MAX-CC-CHARGE-ALLOWED PIC 9(8)V99  USAGE COMP    17R1 10 
+      *     03 CMP-DINING-INFO-TABLE        OCCURS 10 TIMES             17R1 10 
+      *        05 CMP-DINING-TIME-CODE      PIC X(1)                    17R1 10 
+      *        05 CMP-DINING-ROOM-CODE      PIC X(1)                    17R1 10 
+      *        05 CMP-GRP-DINING-MAX        PIC 9(5)    USAGE COMP      17R1 10 
+      *        05 CMP-DINING-TIME           PIC 9(4)    USAGE COMP      17R1 10 
+      *        05 CMP-DINING-DESC           PIC X(20)                   17R1 10 
+      *        05 FILLER                    PIC X(2)                    17R1 10 
+      *     03 CMP-DINING-INDV-DISP-CAP     PIC 9(5) USAGE COMP         17R1 10 
+      *     03 CMP-CONN-BOOKING-CUTOFF-DAYS PIC 9(1)                    17R1 10 
+      *     03 CMP-CONN-CHECK-CUTOFF-DAYS   PIC 9(2)                    17R1 10 
+      *     03 CMP-CONN-OTHER-PAY-CUTOFF-DAYS  PIC 9(2)                 17R1 10 
+      *     03 CMP-AUTO-CANCEL-FIELDS                                   17R1 10 
+      *        05 CMP-DEP-ADV-DAYS              PIC 9(2)                17R1 10 
+      *        05 CMP-FNL-DUE-DAYS              PIC 9(2)                17R1 10 
+      *        05 CMP-FP-BAL-DUE-PCT            PIC V99                 17R1 10 
+      *        05 CMP-DEP-DUE-SAIL-DD           PIC 9(1)                17R1 10 
+      *        05 CMP-DEP-DUE-LESS-DD-AMT       PIC 9(3)                17R1 10 
+      *        05 CMP-DEP-DUE-GREAT-DD-AMT      PIC 9(3)                17R1 10 
+      *        05 CMP-FNL-DUE-DAYS-2            PIC 9(2)                17R1 10 
+      *        05 CMP-FNL-DUE-SAIL-DD           PIC 9                   17R1 10 
+      *        05 CMP-FNL-DUE-LESS-TH-AMT       PIC 9(3)                17R1 10 
+      *        05 CMP-FNL-DUE-GREAT-TH-AMT      PIC 9(3)                17R1 10 
+      *     03 CMP-SGL-DEP-DBL-DATE         PIC 9(8)     USAGE COMP     17R1 10 
+      *     03 CMP-FNL-FIRST-REM-DAYS       PIC 9(4)     USAGE COMP     17R1 10 
+      *     03 CMP-FNL-SECOND-REM-DAYS      PIC 9(4)     USAGE COMP     17R1 10 
+      *     03 CMP-FNL-REM-LETTER-FLAG      PIC X                       17R1 10 
+      *     03 CMP-FNL-PMT-TXT-FST-REM-DAYS  PIC 9(04) USAGE COMP       17R1 10 
+      *     03 CMP-FNL-PMT-TXT-SEC-REM-DAYS  PIC 9(04) USAGE COMP       17R1 10 
+      **OUT 03 FILLER                       PIC X(950)                  17R1 10 
+      *     03 CMP-MAX-CH-HOLD-OPT-HRS      PIC 9(3)   USAGE COMP       17R1 10 
+      **OUT 03 FILLER                       PIC X(948)                  17R1 10 
+      *     03 CMP-AGENT-OPTION-DAYS        PIC 9(2)   USAGE COMP       17R1 10 
+      *     03 CMP-AGENT-OPTION-HOURS       PIC 9(2)   USAGE COMP       17R1 10 
+      **OUT 03 FILLER                       PIC X(946)                  17R1 10 
+      *     03 CMP-AUTOBERTH-FIELDS                                     17R1 10 
+      *        05 CMP-AUTOBERTH-START-DAYS           PIC 9(2)           17R1 10 
+      *        05 CMP-AUTOBERTH-END-DAYS             PIC 9(2)           17R1 10 
+      *        05 CMP-AUTOBERTH-CAT-ORDER            PIC X              17R1 10 
+      *        05 CMP-AUTOBERTH-DEPLETION-TBL        OCCURS 4 TIMES     17R1 10 
+      *           07 CMP-AUTOBERTH-DEPLETION-DAYS    PIC 9(2)           17R1 10 
+      *           07 CMP-AUTOBERTH-DEPLETION-NUMBER  PIC 9(2)           17R1 10 
+      *     03 FILLER                                PIC X(925)         17R1 10 
+      ***************************************************************** 17R1 10 
+      * RECORD         COMPANY-REFERENCE-REC                            17R1 10 
+      *     CODE       171                                              17R1 10 
+      *     LOCATION   CALC DMSCALC IN COMPANY-CALCAREA                 17R1 10 
+      *                             USING CRR-CALC-KEY                  17R1 10 
+      *     DUPLICATES NOT ALLOWED                                      17R1 10 
+      *     WITHIN     COMPANY                                          17R1 10 
+      *     MODE       ASCII COBOL                                      17R1 10 
+      *     03 CRR-CALC-KEY                  PIC X(5)                   17R1 10 
+      **       05 CRR-AGENCY-CONN-CODE       PIC X(2)                   17R1 10 
+      **       05 CRR-CRUISE-LINE-CODE       PIC X(3)                   17R1 10 
+      *     03 CRR-COMPANY-CODE              PIC X                      17R1 10 
+      *     03 CRR-PSEUDO-CITY-CODE          PIC X(5)                   17R1 10 
+      *     03 FILLER                        PIC X(25)                  17R1 10 
+      ***************************************************************** 17R1 10 
+      * RECORD         COMPANY-THRESHOLD-REC                            17R1 10 
+      *     CODE       380                                              17R1 10 
+      *     LOCATION   CALC DMSCALC IN COMPANY-CALCAREA                 17R1 10 
+      *                             USING CTR-TSHD-TYPE                 17R1 10 
+      *     DUPLICATES NOT ALLOWED                                      17R1 10 
+      *     WITHIN     COMPANY                                          17R1 10 
+      *     MODE       ASCII COBOL                                      17R1 10 
+      *     03 CTR-TSHD-TYPE                 PIC X(1)                   17R1 10 
+      **       P = PRICE LEVEL THRESHOLD                                17R1 10 
+      **       R = RATE CODE LEVEL THRESHOLD                            17R1 10 
+      *     03 FILLER                        PIC X(1)                   17R1 10 
+      *     03 CTR-TSHD-REF-ENTRY-CNT        PIC 9(03)  USAGE COMP      17R1 10 
+      *     03 CTR-TSHD-REF-TABLE            OCCURS 200 TIMES           17R1 10 
+      *        05 CTR-TSHD-REF-PRICE-LEVEL   PIC 9(4)   USAGE COMP      17R1 10 
+      *        05 CTR-TSHD-REF-PCT           PIC V999   USAGE COMP      17R1 10 
+      ***************************************************************** 14R1 I0 
+       RECORD         COR-REC                                           14R1 I0 
+           CODE       368                                               13R2 C1 
+           LOCATION   DIRECT         COR-AREA-KEY                       13R2 C1 
+                                     COR-AREA-NAME                      13R2 C1 
+           WITHIN     COR300                                            14R1 I0 
+           MODE       ASCII COBOL                                       13R2 C1 
+           03 FILLER                         PIC X(4)                   13R2 C1 
+      ***************************************************************** 17R1 10 
+      *RECORD         CURRENCY-HIST-DIRECT-REC                          17R1 10 
+      *    CODE       318                                               17R1 10 
+      *    LOCATION   DIRECT         CURRHIST-AREA-KEY                  17R1 10 
+      *                              CURRHIST-AREA-NAME                 17R1 10 
+      *    WITHIN     CURRHIST                                          17R1 10 
+      *    MODE       ASCII COBOL                                       17R1 10 
+      *    03 FILLER                         PIC X(4)                   17R1 10 
+      ***************************************************************** 17R1 10 
+      *RECORD         CURRENCY-HISTORY-REC                              17R1 10 
+      *    CODE       313                                               17R1 10 
+      *    LOCATION   VIA CURR-HIST-DIRECT-SET                          17R1 10 
+      *    WITHIN     CURRHIST 2 THRU 3000                              17R1 10 
+      *    MODE       ASCII COBOL                                       17R1 10 
+      *    03 CUHR-ENTRY-CTR               PIC 9(2)      USAGE COMP     17R1 10 
+      *    03 FILLER                       PIC X(3)                     17R1 10 
+      *    03 CUHR-HISTORY-TABLE                                        17R1 10 
+      *       05 CUHR-HIST-ENTRY          OCCURS 12 TIMES               17R1 10 
+      *          07 CUHR-DATE              PIC 9(8)      USAGE COMP     17R1 10 
+      *          07 CUHR-TIME              PIC 9(8)      USAGE COMP     17R1 10 
+      *          07 CUHR-USER-ID           PIC X(15)                    17R1 10 
+      *          07 CUHR-ACTIVITY-CODE     PIC X(3)                     17R1 10 
+      *          07 CUHR-COMMENT           PIC X(40)                    17R1 10 
+      *          07 CUHR-OLD-FX-RATE       PIC 9(4)V9(6) USAGE COMP     17R1 10 
+      *          07 CUHR-NEW-FX-RATE       PIC 9(4)V9(6) USAGE COMP     17R1 10 
+      *          07 CUHR-OLD-MARGIN        PIC 9(4)V9(6) USAGE COMP     17R1 10 
+      *          07 CUHR-NEW-MARGIN        PIC 9(4)V9(6) USAGE COMP     17R1 10 
+      *          07 CUHR-CUTOFF-DAYS       PIC 9(4)      USAGE COMP     17R1 10 
+      *          07 FILLER                 PIC X(9)                     17R1 10 
+      ***************************************************************** 17R1 10 
+      *RECORD         CURRENCY-REC                                      17R1 10 
+      *    CODE       312                                               17R1 10 
+      *    LOCATION   CALC DMSCALC  IN CURRDATA-CALCAREA                17R1 10 
+      *                             USING CURR-CALC-KEY                 17R1 10 
+      *    DUPLICATES NOT ALLOWED                                       17R1 10 
+      *    WITHIN     CURRDATA                                          17R1 10 
+      *    MODE       ASCII COBOL                                       17R1 10 
+      *    CHECK      PROCEDURE DOMCHK                                  17R1 10 
+      *    03 CURR-CALC-KEY                PIC X(6)                     17R1 10 
+      *       05 CURR-BASE-CURRENCY-CODE   PIC X(3)                     17R1 10 
+      *       05 CURR-PROD-CURRENCY-CODE   PIC X(3)                     17R1 10 
+      *    03 CURR-BASE-CURRENCY-DESC      PIC X(30)                    17R1 10 
+      *    03 CURR-UPDATE-DATE             PIC 9(8)       USAGE COMP    17R1 10 
+      *    03 CURR-UPDATE-TIME             PIC 9(8)       USAGE COMP    17R1 10 
+      *    03 CURR-STATUS-CODE             PIC X(1)                     17R1 10 
+      *       A - ACTIVE                                                17R1 10 
+      *       I - INACTIVE                                              17R1 10 
+      *       U - UNUSED                                                17R1 10 
+      *    03 CURR-EFFECTIVE-DATE           PIC 9(8)      USAGE COMP    17R1 10 
+      *    03 CURR-EXPIRE-DATE              PIC 9(8)      USAGE COMP    17R1 10 
+      *    03 CURR-CASH-ACCOUNT             PIC X(16)                   17R1 10 
+      *    03 CURR-ORACLE-DAILY-FX          PIC 9(6)V9(6) USAGE COMP    17R1 10 
+      *    03 CURR-LMN-CODE                                             17R1 10 
+      *       05 CURR-LOCATION              PIC X(2)                    17R1 10 
+      *       05 CURR-DEPARTMENT            PIC X(2)                    17R1 10 
+      *    03 CURR-REPORT-SORT-KEY          PIC 9(5)      USAGE COMP    17R1 10 
+      *    03 CURR-PROD-CURRENCY-DESC       PIC X(30)                   17R1 10 
+      *    03 FILLER                        PIC X(13)                   17R1 10 
+      *    03 CURR-MARGIN-CTR               PIC 9(2)      USAGE COMP    17R1 10 
+      *    03 CURR-MARGIN-ENTRY OCCURS 0 TO 50 TIMES                    17R1 10 
+      *           DEPENDING ON CURR-MARGIN-CTR                          17R1 10 
+      *       05 CURR-CUTOFF-DAYS           PIC 9(4)      USAGE COMP    17R1 10 
+      *       05 CURR-MARGIN                PIC 9(4)V9(6) USAGE COMP    17R1 10 
+      *       05 FILLER                     PIC X(6)                    17R1 10 
+      ***************************************************************** 13R2 C5 
+       RECORD         DB-ENV-REC                                        13R2 C5 
+           CODE       367                                               13R2 C5 
+           LOCATION   CALC DMSCALC IN DBENV-CALCAREA                    13R2 C5 
+                                   USING DBER-CALC-KEY                  13R2 C5 
+           DUPLICATES NOT ALLOWED                                       13R2 C5 
+           WITHIN     DBENV                                             13R2 C5 
+           MODE       ASCII COBOL                                       13R2 C5 
+           03 DBER-CALC-KEY                 PIC X(5)                    13R2 C5 
+      *       05 DBER-ENV-ID                PIC X(3)                    13R2 C5 
+      *       05 DBER-TRANS-APP             PIC X(2)                    13R2 C5 
+           03 DBER-PASSOFF-TRANS-APP        PIC X(2)                    13R2 C5 
+           03 DBER-APP-GROUP                PIC X(3)                    13R2 C5 
+           03 FILLER                        PIC X(6)                    13R2 C5 
+      ***************************************************************** 17R1 10 
+      *RECORD         FEE-AMT-REC                                       17R1 10 
+      *    CODE       032                                               17R1 10 
+      *    LOCATION   CALC DMSCALC IN FEE-CALCAREA                      17R1 10 
+      *                    USING FAR-CALC-KEY                           17R1 10 
+      *    DUPLICATES NOT ALLOWED                                       17R1 10 
+      *    WITHIN     FEE                                               17R1 10 
+      *    MODE       ASCII COBOL                                       17R1 10 
+      *    03 FAR-CALC-KEY                  PIC X(12)                   17R1 10 
+      *       05 FAR-CURRENCY-CODE          PIC X(3)                    17R1 10 
+      *       05 FAR-FEE-CODE               PIC X(4)                    17R1 10 
+      *       05 FAR-FEE-PHASE-NUM          PIC 9(5)                    17R1 10 
+      *    03 FAR-FEE-AMT                   PIC 9(8)V99 USAGE COMP      17R1 10 
+      *    03 FAR-EXTRA-FEE-AMT             PIC 9(8)V99 USAGE COMP      17R1 10 
+      ***************************************************************** 17R1 10 
+      *RECORD         FEE-REC                                           17R1 10 
+      *    CODE       442                                               17R1 10 
+      *    LOCATION   CALC  DMSCALC IN FEE-CALCAREA                     17R1 10 
+      *                     USING FR-FEE-CODE                           17R1 10 
+      *    DUPLICATES NOT ALLOWED                                       17R1 10 
+      *    WITHIN     FEE                                               17R1 10 
+      *    MODE       ASCII COBOL                                       17R1 10 
+      *    CHECK      PROCEDURE DOMCHK                                  17R1 10 
+      *    03 FR-FEE-CODE                  PIC X(4)                     17R1 10 
+      *    03 FR-GROUP-CODE                PIC X                        17R1 10 
+      *    03 FR-DESCRIPTION               PIC X(30)                    17R1 10 
+      *    03 FR-ACCT-NUM                  PIC X(6)                     17R1 10 
+      *    03 FR-REV-ACCT-NUM              PIC X(6)                     17R1 10 
+      *    03 FR-CRUISE-FEE-CODE           PIC X(4)                     17R1 10 
+      *    03 FR-TRANS-FEE-CODE            PIC X(4)                     17R1 10 
+      *    03 FR-PAX-TYPE                  PIC X                        17R1 10 
+      *    03 FR-SPECIAL-IND               PIC X                        17R1 10 
+      *    03 FILLER                       PIC X(3)                     17R1 10 
+      *    03 FR-TRUE-UP-IND               PIC X(1)                     17R1 10 
+      *    03 FR-PMT-TYPE                  PIC X(3)                     17R1 10 
+      *    03 FR-BINARY-FLAGS                                           17R1 10 
+      *      05 FR-INT-DEP-FLAG            PIC 1                        17R1 10 
+      *      05 FR-AIRPORT-FEE-FLAG        PIC 1                        17R1 10 
+      *      05 FR-GOVERNMENT-FEE-FLAG     PIC 1                        17R1 10 
+      *      05 FR-FEDERAL-FEE-FLAG        PIC 1                        17R1 10 
+      *      05 FR-TAXABLE-FEE-FLAG        PIC 1                        17R1 10 
+      *      05 FR-ARBVR-FEE-FLAG          PIC 1                        17R1 10 
+      *      05 FILLER                     PIC 1(3)                     17R1 10 
+      *    03 FR-MIN-AGE                   PIC 9(2)   USAGE COMP        17R1 10 
+      *    03 FILLER                       PIC X(2)                     17R1 10 
+      ***************************************************************** 17R1 10 
+      *RECORD         FINANCIAL-COMPANY-REC                             17R1 10 
+      *    CODE       348                                               17R1 10 
+      *    LOCATION   CALC DMSCALC IN FINACOMP-CALCAREA                 17R1 10 
+      *                    USING FCR-FINANCIAL-COMPANY-CODE             17R1 10 
+      *    DUPLICATES NOT ALLOWED                                       17R1 10 
+      *    WITHIN     FINACOMP                                          17R1 10 
+      *    MODE       ASCII COBOL                                       17R1 10 
+      *    03 FCR-FINANCIAL-COMPANY-CODE    PIC X                       17R1 10 
+      *    03 FCR-CGFS-INTER-COMPANY        PIC X(3)                    17R1 10 
+      *    03 FCR-COMPANY-NAME-1            PIC X(30)                   17R1 10 
+      *    03 FCR-COMPANY-NAME-2            PIC X(30)                   17R1 10 
+      *    03 FCR-ADDRESS-1                 PIC X(30)                   17R1 10 
+      *    03 FCR-ADDRESS-2                 PIC X(30)                   17R1 10 
+      *    03 FCR-ADDRESS-3                 PIC X(30)                   17R1 10 
+      *    03 FCR-COUNTRY-CODE              PIC X(2)                    17R1 10 
+      *    03 FCR-CITY-NAME                 PIC X(25)                   17R1 10 
+      *    03 FCR-STATE-CODE                PIC X(3)                    17R1 10 
+      *    03 FCR-PHONE-NUM                 PIC 9(16)                   17R1 10 
+      *    03 FCR-ZIP-CODE                  PIC X(11)                   17R1 10 
+      *    03 FCR-LEGACY-COMPANY-CODE       PIC X(5)                    17R1 10 
+      *    03 FCR-UPDATE-DATETIME           PIC 9(16)   USAGE COMP      17R1 10 
+      *    03 FILLER                        PIC X(97)                   17R1 10 
+      ***************************************************************   23R3 02 
+       RECORD         GENERAL-PURPOSE-TRF-REC                           23R3 02 
+           CODE       520                                               13R2 C0 
+           LOCATION   CALC DMSCALC IN GPTRF-CALCAREA                    13R2 C0 
+                           USING GPTRF-CALC-KEY                         13R2 C0 
+           DUPLICATES ALLOWED                                           13R2 C0 
+           WITHIN     GPTRF                                             13R2 C0 
+           MODE       ASCII COBOL                                       13R2 C0 
+           03 GPTRF-CALC-KEY               PIC X(20)                    13R2 C0 
+      *       05 GPTRF-ACTIVITY-CODE       PIC X(4)                     13R2 C0 
+      *       05 GPTRF-ACTIVITY-DATE       PIC 9(8)                     13R2 C0 
+      *       05 GPTRF-ACTIVITY-TIME       PIC 9(8)                     13R2 C0 
+           03 GPTRF-USERID                 PIC X(15)                    13R2 C0 
+           03 GPTRF-COMMENT1               PIC X(40)                    13R2 C0 
+           03 GPTRF-COMMENT2               PIC X(40)                    13R2 C0 
+           03 GPTRF-SAILING                                             13R2 C0 
+              05 GPTRF-SHIP-CODE           PIC X(2)                     13R2 C0 
+              05 GPTRF-SAIL-DATE           PIC 9(8)                     13R2 C0 
+              05 GPTRF-DURATION-DAYS       PIC 9(3)                     13R2 C0 
+           03 GPTRF-COMPANY-CODE           PIC X(1)                     13R2 C0 
+      *OUT 03 GPTRF-RATE                                                23R3 02 
+      *OUT    05 GPTRF-RATE-CODE                                        23R3 02 
+      *OUT       07 GPTRF-PRICE-TYPE       PIC X(1)                     23R3 02 
+      *OUT       07 GPTRF-PRICE-CODE       PIC X(5)                     23R3 02 
+      *OUT    05 GPTRF-RATE-PHASE-NUM      PIC 9(5)                     23R3 02 
+      *OUT 03 GPTRF-PROMOTION-ITEM                                      23R3 02 
+      *OUT    05 GPTRF-PI-TYPE             PIC X(1)                     23R3 02 
+      *OUT    05 GPTRF-PI-CODE             PIC X(5)                     23R3 02 
+      *OUT    05 GPTRF-PI-PHASE-NUM        PIC 9(5)                     23R3 02 
+           03 GPTRF-ENTITY-TYPE            PIC X(3)                     23R3 02 
+           03 GPTRF-ENTITY-CODE            PIC X(5)                     23R3 02 
+           03 GPTRF-ENTITY-OWNER-ID        PIC S9(11)    USAGE COMP     23R3 02 
+           03 FILLER                       PIC X(9)                     23R3 02 
+           03 GPTRF-OFFER-ID               PIC X(10)                    13R2 C0 
+           03 GPTRF-GROUP-BOOK-NUM         PIC X(6)                     13R2 C0 
+           03 GPTRF-CABIN-BOOK-NUM         PIC X(6)                     13R2 C0 
+           03 GPTRF-PAST-GUEST-NUM         PIC X(10)                    13R2 C0 
+           03 FILLER                       PIC X(57)                    13R2 C0 
+      ***************************************************************** 17R1 10 
+      *RECORD         LOCALITY-COUNTRY-REC                              17R1 10 
+      *    CODE       268                                               17R1 10 
+      *    LOCATION   CALC DMSCALC IN COUNTRY-CALCAREA                  17R1 10 
+      *                            USING LCR-COUNTRY-CODE               17R1 10 
+      *    DUPLICATES NOT ALLOWED                                       17R1 10 
+      *    WITHIN     COUNTRY                                           17R1 10 
+      *    MODE       ASCII COBOL                                       17R1 10 
+      *    CHECK      PROCEDURE DOMCHK                                  17R1 10 
+      *    03 LCR-COUNTRY-CODE              PIC X(2)                    17R1 10 
+      *    03 FILLER                        PIC X(2)                    17R1 10 
+      ***************************************************************** 17R1 10 
+      *RECORD         LOCALITY-DEPT-REC                                 17R1 10 
+      *    CODE       302                                               17R1 10 
+      *    LOCATION   VIA LOCALITY-DEPT-SET                             17R1 10 
+      *    WITHIN     LOCALITY                                          17R1 10 
+      *    MODE       ASCII COBOL                                       17R1 10 
+      *    03 LDR-LOCALITY-CODE               PIC X(4)                  17R1 10 
+      *    03 LDR-DEPT-CODE                   PIC X(2)                  17R1 10 
+      *    03 LDR-STATE-CODE                  PIC X(2)                  17R1 10 
+      *    03 LDR-ADDRESS1                    PIC X(35)                 17R1 10 
+      *    03 LDR-ADDRESS2                    PIC X(35)                 17R1 10 
+      *    03 LDR-ADDRESS3                    PIC X(35)                 17R1 10 
+      *    03 LDR-CITY                        PIC X(30)                 17R1 10 
+      *    03 LDR-ZIP-CODE                    PIC X(11)                 17R1 10 
+      *    03 LDR-MAIL-STOP                   PIC X(10)                 17R1 10 
+      *    03 LDR-COUNTRY-CODE                PIC X(3)                  17R1 10 
+      *    03 LDR-PHONE-NUM                   PIC 9(16)  USAGE COMP     17R1 10 
+      *    03 LDR-ALT-PHONE-NUM               PIC 9(16)  USAGE COMP     17R1 10 
+      *    03 LDR-FAX-PHONE-NUM               PIC 9(16)  USAGE COMP     17R1 10 
+      *    03 LDR-EMAIL-ADDRESS               PIC X(80)                 17R1 10 
+      *    03 LDR-WEB-ADDRESS                 PIC X(80)                 17R1 10 
+      *    03 FILLER                          PIC X(8)                  17R1 10 
+      ***************************************************************** 17R1 10 
+      *RECORD         LOCALITY-DIRECT-REC                               17R1 10 
+      *    CODE       379                                               17R1 10 
+      *    LOCATION   DIRECT        LOCALITY-AREA-KEY                   17R1 10 
+      *                             LOCALITY-AREA-NAME                  17R1 10 
+      *    WITHIN     LOCALITY                                          17R1 10 
+      *    MODE       ASCII COBOL                                       17R1 10 
+      *    03 FILLER                        PIC X(4)                    17R1 10 
+      ***************************************************************** 17R1 10 
+      *RECORD         LOCALITY-HIST-DIRECT-REC                          17R1 10 
+      *    CODE       345                                               17R1 10 
+      *    LOCATION   DIRECT        LOCHIST-AREA-KEY                    17R1 10 
+      *                             LOCHIST-AREA-NAME                   17R1 10 
+      *    WITHIN     LOCHIST                                           17R1 10 
+      *    MODE       ASCII COBOL                                       17R1 10 
+      *    03 FILLER                        PIC X(4)                    17R1 10 
+      ***************************************************************** 17R1 10 
+      *RECORD         LOCALITY-HIST-REC                                 17R1 10 
+      *    CODE       346                                               17R1 10 
+      *    LOCATION   VIA LOCALITY-HIST-DIRECT-SET                      17R1 10 
+      *    WITHIN     LOCHIST                                           17R1 10 
+      *    MODE       ASCII COBOL                                       17R1 10 
+      *    03 LHR-LOCALITY-CODE             PIC X(4)                    17R1 10 
+      *    03 LHR-REC-SEQ-NUM               PIC 9(5)  USAGE COMP        17R1 10 
+      *    03 LHR-ENTRY-CTR                 PIC 9(5)  USAGE COMP        17R1 10 
+      *    03 LHR-HISTORY-TABLE OCCURS 80 TIMES                         17R1 10 
+      *       05 LHR-ACTIVITY-DATE          PIC 9(8)  USAGE COMP        17R1 10 
+      *       05 LHR-ACTIVITY-TIME          PIC 9(4)  USAGE COMP        17R1 10 
+      *       05 LHR-USERID                 PIC X(15)                   17R1 10 
+      *       05 LHR-ACTIVITY-CODE          PIC X(3)                    17R1 10 
+      *       05 LHR-ACTIVITY-COMMENT       PIC X(60)                   17R1 10 
+      ***************************************************************** 17R1 10 
+      *RECORD         LOCALITY-RATE-REC                                 17R1 10 
+      *    CODE       186                                               17R1 10 
+      *    LOCATION   VIA LOCALITY-RATE-SET                             17R1 10 
+      *    WITHIN     LOCALITY                                          17R1 10 
+      *    MODE       ASCII COBOL                                       17R1 10 
+      *    CHECK      PROCEDURE DOMCHK                                  17R1 10 
+      *    03 LRR-LOCALITY-CODE          PIC X(4)                       17R1 10 
+      *    03 LRR-RATE-CODE                                             17R1 10 
+      *       05 LRR-PRICE-TYPE          PIC X(1)                       17R1 10 
+      *       05 LRR-PRICE-CODE          PIC X(4)                       17R1 10 
+      *    03 FILLER                     PIC X(3)                       17R1 10 
+      ***************************************************************** 17R1 10 
+      *RECORD         LOCALITY-REC                                      17R1 10 
+      *    CODE       267                                               17R1 10 
+      *    LOCATION   CALC DMSCALC IN LOCALITY-CALCAREA                 17R1 10 
+      *                            USING LR-LOCALITY-CODE               17R1 10 
+      *    DUPLICATES NOT ALLOWED                                       17R1 10 
+      *    WITHIN     LOCALITY                                          17R1 10 
+      *    MODE       ASCII COBOL                                       17R1 10 
+      *    CHECK      PROCEDURE DOMCHK                                  17R1 10 
+      *    03 LR-LOCALITY-CODE             PIC X(4)                     17R1 10 
+      *    03 LR-CAA-EXPENSE-AMT           PIC 9(8)V99  USAGE COMP      17R1 10 
+      *    03 LR-CREATION-DATE             PIC 9(8)     USAGE COMP      17R1 10 
+      *    03 LR-LOCALITY-DESC             PIC X(30)                    17R1 10 
+      *    03 LR-CC-USAGE-FEE-PCT          PIC V9999    USAGE COMP      17R1 10 
+      *    03 LR-DB-USAGE-FEE-PCT          PIC V9999    USAGE COMP      17R1 10 
+      *    03 LR-INDICATORS                                             17R1 10 
+      *       05 LR-ATOL-CERT-REQ-IND      PIC 1                        17R1 10 
+      *       05 LR-CARD-USAGE-FEE-IND     PIC 1                        17R1 10 
+      *       05 LR-ALLOW-DIFF-COMM-IND    PIC 1                        17R1 10 
+      *       05 LR-INCLUDE-ATOL-ABTA-INFO-IND  PIC 1                   17R1 10 
+      *       05 LR-REQ-PREG-INFO-IND      PIC 1                        17R1 10 
+      *       05 FILLER                    PIC 1(13)                    17R1 10 
+      *    03 LR-COUNTRY-CNT               PIC 9(5)     USAGE COMP      17R1 10 
+      *         RESULT OF COUNT ON SET LOCALITY-COUNTRY-SET             17R1 10 
+      *                            MEMBER LOCALITY-COUNTRY-REC          17R1 10 
+      *    03 LR-CITY-BASE-CURRENCY-CODE   PIC X(3)                     17R1 10 
+      *    03 LR-PP-GRATS-CODE             PIC X                        17R1 10 
+      *    03 LR-PKG-BASE-CURRENCY-CODE    PIC X(3)                     17R1 10 
+      *    03 LR-CATEGORY-CNT              PIC 9(2)     USAGE COMP      17R1 10 
+      *    03 LR-UPDATE-DATETIME           PIC 9(16)    USAGE COMP      17R1 10 
+      *    03 LR-DEFAULT-BROCHURE-TYPE     PIC X                        17R1 10 
+      *    03 LR-DEFAULT-CURRENCY-CODE     PIC X(3)                     17R1 10 
+      *    03 LR-SPS-CUTOFF-DAYS           PIC 9(2) USAGE COMP          17R1 10 
+      *    03 LR-REQ-PREG-INFO-FROM-AGE    PIC 9(2) USAGE COMP          17R1 10 
+      *    03 LR-REQ-PREG-INFO-TO-AGE      PIC 9(2) USAGE COMP          17R1 10 
+      *    03 LR-DEF-AGT-COMMISSIONS                                    17R1 10 
+      *       05 LR-DEF-AGT-COMM-ENTRY OCCURS 2 TIMES                   17R1 10 
+      *          07 LR-AGT-CRUO-COMM-PCT      PIC V99 USAGE COMP        17R1 10 
+      *          07 LR-AGT-ADDON-COMM-PCT     PIC V99 USAGE COMP        17R1 10 
+      *          07 LR-AGT-TRANSFER-COMM-PCT  PIC V99 USAGE COMP        17R1 10 
+      *          07 LR-AGT-INSURANCE-COMM-PCT PIC V99 USAGE COMP        17R1 10 
+      *          07 LR-AGT-PACKAGE-COMM-PCT   PIC V99 USAGE COMP        17R1 10 
+      *          07 LR-AGT-CONNECT-TYPE       PIC X                     17R1 10 
+      *          07 FILLER                    PIC X(2)                  17R1 10 
+      *    03 LR-ABTA-CODE                    PIC X(06)                 17R1 10 
+      *    03 LR-ATOL-CODE                    PIC X(06)                 17R1 10 
+      *    03 LR-PAYMENT-TYPE-CNT             PIC 9(2) USAGE COMP       17R1 10 
+      *    03 LR-PAYMENT-TYPE-TBL                                       17R1 10 
+      *       05 LR-PAYMENT-TYPE              PIC X(3) OCCURS 15 TIMES  17R1 10 
+      *    03 LR-CARD-TYPE-CNT                PIC 9(2) USAGE COMP       17R1 10 
+      *    03 LR-CARD-TYPE-TBL                                          17R1 10 
+      *       05 LR-CARD-TYPE                 PIC X(2) OCCURS 15 TIMES  17R1 10 
+      *    03 LR-TIME-ZONE-CODE               PIC X(4)                  17R1 10 
+      *    03 LR-XFR-BASE-CURRENCY-CODE       PIC X(3)                  17R1 10 
+      *    03 LR-CAT-TABLE                                              17R1 10 
+      *       05 LR-CAT-TABLE-ENTRY OCCURS 0 TO 90 TIMES                17R1 10 
+      *             DEPENDING ON LR-CATEGORY-CNT                        17R1 10 
+      *          07 LR-CATEGORY-CODE          PIC X(3)                  17R1 10 
+      *          07 FILLER                    PIC X(1)                  17R1 10 
+      *          07 LR-CRUO-COMM-PCT          PIC V9999 USAGE COMP      17R1 10 
+      *          07 LR-FLYA-COMM-PCT          PIC V9999 USAGE COMP      17R1 10 
+      *          07 LR-ADDON-COMM-PCT         PIC V9999 USAGE COMP      17R1 10 
+      *          07 LR-TRANSFER-COMM-PCT      PIC V9999 USAGE COMP      17R1 10 
+      *          07 LR-INSURANCE-COMM-PCT     PIC V9999 USAGE COMP      17R1 10 
+      *          07 LR-PACKAGE-COMM-PCT       PIC V9999 USAGE COMP      17R1 10 
+      *          07 LR-TRANS-SUPPL-COMM-PCT   PIC V9999 USAGE COMP      17R1 10 
+      *          07 LR-CRUISE-SUPPL-COMM-PCT  PIC V9999 USAGE COMP      17R1 10 
+      ***************************************************************** 17R1 10 
+      *RECORD         LOYALTY-TIER-DETAIL-REC                           17R1 10 
+      *    CODE       523                                               17R1 10 
+      *    LOCATION   VIA LOYALTY-TIER-HDR-DETAIL-SET                   17R1 10 
+      *    WITHIN     TIER                                              17R1 10 
+      *    MODE       ASCII COBOL                                       17R1 10 
+      *    CHECK      PROCEDURE DOMCHK                                  17R1 10 
+      *    03 LTDR-CODE                    PIC X(2)                     17R1 10 
+      *    03 LTDR-NAME                    PIC X(20)                    17R1 10 
+      *    03 LTDR-EFFECTIVE-DATE          PIC 9(8) USAGE COMP          17R1 10 
+      *    03 LTDR-STATUS                  PIC X                        17R1 10 
+      *    03 LTDR-CRUISE-DAYS-MAX         PIC 9(4)V99 USAGE COMP       17R1 10 
+      *    03 LTDR-DINING-CODE             PIC X                        17R1 10 
+      *            N - NONE, W- WAITLISTED, C - CONFIRMED               17R1 10 
+      *    03 LTDR-FLAGS                                                17R1 10 
+      *       05 LTDR-VIP-FLAG              PIC 1                       17R1 10 
+      *       05 LTDR-GRANDFATHERED-TO-FLAG PIC 1                       17R1 10 
+      *       05 LTDR-UNUSED-FLAG3          PIC 1                       17R1 10 
+      *       05 LTDR-UNUSED-FLAG4          PIC 1                       17R1 10 
+      *       05 LTDR-UNUSED-FLAG5          PIC 1                       17R1 10 
+      *       05 LTDR-UNUSED-FLAG6          PIC 1                       17R1 10 
+      *       05 LTDR-UNUSED-FLAG7          PIC 1                       17R1 10 
+      *       05 LTDR-UNUSED-FLAG8          PIC 1                       17R1 10 
+      *       05 LTDR-UNUSED-FLAG9          PIC 1                       17R1 10 
+      *    03 FILLER                        PIC X(4)                    17R1 10 
+      ***************************************************************** 17R1 10 
+      *RECORD         LOYALTY-TIER-HDR-REC                              17R1 10 
+      *    CODE       522                                               17R1 10 
+      *    LOCATION   DIRECT         TIER-HDR-AREA-KEY                  17R1 10 
+      *                              TIER-HDR-AREA-NAME                 17R1 10 
+      *    WITHIN     TIER                                              17R1 10 
+      *    MODE       ASCII COBOL                                       17R1 10 
+      *    03 FILLER                       PIC X(4)                     17R1 10 
+      ***************************************************************** 14R2 20 
+       RECORD         MAPPER-USER-REC                                   14R2 20 
+           CODE       181                                               14R2 20 
+           LOCATION   CALC DMSCALC IN SECUSER-CALCAREA                  14R2 20 
+                                      USING MRUR-MAPPER-UID             14R2 20 
+           DUPLICATES NOT ALLOWED                                       14R2 20 
+           WITHIN     SECUSER                                           14R2 20 
+           MODE       ASCII COBOL                                       14R2 20 
+           03 MRUR-MAPPER-UID          PIC X(6)                         14R2 20Y
+           03 MRUR-NT-UID              PIC X(16)                        14R2 20Y
+           03 FILLER                   PIC X(18)                        14R2 20 
+      ***************************************************************** 23R3 03 
+      *RECORD         MESSAGE-DESC-REC                                  23R3 03 
+      *    CODE       504                                               23R3 03 
+      *    LOCATION   CALC DMSCALC IN MSGDESC-CALCAREA                  23R3 03 
+      *                            USING MDR-CALC-KEY                   23R3 03 
+      *    DUPLICATES NOT ALLOWED                                       23R3 03 
+      *    WITHIN     MSG-DESC                                          23R3 03 
+      *    MODE       ASCII COBOL                                       23R3 03 
+      *    03 MDR-CALC-KEY                 PIC X(12)                    23R3 03 
+      *       05 MDR-MESSAGE-SOURCE        PIC X(8)                     23R3 03 
+      *       05 MDR-MESSAGE-NUM           PIC 9(4)                     23R3 03 
+      *    03 MDR-SHORT-DESC               PIC X(78)                    23R3 03 
+      *    03 MDR-LONG-DESC                PIC X(255)                   23R3 03 
+      *    03 MDR-TRANSLATION-CODE         PIC X(4)                     23R3 03 
+      *                                    OCCURS 10 TIMES              23R3 03 
+      *    03 MDR-USER-ID                  PIC X(3)                     23R3 03Y
+      *    03 MDR-UPDATE-DATE-TIME         PIC 9(16)  USAGE COMP        23R3 03 
+      *    03 MDR-API-SPECIAL-MSG-IND      PIC X                        23R3 03 
+      *    03 FILLER                       PIC X(4)                     23R3 03 
+      ***************************************************************** 14R2 20 
+       RECORD         NT-USER-REC                                       14R2 20 
+           CODE       180                                               14R2 20 
+           LOCATION   CALC DMSCALC IN SECUSER-CALCAREA                  14R2 20 
+                                      USING NTUR-NT-UID                 14R2 20 
+           DUPLICATES NOT ALLOWED                                       14R2 20 
+           WITHIN     SECUSER                                           14R2 20 
+           MODE       ASCII COBOL                                       14R2 20 
+           03 NTUR-NT-UID              PIC X(16)                        14R2 20Y
+           03 NTUR-UID-TYPE            PIC X                            14R2 20 
+           03 NTUR-MAPPER-UID          PIC X(6)                         14R2 20Y
+           03 NTUR-FIRST-NAME          PIC X(30)                        14R2 20I
+           03 NTUR-LAST-NAME           PIC X(30)                        14R2 20I
+           03 NTUR-EMAIL-SMTP          PIC X(32)                        14R2 20I
+           03 NTUR-COMPANY-CODE        PIC X                            14R2 20 
+           03 NTUR-LOC-CODE            PIC X(2)                         14R2 20 
+           03 NTUR-DEPT-CODE           PIC X(2)                         14R2 20 
+           03 NTUR-FUNCTION            PIC X(2)                         14R2 20 
+           03 NTUR-LEVEL               PIC 9                            14R2 20 
+           03 NTUR-TIP-TBL-CODE        PIC X                            14R2 20 
+           03 NTUR-TIP-TBL-LEVEL       PIC 9                            14R2 20 
+           03 NTUR-NT-SUPERVISOR-UID   PIC X(16)                        14R2 20Y
+           03 NTUR-PASSWORD            PIC X(15)                        14R2 20 
+           03 NTUR-PWD-EXP-DATE        PIC 9(8)   USAGE COMP            14R2 20 
+           03 NTUR-LAST-LOGIN-DATE     PIC 9(8)   USAGE COMP            14R2 20 
+           03 FILLER                   PIC X(12)                        14R2 20 
+      ***************************************************************** 23R3 04 
+      *RECORD         PRICING-MASTER-SUMM-REC                           23R3 04 
+      *    CODE       413                                               23R3 04 
+      *    LOCATION   CALC DMSCALC IN PRICESUMM-CALCAREA                23R3 04 
+      *                    USING PMSR-CALC-KEY                          23R3 04 
+      *    DUPLICATES NOT ALLOWED                                       23R3 04 
+      *    WITHIN PRICESUMM                                             23R3 04 
+      *    MODE ASCII COBOL                                             23R3 04 
+      *    03 PMSR-CALC-KEY                   PIC X(11)                 23R3 04 
+      *       05 PMSR-COMPANY-CODE            PIC X(1)                  23R3 04 
+      *       05 PMSR-RATE-CODE               PIC X(5)                  23R3 04 
+      *       05 PMSR-PHASE-NUM               PIC 9(5)                  23R3 04 
+      *    03 PMSR-STATUS-CODE                PIC X(1)                  23R3 04 
+      *    03 PMSR-BOOK-TYPE                  PIC X(1)                  23R3 04 
+      *    03 PMSR-CURRENCY-CODE              PIC X(3)                  23R3 04 
+      *    03 PMSR-PRICE-DESCRIPTION          PIC X(40)                 23R3 04 
+      *    03 PMSR-SAIL-EFF-DATE              PIC 9(8)   USAGE COMP     23R3 04 
+      *    03 PMSR-SAIL-EXP-DATE              PIC 9(8)   USAGE COMP     23R3 04 
+      *    03 PMSR-BOOK-EFF-DATE              PIC 9(8)   USAGE COMP     23R3 04 
+      *    03 PMSR-BOOK-EXP-DATE              PIC 9(8)   USAGE COMP     23R3 04 
+      *    03 PMSR-RELEASE-DATE               PIC 9(8)   USAGE COMP     23R3 04 
+      *    03 PMSR-SLOT-NUM                   PIC 9(10)  USAGE COMP     23R3 04 
+      *    03 PMSR-RELEASE-TIME               PIC 9(4)   USAGE COMP     23R3 04 
+      *    03 PMSR-PAX-PRICING-CODE           PIC X(1)                  23R3 04 
+      *    03 PMSR-CONTROL-FLAGS                                        23R3 04 
+      *       05 PMSR-SELECTED-AGENCY-FLG     PIC 1                     23R3 04 
+      *       05 PMSR-COMBINE-FLG             PIC 1                     23R3 04 
+      *       05 PMSR-PAST-GUEST-FLG          PIC 1                     23R3 04 
+      *       05 PMSR-STATE-RESIDENT-FLG      PIC 1                     23R3 04 
+      *       05 PMSR-SENIOR-RATE-FLG         PIC 1                     23R3 04 
+      *       05 PMSR-UNUSED-FLG-6            PIC 1                     23R3 04 
+      *       05 PMSR-UNUSED-FLG-7            PIC 1                     23R3 04 
+      *       05 PMSR-UNUSED-FLG-8            PIC 1                     23R3 04 
+      *       05 PMSR-UNUSED-FLG-9            PIC 1                     23R3 04 
+      *    03 FILLER                          PIC X(4)                  23R3 04 
+      ***************************************************************** 23R3 05 
+      *RECORD         RATE-COMB-1-2-REC                                 23R3 05 
+      *    CODE       134                                               23R3 05 
+      *    LOCATION   CALC DMSCALC IN RATECOMB-CALCAREA                 23R3 05 
+      *                            USING RC12-CALC-KEY                  23R3 05 
+      *    DUPLICATES NOT ALLOWED                                       23R3 05 
+      *    WITHIN     RATECOMB                                          23R3 05 
+      *    MODE       ASCII COBOL                                       23R3 05 
+      *    03 RC12-CALC-KEY               PIC X(6)                      23R3 05 
+      *       05 RC12-PRICE-TYPE          PIC X                         23R3 05 
+      *       05 RC12-PRICE-CODE          PIC X(4)                      23R3 05 
+      *       05 RC12-COMPANY-CODE        PIC X                         23R3 05 
+      *    03 FILLER                      PIC X(2)                      23R3 05 
+      ***************************************************************** 23R3 05 
+      *RECORD         RATE-COMB-3-4-REC                                 23R3 05 
+      *    CODE       135                                               23R3 05 
+      *    LOCATION   VIA RATE-COMB-SET                                 23R3 05 
+      *    WITHIN     RATECOMB                                          23R3 05 
+      *    MODE       ASCII COBOL                                       23R3 05 
+      *    03 RC34-RATE-CODE              PIC X(5)                      23R3 05 
+      *       05 RC34-PRICE-TYPE          PIC X                         23R3 05 
+      *       05 RC34-PRICE-CODE          PIC X(4)                      23R3 05 
+      *    03 FILLER                      PIC X(3)                      23R3 05 
+      ***************************************************************** 23R3 06 
+      *RECORD         SAIL1-AGT-RESTRICTION-REC                         23R3 06 
+      *    CODE       452                                               23R3 06 
+      *    LOCATION   CALC DMSCALC IN AGTRESTRI-CALCAREA                23R3 06 
+      *               USING SARR1-CALC-KEY                              23R3 06 
+      *    DUPLICATES NOT ALLOWED                                       23R3 06 
+      *    WITHIN     AGTRESTRI                                         23R3 06 
+      *    MODE       ASCII COBOL                                       23R3 06 
+      *    03 SARR1-CALC-KEY                  PIC X(25)                 23R3 06 
+      *       05 SARR1-SAIL-DATE              PIC 9(8)                  23R3 06 
+      *       05 SARR1-SHIP-CODE              PIC X(2)                  23R3 06 
+      *       05 SARR1-DURATION-DAYS          PIC 9(3)                  23R3 06 
+      *       05 SARR1-PRICE-TYPE             PIC X                     23R3 06 
+      *       05 SARR1-PRICE-CODE             PIC X(4)                  23R3 06 
+      *       05 SARR1-RESTRICTION-TYPE       PIC X                     23R3 06 
+      *       05 SARR1-RESTRICTION-CODE       PIC X(6)                  23R3 06 
+      *    03 FILLER                          PIC X(3)                  23R3 06 
+      ***************************************************************** 17R1 10 
+      *RECORD         SAIL-CURR-REC                                     17R1 10 
+      *    CODE       521                                               17R1 10 
+      *    LOCATION   CALC DMSCALC IN SAILCURR-CALCAREA                 17R1 10 
+      *                    USING SCURR-CALC-KEY                         17R1 10 
+      *    DUPLICATES NOT ALLOWED                                       17R1 10 
+      *    WITHIN     SAILCURR                                          17R1 10 
+      *    RESERVE    4 POINTERS                                        17R1 10 
+      *    MODE       ASCII COBOL                                       17R1 10 
+      *    CHECK      PROCEDURE DOMCHK                                  17R1 10 
+      *    03 SCURR-CALC-KEY          PIC X(16)                         17R1 10 
+      *       05 SCURR-SAIL-DATE      PIC 9(8)                          17R1 10 
+      *       05 SCURR-DURATION-DAYS  PIC 9(3)                          17R1 10 
+      *       05 SCURR-SHIP-CODE      PIC X(2)                          17R1 10 
+      *       05 SCURR-CURRENCY-CODE  PIC X(3)                          17R1 10 
+      *    03 FILLER                  PIC X(3)                          17R1 10 
+      *    03 SCURR-CONTROL-FLAGS                                       17R1 10 
+      *       05 SCURR-CHG-XCHG-FLG         PIC 1                       17R1 10 
+      *       05 SCURR-NO-FLEX-ALLOWED-FLG  PIC 1                       17R1 10 
+      *       05 SCURR-UNASSIGNED-FLG3      PIC 1                       17R1 10 
+      *       05 SCURR-UNASSIGNED-FLG4      PIC 1                       17R1 10 
+      *       05 SCURR-UNASSIGNED-FLG5      PIC 1                       17R1 10 
+      *       05 SCURR-UNASSIGNED-FLG6      PIC 1                       17R1 10 
+      *       05 SCURR-UNASSIGNED-FLG7      PIC 1                       17R1 10 
+      *       05 SCURR-UNASSIGNED-FLG8      PIC 1                       17R1 10 
+      *       05 SCURR-UNASSIGNED-FLG9      PIC 1                       17R1 10 
+      ***************************************************************** 23R3 07 
+      *RECORD         SAIL-SUMMARY-REC                                  23R3 07 
+      *    CODE       371                                               23R3 07 
+      *    LOCATION   CALC DMSCALC IN SAILSUMM-CALCAREA                 23R3 07 
+      *                    USING SSUM-CALC-KEY                          23R3 07 
+      *    DUPLICATES NOT ALLOWED                                       23R3 07 
+      *    WITHIN     SAILSUMM                                          23R3 07 
+      *    MODE       ASCII COBOL                                       23R3 07 
+      *    03  SSUM-CALC-KEY                     PIC X(13)              23R3 07 
+      *        05 SSUM-SAIL-DATE                 PIC 9(8)               23R3 07 
+      *        05 SSUM-SHIP-CODE                 PIC X(2)               23R3 07 
+      *        05 SSUM-DURATION-DAYS             PIC 9(3)               23R3 07 
+      *    03 SSUM-ITINERARY-CODE                PIC X(3)               23R3 07 
+      *    03 SSUM-COMPANY-CODE                  PIC X                  23R3 07 
+      *    03 SSUM-EMBK-PORT-CODE                PIC X(3)               23R3 07 
+      *    03 SSUM-DEBK-PORT-CODE                PIC X(3)               23R3 07 
+      *    03 SSUM-GTEE-MAX-PAX                  PIC 9                  23R3 07 
+      *    03 SSUM-PAX-AREA-NAME                 PIC X(12)              23R3 07 
+      *    03 SSUM-CABIN-AREA-NAME               PIC X(12)              23R3 07 
+      *    03 SSUM-AVAIL-AREA-NAME               PIC X(12)              23R3 07 
+      *    03 SSUM-SPGR-AREA-NAME                PIC X(12)              23R3 07 
+      *    03 SSUM-SAIL-SLOT-NUM                 PIC 9(5) USAGE COMP    23R3 07 
+      *    03 SSUM-AVAIL-SLOT-NUM                PIC 9(5) USAGE COMP    23R3 07 
+      *    03 SSUM-BASE-CURRENCY-CODE            PIC X(3)               23R3 07 
+      *    03 SSUM-INDV-MAX-PAX                  PIC 9                  23R3 07 
+      *    03 SSUM-RECAT-IND                     PIC X                  23R3 07 
+      *    03 SSUM-FINANCIAL-COMPANY-CODE        PIC X                  23R3 07 
+      *    03 SSUM-INDV-AGENT-CONN-DISP-IND      PIC X                  23R3 07 
+      *    03 SSUM-GRP-AGENT-CONN-DISP-IND       PIC X                  23R3 07 
+      *    03 SSUM-SPEC-SAIL-IND                 PIC X                  23R3 07 
+      *    03 SSUM-INDV-ACCESS-IND               PIC X                  23R3 07 
+      *    03 SSUM-GRP-ACCESS-IND                PIC X                  23R3 07 
+      *    03 SSUM-GRP-MAX-PAX                   PIC 9                  23R3 07 
+      *    03 SSUM-STATUS-CODE                   PIC X                  23R3 07 
+      *    03 SSUM-GRP-NBK-IND                   PIC X                  23R3 07 
+      *    03 SSUM-GRP-NEW-CABIN-IND             PIC X                  23R3 07 
+      *    03 SSUM-PAX-SLOT-NUM                  PIC 9(5) USAGE COMP    23R3 07 
+      *    03 SSUM-STATUS-FLAGS                                         23R3 07 
+      *      05 SSUM-ACTIVE-SAIL-FLG             PIC 1                  23R3 07 
+      *      05 SSUM-OPEN-EXTERNAL-FLG           PIC 1                  23R3 07 
+      *      05 SSUM-OPEN-INTERNAL-FLG           PIC 1                  23R3 07 
+      *      05 SSUM-OPEN-SETUP-FLG              PIC 1                  23R3 07 
+      *      05 SSUM-DRY-DOCK-FLG                PIC 1                  23R3 07 
+      *      05 SSUM-WET-DOCK-FLG                PIC 1                  23R3 07 
+      *      05 SSUM-CHARTER-FLG                 PIC 1                  23R3 07 
+      *      05 SSUM-CLOSE-ACCT-RPT-FLG          PIC 1                  23R3 07 
+      *      05 SSUM-REVENUE-GENERATED-FLG       PIC 1                  23R3 07 
+      *      05 SSUM-ACCOUNTING-FINAL-FLG        PIC 1                  23R3 07 
+      *      05 SSUM-REVENUE-SAILING-FLG         PIC 1                  23R3 07 
+      *OUT   05 FILLER                           PIC 1(7)               23R3 07 
+      *      05 SSUM-NAV-BV-OBC-FLG              PIC 1                  23R3 07 
+      *      05 FILLER                           PIC 1(6)               23R3 07 
+      *    03 SSUM-RETURN-DATE                   PIC 9(8)  USAGE COMP   23R3 07 
+      *OUT 03 FILLER                             PIC X(21)              23R3 07 
+      *    03 SSUM-SPR-SLOT-NUM                  PIC 9(5)  USAGE COMP   23R3 07 
+      *    03 SSUM-SPGR-SLOT-NUM                 PIC 9(5)  USAGE COMP   23R3 07 
+      *    03 SSUM-SPRAT-SLOT-NUM                PIC 9(5)  USAGE COMP   23R3 07 
+      *OUT 03 FILLER                             PIC X(15)              23R3 07 
+      *    03 SSUM-SPRAT-AREA-NAME               PIC X(12)              23R3 07 
+      *    03 FILLER                             PIC X(3)               23R3 07 
+      ***************************************************************** 17R1 10 
+      *RECORD         SHIP-CLASS-REC                                    17R1 10 
+      *    CODE       288                                               17R1 10 
+      *    LOCATION   CALC DMSCALC IN SHIP-CALCAREA                     17R1 10 
+      *                            USING SCR-CLASS-CODE                 17R1 10 
+      *    DUPLICATES NOT ALLOWED                                       17R1 10 
+      *    WITHIN     SHIP                                              17R1 10 
+      *    MODE       ASCII COBOL                                       17R1 10 
+      *    CHECK      PROCEDURE DOMCHK                                  17R1 10 
+      *    03 SCR-CLASS-CODE                     PIC X(2)               17R1 10 
+      *    03 SCR-CATEGORY-CNT                   PIC 9(2)   USAGE COMP  17R1 10 
+      *    03 FILLER                             PIC X(9)               17R1 10 
+      *    03 SCR-CATEGORY-TABLE OCCURS 1 TO 90 TIMES                   17R1 10 
+      *                          DEPENDING ON SCR-CATEGORY-CNT          17R1 10 
+      *        05 SCR-CATEGORY-CODE            PIC X(3)                 17R1 10 
+      *        05 SCR-LEAD-CATEGORY-CODE       PIC X(2)                 17R1 10 
+      *        05 FILLER                       PIC X(16)                17R1 10 
+      *        05 SCR-RES-PROD-LEVEL           PIC 9(2)     USAGE COMP  17R1 10 
+      *OUT     05 FILLER                       PIC X(2)                 17R1 10 
+      *        05 SCR-RESTRICTION-AGE          PIC 9(2)     USAGE COMP  17R1 10 
+      *        05 FILLER                       PIC X                    17R1 10 
+      *        05 SCR-CAT-CABIN-CONTROLS                                17R1 10 
+      *           07 SCR-PHANTOM-CAT-FLAG         PIC 1                 17R1 10 
+      *           07 SCR-AUTO-BLOCK-FLAG          PIC 1                 17R1 10 
+      *           07 SCR-RESTRICT-GTEE-FLAG       PIC 1                 17R1 10 
+      *           07 SCR-ALLOW-UPG-INTO-FLAG      PIC 1                 17R1 10 
+      *           07 SCR-CAT-RESTRICT-BERTH-FLAG  PIC 1                 17R1 10 
+      *           07 SCR-CAT-SHARE-FLAG           PIC 1                 17R1 10 
+      *           07 SCR-APPLY-OCC-RESTRICT-FLAG  PIC 1                 17R1 10 
+      *           07 SCR-OBSTRUCTED-CABIN-FLAG    PIC 1                 17R1 10 
+      *           07 SCR-VIP-FLAG                 PIC 1                 17R1 10 
+      *           07 SCR-QUOTE-FLAG               PIC 1                 17R1 10 
+      *           07 SCR-SPILL-FLAG               PIC 1                 17R1 10 
+      *           07 SCR-SPA-FLAG                 PIC 1                 17R1 10 
+      *           07 SCR-UPSELL-QUOTE-FLAG        PIC 1                 17R1 10 
+      *OUT        07 FILLER                       PIC 1(5)              17R1 10 
+      *           07 SCR-APPLY-AGE-RESTRUCT-FLAG  PIC 1                 17R1 10 
+      *           07 FILLER                       PIC 1(4)              17R1 10 
+      *OUT     05 FILLER                          PIC X(2)              17R1 10 
+      *        05 SCR-SPL-CAT-CODE                PIC X(1)              17R1 10 
+      *        05 FILLER                          PIC X(1)              17R1 10 
+      ***************************************************************** 17R1 10 
+      *RECORD         SHIP-REC                                          17R1 10 
+      *    CODE       287                                               17R1 10 
+      *    LOCATION   CALC DMSCALC IN SHIP-CALCAREA                     17R1 10 
+      *                            USING SHIP-CODE                      17R1 10 
+      *    DUPLICATES NOT ALLOWED                                       17R1 10 
+      *    WITHIN     SHIP                                              17R1 10 
+      *    MODE       ASCII COBOL                                       17R1 10 
+      *    CHECK      PROCEDURE DOMCHK                                  17R1 10 
+      *    03 SHIP-CODE                    PIC X(2)                     17R1 10 
+      *    03 SHIP-NAME                    PIC X(20)                    17R1 10 
+      *    03 SHIP-REGISTRY                PIC X(15)                    17R1 10 
+      *    03 SHIP-NUM                     PIC X(2)                     17R1 10 
+      *    03 SHIP-BATCH-NUM               PIC 9(5)                     17R1 10 
+      *    03 SHIP-COMPANY-CODE            PIC X                        17R1 10 
+      *           CARNIVAL CRUISE LINES        = C                      17R1 10 
+      *           FIESTA MARINA CRUISES        = F                      17R1 10 
+      *    03 SHIP-LANGUAGE-IND            PIC X                        17R1 10 
+      *           ENLIGSH                      = E                      17R1 10 
+      *           SPANISH                      = S                      17R1 10 
+      *           PORTUGESE                    = P                      17R1 10 
+      *    03 SHIP-PAX-CAP-CNT             PIC 9(5)  USAGE COMP         17R1 10 
+      *    03 SHIP-SHIP-CLASS              PIC X(2)                     17R1 10 
+      *    03 SHIP-MAX-PAX                 PIC 9                        17R1 10 
+      *    03 SHIP-PROFILE-REPORT-CLASS    PIC X(2)                     17R1 10 
+      *    03 SHIP-PROFILE-RECORD-CLASS    PIC X(2)                     17R1 10 
+      *    03 SHIP-RECAT-CODE              PIC X                        17R1 10 
+      *    03 SHIP-SHIPBOARD-BATCH-NUM     PIC 9(5) USAGE COMP          17R1 10 
+      *    03 FILLER                       PIC X(2)                     17R1 10 
+      *    03 SHIP-DINING-INFO             OCCURS 6 TIMES               17R1 10 
+      *       05 SHIP-DINING-TIME-CODE     PIC X                        17R1 10 
+      *       05 SHIP-DINING-TIME          PIC 9(4)  USAGE COMP         17R1 10 
+      *       05 SHIP-DINING-ROOM-CODE     PIC X                        17R1 10 
+      *       05 SHIP-GRP-DINING-MAX       PIC 9(5)  USAGE COMP         17R1 10 
+      *       05 FILLER                    PIC X(2)                     17R1 10 
+      *    03 SHIP-DUTY-STATUS             PIC X                        17R1 10 
+      *         CRUISING, CURRENTLY IN SERVICE     = A  (ACTIVE)        17R1 10 
+      *         OLD SHIP, OUT OF OPERATION         = I  (INACTIVE)      17R1 10 
+      *   OR    NEW SHIP, SAIL DATES NOT DEFINED   = I  (INACTIVE)      17R1 10 
+      *    03 SHIP-LOCATION-CODE           PIC X(3)                     17R1 10 
+      *    03 SHIP-SPA-IND                 PIC X                        17R1 10 
+      *    03 FILLER                       PIC X(19)                    17R1 10 
+      ***************************************************************** 23R3 08 
+      *RECORD         TIME-ZONE-REC                                     23R3 08 
+      *    CODE       359                                               23R3 08 
+      *    LOCATION   CALC DMSCALC IN TIMEZONE-CALCAREA                 23R3 08 
+      *                    USING TZR-TIME-ZONE-CODE                     23R3 08 
+      *    DUPLICATES NOT ALLOWED                                       23R3 08 
+      *    WITHIN     TIMEZONE                                          23R3 08 
+      *    MODE       ASCII COBOL                                       23R3 08 
+      *    CHECK      PROCEDURE DOMCHK                                  23R3 08 
+      *    03 TZR-TIME-ZONE-CODE            PIC X(4)                    23R3 08 
+      *    03 TZR-TIME-ZONE-DESC            PIC X(40)                   23R3 08 
+      *    03 TZR-DAYLIGHT-SAVING-ENTRY                                 23R3 08 
+      *       05 TZR-DST-CODE               PIC X(5)                    23R3 08 
+      *       05 TZR-DST-DAY-OCCURRENCE     PIC 9     USAGE COMP        23R3 08 
+      *       05 TZR-DST-TIME               PIC 9(4)  USAGE COMP        23R3 08 
+      *       05 TZR-DST-WEEKDAY            PIC 9     USAGE COMP        23R3 08 
+      *       05 TZR-DST-MONTH              PIC 9(2)  USAGE COMP        23R3 08 
+      *       05 FILLER                     PIC X(2)                    23R3 08 
+      *    03 TZR-STANDARD-ENTRY                                        23R3 08 
+      *       05 TZR-ST-CODE                PIC X(5)                    23R3 08 
+      *       05 TZR-ST-DAY-OCCURRENCE      PIC 9     USAGE COMP        23R3 08 
+      *       05 TZR-ST-TIME                PIC 9(4)  USAGE COMP        23R3 08 
+      *       05 TZR-ST-WEEKDAY             PIC 9     USAGE COMP        23R3 08 
+      *       05 TZR-ST-MONTH               PIC 9(2)  USAGE COMP        23R3 08 
+      *       05 FILLER                     PIC X(2)                    23R3 08 
+      *****************************************************************         
+      *****************************************************************         
+       SET SECTION                                                              
+      *****************************************************************         
+      ***************************************************************** 23R3 05 
+      *SET   RATE-COMB-SET                                              23R3 05 
+      *      CODE      259                                              23R3 05 
+      *      MODE      CHAIN LINKED PRIOR                               23R3 05 
+      *      ORDER     SORTED DUPLICATES ARE NOT ALLOWED                23R3 05 
+      *      OWNER     RATE-COMB-1-2-REC                                23R3 05 
+      *      MEMBER    RATE-COMB-3-4-REC         AUTOMATIC              23R3 05 
+      *                ASCENDING KEY RC34-RATE-CODE                     23R3 05 
+      *      SELECTION THRU CURRENT SET                                 23R3 05 
+      ***************************************************************** 17R1 10 
+      *SET   FEE-AMT-SET                                                17R1 10 
+      *       CODE      306                                             17R1 10 
+      *       MODE      CHAIN LINKED PRIOR                              17R1 10 
+      *       ORDER     LAST                                            17R1 10 
+      *       OWNER     FEE-REC                                         17R1 10 
+      *       MEMBER    FEE-AMT-REC               AUTOMATIC             17R1 10 
+      *       SELECTION THRU CURRENT SET                                17R1 10 
+      ***************************************************************** 13R2 C0 
+       SET  API-MESSAGE-SYSTEM-SET                                      13R2 C0 
+            CODE      99                                                13R2 C0 
+            MODE      CHAIN LINKED PRIOR                                13R2 C0 
+            ORDER     NEXT                                              13R2 C0 
+            OWNER     API-MESSAGE-REC                                   13R2 C0 
+            MEMBER    API-SYSTEM-REC    AUTOMATIC                       13R2 C0 
+            SELECTION THRU CURRENT OF SET                               13R2 C0 
+      ***************************************************************** 17R1 10 
+      *SET   LOYALTY-TIER-HDR-DETAIL-SET                                17R1 10 
+      *      CODE       408                                             17R1 10 
+      *      MODE       CHAIN LINKED PRIOR                              17R1 10 
+      *      ORDER      SORTED                                          17R1 10 
+      *      OWNER      LOYALTY-TIER-HDR-REC                            17R1 10 
+      *      MEMBER     LOYALTY-TIER-DETAIL-REC      AUTOMATIC          17R1 10 
+      *       ASCENDING KEY IS LTDR-EFFECTIVE-DATE LTDR-CRUISE-DAYS-MAX 17R1 10 
+      *      SELECTION  THRU CURRENT OF SET                             17R1 10 
+      ***************************************************************** 17R1 10 
+      *SET  LOCALITY-COUNTRY-SET                                        17R1 10 
+      *     CODE       400                                              17R1 10 
+      *     MODE       CHAIN LINKED PRIOR                               17R1 10 
+      *     ORDER      LAST                                             17R1 10 
+      *     OWNER      LOCALITY-REC                                     17R1 10 
+      *     MEMBER     LOCALITY-COUNTRY-REC        AUTOMATIC            17R1 10 
+      *     SELECTION  THRU CURRENT OF SET                              17R1 10 
+      ***************************************************************** 17R1 10 
+      *SET  LOCALITY-RATE-SET                                           17R1 10 
+      *     CODE       401                                              17R1 10 
+      *     MODE       CHAIN LINKED PRIOR                               17R1 10 
+      *     ORDER      LAST                                             17R1 10 
+      *     OWNER      LOCALITY-REC                                     17R1 10 
+      *     MEMBER     LOCALITY-RATE-REC           AUTOMATIC            17R1 10 
+      *     SELECTION  THRU CURRENT OF SET                              17R1 10 
+      ***************************************************************** 17R1 10 
+      *SET   LOCALITY-HIST-DIRECT-SET                                   17R1 10 
+      *     CODE        402                                             17R1 10 
+      *     MODE        CHAIN LINKED PRIOR                              17R1 10 
+      *     ORDER       LAST                                            17R1 10 
+      *     OWNER       LOCALITY-HIST-DIRECT-REC                        17R1 10 
+      *     MEMBER      LOCALITY-HIST-REC          AUTOMATIC            17R1 10 
+      *     SELECTION   THRU CURRENT OF SET                             17R1 10 
+      ***************************************************************** 17R1 10 
+      *SET   LOCALITY-HISTORY-SET                                       17R1 10 
+      *      CODE      409                                              17R1 10 
+      *      MODE      CHAIN    LINKED PRIOR                            17R1 10 
+      *      ORDER     LAST                                             17R1 10 
+      *      OWNER     LOCALITY-REC                                     17R1 10 
+      *      MEMBER    LOCALITY-HIST-REC           AUTOMATIC            17R1 10 
+      *      SELECTION THRU CURRENT SET                                 17R1 10 
+      ***************************************************************** 17R1 10 
+      *SET   LOCALITY-DEPT-SET                                          17R1 10 
+      *      CODE      390                                              17R1 10 
+      *      MODE      CHAIN    LINKED PRIOR                            17R1 10 
+      *      ORDER     LAST                                             17R1 10 
+      *      OWNER     LOCALITY-REC                                     17R1 10 
+      *      MEMBER    LOCALITY-DEPT-REC           AUTOMATIC            17R1 10 
+      *      SELECTION THRU CURRENT SET                                 17R1 10 
+      ***************************************************************** 17R1 10 
+      *SET   LOCALITY-DIRECT-SET                                        17R1 10 
+      *     CODE        420                                             17R1 10 
+      *     MODE        CHAIN LINKED PRIOR                              17R1 10 
+      *     ORDER       LAST                                            17R1 10 
+      *     OWNER       LOCALITY-DIRECT-REC                             17R1 10 
+      *     MEMBER      LOCALITY-REC               AUTOMATIC            17R1 10 
+      *     SELECTION   THRU CURRENT OF SET                             17R1 10 
+      ***************************************************************** 17R1 10 
+      *SET   CURRENCY-HIST-SET                                          17R1 10 
+      *      CODE      238                                              17R1 10 
+      *      MODE      CHAIN    LINKED PRIOR                            17R1 10 
+      *      ORDER     LAST                                             17R1 10 
+      *      OWNER     CURRENCY-REC                                     17R1 10 
+      *      MEMBER    CURRENCY-HISTORY-REC  AUTOMATIC                  17R1 10 
+      *      SELECTION THRU CURRENT SET                                 17R1 10 
+      ***************************************************************** 17R1 10 
+      *SET   CURR-SAIL-CURR-SET                                         17R1 10 
+      *      CODE       407                                             17R1 10 
+      *      MODE       CHAIN LINKED PRIOR                              17R1 10 
+      *      ORDER      LAST                                            17R1 10 
+      *      OWNER      CURRENCY-REC                                    17R1 10 
+      *      MEMBER     SAIL-CURR-REC             MANUAL                17R1 10 
+      *      SELECTION  THRU CURRENT OF SET                             17R1 10 
+      ***************************************************************** 17R1 10 
+      *SET   CURR-HIST-DIRECT-SET                                       17R1 10 
+      *     CODE        410                                             17R1 10 
+      *     MODE        CHAIN LINKED PRIOR                              17R1 10 
+      *     ORDER       LAST                                            17R1 10 
+      *     OWNER       CURRENCY-HIST-DIRECT-REC                        17R1 10 
+      *     MEMBER      CURRENCY-HISTORY-REC       AUTOMATIC            17R1 10 
+      *     SELECTION   THRU CURRENT OF SET                             17R1 10 
+      ***************************************************************** 14R2 20 
+       SET  NT-USER-SET                                                 14R2 20 
+            CODE    5                                                   14R2 20 
+            MODE    CHAIN                                               14R2 20 
+            ORDER   LAST                                                14R2 20 
+            OWNER   NT-USER-REC                                         14R2 20 
+            MEMBER  MAPPER-USER-REC AUTOMATIC LINKED TO OWNER           14R2 20 
+            SELECTION THRU CURRENT SET                                  14R2 20 
+      *****************************************************************         
+      *****************************************************************         
+      *****************************************************************         
+                                                                                

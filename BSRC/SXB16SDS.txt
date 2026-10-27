@@ -1,0 +1,1320 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.       SXB16SDS.  
+       AUTHOR.           TATA INFOTECH LTD. 
+       DATE-WRITTEN.     05 APR 2005.   
+       DATE-COMPILED.    05 APR 2005.   
+      * REMARKS.  This Batch program reads the file exported from the   
+      *           excel file SXBSDI04D.xls and creates EXC-DT-SETUP 
+      *           records for the Global Update runstream to process.   
+      * 
+      * INPUT FILES   :  SXBSDI04D  
+      * 
+      * OUTPUT FILES  :  SXBSDI03P  
+      * 
+************************************************************************
+PG0505* 
+PG0505* 10 MAY  2005     TATA INFOTECH LTD.     P1G      CQ41233
+PG0505* MORE VALIDATIONS IN PROGRAM WHICH STORES DT-SETUP-RECORDS IN
+PG0505* THE DATABASE
+************************************************************************
+C57540* 26-SEP-06     1BB     TCS LTD.               CQ57540
+C57540* CHANGES DONE TO ADD 'FREE' STATEMENTS AFTER STORING EVERY EDSR  
+C57540* RECORD TO TACKLE DEADLOCK SITUATIONS.   
+************************************************************************
+C69803* 06-NOV-07     GG4     TCS LTD.               CQ69803
+C69803* CHANGES DONE TO CORRECT THE VALUE OF EDSR-STATUS FOR ESDR.  
+************************************************************************
+C80252* 01-SEP-07     M5J TCS LTD.      CQ80252 
+C80252* If MAINTENANCE-IND = 'A', the EDSR will be stored twice, one for
+C80252* MAINTENANCE-IND = 'A' and other for MAINTENANCE-IND = 'E'.  
+************************************************************************
+103563* 24-MAR-10     RGM     TCS LTD.               CQ103563          *
+103563* HANDLE NEW DATABASE FIELD EDSR-PORT-TYPE.                      *
+103563* THIS FIELD WILL DETERMINE WHETHER EDSR IS CREATED FOR          *
+103563* EMBARKATION PORT (E) OR DEBARKATION PORT (D) OR OTHER (P).     *
+************************************************************************
+180509* 13-APR-15     5NS     TCS LTD.               CQ180509   
+180509* CHANGES DONE TO SKIP RECORDS WHICH HAVE NON NUMERIC AMOUNTS 
+180509* IN THE INPUT AMOUNT FIELDS. 
+************************************************************************
+182089* 08-SEP-15     7SG     TCS LTD.               CQ182089   
+182089* STORE EXC-DT-SETUP-REC THRU DIRECT RECORD.                     *
+************************************************************************
+188688* 08-FEB-16     RV3     TCS LTD.                  CQ188688       *
+188688* CONVERT EXISTING BATCH AND TRANSACTION PROGRAMS TO USE         *
+188688* EXPLICIT THREAD CONTROL                                        *
+************************************************************************
+200243* 22-MAR-17     RVC     TCS LTD.                  CQ200243       *
+200243* SAILING DEPARTURE PRICE OVERRIDE CHANGES.                      *
+************************************************************************
+206333* 25-JUL-17     DC6     TCS LTD.                  CQ206333       *
+206333* CHANGES TO STORE EDSR ONLY WHEN ITS PASS ALL VALIDATION        *
+************************************************************************
+
+       ENVIRONMENT DIVISION.
+
+       CONFIGURATION SECTION.   
+
+       SOURCE-COMPUTER. UNISYS. 
+       OBJECT-COMPUTER. UNISYS. 
+       SPECIAL-NAMES.   
+              PRINTER IS PRINTER
+              CONSOLE IS CONSOLE
+              SWITCH-24 IS ERROR-SW, ON STATUS IS IN-ERROR, 
+                                     OFF STATUS IS NO-ERROR.
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+             SELECT DT-SETUP-FILE   ASSIGN TO DISC SXBSDI04D
+                                FILE STATUS IS WS-DS-FILE-STATUS.   
+             SELECT FINAL-REP-FILE  ASSIGN TO DISC SXBSDI03P
+                                FILE STATUS IS WS-FR-FILE-STATUS.   
+
+       DATA DIVISION.   
+       SUBSCHEMA SECTION.   
+144449 INVOKE SUBSCHEMA PST200UCOBSU
+144449        IN FILE SUBSCHEMAS OF SCHEMA PST200SCHEMA 
+144449        COPYING RECORDS    INTO COMMON
+144449        COPYING DATA-NAMES INTO COMMON
+144449        SAVE DATA INCLUDES DEFERRED-UPDATES   
+144449        DMCA  COMMON  
+144449        ERROR RECOVERY IS 9100-DATABASE-ERROR 
+144449        ROLLBACK       IS 9100-DATABASE-ERROR.
+
+       FILE SECTION.
+       FD DT-SETUP-FILE 
+           LABEL RECORDS ARE STANDARD   
+           DATA RECORD IS EXCEL-REC.
+       01 EXCEL-REC                             PIC X(500). 
+      * 01 DT-SETUP-FILE-REC.   
+      *    03 DS-EDSR-EXC-ID                     PIC X(6).  
+      *    03 DS-EDSR-START-DATE                 PIC 9(8).  
+      *    03 DS-EDSR-MAINTENANCE-IND            PIC X. 
+      *    03 DS-EDSR-BEGIN-BOOK-DATE            PIC 9(8).  
+      *    03 DS-EDSR-ON-ARRIVAL-IND             PIC X. 
+      *    03 DS-EDSR-AT-YOUR-LEISURE-IND        PIC X. 
+      *    03 DS-EDSR-AUTO-SHIP-ALLOC-IND        PIC X. 
+      *    03 DS-EDSR-AVAIL-STATUS               PIC X. 
+      *    03 DS-EDSR-TOTAL-ALLOC                PIC 9(5).  
+      *    03 DS-EDSR-PRESALES-ALLOC             PIC 9(5).  
+      *    03 DS-EDSR-MIN-SALES-REQ              PIC 9(5).  
+      *    03 DS-EDSR-START-TIME                 PIC 9(4).  
+      *    03 DS-EDSR-SHIP-CODE                  PIC X(2).  
+      *    03 DS-EDSR-SHIP-TOTAL-ALLOC           PIC 9(5).  
+      *    03 DS-EDSR-PRESALE-ALLOC              PIC 9(5).  
+      *    03 DS-EDSR-OPERATIONAL-LIMIT          PIC 9(5).  
+      *    03 DS-EDSR-START-TIME-BUFF            PIC 9(3).  
+      *    03 DS-EDSR-END-TIME-BUFF              PIC 9(3).  
+      *    03 DS-EDSR-BASE-PRICE                 PIC 9(7).  
+      *    03 DS-EDSR-A-AVAIL                    PIC X. 
+      *    03 DS-EDSR-A-PRICE                    PIC 9(7).  
+      *    03 DS-EDSR-A-MAX-CAPACITY             PIC 9(5).  
+      *    03 DS-EDSR-C-AVAIL                    PIC X. 
+      *    03 DS-EDSR-C-PRICE                    PIC 9(7).  
+      *    03 DS-EDSR-C-MAX-CAPACITY             PIC 9(5).  
+      *    03 DS-EDSR-I-AVAIL                    PIC X. 
+      *    03 DS-EDSR-I-PRICE                    PIC 9(7).  
+      *    03 DS-EDSR-I-MAX-CAPACITY             PIC 9(5).  
+      *    03 DS-EDSR-T-AVAIL                    PIC X. 
+      *    03 DS-EDSR-T-PRICE                    PIC 9(7).  
+      *    03 DS-EDSR-T-MAX-CAPACITY             PIC 9(5).  
+      *    03 DS-EDSR-S-AVAIL                    PIC X. 
+      *    03 DS-EDSR-S-PRICE                    PIC 9(7).  
+      *    03 DS-EDSR-S-MAX-CAPACITY             PIC 9(5).  
+C80252*    03 DS-EDSR-SHIP-ARR-TIME              PIC 9(4).  
+C80252*    03 DS-EDSR-SHIP-BEG-TIME              PIC 9(4).  
+103563*    03 DS-EDSR-PORT-TYPE                  PIC X(01). 
+
+       FD FINAL-REP-FILE
+           LABEL RECORDS ARE STANDARD.  
+       01 FINAL-REP-FILE-REC.   
+          03 FR-EDSR-EXC-ID                     PIC X(6).   
+          03 FILLER-1                           PIC X(2).   
+          03 FR-EDSR-START-DATE                 PIC X(8).   
+          03 FILLER-2                           PIC X(2).   
+          03 FR-EDSR-START-TIME                 PIC X(4).   
+          03 FILLER-3                           PIC X(2).   
+          03 FR-EDSR-SHIP-CODE                  PIC X(2).   
+          03 FILLER-4                           PIC X(2).   
+          03 FR-EDSR-MAINTENANCE-IND            PIC X.  
+          03 FILLER-5                           PIC X(2).   
+          03 FR-COMMENT                         PIC X(50).  
+
+      ***************************************************************   
+      *   Flags & miscellaneous variables are defined here          *   
+      ***************************************************************   
+
+       WORKING-STORAGE SECTION. 
+144449 01  WS-PROG-ID            PIC X(8) VALUE 'SXB16SDS'. 
+
+       01  MCFLAG                            PIC 9(10) USAGE BINARY.
+       01  WS-SYSTEM-DATE                    PIC 9(08). 
+       01  WS-SYSTEM-TIME                    PIC 9(08). 
+       01  WS-RECORDS-WRITE                  PIC 9(06). 
+       01  WS-RECORDS-READ                   PIC 9(06). 
+C80252 01  WS-DUPLICATE-RECORDS              PIC 9(06). 
+       01  WS-DAY-SUB                        PIC 9(04). 
+       01  WS-I                              PIC 9(04). 
+       01  WS-J                              PIC 9(04). 
+       01  WS-K                              PIC 9(04). 
+200243 01  WS-SUB                            PIC 9(04) USAGE BINARY.
+200243 01  WS-BEGIN-SUB                      PIC 9(04) USAGE BINARY.
+       01  WS-DAY-OF-WEEK                    PIC 1(9)   BINARY-1.   
+       01  WS-EOF-FLAG                       PIC X(01) VALUE SPACES.
+           88 WS-EOF-FILE                                VALUE "Y". 
+           88 WS-EOF-NOT                                 VALUE "N". 
+C57540*01  WS-DB-CNT                         PIC 9(03). 
+C57540 01  WS-DB-CNT                         PIC 9(10). 
+
+       01  WS-FILE-STATUS                    VALUE ZERO.
+           03  WS-DS-FILE-STATUS             PIC X(2).  
+               88  DS-FILE-AT-END            VALUE '10'.
+               88  DS-FILE-OK                VALUE '00',
+                                                   '04'.
+           03  WS-FR-FILE-STATUS             PIC X(2).  
+               88  FR-FILE-AT-END            VALUE '10'.
+               88  FR-FILE-OK                VALUE '00'.
+
+       01  WS-COMMENT                        PIC X(50). 
+206333 01  WS-EDSR-VAL-FAIL-IND              PIC X(01). 
+
+C57540 01  WS-HOLD-VARIABLE.
+C57540     03 WS-FILLER-0                    PIC X(08) VALUE
+C57540                                           'EXC-ID: '.
+C57540     03 WS-HOLD-EXC-ID                 PIC X(06). 
+C57540     03 WS-FILLER-1                    PIC X(11) VALUE
+C57540                                           ' EXC-DATE: '. 
+C57540     03 WS-HOLD-START-DATE             PIC X(08). 
+C57540     03 WS-FILLER-2                    PIC X(11) VALUE
+C57540                                           ' EXC-TIME: '. 
+C57540     03 WS-HOLD-START-TIME             PIC X(04). 
+C57540     03 WS-FILLER-3                    PIC X(12) VALUE
+C57540                                           ' SHIP-CODE: '.
+C57540     03 WS-HOLD-SHIP-CODE              PIC X(02). 
+C57540     03 WS-FILLER-4                    PIC X(08) VALUE
+C57540                                           ' M-IND: '.
+C57540     03 WS-HOLD-MAINTENANCE-IND        PIC X(01). 
+103563 01  WS-FILLER-5                       PIC X(10). 
+
+200243 01  WS-EXCEL-REC                      PIC X(500).
+200243 01  WS-EXCEL-TBL REDEFINES WS-EXCEL-REC. 
+200243     03 WS-EXCEL-CHARACTER             PIC X OCCURS 500 TIMES.
+
+       01 WS-SETUP-FILE-REC.
+          03 WS-EDSR-EXC-ID                  PIC X(6).  
+          03 WS-EDSR-START-DATE              PIC X(8) JUSTIFIED RIGHT.  
+          03 WS-EDSR-START-DATE-X REDEFINES WS-EDSR-START-DATE. 
+             05 WS-EDSR-START-DATE-N         PIC 9(8).  
+          03 WS-EDSR-MAINTENANCE-IND         PIC X. 
+          03 WS-EDSR-BEGIN-BOOK-DATE         PIC X(8) JUSTIFIED RIGHT.  
+          03 WS-EDSR-BEGIN-BOOK-DATEX REDEFINES WS-EDSR-BEGIN-BOOK-DATE.
+             05 WS-EDSR-BEGIN-BOOK-DATE-N    PIC 9(8).  
+          03 WS-EDSR-ON-ARRIVAL-IND          PIC X. 
+          03 WS-EDSR-AT-YOUR-LEISURE-IND     PIC X. 
+          03 WS-EDSR-AUTO-SHIP-ALLOC-IND     PIC X. 
+          03 WS-EDSR-AVAIL-STATUS            PIC X. 
+          03 WS-EDSR-TOTAL-ALLOC             PIC X(5) JUSTIFIED RIGHT.  
+          03 WS-EDSR-TOTAL-ALLOC-X REDEFINES WS-EDSR-TOTAL-ALLOC.   
+             05 WS-EDSR-TOTAL-ALLOC-N        PIC 9(5).  
+          03 WS-EDSR-PRESALES-ALLOC          PIC X(5) JUSTIFIED RIGHT.  
+          03 WS-EDSR-PRESALES-ALLOC-X REDEFINES WS-EDSR-PRESALES-ALLOC. 
+             05 WS-EDSR-PRESALES-ALLOC-N     PIC 9(5).  
+          03 WS-EDSR-MIN-SALES-REQ           PIC X(5) JUSTIFIED RIGHT.  
+          03 WS-EDSR-MIN-SALES-REQ-X REDEFINES WS-EDSR-MIN-SALES-REQ.   
+             05 WS-EDSR-MIN-SALES-REQ-N      PIC 9(5).  
+          03 WS-EDSR-START-TIME              PIC X(4) JUSTIFIED RIGHT.  
+          03 WS-EDSR-START-TIME-X REDEFINES WS-EDSR-START-TIME. 
+             05 WS-EDSR-START-TIME-N         PIC 9(4).  
+          03 WS-EDSR-SHIP-CODE               PIC X(2).  
+          03 WS-EDSR-SHIP-TOTAL-ALLOC        PIC X(5) JUSTIFIED RIGHT.  
+          03 WS-EDSR-SHIP-TOTAL-ALLOC-X REDEFINES   
+                                             WS-EDSR-SHIP-TOTAL-ALLOC.  
+             05 WS-EDSR-SHIP-TOTAL-ALLOC-N   PIC 9(5).  
+          03 WS-EDSR-PRESALE-ALLOC           PIC X(5) JUSTIFIED RIGHT.  
+          03 WS-EDSR-PRESALE-ALLOC-X REDEFINES WS-EDSR-PRESALE-ALLOC.   
+             05 WS-EDSR-PRESALE-ALLOC-N      PIC 9(5).  
+          03 WS-EDSR-OPERATIONAL-LIMIT       PIC X(5) JUSTIFIED RIGHT.  
+          03 WS-EDSR-OPERATIONAL-LIMIT-X REDEFINES  
+                                             WS-EDSR-OPERATIONAL-LIMIT. 
+             05 WS-EDSR-OPERATIONAL-LIMIT-N  PIC 9(5).  
+          03 WS-EDSR-START-TIME-BUFF         PIC X(3) JUSTIFIED RIGHT.  
+          03 WS-EDSR-START-TIME-BUFF-X REDEFINES
+                                             WS-EDSR-START-TIME-BUFF.   
+             05 WS-EDSR-START-TIME-BUFF-N    PIC 9(3).  
+          03 WS-EDSR-END-TIME-BUFF           PIC X(3) JUSTIFIED RIGHT.  
+          03 WS-EDSR-END-TIME-BUFF-X REDEFINES WS-EDSR-END-TIME-BUFF.   
+             05 WS-EDSR-END-TIME-BUFF-N      PIC 9(3).  
+          03 WS-EDSR-BASE-PRICE              PIC X(7) JUSTIFIED RIGHT.  
+          03 WS-EDSR-BASE-PRICE-X REDEFINES WS-EDSR-BASE-PRICE. 
+             05 WS-EDSR-BASE-PRICE-N         PIC 9(7).  
+          03 WS-EDSR-A-AVAIL                 PIC X. 
+          03 WS-EDSR-A-PRICE                 PIC X(7) JUSTIFIED RIGHT.  
+          03 WS-EDSR-A-PRICE-X REDEFINES WS-EDSR-A-PRICE.   
+             05 WS-EDSR-A-PRICE-N            PIC 9(7).  
+          03 WS-EDSR-A-MAX-CAPACITY          PIC X(5) JUSTIFIED RIGHT.  
+          03 WS-EDSR-A-MAX-CAPACITY-X REDEFINES WS-EDSR-A-MAX-CAPACITY. 
+             05 WS-EDSR-A-MAX-CAPACITY-N     PIC 9(5).  
+          03 WS-EDSR-C-AVAIL                 PIC X. 
+          03 WS-EDSR-C-PRICE                 PIC X(7) JUSTIFIED RIGHT.  
+          03 WS-EDSR-C-PRICE-X REDEFINES WS-EDSR-C-PRICE.   
+             05 WS-EDSR-C-PRICE-N            PIC 9(7).  
+          03 WS-EDSR-C-MAX-CAPACITY          PIC X(5) JUSTIFIED RIGHT.  
+          03 WS-EDSR-C-MAX-CAPACITY-X REDEFINES WS-EDSR-C-MAX-CAPACITY. 
+             05 WS-EDSR-C-MAX-CAPACITY-N     PIC 9(5).  
+          03 WS-EDSR-I-AVAIL                 PIC X. 
+          03 WS-EDSR-I-PRICE                 PIC X(7) JUSTIFIED RIGHT.  
+          03 WS-EDSR-I-PRICE-X REDEFINES WS-EDSR-I-PRICE.   
+             05 WS-EDSR-I-PRICE-N            PIC 9(7).  
+          03 WS-EDSR-I-MAX-CAPACITY          PIC X(5) JUSTIFIED RIGHT.  
+          03 WS-EDSR-I-MAX-CAPACITY-X REDEFINES WS-EDSR-I-MAX-CAPACITY. 
+             05 WS-EDSR-I-MAX-CAPACITY-N     PIC 9(5).  
+          03 WS-EDSR-T-AVAIL                 PIC X. 
+          03 WS-EDSR-T-PRICE                 PIC X(7) JUSTIFIED RIGHT.  
+          03 WS-EDSR-T-PRICE-X REDEFINES WS-EDSR-T-PRICE.   
+             05 WS-EDSR-T-PRICE-N            PIC 9(7).  
+          03 WS-EDSR-T-MAX-CAPACITY          PIC X(5) JUSTIFIED RIGHT.  
+          03 WS-EDSR-T-MAX-CAPACITY-X REDEFINES WS-EDSR-T-MAX-CAPACITY. 
+             05 WS-EDSR-T-MAX-CAPACITY-N     PIC 9(5).  
+          03 WS-EDSR-S-AVAIL                 PIC X. 
+          03 WS-EDSR-S-PRICE                 PIC X(7) JUSTIFIED RIGHT.  
+          03 WS-EDSR-S-PRICE-X REDEFINES WS-EDSR-S-PRICE.   
+             05 WS-EDSR-S-PRICE-N            PIC 9(7).  
+          03 WS-EDSR-S-MAX-CAPACITY          PIC X(5) JUSTIFIED RIGHT.  
+          03 WS-EDSR-S-MAX-CAPACITY-X REDEFINES WS-EDSR-S-MAX-CAPACITY. 
+             05 WS-EDSR-S-MAX-CAPACITY-N     PIC 9(05). 
+C80252    03 WS-PORT                         PIC X(03) JUSTIFIED RIGHT. 
+C80252    03 WS-TOUR-CODE                    PIC X(10) JUSTIFIED RIGHT. 
+C80252    03 WS-TOUR-NAME                    PIC X(30) JUSTIFIED RIGHT. 
+C80252    03 WS-SHIP-NAME                    PIC X(20) JUSTIFIED RIGHT. 
+C80252    03 WS-SHIP-CODE                    PIC X(02) JUSTIFIED RIGHT. 
+C80252    03 WS-SAIL-DATE                    PIC X(08) JUSTIFIED RIGHT. 
+C80252    03 WS-SAIL-DATE-X REDEFINES WS-SAIL-DATE. 
+C80252       05 WS-SAIL-DATE-N               PIC 9(8).  
+C80252    03 WS-SAIL-DAY                     PIC X(08) JUSTIFIED RIGHT. 
+C80252    03 WS-EDSR-SHIP-ARR-TIME           PIC X(4) JUSTIFIED RIGHT.  
+C80252    03 WS-EDSR-SHIP-ARR-TIMEX REDEFINES WS-EDSR-SHIP-ARR-TIME.
+C80252       05 WS-EDSR-SHIP-ARR-TIME-N      PIC 9(4).  
+C80252    03 WS-EDSR-SHIP-BEG-TIME           PIC X(4) JUSTIFIED RIGHT.  
+C80252    03 WS-EDSR-SHIP-BEG-TIMEX REDEFINES WS-EDSR-SHIP-BEG-TIME.
+C80252       05 WS-EDSR-SHIP-BEG-TIME-N      PIC 9(4).  
+C80252    03 WS-SHIP-DEP-TIME                PIC X(4) JUSTIFIED RIGHT.  
+C80252    03 WS-SHIP-DEP-TIME-X REDEFINES WS-SHIP-DEP-TIME. 
+C80252       05 WS-SHIP-DEP-TIME-N           PIC 9(4).  
+C80252    03 WS-LOCAL-DEP-TIME               PIC X(4) JUSTIFIED RIGHT.  
+C80252    03 WS-LOCAL-DEP-TIME-X REDEFINES WS-LOCAL-DEP-TIME.   
+C80252       05 WS-LOCAL-DEP-TIME-N          PIC 9(4).  
+C80252    03 WS-MIN                          PIC X(5) JUSTIFIED RIGHT.  
+C80252    03 WS-MAX                          PIC X(5) JUSTIFIED RIGHT.  
+C80252    03 WS-ADULT-PRICE                  PIC X(7) JUSTIFIED RIGHT.  
+C80252    03 WS-ADULT-PRICE-X REDEFINES WS-ADULT-PRICE. 
+C80252       05 WS-ADULT-PRICE-N             PIC 9(7).  
+C80252    03 WS-CHILD-PRICE                  PIC X(7) JUSTIFIED RIGHT.  
+C80252    03 WS-CHILD-PRICE-X REDEFINES WS-CHILD-PRICE. 
+C80252       05 WS-CHILD-PRICE-N             PIC 9(7).  
+103563    03 WS-EDSR-PORT-TYPE               PIC X(01). 
+103563       88 WS-PORT-TYPE-VALID          VALUE "E",  
+103563                                            "P",  
+103563                                            "D".  
+200243    03 WS-EDSR-PRICE-OVERRIDE-CODE     PIC X(01). 
+200243       88 WS-VALID-PRC-OVERRIDE-CODE  VALUE SPACES,   
+200243                                            "Y",  
+200243                                            "N".  
+
+       01 WS-ACTUAL-BASE-PRICE               PIC 9(5)V99.   
+       01 WS-ACTUAL-BASE-PRICE-X REDEFINES WS-ACTUAL-BASE-PRICE.
+          05 WS-ABP-5                        PIC 9(5).  
+          05 WS-ABP-2                        PIC 9(2).  
+       01 WS-ACTUAL-A-PRICE                  PIC 9(5)V99.   
+       01 WS-ACTUAL-A-PRICE-X REDEFINES WS-ACTUAL-A-PRICE.  
+          05 WS-AAP-5                        PIC 9(5).  
+          05 WS-AAP-2                        PIC 9(2).  
+       01 WS-ACTUAL-C-PRICE                  PIC 9(5)V99.   
+       01 WS-ACTUAL-C-PRICE-X REDEFINES WS-ACTUAL-C-PRICE.  
+          05 WS-ACP-5                        PIC 9(5).  
+          05 WS-ACP-2                        PIC 9(2).  
+       01 WS-ACTUAL-I-PRICE                  PIC 9(5)V99.   
+       01 WS-ACTUAL-I-PRICE-X REDEFINES WS-ACTUAL-I-PRICE.  
+          05 WS-AIP-5                        PIC 9(5).  
+          05 WS-AIP-2                        PIC 9(2).  
+       01 WS-ACTUAL-T-PRICE                  PIC 9(5)V99.   
+       01 WS-ACTUAL-T-PRICE-X REDEFINES WS-ACTUAL-T-PRICE.  
+          05 WS-ATP-5                        PIC 9(5).  
+          05 WS-ATP-2                        PIC 9(2).  
+       01 WS-ACTUAL-S-PRICE                  PIC 9(5)V99.   
+       01 WS-ACTUAL-S-PRICE-X REDEFINES WS-ACTUAL-S-PRICE.  
+          05 WS-ASP-5                        PIC 9(5).  
+          05 WS-ASP-2                        PIC 9(2).  
+
+       01  WS-TIME-SLOT                      PIC 9(04). 
+           88 WS-TIME-VALID                 VALUE 0000 THRU 0059,   
+                                                  0100 THRU 0159,   
+                                                  0200 THRU 0259,   
+                                                  0300 THRU 0359,   
+                                                  0400 THRU 0459,   
+                                                  0500 THRU 0559,   
+                                                  0600 THRU 0659,   
+                                                  0700 THRU 0759,   
+                                                  0800 THRU 0859,   
+                                                  0900 THRU 0959,   
+                                                  1000 THRU 1059,   
+                                                  1100 THRU 1159,   
+                                                  1200 THRU 1259,   
+                                                  1300 THRU 1359,   
+                                                  1400 THRU 1459,   
+                                                  1500 THRU 1559,   
+                                                  1600 THRU 1659,   
+                                                  1700 THRU 1759,   
+                                                  1800 THRU 1859,   
+                                                  1900 THRU 1959,   
+                                                  2000 THRU 2059,   
+                                                  2100 THRU 2159,   
+                                                  2200 THRU 2259,   
+                                                  2300 THRU 2359.   
+
+      ***************************************************************   
+      *   Copy libraries are defined here                           *   
+      ***************************************************************   
+
+        COPY DPP02Y2K.  
+144449* COPY DPP01BWS.  
+144449 COPY DPP01DTA.   
+144449 COPY DPP01ERR.   
+144449 COPY DPP01MCB.   
+144449 COPY DPP12SCO.   
+144449 COPY DPP42ERR.   
+144449 COPY RSP00DMS.   
+144449 COPY RSP32DMS.   
+144449 COPY RSP64DMS.   
+144449 COPY RSP77GMD.   
+        COPY DPP01CIW.  
+        COPY DPP01SCO.  
+
+       COMMON-STORAGE SECTION.  
+
+      ***************************************************************   
+      *   Procedure Division Starts  here                           *   
+      ***************************************************************   
+
+       PROCEDURE DIVISION.  
+       0000-STARTUP.
+
+           PERFORM 1000-INITIALIZE  
+              THRU 1000-INITIALIZE-EXIT.
+           PERFORM 2000-IMPART-PARA 
+              THRU 2000-IMPART-EXIT.
+           PERFORM 3000-OPEN-FILES  
+              THRU 3000-OPEN-EXIT.  
+           PERFORM 4000-READ-PARA   
+              THRU 4000-READ-EXIT.  
+           PERFORM 5000-PROCESS-MAIN-PARA   
+              THRU 5000-PROCESS-MAIN-EXIT.  
+           PERFORM 9000-TERMINATE.  
+
+      ***************************************************************   
+      *   Temparary variables are intialised here                   *   
+      ***************************************************************   
+
+       1000-INITIALIZE. 
+144449     COPY DPP01INT.   
+           MOVE 'N'                    TO  WS-EOF-FLAG. 
+           MOVE 1                      TO  WS-DAY-SUB.  
+           MOVE 1                      TO  WS-I.
+           MOVE 1                      TO  WS-J.
+           MOVE 1                      TO  WS-K.
+           MOVE ZERO                   TO  WS-RECORDS-WRITE.
+           MOVE ZERO                   TO  WS-RECORDS-READ. 
+C80252     MOVE ZERO                   TO  WS-DUPLICATE-RECORDS.
+           MOVE ZERO                   TO  WS-DB-CNT.   
+           SET ERROR-SW                TO  OFF. 
+           ACCEPT WS-SYSTEM-DATE  FROM DATE YYYYMMDD.   
+           ACCEPT WS-SYSTEM-TIME  FROM TIME.
+           DISPLAY 'START-TIME  '  WS-SYSTEM-TIME UPON PRINTER. 
+           DISPLAY 'START-DATE  '  WS-SYSTEM-DATE UPON PRINTER. 
+           MOVE SPACES                 TO  WS-COMMENT.  
+           INITIALIZE WS-SETUP-FILE-REC.
+188688     PERFORM DPP12-BEGIN-THREAD THRU DPP12-BEGIN-THREAD-EXIT. 
+188688  
+188688     IF DPP01-SQL-ERROR-IND = 'Y' 
+188688        GO TO DPP12-THREAD-ERROR-EXIT.
+
+       1000-INITIALIZE-EXIT.
+           EXIT.
+
+      ***************************************************************   
+      *   Database Areas are opened here                            *   
+      ***************************************************************   
+
+       2000-IMPART-PARA.
+
+           MOVE 01010101               TO  DPP01-ERROR-NUMBER.  
+           IMPART.  
+
+           MOVE 07970102     TO  DPP01-ERROR-NUMBER.
+           OPEN EXCSETUP         USAGE-MODE IS UPDATE   
+                EXCURSION        USAGE-MODE IS UPDATE.  
+           MOVE 22910103     TO  DPP01-ERROR-NUMBER.
+           OPEN ERROR-DESC1      USAGE-MODE IS RETRIEVAL.   
+C57540*    MOVE 'EXCURSION'  TO  EXCURSION-CALCAREA.
+C57540*    MOVE 'ERROR-DESC' TO  ERROR-DESC-CALCAREA.   
+C57540*    MOVE 'EXCSETUP'   TO  EXCSETUP-CALCAREA. 
+
+       2000-IMPART-EXIT.
+           EXIT.
+
+      ***************************************************************   
+      *  Files is opened here                                       *   
+      ***************************************************************   
+
+       3000-OPEN-FILES. 
+
+           OPEN INPUT DT-SETUP-FILE.
+           IF DS-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY "I-O ERROR " " " "SXBSDI04D FILE STATUS = "   
+                      WS-DS-FILE-STATUS UPON PRINTER
+              GO TO 9100-I-O-FILE-ERROR.
+
+           OPEN OUTPUT FINAL-REP-FILE.  
+           IF FR-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY "I-O ERROR " " " "SXBSDI03P FILE STATUS = "   
+                      WS-FR-FILE-STATUS UPON PRINTER
+              GO TO 9100-I-O-FILE-ERROR.
+
+      * SKIP THE FIRST RECORD IN THE INPUT FILE AS IT CONTAINS FIELD
+      * NAMES.  
+
+           READ DT-SETUP-FILE  AT END   
+                MOVE 'Y' TO WS-EOF-FLAG.
+           IF DS-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              IF DS-FILE-AT-END 
+                 MOVE 'Y' TO WS-EOF-FLAG
+              ELSE  
+                 DISPLAY "I-O ERROR " " " "SXBSDI04D FILE STATUS = "
+                         WS-DS-FILE-STATUS UPON PRINTER 
+                 GO TO 9100-I-O-FILE-ERROR. 
+
+      * WRITE HEADER FOR FINAL-REPORT   
+           MOVE '*****  GLOBAL-UPDATE EXC-DT-SETUP-RECORDS FINAL-REPORT 
+      -         '  *****' TO  FINAL-REP-FILE-REC.   
+           WRITE FINAL-REP-FILE-REC.
+              IF NOT FR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "SXBSDI03P FILE STATUS = "
+                      WS-FR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+           MOVE '-------------------------------------------------------
+      -         '-------' TO  FINAL-REP-FILE-REC.   
+           WRITE FINAL-REP-FILE-REC.
+              IF NOT FR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "SXBSDI03P FILE STATUS = "
+                      WS-FR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+           MOVE SPACES TO FINAL-REP-FILE-REC.   
+           MOVE 'EXC-ID'                TO FR-EDSR-EXC-ID.  
+           MOVE 'EXC-DATE'              TO FR-EDSR-START-DATE.  
+           MOVE 'TIME'                  TO FR-EDSR-START-TIME.  
+           MOVE 'SC'                    TO FR-EDSR-SHIP-CODE.   
+           MOVE 'M'                     TO FR-EDSR-MAINTENANCE-IND. 
+           MOVE 'COMMENTS'              TO FR-COMMENT.  
+           WRITE FINAL-REP-FILE-REC.
+              IF NOT FR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "SXBSDI03P FILE STATUS = "
+                      WS-FR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+           MOVE SPACES TO FINAL-REP-FILE-REC.   
+           MOVE '------'                TO FR-EDSR-EXC-ID.  
+           MOVE '--------'              TO FR-EDSR-START-DATE.  
+           MOVE '----'                  TO FR-EDSR-START-TIME.  
+           MOVE '--'                    TO FR-EDSR-SHIP-CODE.   
+           MOVE '-'                     TO FR-EDSR-MAINTENANCE-IND. 
+           MOVE '-------------------------------' TO FR-COMMENT.
+           WRITE FINAL-REP-FILE-REC.
+              IF NOT FR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "SXBSDI03P FILE STATUS = "
+                      WS-FR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+
+       3000-OPEN-EXIT.  
+           EXIT.
+
+      ***************************************************************   
+      *   Input file is read  here                                  *   
+      ***************************************************************   
+
+       4000-READ-PARA.  
+200243*    move  1 to mcflag.   
+200243*    MOVE SPACES TO EXCEL-REC.
+200243     MOVE SPACES   TO EXCEL-REC   
+200243                      WS-EXCEL-REC.   
+           READ DT-SETUP-FILE  AT END   
+                MOVE 'Y' TO WS-EOF-FLAG.
+           ADD 1 TO WS-RECORDS-READ.
+206333     MOVE 'N'      TO WS-EDSR-VAL-FAIL-IND.   
+           IF DS-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              IF DS-FILE-AT-END 
+                 MOVE 'Y' TO WS-EOF-FLAG
+              ELSE  
+                 DISPLAY "I-O ERROR " " " "SXBSDI04D FILE STATUS = "
+                         WS-DS-FILE-STATUS UPON PRINTER 
+                 GO TO 9100-I-O-FILE-ERROR. 
+
+C57540*    DISPLAY 'WS-EOF-FLAG: ' WS-EOF-FLAG   UPON PRINTER.  
+
+       4000-READ-EXIT.  
+           EXIT.
+
+      ***************************************************************   
+      *  Stores/updates of records are done here                    *   
+      ***************************************************************   
+
+       5000-PROCESS-MAIN-PARA.  
+
+           IF WS-EOF-FILE   
+                GO TO 5000-PROCESS-MAIN-EXIT
+           END-IF.  
+200243     MOVE EXCEL-REC              TO WS-EXCEL-REC. 
+200243     MOVE ZEROES                 TO WS-BEGIN-SUB. 
+200243  
+200243     PERFORM VARYING WS-SUB FROM 1 BY 1 UNTIL WS-SUB > 500
+200243  
+200243            IF WS-EXCEL-CHARACTER (WS-SUB) = '"' AND  
+200243               WS-BEGIN-SUB <= 0  
+200243               MOVE WS-SUB       TO WS-BEGIN-SUB  
+200243            END-IF
+200243            IF WS-BEGIN-SUB <= ZEROES AND 
+200243               WS-EXCEL-CHARACTER (WS-SUB) = ','  
+200243               MOVE '|'          TO WS-EXCEL-CHARACTER
+200243                                    (WS-SUB)  
+200243            END-IF
+200243            IF WS-BEGIN-SUB > 0 AND   
+200243               WS-EXCEL-CHARACTER (WS-SUB) = '"' AND  
+200243              ( WS-SUB NOT = WS-BEGIN-SUB )   
+200243               MOVE ZEROES       TO WS-BEGIN-SUB  
+200243            END-IF
+200243     END-PERFORM. 
+
+
+
+200243*    IF EXCEL-REC (1:1) = ',' OR ' '  
+200243     IF WS-EXCEL-REC (1:1) = '|' OR ' '   
+              GO TO 5000-PROCESS-MAIN-EXIT  
+           END-IF.  
+200243*    IF EXCEL-REC > SPACES
+200243*       UNSTRING EXCEL-REC
+200243*                DELIMITED BY ',' OR '   '
+200243     IF WS-EXCEL-REC > SPACES 
+200243        UNSTRING WS-EXCEL-REC 
+200243                 DELIMITED BY '|' OR '   '
+                         INTO   
+                         WS-EDSR-EXC-ID 
+                         WS-EDSR-START-DATE 
+                         WS-EDSR-MAINTENANCE-IND
+                         WS-EDSR-BEGIN-BOOK-DATE
+                         WS-EDSR-ON-ARRIVAL-IND 
+                         WS-EDSR-AT-YOUR-LEISURE-IND
+                         WS-EDSR-AUTO-SHIP-ALLOC-IND
+                         WS-EDSR-AVAIL-STATUS   
+                         WS-EDSR-TOTAL-ALLOC
+                         WS-EDSR-PRESALES-ALLOC 
+                         WS-EDSR-MIN-SALES-REQ  
+                         WS-EDSR-START-TIME 
+                         WS-EDSR-SHIP-CODE  
+                         WS-EDSR-SHIP-TOTAL-ALLOC   
+                         WS-EDSR-PRESALE-ALLOC  
+                         WS-EDSR-OPERATIONAL-LIMIT  
+                         WS-EDSR-START-TIME-BUFF
+                         WS-EDSR-END-TIME-BUFF  
+                         WS-EDSR-BASE-PRICE 
+                         WS-EDSR-A-AVAIL
+                         WS-EDSR-A-PRICE
+                         WS-EDSR-A-MAX-CAPACITY 
+                         WS-EDSR-C-AVAIL
+                         WS-EDSR-C-PRICE
+                         WS-EDSR-C-MAX-CAPACITY 
+                         WS-EDSR-I-AVAIL
+                         WS-EDSR-I-PRICE
+                         WS-EDSR-I-MAX-CAPACITY 
+                         WS-EDSR-T-AVAIL
+                         WS-EDSR-T-PRICE
+                         WS-EDSR-T-MAX-CAPACITY 
+                         WS-EDSR-S-AVAIL
+                         WS-EDSR-S-PRICE
+                         WS-EDSR-S-MAX-CAPACITY 
+103563                   WS-EDSR-PORT-TYPE  
+103563                   WS-FILLER-5
+C80252                   WS-PORT
+200243*                  WS-FILLER-5
+C80252                   WS-TOUR-CODE   
+C80252                   WS-TOUR-NAME   
+C80252                   WS-SHIP-NAME   
+C80252                   WS-SHIP-CODE   
+C80252                   WS-SAIL-DATE   
+C80252                   WS-SAIL-DAY
+C80252                   WS-EDSR-SHIP-ARR-TIME  
+C80252                   WS-EDSR-SHIP-BEG-TIME  
+C80252                   WS-SHIP-DEP-TIME   
+C80252                   WS-LOCAL-DEP-TIME  
+C80252                   WS-MIN 
+C80252                   WS-MAX 
+C80252                   WS-ADULT-PRICE 
+C80252                   WS-CHILD-PRICE 
+200243                   WS-FILLER-5
+200243                   WS-FILLER-5
+200243                   WS-FILLER-5
+200243                   WS-FILLER-5
+200243                   WS-FILLER-5
+200243                   WS-FILLER-5
+200243                   WS-FILLER-5
+200243                   WS-FILLER-5
+200243                   WS-FILLER-5
+200243                   WS-FILLER-5
+200243                   WS-EDSR-PRICE-OVERRIDE-CODE
+            ELSE
+              GO TO 4000-READ-PARA  
+           END-IF.  
+           INSPECT WS-EDSR-START-DATE          REPLACING ALL ' ' BY '0'.
+           INSPECT WS-EDSR-BEGIN-BOOK-DATE     REPLACING ALL ' ' BY '0'.
+           INSPECT WS-EDSR-TOTAL-ALLOC         REPLACING ALL ' ' BY '0'.
+           INSPECT WS-EDSR-PRESALES-ALLOC      REPLACING ALL ' ' BY '0'.
+           INSPECT WS-EDSR-MIN-SALES-REQ       REPLACING ALL ' ' BY '0'.
+           INSPECT WS-EDSR-START-TIME          REPLACING ALL ' ' BY '0'.
+           INSPECT WS-EDSR-SHIP-TOTAL-ALLOC    REPLACING ALL ' ' BY '0'.
+           INSPECT WS-EDSR-PRESALE-ALLOC       REPLACING ALL ' ' BY '0'.
+           INSPECT WS-EDSR-OPERATIONAL-LIMIT   REPLACING ALL ' ' BY '0'.
+           INSPECT WS-EDSR-START-TIME-BUFF     REPLACING ALL ' ' BY '0'.
+           INSPECT WS-EDSR-END-TIME-BUFF       REPLACING ALL ' ' BY '0'.
+           INSPECT WS-EDSR-BASE-PRICE          REPLACING ALL ' ' BY '0'.
+           INSPECT WS-EDSR-A-PRICE             REPLACING ALL ' ' BY '0'.
+           INSPECT WS-EDSR-A-MAX-CAPACITY      REPLACING ALL ' ' BY '0'.
+           INSPECT WS-EDSR-C-PRICE             REPLACING ALL ' ' BY '0'.
+           INSPECT WS-EDSR-C-MAX-CAPACITY      REPLACING ALL ' ' BY '0'.
+           INSPECT WS-EDSR-I-PRICE             REPLACING ALL ' ' BY '0'.
+           INSPECT WS-EDSR-I-MAX-CAPACITY      REPLACING ALL ' ' BY '0'.
+           INSPECT WS-EDSR-T-PRICE             REPLACING ALL ' ' BY '0'.
+           INSPECT WS-EDSR-T-MAX-CAPACITY      REPLACING ALL ' ' BY '0'.
+           INSPECT WS-EDSR-S-PRICE             REPLACING ALL ' ' BY '0'.
+           INSPECT WS-EDSR-S-MAX-CAPACITY      REPLACING ALL ' ' BY '0'.
+C80252     INSPECT WS-SAIL-DATE                REPLACING ALL ' ' BY '0'.
+C80252     INSPECT WS-EDSR-SHIP-ARR-TIME       REPLACING ALL ' ' BY '0'.
+C80252     INSPECT WS-EDSR-SHIP-BEG-TIME       REPLACING ALL ' ' BY '0'.
+C80252     INSPECT WS-SHIP-DEP-TIME            REPLACING ALL ' ' BY '0'.
+C80252     INSPECT WS-LOCAL-DEP-TIME           REPLACING ALL ' ' BY '0'.
+C80252     INSPECT WS-ADULT-PRICE              REPLACING ALL ' ' BY '0'.
+C80252     INSPECT WS-ADULT-PRICE              REPLACING ALL ' ' BY '0'.
+
+      *    MOVE DT-SETUP-FILE-REC       TO WS-SETUP-FILE-REC.   
+           INITIALIZE FINAL-REP-FILE-REC.   
+           MOVE WS-EDSR-EXC-ID          TO FR-EDSR-EXC-ID.  
+           MOVE WS-EDSR-START-DATE-N    TO FR-EDSR-START-DATE.  
+           MOVE WS-EDSR-START-TIME-N    TO FR-EDSR-START-TIME.  
+           MOVE WS-EDSR-SHIP-CODE       TO FR-EDSR-SHIP-CODE.   
+           MOVE WS-EDSR-MAINTENANCE-IND TO FR-EDSR-MAINTENANCE-IND. 
+           MOVE SPACES                  TO FR-COMMENT.  
+
+C57540*    SOME FIELDS ARE MOVED TO WS-HOLD-VARIABLE, SO THAT WE CAN
+C57540*    KEEP TRACK IN 9100-ROLLBACK-ERROR ON WHICH RECORD FROM I/P   
+C57540*    FILE PROGRAM ABORTED.
+
+C57540     MOVE WS-EDSR-EXC-ID          TO WS-HOLD-EXC-ID.  
+C57540     MOVE WS-EDSR-START-DATE-N    TO WS-HOLD-START-DATE.  
+C57540     MOVE WS-EDSR-START-TIME-N    TO WS-HOLD-START-TIME.  
+C57540     MOVE WS-EDSR-SHIP-CODE       TO WS-HOLD-SHIP-CODE.   
+C57540     MOVE WS-EDSR-MAINTENANCE-IND TO WS-HOLD-MAINTENANCE-IND. 
+           PERFORM 5500-VALIDATE-PARA THRU  
+                   5500-VALIDATE-PARA-EXIT. 
+           PERFORM 6000-MOVE-PARA THRU  
+                   6000-MOVE-PARA-EXIT. 
+           PERFORM 6500-STORE-PARA THRU 
+                   6500-STORE-PARA-EXIT.
+           PERFORM 7000-WRITE-REP-PARA THRU 
+                   7000-WRITE-REP-PARA-EXIT.
+
+       5000-PROCESS-MAIN-EXIT.  
+           EXIT.
+
+       5500-VALIDATE-PARA.  
+
+      *    DO THE VALIDATION FOR GLBUPD 
+      *---------------------------------------------------------------- 
+      *    FIND RECORD IN EXC-MASTER-REC
+      *---------------------------------------------------------------- 
+
+           IF  WS-EDSR-EXC-ID = SPACES THEN 
+               MOVE 'EXCURSION-ID IS BLANK' 
+                   TO WS-COMMENT
+206333         MOVE 'Y' 
+206333             TO WS-EDSR-VAL-FAIL-IND  
+               PERFORM 7000-WRITE-REP-PARA  
+           END-IF.  
+
+180509     IF  WS-EDSR-BASE-PRICE IS NOT NUMERIC
+180509         MOVE 'BASE PRICE IS NOT NUMERIC'      TO WS-COMMENT  
+206333         MOVE 'Y'                              TO 
+206333                                             WS-EDSR-VAL-FAIL-IND 
+180509         GO TO 7000-WRITE-REP-PARA
+180509     END-IF.  
+
+180509     IF  WS-EDSR-A-PRICE IS NOT NUMERIC   
+180509         MOVE 'ADULT-PRICE IS NOT NUMERIC'     TO WS-COMMENT  
+206333         MOVE 'Y'                              TO 
+206333                                             WS-EDSR-VAL-FAIL-IND 
+180509         GO TO 7000-WRITE-REP-PARA
+180509     END-IF.  
+
+180509     IF  WS-EDSR-C-PRICE IS NOT NUMERIC   
+180509         MOVE 'CHILD-PRICE IS NOT NUMERIC'     TO WS-COMMENT  
+206333         MOVE 'Y'                              TO 
+206333                                             WS-EDSR-VAL-FAIL-IND 
+180509         GO TO 7000-WRITE-REP-PARA
+180509     END-IF.  
+
+180509     IF  WS-EDSR-I-PRICE IS NOT NUMERIC   
+180509         MOVE 'INFANT-PRICE IS NOT NUMERIC'    TO WS-COMMENT  
+206333         MOVE 'Y'                              TO 
+206333                                             WS-EDSR-VAL-FAIL-IND 
+180509         GO TO 7000-WRITE-REP-PARA
+180509     END-IF.  
+
+180509     IF  WS-EDSR-T-PRICE IS NOT NUMERIC   
+180509         MOVE 'TEEN-PRICE IS NOT NUMERIC'      TO WS-COMMENT  
+206333         MOVE 'Y'                              TO 
+206333                                             WS-EDSR-VAL-FAIL-IND 
+180509         GO TO 7000-WRITE-REP-PARA
+180509     END-IF.  
+
+180509     IF  WS-EDSR-S-PRICE IS NOT NUMERIC   
+180509         MOVE 'SENIOR-PRICE IS NOT NUMERIC'    TO WS-COMMENT  
+206333         MOVE 'Y'                              TO 
+206333                                             WS-EDSR-VAL-FAIL-IND 
+180509         GO TO 7000-WRITE-REP-PARA
+180509     END-IF.  
+
+           MOVE WS-EDSR-EXC-ID  TO EMR-EXC-ID.  
+
+           FIND EXC-MASTER-REC RECORD   
+144449         ON ERROR GO TO 5500-CONTINUE.
+
+144449 5500-CONTINUE.   
+           IF  ERROR-STATUS NOT = '000000'  
+C57540*        IF  ERROR-NUM = "07" OR "13" OR '0007' OR '0013' 
+C57540         IF  ERROR-NUM = '0007' OR '0013' 
+                   MOVE 'EXCURSION RECORD NOT FOUND' TO  WS-COMMENT 
+206333             MOVE 'Y'                          TO 
+206333                                             WS-EDSR-VAL-FAIL-IND 
+                   GO TO 7000-WRITE-REP-PARA
+               ELSE 
+                   GO TO 9100-DATABASE-ERROR
+               END-IF   
+           END-IF.  
+
+           IF  WS-EDSR-START-DATE-N = ZERO OR SPACES THEN   
+               MOVE 'BEGIN DATE IS SPACES OR ZEROES '   
+                   TO  WS-COMMENT   
+206333         MOVE 'Y' 
+206333             TO  WS-EDSR-VAL-FAIL-IND 
+                   GO TO 7000-WRITE-REP-PARA
+           END-IF.  
+
+           MOVE WS-EDSR-START-DATE-N TO DPP02-YYYYMMDD-DATE.
+           PERFORM DPP10-VALIDATE-YYYYMMDD-DATE.
+
+           IF  DPP02-DATE-IS-NOT-VALID  
+               MOVE 'BEGIN DATE IS INVALID. '   
+                   TO  WS-COMMENT   
+206333         MOVE 'Y' 
+                   TO WS-EDSR-VAL-FAIL-IND  
+                   GO TO 7000-WRITE-REP-PARA
+           END-IF.  
+
+
+C41233     MOVE WS-EDSR-BEGIN-BOOK-DATE-N TO DPP02-YYYYMMDD-DATE.   
+C41233      PERFORM DPP10-VALIDATE-YYYYMMDD-DATE.   
+C41233  
+C41233     IF  DPP02-DATE-IS-NOT-VALID  
+C41233               MOVE 'BEGIN BOOK DATE IS INVALID. '
+C41233                   TO  WS-COMMENT 
+206333               MOVE 'Y'   
+206333                   TO WS-EDSR-VAL-FAIL-IND
+C41233                   GO TO 7000-WRITE-REP-PARA  
+C41233     END-IF.  
+
+
+               MOVE WS-EDSR-START-TIME-N TO WS-TIME-SLOT.   
+               IF  WS-EDSR-START-TIME-N NOT = SPACES
+                   IF  WS-TIME-VALID             AND
+                       WS-EDSR-ON-ARRIVAL-IND = 'Y' AND 
+                       WS-EDSR-START-TIME-N > ZEROS 
+                           MOVE 'INVALID BEGIN TIME FOR OA EXCURSION'   
+                               TO  WS-COMMENT   
+206333                     MOVE 'Y' 
+206333                         TO WS-EDSR-VAL-FAIL-IND  
+                           GO TO 7000-WRITE-REP-PARA
+                   ELSE 
+                       IF  NOT WS-TIME-VALID
+                           IF  WS-EDSR-ON-ARRIVAL-IND = 'N' 
+                               MOVE 'BEGIN TIME IS INVALID.'
+                                   TO  WS-COMMENT   
+206333                         MOVE 'Y' 
+206333                             TO WS-EDSR-VAL-FAIL-IND  
+                               GO TO 7000-WRITE-REP-PARA
+                           END-IF   
+                       END-IF   
+                   END-IF   
+               END-IF.  
+
+           IF  WS-EDSR-AVAIL-STATUS NOT = 'Y' AND 'N' THEN  
+               MOVE 'AVAIL STATUS SHOULD BE Y OR N' 
+                   TO  WS-COMMENT   
+206333         MOVE 'Y' 
+206333             TO WS-EDSR-VAL-FAIL-IND  
+               GO TO 7000-WRITE-REP-PARA
+           END-IF.  
+
+           IF  WS-EDSR-AUTO-SHIP-ALLOC-IND NOT = 'Y' AND 'N' THEN   
+               MOVE 'AUTO SHIP ALLOCATION INDICATOR SHOULD BE Y OR N'   
+                   TO  WS-COMMENT   
+206333         MOVE 'Y' 
+206333             TO WS-EDSR-VAL-FAIL-IND  
+               GO TO 7000-WRITE-REP-PARA
+           END-IF.  
+
+           IF  WS-EDSR-MAINTENANCE-IND NOT = 'A' AND 'E' THEN   
+               MOVE 'MAINTENANCE INDICATOR SHOULD BE A OR E'
+                   TO  WS-COMMENT   
+206333         MOVE 'Y' 
+206333             TO WS-EDSR-VAL-FAIL-IND  
+               GO TO 7000-WRITE-REP-PARA
+           END-IF.  
+
+           IF WS-EDSR-SHIP-CODE(1:1) = ' ' OR   
+              WS-EDSR-SHIP-CODE(2:1) = ' '  
+                MOVE 'INVALID SHIP CODE'
+                   TO  WS-COMMENT   
+206333          MOVE 'Y'
+206333             TO WS-EDSR-VAL-FAIL-IND  
+               GO TO 7000-WRITE-REP-PARA
+           END-IF.  
+
+C41233     IF WS-EDSR-PRESALES-ALLOC-N <= WS-EDSR-TOTAL-ALLOC-N 
+C41233       CONTINUE   
+C41233     ELSE 
+C41233        MOVE 'PRESALES EXCEEDS TOTAL-ALLOC'   
+C41233             TO WS-COMMENT
+206333        MOVE 'Y'  
+206333             TO WS-EDSR-VAL-FAIL-IND  
+C41233         GO TO 7000-WRITE-REP-PARA
+C41233     END-IF.  
+
+C41233     IF WS-EDSR-PRESALE-ALLOC-N <= WS-EDSR-SHIP-TOTAL-ALLOC-N 
+C41233        CONTINUE  
+C41233     ELSE 
+C41233        MOVE 'PRESALE EXCEEDS SHIP-TOTAL' 
+C41233             TO WS-COMMENT
+206333        MOVE 'Y'  
+206333             TO WS-EDSR-VAL-FAIL-IND  
+C41233         GO TO 7000-WRITE-REP-PARA
+C41233     END-IF.  
+
+103563     IF  NOT WS-PORT-TYPE-VALID   
+103563         MOVE 'PORT TYPE SHOULD BE E OR P OR D'   
+103563             TO WS-COMMENT
+206333         MOVE 'Y' 
+206333             TO WS-EDSR-VAL-FAIL-IND  
+103563         GO TO 7000-WRITE-REP-PARA
+103563     END-IF.  
+
+200243     IF  NOT WS-VALID-PRC-OVERRIDE-CODE   
+200243         MOVE 'OVERRIDE CODE SHOULD BE Y OR N OR SPACES'  
+200243             TO WS-COMMENT
+206333         MOVE 'Y' 
+206333             TO WS-EDSR-VAL-FAIL-IND  
+200243         GO TO 7000-WRITE-REP-PARA
+200243     END-IF.  
+
+       5500-VALIDATE-PARA-EXIT. 
+           EXIT.
+
+       6000-MOVE-PARA.  
+
+      *     INITIALIZE EXC-DT-SETUP-REC.
+           MOVE WS-EDSR-EXC-ID              TO EDSR-EXC-ID. 
+           MOVE WS-EDSR-START-DATE-N        TO EDSR-START-DATE. 
+           MOVE WS-EDSR-START-DATE-N        TO EDSR-END-DATE.   
+           MOVE 'P'                         TO EDSR-SETUP-STATUS.   
+           MOVE WS-EDSR-MAINTENANCE-IND     TO EDSR-MAINTENANCE-IND.
+           MOVE WS-EDSR-BEGIN-BOOK-DATE-N   TO EDSR-BEGIN-BOOK-DATE.
+           MOVE WS-EDSR-ON-ARRIVAL-IND      TO EDSR-ON-ARRIVAL-IND. 
+           MOVE WS-EDSR-AT-YOUR-LEISURE-IND TO EDSR-AT-YOUR-LEISURE-IND.
+           MOVE WS-EDSR-AUTO-SHIP-ALLOC-IND TO EDSR-AUTO-SHIP-ALLOC-IND.
+           MOVE WS-EDSR-AVAIL-STATUS        TO EDSR-AVAIL-STATUS.   
+           MOVE WS-EDSR-TOTAL-ALLOC-N       TO EDSR-TOTAL-ALLOC.
+           MOVE WS-EDSR-PRESALES-ALLOC-N    TO EDSR-PRESALES-ALLOC. 
+           MOVE WS-EDSR-MIN-SALES-REQ-N     TO EDSR-MIN-SALES-REQ.  
+103563     MOVE WS-EDSR-PORT-TYPE           TO EDSR-PORT-TYPE.  
+           MOVE 1 TO WS-DAY-OF-WEEK.
+           PERFORM VARYING WS-DAY-SUB FROM 1 BY 1   
+               UNTIL WS-DAY-SUB > 9 
+                     MOVE WS-DAY-OF-WEEK
+      *                                 TO EDSR-DAY-TABLE(WS-DAY-SUB)   
+149439                                  TO EDSR-DAY (WS-DAY-SUB)
+           END-PERFORM. 
+
+           MOVE 1                           TO WS-I.
+           MOVE 1                           TO WS-J.
+
+           MOVE WS-EDSR-START-TIME-N
+                        TO EDSR-START-TIME(WS-I).   
+           MOVE WS-EDSR-SHIP-CODE   
+                        TO EDSR-SHIP-CODE(WS-I, WS-J).  
+           MOVE WS-EDSR-SHIP-TOTAL-ALLOC-N  
+                        TO EDSR-SHIP-TOTAL-ALLOC(WS-I, WS-J).   
+           MOVE WS-EDSR-PRESALE-ALLOC-N 
+                        TO EDSR-PRESALE-ALLOC(WS-I, WS-J).  
+           MOVE WS-EDSR-OPERATIONAL-LIMIT-N 
+                        TO EDSR-OPERATIONAL-LIMIT(WS-I, WS-J).  
+           MOVE 'M' 
+                        TO EDSR-START-TIME-BUFF-TYPE(WS-I, WS-J).   
+           MOVE WS-EDSR-START-TIME-BUFF-N   
+                        TO EDSR-START-TIME-BUFF(WS-I, WS-J).
+           MOVE 'M' 
+                        TO EDSR-END-TIME-BUFF-TYPE(WS-I, WS-J). 
+           MOVE WS-EDSR-END-TIME-BUFF-N 
+                        TO EDSR-END-TIME-BUFF(WS-I, WS-J).  
+           MOVE WS-EDSR-ON-ARRIVAL-IND  
+                        TO EDSR-SHIP-ON-ARRIVAL-IND(WS-I, WS-J).
+           MOVE WS-EDSR-AT-YOUR-LEISURE-IND 
+                        TO EDSR-SHIP-AT-YOUR-LEISURE-IND(WS-I, WS-J).   
+           DIVIDE WS-EDSR-BASE-PRICE-N BY 100 GIVING WS-ABP-5   
+                                REMAINDER WS-ABP-2. 
+           MOVE WS-ACTUAL-BASE-PRICE
+                        TO EDSR-BASE-PRICE(WS-I, WS-J). 
+           MOVE WS-EDSR-AUTO-SHIP-ALLOC-IND 
+                        TO EDSR-SHIP-AUTO-SHIP-ALLOC-IND(WS-I, WS-J).   
+C69803*    MOVE WS-EDSR-AVAIL-STATUS
+C69803*                 TO EDSR-STATUS(WS-I, WS-J). 
+C69803     IF WS-EDSR-AVAIL-STATUS = 'Y'
+C69803         MOVE 'A' TO EDSR-STATUS(WS-I, WS-J)  
+C69803     ELSE 
+C69803         MOVE WS-EDSR-AVAIL-STATUS
+C69803                  TO EDSR-STATUS(WS-I, WS-J)  
+C69803     END-IF.  
+           MOVE 'A' 
+                        TO EDSR-PRICE-CODE(WS-I, WS-J, 1).  
+           MOVE WS-EDSR-A-AVAIL 
+                        TO EDSR-AVAIL(WS-I, WS-J, 1).   
+           MOVE WS-EDSR-A-MAX-CAPACITY-N
+                        TO EDSR-MAX-CAPACITY(WS-I, WS-J, 1).
+           DIVIDE WS-EDSR-A-PRICE-N BY 100 GIVING WS-AAP-5  
+                                REMAINDER WS-AAP-2. 
+           MOVE WS-ACTUAL-A-PRICE   
+                        TO EDSR-PRICE(WS-I, WS-J, 1).   
+           MOVE 'C' 
+                        TO EDSR-PRICE-CODE(WS-I, WS-J, 2).  
+           MOVE WS-EDSR-C-AVAIL 
+                        TO EDSR-AVAIL(WS-I, WS-J, 2).   
+           MOVE WS-EDSR-C-MAX-CAPACITY-N
+                        TO EDSR-MAX-CAPACITY(WS-I, WS-J, 2).
+           DIVIDE WS-EDSR-C-PRICE-N BY 100 GIVING WS-ACP-5  
+                                REMAINDER WS-ACP-2. 
+           MOVE WS-ACTUAL-C-PRICE   
+                        TO EDSR-PRICE(WS-I, WS-J, 2).   
+           MOVE 'I' 
+                        TO EDSR-PRICE-CODE(WS-I, WS-J, 3).  
+           MOVE WS-EDSR-I-AVAIL 
+                        TO EDSR-AVAIL(WS-I, WS-J, 3).   
+           MOVE WS-EDSR-I-MAX-CAPACITY-N
+                         TO EDSR-MAX-CAPACITY(WS-I, WS-J, 3).   
+           DIVIDE WS-EDSR-I-PRICE-N BY 100 GIVING WS-AIP-5  
+                                REMAINDER WS-AIP-2. 
+           MOVE WS-ACTUAL-I-PRICE   
+                         TO EDSR-PRICE(WS-I, WS-J, 3).  
+           MOVE 'T' 
+                        TO EDSR-PRICE-CODE(WS-I, WS-J, 4).  
+           MOVE WS-EDSR-T-AVAIL 
+                        TO EDSR-AVAIL(WS-I, WS-J, 4).   
+           MOVE WS-EDSR-T-MAX-CAPACITY-N
+                        TO EDSR-MAX-CAPACITY(WS-I, WS-J, 4).
+           DIVIDE WS-EDSR-T-PRICE-N BY 100 GIVING WS-ATP-5  
+                                REMAINDER WS-ATP-2. 
+           MOVE WS-ACTUAL-T-PRICE   
+                        TO EDSR-PRICE(WS-I, WS-J, 4).   
+           MOVE 'S' 
+                        TO EDSR-PRICE-CODE(WS-I, WS-J, 5).  
+           MOVE WS-EDSR-S-AVAIL 
+                        TO EDSR-AVAIL(WS-I, WS-J, 5).   
+           MOVE WS-EDSR-S-MAX-CAPACITY-N
+                        TO EDSR-MAX-CAPACITY(WS-I, WS-J, 5).
+           DIVIDE WS-EDSR-S-PRICE-N BY 100 GIVING WS-ASP-5  
+                                REMAINDER WS-ASP-2. 
+           MOVE WS-ACTUAL-S-PRICE   
+                        TO EDSR-PRICE(WS-I, WS-J, 5).   
+200243     MOVE WS-EDSR-PRICE-OVERRIDE-CODE 
+200243                  TO EDSR-PRC-OVERRIDE-CODE(WS-I, WS-J).  
+
+       6000-MOVE-PARA-EXIT. 
+           EXIT.
+
+       6500-STORE-PARA. 
+
+182089     FIND EXC-DT-SETUP-DIRECT-REC RECORD  
+182089         ON ERROR GO TO 6500-CONTINUE.
+182089  
+           STORE EXC-DT-SETUP-REC   
+144449         ON ERROR GO TO 6500-CONTINUE.
+
+144449 6500-CONTINUE.   
+           IF  ERROR-STATUS NOT = '000000'  
+               MOVE 'UNABLE TO STORE EDSR RECORD'   
+                   TO  WS-COMMENT   
+206333         MOVE 'Y' 
+206333             TO WS-EDSR-VAL-FAIL-IND  
+               GO TO 7000-WRITE-REP-PARA
+           ELSE 
+188688*        FREE 
+188688         PERFORM DPP12-COMMIT THRU DPP12-COMMIT-EXIT  
+               ADD 1 TO WS-RECORDS-WRITE
+               ADD 1 TO WS-DB-CNT   
+               MOVE 'Global-Update RECORD Written successfully !'   
+                       TO  WS-COMMENT   
+           END-IF.  
+C57540*    IF WS-DB-CNT > 9 
+C57540*        MOVE ZERO TO WS-DB-CNT   
+C57540*        FREE 
+C57540*    END-IF.  
+
+       6500-STORE-PARA-EXIT.
+           EXIT.
+
+       7000-WRITE-REP-PARA. 
+
+           MOVE WS-COMMENT  TO  FR-COMMENT. 
+           WRITE FINAL-REP-FILE-REC.
+              IF NOT FR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "SXBSDI03P FILE STATUS = "
+                      WS-FR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF
+
+206333*    IF  WS-EDSR-MAINTENANCE-IND = 'A'
+206333*        MOVE 'E'                 TO WS-EDSR-MAINTENANCE-IND  
+206333*        MOVE WS-EDSR-MAINTENANCE-IND TO FR-EDSR-MAINTENANCE-IND  
+206333*        ADD 1 TO WS-DUPLICATE-RECORDS
+206333*        GO TO 6000-MOVE-PARA 
+206333*    END-IF.  
+
+206333     IF  WS-EDSR-MAINTENANCE-IND = 'A'
+206333         IF  WS-EDSR-VAL-FAIL-IND = 'N'   
+206333             MOVE 'E'                 TO WS-EDSR-MAINTENANCE-IND  
+206333             MOVE WS-EDSR-MAINTENANCE-IND 
+206333                                      TO FR-EDSR-MAINTENANCE-IND  
+206333             ADD 1 TO WS-DUPLICATE-RECORDS
+206333             GO TO 6000-MOVE-PARA 
+206333         END-IF   
+206333     END-IF.  
+           GO TO 4000-READ-PARA.
+
+       7000-WRITE-REP-PARA-EXIT.
+           EXIT.
+
+
+      ************************************************************* 
+      *   Normal end of routine                                   * 
+      ************************************************************* 
+
+       9000-TERMINATE.  
+           IF WS-RECORDS-READ = 0   
+              SET ERROR-SW TO  ON   
+      D       DISPLAY 'No Records found in SXBSDI04D' UPON PRINTER  
+           END-IF.  
+           ACCEPT WS-SYSTEM-DATE  FROM DATE YYYYMMDD.   
+           ACCEPT WS-SYSTEM-TIME  FROM TIME.
+           DISPLAY 'END-TIME : '  WS-SYSTEM-TIME UPON PRINTER.  
+           DISPLAY 'END-DATE : '  WS-SYSTEM-DATE UPON PRINTER.  
+
+144449*    IF IMPART-DEPART = 1 
+144449*       CLOSE ALL ON ERROR  GO TO 9100-DATABASE-ERROR 
+144449*       DEPART    ON ERROR  GO TO 9100-DATABASE-ERROR 
+144449*       DEPART WITH ROLLBACK ON ERROR  GO TO 9100-DATABASE-ERROR  
+144449*    END-IF.  
+           GO TO 9900-FINISH-PARA.  
+
+
+      ******************************************************
+      *        DATABASE ERROR ROUTINES                     *
+      ******************************************************
+
+       9100-DATABASE-ERROR. 
+           DISPLAY 'ERROR FROM PROGRAM - SXB16SDS'   UPON PRINTER.  
+           DISPLAY 'ERROR STATUS = ' ERROR-STATUS    UPON PRINTER.  
+           DISPLAY 'ERROR NUMBER = ' ERROR-NUM       UPON PRINTER.  
+           DISPLAY 'ERROR AREA   = ' ERROR-AREA      UPON PRINTER.  
+           DISPLAY 'ERROR RECORD = ' ERROR-RECORD    UPON PRINTER.  
+           DISPLAY 'ERROR SET    = ' ERROR-SET       UPON PRINTER.  
+
+C57540     DISPLAY 'INPUT RECORD: ' WS-HOLD-VARIABLE UPON PRINTER.  
+144449*    IF IMPART-DEPART = 1 
+144449*       CLOSE ALL ON ERROR GO TO 9900-FINISH-PARA 
+144449*       DEPART ON ERROR GO 9900-FINISH-PARA   
+144449*    END-IF.  
+144449*    GO TO 9900-FINISH-PARA.  
+
+144449     GO TO DPP12-DATABASE-ERROR.  
+
+
+      ******************************************************
+      *        ROLLBACK ERROR ROUTINES                     *
+      ******************************************************
+
+144449*9100-ROLLBACK-ERROR. 
+144449*    DISPLAY 'RB ERROR FROM PROGRAM- SXB16SDS' UPON PRINTER.  
+144449*    DISPLAY 'ERROR STATUS = ' ERROR-STATUS    UPON PRINTER.  
+144449*    DISPLAY 'ERROR NUMBER = ' ERROR-NUM       UPON PRINTER.  
+144449*    DISPLAY 'ERROR AREA   = ' ERROR-AREA      UPON PRINTER.  
+144449*    DISPLAY 'ERROR RECORD = ' ERROR-RECORD    UPON PRINTER.  
+144449*    DISPLAY 'ERROR SET    = ' ERROR-SET       UPON PRINTER.  
+144449* 
+144449*    DISPLAY 'INPUT RECORD: ' WS-HOLD-VARIABLE UPON PRINTER.  
+144449*    IF IMPART-DEPART = 1 
+144449*       CLOSE ALL ON ERROR GO TO 9900-FINISH-PARA 
+144449*       DEPART WITH ROLLBACK ON ERROR GO 9900-FINISH-PARA 
+144449*    END-IF.  
+144449* 
+144449*    GO TO 9900-FINISH-PARA.  
+      ******************************************************
+      *        I-O ERROR ROUTINES                     * 
+      ******************************************************
+
+       9100-I-O-FILE-ERROR. 
+           SET ERROR-SW TO ON.  
+
+144449*    IF IMPART-DEPART = 1 
+144449*       CLOSE ALL ON ERROR GO TO 9100-DATABASE-ERROR  
+144449*       DEPART WITH ROLLBACK ON ERROR GO 9100-DATABASE-ERROR  
+144449*    END-IF.  
+
+188688 9200-EDIT-ERROR-MSG. 
+188688     PERFORM DPP12-EDIT-ERROR-MSG 
+188688        THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+188688  
+188688     GO TO DPP12-END-OF-JOB.  
+188688  
+188688 9210-EDIT-CONTINUE-MSG.  
+188688     PERFORM DPP12-EDIT-ERROR-MSG 
+188688        THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+188688  
+188688 9300-SEVERE-ERROR-MSG.   
+188688     GO TO DPP12-SEVERE-ERROR-MSG.
+188688  
+188688 9400-INFO-MSG.   
+188688     PERFORM DPP12-INFO-MSG   
+188688        THRU DPP12-INFO-MSG-EXIT. 
+188688  
+188688 9500-RETURN-SUBROUTINE-ERROR.
+188688     GO TO DPP12-RETURN-SUBROUTINE-ERROR. 
+188688  
+188688 9600-SAVE-SUBROUTINE-ERRORS. 
+188688     PERFORM DPP12-SAVE-SUBROUTINE-MSGS   
+188688        THRU DPP12-SAVE-SUBROUTINE-MSGS-X.
+
+      ******************************************************
+      *       Finish program                               *
+      ******************************************************
+
+       9900-FINISH-PARA.
+
+           CLOSE DT-SETUP-FILE. 
+           IF DS-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY "I-O ERROR " " " "SXBSDI04D FILE STATUS = "   
+                      WS-DS-FILE-STATUS UPON PRINTER.   
+
+      * Write Summary before closing file.  
+
+           SUBTRACT 1 FROM WS-RECORDS-READ. 
+           MOVE SPACES TO FINAL-REP-FILE-REC.   
+           MOVE '-------------------------------------------------------
+      -         '-------' TO  FINAL-REP-FILE-REC.   
+           WRITE FINAL-REP-FILE-REC.
+              IF NOT FR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "SXBSDI03P FILE STATUS = "
+                      WS-FR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF.   
+           MOVE SPACES TO FINAL-REP-FILE-REC.   
+           STRING 'SUMMARY : ' WS-RECORDS-WRITE ' OUT OF '  
+           WS-RECORDS-READ ' RECORDS WERE PROCESSED SUCCESSFULLY !' 
+           DELIMITED BY SIZE INTO FINAL-REP-FILE-REC.   
+           WRITE FINAL-REP-FILE-REC.
+C80252     STRING 'NO OF RECORDS DUPLICATED DUE TO EDSR-MAINTENANCE-IND 
+C80252-           '= A ARE : ' WS-DUPLICATE-RECORDS DELIMITED BY SIZE   
+C80252                                         INTO FINAL-REP-FILE-REC. 
+C80252     WRITE FINAL-REP-FILE-REC.
+              IF NOT FR-FILE-OK 
+                 DISPLAY "I-O ERROR " " " "SXBSDI03P FILE STATUS = "
+                      WS-FR-FILE-STATUS UPON PRINTER
+                 GO TO 9100-I-O-FILE-ERROR  
+              END-IF
+
+           CLOSE FINAL-REP-FILE.
+           IF FR-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY "I-O ERROR " " " "SXBSDI03P FILE STATUS = "   
+                      WS-FR-FILE-STATUS UPON PRINTER.   
+
+      * CLEAR SXBSDI04D.
+           MOVE 'N' TO WS-EOF-FLAG. 
+           OPEN OUTPUT DT-SETUP-FILE.   
+           IF DS-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY "I-O ERROR " " " "SXBSDI04D FILE STATUS = "   
+                      WS-DS-FILE-STATUS UPON PRINTER
+              GO TO 9100-I-O-FILE-ERROR.
+           MOVE SPACES TO EXCEL-REC.
+           WRITE EXCEL-REC. 
+           IF DS-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              IF DS-FILE-AT-END 
+                 MOVE 'Y' TO WS-EOF-FLAG
+              ELSE  
+                 DISPLAY "I-O ERROR " " " "SXBSDI04D FILE STATUS = "
+                         WS-DS-FILE-STATUS UPON PRINTER 
+                 GO TO 9100-I-O-FILE-ERROR. 
+           CLOSE DT-SETUP-FILE. 
+           IF DS-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY "I-O ERROR " " " "SXBSDI04D FILE STATUS = "   
+                      WS-DS-FILE-STATUS UPON PRINTER.   
+
+144449     MOVE ZERO TO DPP42-HOLD-MSG-STATUS.  
+144449     GO TO DPP12-END-OF-JOB.  
+144449*    STOP RUN.
+
+      ***************************************************************   
+      *   Copy libraries for procedure division are defined here    *   
+      ***************************************************************   
+
+           COPY DPP10Y2K.   
+144449 COPY DPP12BER.   
+144449 COPY DPP12ERR.   
+144449 COPY DPP12WDB.   
+
+
+      ******************************************************
+      *                PROGRAM END HERE                    *
+      ******************************************************
+

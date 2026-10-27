@@ -1,0 +1,23 @@
+SELECT CATEGORY_CODE, OCCUPANCY, SUM(OPEN_CABINS), 
+SUM(AVAIL_NET_CABINS), SUM(AVAIL_GTEE_CABINS) FROM 
+SAIL_OPEN_INVENTORY WHERE SHIP_CODE = 'AQ' AND 
+SAIL_ID = 22844 AND CATEGORY_CODE IN ('6B','8D','EB','OS') 
+GROUP BY CATEGORY_CODE, OCCUPANCY 
+ORDER BY CATEGORY_CODE, OCCUPANCY;
+
+6B        1                     24                   3637                       
+6B        2                     24                   3637                       
+6B        3                     16                   3637                       
+6B        4                     16                   3637                       
+8D        1                    146                   7274                       
+8D        2                    146                   7274                       
+8D        3                     30                   3638                       
+8D        4                      8                   3638                       
+EB        1                     15                   7275                       
+EB        2                     15                   7275                       
+EB        3                     15                   7275                       
+EB        4                      3                   5457                       
+OS        1                     52                   7276                       
+OS        2                     52                   7276                       
+OS        3                     50                   7276                       
+OS        4                     30                   5458                       

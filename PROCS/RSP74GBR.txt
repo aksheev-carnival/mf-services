@@ -1,0 +1,466 @@
+RSP74CON PROC   
+
+       01  RSP74-CONSTANTS. 
+           03  RSP74-FEE-TABLE-MAX              PIC 9(5)BINARY VALUE 50.
+           03  FILLER                           PIC X(2).   
+
+       01  RSP74-MISC-VARIABLES.
+           03  RSP74-GB-FEE-SUB                 PIC 9(5)BINARY. 
+
+ END PROC   
+======*=================================================================
+
+RSP74BLK PROC   
+
+      *    The size of RSP74-BLOCK-HOLD should be maintained to always  
+      *    match that of RSP74-GBR-OUTPUT. Best way would be to 
+      *    compile a program that copies in RSP74GBR and then look at   
+      *    size of RSP74-GBR-OUTPUT in cross reference listing. 
+
+       01  RSP74-BLOCK-HOLD.
+CCL-UK*    03  FILLER                             PIC X(1754).  
+PPC470*    03  FILLER                             PIC X(1770).  
+PPC470     03  FILLER                             PIC X(2272).  
+
+ END PROC   
+======*=================================================================
+
+RSP74GBR PROC   
+
+      *=================================================================
+
+      *    Area to hold data structures describing a group booking and  
+      *    its satellite records.  This is used to pass these structures
+      *    to and from such subroutines as RSO74GBR.
+      * 
+      *    Note:  After any changes to this area, programmer should 
+      *    also maintain RSP74-BLOCK-HOLD to ensure that sizes match.   
+************************************************************************
+161361* 08-AUG-14     RGM     TCS LTD.               CQ161361          *
+161361* NAVIGATOR OBC PROJECT CHANGES.                                 *
+************************************************************************
+214948* 29-MAR-19      FUB     TCS LTD.               CQ214948         *
+214948* CHANGES DONE TO INCORPORATE ALPHANUMERIC AGENCY CUSTOMER NUM.  *
+************************************************************************
+CCLAUS* 12-NOV-19     ---     TCS LTD.             CQCCLAUS            *
+CCLAUS* CARNIVAL AUSTRALIA CHANGES                                     *
+************************************************************************
+218437* 04-FEB-20     WEA     TCS LTD.                CQ218437         *
+218437* CHANGES DONE TO RESOLVE ISSUE WITH LOCALITY DATA FOR GROUP     *
+218437* BOOKINGS.                                                      *
+************************************************************************
+197063* 07-OCT-24     VYM     TCS LTD.               ADO1970631        *
+197063* CHANGES MADE TO FOLLOW THE SAME STRUCTURE AS GFR1              *
+************************************************************************
+
+       01  RSP74-GBR-INPUT. 
+           03  RSP74-I-AN-PARAMS.   
+               05  RSP74-I-GBR-BOOK-NUM           PIC X(6). 
+               05  RSP74-I-SHIP-CODE              PIC X(2). 
+               05  RSP74-I-CONV-RATE-BASE         PIC X.
+      *            'A'   - ACCOUNTING   
+      *            'B'   - BLENDED  
+      *            'C'   - CALCULATED OR ROLL OVER  
+      *            'P'   - PRICING  
+      *            BLANK - DO NOT CONVERT   
+214948*        05  FILLER                         PIC X(3). 
+214948         05  RSP74-I-CUSTOMER-NUM           PIC X(7). 
+214948         05  FILLER                         PIC X(4). 
+
+           03  RSP74-I-READ-INDS.   
+               05  RSP74-I-READ-GBR-IND           PIC X.
+               05  RSP74-I-READ-GFR-IND           PIC X.
+               05  FILLER                         PIC X(2). 
+
+           03  RSP74-I-N-PARAMS.
+               05  RSP74-I-SAIL-DATE              PIC 9(8)      BINARY. 
+               05  RSP74-I-DURATION-DAYS          PIC 9(2)      BINARY. 
+214948*        05  RSP74-I-CUSTOMER-NUM           PIC 9(7)      BINARY. 
+               05  RSP74-OVERRIDE-RECAT-FLAG      PIC 9         BINARY. 
+               05  RSP74-FORCE-DEPART-FLG         PIC 9         BINARY. 
+               05  RSP74-AREA-OPEN-FLG            PIC 9         BINARY. 
+214948*        05  FILLER                         PIC X(1). 
+214948         05  FILLER                         PIC X(4). 
+
+
+
+       01  RSP74-GBR-OUTPUT.
+           03  RSP74-EXIST-INDS.
+               05  RSP74-O-GFR-EXIST-IND         PIC X. 
+               05  FILLER                        PIC X(3).  
+
+           03  RSP74-MISC-INDS. 
+               05  RSP74-IMPART-FLAG             PIC X. 
+               05  FILLER                        PIC X(3).  
+
+      *    -------------------- 
+
+           03  RSP74-BOOKING-REC.   
+               05  RSP74-BOOK-NUM                 PIC X(6). 
+               05  RSP74-GROUP-NAME               PIC X(30).
+               05  RSP74-REGION-REP-CODE.   
+                   07  RSP74-REGION-CODE          PIC 9(2). 
+                   07  RSP74-SALES-REP-CODE       PIC 9(2). 
+PPC470*        05  RSP74-FIXED-BONUS-PAX          PIC 9(5)      BINARY. 
+PPC470*        05  RSP74-FIXED-BONUS-CABINS       PIC 9(5)      BINARY. 
+               05  RSP74-CURRENCY-CODE            PIC X(3). 
+PPC470*        05  RSP74-BROCHURE-TYPE            PIC X.
+               05  RSP74-LANGUAGE-CODE            PIC X.
+               05  RSP74-COMPANY-CODE             PIC X.
+               05  RSP74-GROUP-TYPE-INFO.   
+                   07  RSP74-POLICY-TYPE          PIC X(4). 
+                   07  RSP74-POLICY-PHASE-NUM     PIC 9(5)      BINARY. 
+PPC470             07  RSP74-POLICY-OWNER-ID      PIC S9(11)    BINARY. 
+               05  RSP74-AGENT-CONTACT            PIC X(20).
+               05  RSP74-AUTO-CXF-IND             PIC X.
+               05  RSP74-CNF-IND                  PIC X.
+               05  RSP74-AUTO-CNF-IND             PIC X.
+               05  RSP74-BOOK-FAX-NUM             PIC 9(10)     BINARY. 
+               05  RSP74-BOOK-DATE                PIC 9(8)      BINARY. 
+               05  RSP74-CANCEL-DATE              PIC 9(8)      BINARY. 
+PPC470         05  RSP74-PAYMENT-AMT              PIC S9(8)V99  BINARY. 
+               05  RSP74-PAX-SEQ-NUM              PIC 9(5)      BINARY. 
+               05  RSP74-COMMENTS                 PIC X(100).   
+               05  RSP74-STATUS-CODE              PIC X.
+               05  RSP74-CANCEL-REASON-CODE       PIC X.
+               05  RSP74-CANCEL-REASON            PIC X(50).
+               05  RSP74-REFUND-IND               PIC X.
+PPC470         05  RSP74-CREDIT-AMT               PIC S9(8)V99  BINARY. 
+PPC470         05  RSP74-NET-FARE-AMT             PIC S9(8)V99  BINARY. 
+PPC470         05  RSP74-UNALLOC-CASH-PMT-AMT     PIC S9(8)V99  BINARY. 
+PPC470         05  RSP74-ALLOC-CASH-PMT-AMT       PIC S9(8)V99  BINARY. 
+PPC470         05  RSP74-UNALLOC-UCC-PMT-AMT      PIC S9(8)V99  BINARY. 
+PPC470         05  RSP74-ALLOC-UCC-PMT-AMT        PIC S9(8)V99  BINARY. 
+PPC470         05  RSP74-UNALLOC-OTHER-PMT-AMT    PIC S9(8)V99  BINARY. 
+PPC470         05  RSP74-ALLOC-OTHER-PMT-AMT      PIC S9(8)V99  BINARY. 
+PPC470         05  RSP74-REFUND-AMT               PIC S9(8)V99  BINARY. 
+PPC470         05  RSP74-NSF-AMT                  PIC S9(8)V99  BINARY. 
+               05  RSP74-PAX-TICKET-CNT           PIC 9(5)      BINARY. 
+               05  RSP74-SAIL-DATE                PIC 9(8)      BINARY. 
+               05  RSP74-SHIP-CODE                PIC X(2). 
+               05  RSP74-DURATION-DAYS            PIC 9(2)      BINARY. 
+PPC470         05  RSP74-DAMAGE-DEPOSIT-AMT       PIC S9(8)V99 BINARY.  
+               05  RSP74-ITINERARY-CODE           PIC X(3). 
+               05  RSP74-DINING-INFO   OCCURS  6  TIMES.
+                   07  RSP74-DINING-TIME-CODE     PIC X.
+                   07  FILLER                     PIC X(2). 
+                   07  RSP74-GTEE-DINING-SEAT-CNT PIC 9(5)      BINARY. 
+                   07  RSP74-HCP-DINING-PCT       PIC 9V99      BINARY. 
+                   07  RSP74-DINING-BTH-PAX-CNT   PIC 9(4)      BINARY. 
+                   07  FILLER                     PIC X.
+CCL-UK*        05  FILLER                         PIC X(2). 
+CCL-UK         05  RSP74-CONTROL-INDICATORS.
+CCL-UK             07  RSP74-SPS-REGISTERED-IND   PIC 1.
+CCL-UK             07  RSP74-ALLOW-DIFF-COMM-IND  PIC 1.
+PPC470*            07  RSP74-UNUSED-IND3          PIC 1.
+PPC470             07  RSP74-AS-AGREED-IND        PIC 1.
+CCL-UK             07  RSP74-UNUSED-IND4          PIC 1.
+CCL-UK             07  RSP74-UNUSED-IND5          PIC 1.
+CCL-UK             07  RSP74-UNUSED-IND6          PIC 1.
+CCL-UK             07  RSP74-UNUSED-IND7          PIC 1.
+CCL-UK             07  RSP74-UNUSED-IND8          PIC 1.
+CCL-UK             07  RSP74-UNUSED-IND9          PIC 1.
+CCL-UK         05  FILLER                         PIC X.
+               05  RSP74-NUM-ADULTS               PIC 9(4)      BINARY. 
+               05  RSP74-NUM-CHILDREN             PIC 9(4)      BINARY. 
+               05  RSP74-NUM-HCP-PAX              PIC 9(4)      BINARY. 
+PPC470         05  RSP74-CRUISE-AMT               PIC S9(8)V99  BINARY. 
+PPC470         05  RSP74-CRUISE-COMM-AMT          PIC S9(8)V99  BINARY. 
+PPC470         05  RSP74-ADDON-AMT                PIC S9(8)V99  BINARY. 
+PPC470         05  RSP74-ADDON-COMM-AMT           PIC S9(8)V99  BINARY. 
+PPC470         05  RSP74-PACKAGE-AMT              PIC S9(8)V99  BINARY. 
+PPC470         05  RSP74-PACKAGE-COMM-AMT         PIC S9(8)V99  BINARY. 
+PPC470         05  RSP74-COURTESY-ORDER-AMT       PIC S9(8)V99  BINARY. 
+PPC470         05  RSP74-PP-GRATS-AMT             PIC S9(8)V99  BINARY. 
+PPC470         05  RSP74-TRANSFER-AMT             PIC S9(8)V99  BINARY. 
+PPC470         05  RSP74-TRANSFER-COMM-AMT        PIC S9(8)V99  BINARY. 
+PPC470         05  RSP74-MISC-AMT                 PIC S9(8)V99  BINARY. 
+PPC470*        05  RSP74-PRIVATE-BUS-AMT          PIC S9(8)V99  BINARY. 
+PPC470*        05  RSP74-SEASON-CODE              PIC X.
+PPC470         05  RSP74-PENALTY-AMT              PIC S9(08)V99 BINARY. 
+PPC470         05  RSP74-INS-PREMIUM-AMT          PIC S9(08)V99 BINARY. 
+PPC470         05  RSP74-INS-COMM-AMT             PIC S9(08)V99 BINARY. 
+PPC470         05  RSP74-ADMIN-FEE-AMT            PIC S9(08)V99 BINARY. 
+PPC470*        05  RSP74-ALL-CO-ITEM-IND          PIC X.
+PPC470*        05  RSP74-ADMIN-FEE-AMT            PIC S9(13)V99 BINARY. 
+PPC470*        05  RSP74-HOLD-ALTKT-AMT           PIC S9(13)V99 BINARY. 
+PPC470*        05  RSP74-MISC-AIR-TKT-AMT         PIC S9(13)V99 BINARY. 
+PPC470*        05  RSP74-UNBTH-DEV-ADDON-AMT      PIC S9(13)V99 BINARY. 
+PPC470         05  RSP74-PTCHG-AMT                PIC S9(8)V99  BINARY. 
+               05  RSP74-DIN-REASSIGN-IND         PIC X.
+PPC470*        05  RSP74-ALLOW-FSP-ACCESS-IND     PIC X.
+PPC470*        05  RSP74-ALLOW-FSP-ALT-ACCESS-IND PIC X.
+               05  RSP74-WHOLESALE-IND            PIC X.
+               05  RSP74-UPDATE-DATETIME          PIC 9(16)     BINARY. 
+PPC470         05  RSP74-TOTAL-FEES-AMT           PIC S9(8)V99  BINARY. 
+PPC470*        05  RSP74-DEV-ADMIN-FEE-AMT        PIC S9(13)V99 BINARY. 
+PPC470*        05  RSP74-DEV-ADDON-AMT            PIC S9(13)V99 BINARY. 
+PPC470         05  RSP74-BTH-DEPOSIT-AMT          PIC S9(8)V99  BINARY. 
+PPC470         05  RSP74-BTH-DEPOSIT-PAYMENT-AMT  PIC S9(8)V99  BINARY. 
+               05  RSP74-CAB-SRC-OPEN-INV-IND     PIC X.
+               05  RSP74-CAB-SRC-BOOK-POOL-IND    PIC X.
+PPC470*        05  RSP74-CAB-SRC-SAIL-POOL-IND    PIC X.
+PPC470*        05  RSP74-BROCH-PHASE-NUM          PIC 9(5)      BINARY. 
+               05  RSP74-SHIP-CLASS               PIC X(2). 
+               05  RSP74-CALC-BONUS-COMM-IND      PIC X.
+               05  RSP74-ALT-COMM-CODE            PIC X.
+PPC470*        05  RSP74-PROFILE-PCT              PIC 9V999     BINARY  
+PPC470*                                OCCURS 5   TIMES.
+               05  RSP74-COUNT-UPDATE-DATETIME    PIC 9(16)     BINARY. 
+PPC470*        05  RSP74-MISC-PHASE-NUM           PIC 9(5)      BINARY. 
+PPC470*        05  RSP74-BONUS-UNIT-TYPE          PIC X.
+PPC470*        05  RSP74-BONUS-PAX-QUALIFY        PIC 9(5)      BINARY. 
+PPC470*        05  RSP74-FIXED-BONUS-AMT          pic S9(13)V99 BINARY. 
+PPC470*        05  RSP74-ADDON-COST-CODE          PIC X.
+PPC470*        05  RSP74-TRANSFER-COST-CODE       PIC X.
+               05  RSP74-TICKET-IND               PIC X.
+               05  RSP74-PRELIM-ROOM-LIST-IND     PIC X.
+               05  RSP74-FINAL-ROOM-LIST-IND      PIC X.
+               05  RSP74-FINAL-IND                PIC X.
+               05  RSP74-CUT-TO-SOLD-CODE         PIC X.
+               05  RSP74-CURR-EXCHANGE-RATE       PIC 9(9)V9999 BINARY. 
+               05  RSP74-FAX-NUM                  PIC 9(16).
+               05  RSP74-DEFAULT-DINING-PREF      PIC X.
+               05  RSP74-PAX-HOLD-CNT             PIC 9(4)      BINARY. 
+PPC470*        05  RSP74-TICKET-ROUTING-CODE      PIC X.
+               05  RSP74-DAMAGE-DEPOSIT-IND       PIC X.
+               05  RSP74-CREDIT-LETTER-REQ-IND    PIC X.
+               05  RSP74-CREDIT-LETTER-RCVD-IND   PIC X.
+               05  RSP74-LAST-CONTACT-DATE        PIC 9(8)      BINARY. 
+               05  RSP74-LAST-CONTACT-CODE        PIC X.
+               05  RSP74-CUT-TO-SOLD-DATE         PIC 9(8)      BINARY. 
+PPC470         05  RSP74-CABIN-CASH-PMT-AMT       PIC S9(8)V99  BINARY. 
+PPC470         05  RSP74-CABIN-UCC-PMT-AMT        PIC S9(8)V99  BINARY. 
+PPC470         05  RSP74-CABIN-OTHER-PMT-AMT      PIC S9(8)V99  BINARY. 
+               05  RSP74-COUNTS-UPDATED-IND       PIC X.
+PPC470*        05  RSP74-BEST-FARE-IND            PIC X.
+214948*        05  RSP74-CUSTOMER-NUM             PIC 9(7). 
+214948         05  RSP74-CUSTOMER-NUM             PIC X(7). 
+214948*        05  RSP74-ALT-CUSTOMER-NUM         PIC 9(7). 
+214948         05  RSP74-ALT-CUSTOMER-NUM         PIC X(7). 
+               05  RSP74-TEMP-EST-PAX             PIC 9(5)      BINARY. 
+               05  RSP74-OPTED-POINTS             PIC 9(2)      BINARY. 
+               05  RSP74-MAX-POINTS               PIC 9(2)      BINARY. 
+               05  RSP74-EXTRA-POINTS             PIC 9(2)      BINARY. 
+               05  RSP74-AMENITY-POINT-VALUE      PIC 9(8)V99   BINARY. 
+               05  RSP74-AMENITY-MIN-CABINS       PIC 9(4)      BINARY. 
+               05  RSP74-SUPPORTS-AMENITIES-IND   PIC X.
+               05  RSP74-PRICE-POINT-CHG-IND      PIC X.
+               05  RSP74-DEFAULT-INS-TYPE         PIC X.
+214948*        05  RSP74-BERTHED-ALT-CUSTOMER-NUM PIC 9(7)      BINARY. 
+218437*        05  RSP74-BERTHED-ALT-CUSTOMER-NUM PIC X(7). 
+CCLAUS         05  FILLER                         PIC X(03).
+               05  RSP74-PROGRAM-FEE-TYPE         PIC X.
+PPC470         05  RSP74-TOTAL-PROGRAM-FEE-AMT    PIC S9(8)V99  BINARY. 
+               05  RSP74-PGM-FEE-EXTRA-ADULT      PIC S9(8)V99  BINARY. 
+               05  RSP74-PGM-FEE-EXTRA-CHILD      PIC S9(8)V99  BINARY. 
+               05  RSP74-PGM-FEE-EXTRA-INFANT     PIC S9(8)V99  BINARY. 
+PPC470         05  RSP74-TOTAL-IBR-REFUND-AMT     PIC S9(8)V99  BINARY. 
+PPC470         05  RSP74-CABIN-CREDIT-AMT         PIC S9(8)V99  BINARY. 
+               05  RSP74-PENDING-AUTH-IND         PIC X.
+               05  RSP74-GUEST-INFO-REQUIRED-IND  PIC X.
+               05  RSP74-ALLOW-REFUND-IND         PIC X.
+               05  RSP74-DEPOSIT-TYPE-1           PIC X.
+               05  RSP74-DEPOSIT-NUM-1            PIC X(15).
+               05  RSP74-PAY-COMMENT              PIC X(15).
+               05  RSP74-AGENCY-CONN-CODE         PIC X(2). 
+               05  RSP74-AGENCY-CONN-ID           PIC X(6). 
+               05  RSP74-UI-TYPE                  PIC X.
+      *            EQUIVALENT TO IBR-SYSTEM-ID  
+               05  RSP74-LOCATION-CODE            PIC X(2). 
+               05  RSP74-LOCATION-NUM             PIC 9(7)      BINARY. 
+               05  RSP74-CAB-SRC-TBA-IND          PIC X.
+               05  RSP74-AGENT-CONN-DISP-CODE     PIC X.
+               05  RSP74-GROUP-LEADER-CNT         PIC 9.
+PPC470*        05  RSP74-DOC-PREFERENCE-IND       PIC X.
+PPC470*        05  RSP74-DOC-PREFERENCE-DATE      PIC 9(8). 
+PPC470*        05  RSP74-DOC-HELD-DATE            PIC 9(8). 
+               05  RSP74-TRUE-UP-OBC              PIC X.
+               05  RSP74-PRE-FINAL-IND            PIC X.
+               05  RSP74-PENALTY-COMM-AMT         PIC S9(8)V99  BINARY. 
+               05  RSP74-CUT-TO-BERTH-LETTER-DATE PIC 9(8)      BINARY. 
+               05  RSP74-CALC-MASS-OBC-IND        PIC X.
+               05  RSP74-PAID-COMM-AMT            PIC S9(8)V99  BINARY. 
+               05  RSP74-PRC-XCHG-RATE            PIC 9(4)V9(6) BINARY. 
+               05  RSP74-ACCT-XCHG-RATE           PIC 9(4)V9(6) BINARY. 
+               05  RSP74-CLSD-XCHG-RATE           PIC 9(4)V9(6) BINARY. 
+CCL-UK*        05  FILLER                         PIC X(73).
+CCL-UK         05  RSP74-LOCALITY-CODE            PIC X(04).
+154125         05  RSP74-FINANCIAL-COMPANY-CODE   PIC X.
+161361*        05  FILLER                         PIC X(84).
+161361         05  RSP74-BASE-SUGG-POINTS         PIC 9(05)     BINARY. 
+PPC470         05  RSP74-OBC-CHARGE-AMT           PIC S9(8)V99  BINARY. 
+PPC470         05  RSP74-NON-REFUND-DEPOSIT-AMT   PIC S9(8)V99  BINARY. 
+PPC470         05  RSP74-PAY-SCH-TNC-OWNER-ID     PIC S9(11)    BINARY. 
+PPC470         05  RSP74-PAY-REF-TNC-OWNER-ID     PIC S9(11)    BINARY. 
+PPC470         05  RSP74-PAY-ADJ-REQ-TNC-OWR-ID   PIC S9(11)    BINARY. 
+PPC470         05  RSP74-PAY-ADJ-BTH-TNC-OWR-ID   PIC S9(11)    BINARY. 
+PPC470         05  RSP74-STD-TC-TNC-OWNER-ID      PIC S9(11)    BINARY. 
+PPC470         05  RSP74-ACC-TC-TNC-OWNER-ID      PIC S9(11)    BINARY. 
+PPC470         05  RSP74-BON-AMN-TNC-OWNER-ID     PIC S9(11)    BINARY. 
+PPC470         05  RSP74-SAL-GEN-TNC-OWNER-ID     PIC S9(11)    BINARY. 
+218437         05  RSP74-BERTHED-ALT-CUSTOMER-NUM PIC X(7). 
+CCLAUS*        05  FILLER                         PIC X(62).
+CCLAUS         05  RSP74-12NM-PCT             PIC 9V9(4)   USAGE BINARY.
+CCLAUS         05  RSP74-GST-PCT              PIC 9V9(4)   USAGE BINARY.
+CCLAUS         05  RSP74-TOTAL-GST-AMT        PIC S9(8)V99 USAGE BINARY.
+CCLAUS         05  RSP74-CRUO-COMM-GST-AMT    PIC S9(8)V99 USAGE BINARY.
+CCLAUS         05  RSP74-TRANS-COMM-GST-AMT   PIC S9(8)V99 USAGE BINARY.
+CCLAUS         05  RSP74-PEN-COMM-GST-AMT     PIC S9(8)V99 USAGE BINARY.
+CCLAUS         05  RSP74-PKG-COMM-GST-AMT     PIC S9(8)V99 USAGE BINARY.
+CCLAUS         05  RSP74-ADDON-COMM-GST-AMT   PIC S9(8)V99 USAGE BINARY.
+CCLAUS         05  RSP74-COMM-GST-AMT         PIC S9(8)V99 USAGE BINARY.
+CCLAUS         05  RSP74-GST-PAID-AMT         PIC S9(8)V99 USAGE BINARY.
+CCLAUS         05  RSP74-COMM-GST-PAID-AMT    PIC S9(8)V99 USAGE BINARY.
+CCLAUS         05  RSP74-COMM-GST-RECLAIM-AMT PIC S9(8)V99 USAGE BINARY.
+CCLAUS         05  RSP74-BOOK-TIME            PIC 9(04)    USAGE BINARY.
+218437         05  RSP74-PIN-NUM              PIC X(04).
+218437*        05  FILLER                     PIC X(30).
+PPC470*        05  FILLER                     PIC X(19).
+PPC470         05  RSP74-POLICY-PROMO-INFO. 
+PPC470             07 RSP74-POL-PRM-CODE        PIC X(4).   
+PPC470             07 RSP74-POL-PRM-PHASE-NUM   PIC 9(5)   USAGE BINARY.
+PPC470             07 RSP74-POL-PRM-OWNER-ID    PIC S9(11) USAGE BINARY.
+PPC470         05  RSP74-BONUS-AMENITY-POINTS   PIC 9(2)   USAGE BINARY.
+PPC470         05  RSP74-STD-TC-INCL-EXT-GST    PIC X(1).   
+PPC470         05  RSP74-ACC-TC-INCL-EXT-GST    PIC X(1).   
+PPC470         05  FILLER                       PIC X(1).   
+PPC470         05  RSP74-PP-GRATS-REQ-IND       PIC X(1).   
+PPC470         05  RSP74-PAY-ADJ-BERTH-INFO.
+PPC470             07 RSP74-BERTH-BY-DATETIME   PIC 9(16)  USAGE BINARY.
+PPC470             07 RSP74-PAY-ADJ-AMT-PCT-CD  PIC X(1).   
+PPC470             07 RSP74-PAY-ADJ-GST-CAB-CD  PIC X(1).   
+PPC470         05  RSP74-CANCEL-TIME            PIC 9(6)   USAGE BINARY.
+PPC470         05  RSP74-CUT-TO-BTH-LETTER-TIME PIC 9(6)   USAGE BINARY.
+PPC470         05  RSP74-PENALTY-COUNT          PIC S9(2)  USAGE BINARY.
+PPC470         05  RSP74-PENALTY-TERMS      OCCURS 10 TIMES.
+PPC470            07 RSP74-PENALTY-DATE          PIC 9(8)  USAGE BINARY.
+PPC470            07 RSP74-PENALTY-TIME          PIC 9(6)  USAGE BINARY.
+PPC470            07 RSP74-PEN-AMT-CALC-METHOD   PIC X(1).  
+PPC470            07 RSP74-PEN-AMT-UNIT          PIC X(1).  
+PPC470            07 RSP74-MIN-CABS-CALC-METHOD  PIC X(1).  
+PPC470            07 RSP74-CABIN-RELEASE-CNT     PIC 9(4)  USAGE BINARY.
+PPC470            07 RSP74-BASE-REQUEST-CNT      PIC S9(5) USAGE BINARY.
+PPC470            07 RSP74-MIN-NUM-CABS       PIC 9(4)V999 USAGE BINARY.
+PPC470            07 RSP74-REQ-PEN-CAB-CNT       PIC 9(4)  USAGE BINARY.
+PPC470            07 RSP74-FILLER                PIC X(3).  
+PPC470         05  RSP74-PAYMENT-COUNT           PIC S9(2) USAGE BINARY.
+PPC470         05  RSP74-PAYMENT-TERMS         OCCURS 10 TIMES. 
+PPC470            07 RSP74-PAYMENT-DATE          PIC 9(8)  USAGE BINARY.
+PPC470            07 RSP74-PAYMENT-TIME          PIC 9(4)  USAGE BINARY.
+PPC470            07 RSP74-PAYMENT-CODE          PIC X(1).  
+PPC470            07 RSP74-PAY-AMT-CALC-METHOD   PIC X(1).  
+PPC470            07 RSP74-PAY-TYPE              PIC X(1).  
+PPC470            07 RSP74-MAX-EXTENSIONS        PIC 9(1).  
+PPC470            07 RSP74-NUM-EXTENSIONS        PIC 9(1).  
+PPC470            07 RSP74-PAY-EXT-TIME-DAYS     PIC 9(3)  USAGE BINARY.
+PPC470            07 RSP74-PAY-EXT-TIME-HOURS    PIC 9(2)  USAGE BINARY.
+PPC470            07 RSP74-NON-REFUND-DEP-IND    PIC X(1).  
+PPC470            07 FILLER                      PIC X(1).  
+PPC470*        05 FILLER                         PIC X(4).  
+PPC470         05 FILLER                         PIC X(78). 
+PPC470         05  RSP74-CONNECTION-CNT          PIC S9(2) USAGE BINARY.
+PPC470         05  RSP74-COMMISSION-TABLE      OCCURS 2 TIMES.  
+PPC470             07 RSP74-CONNECTION-TYPE      PIC X. 
+PPC470             07 RSP74-CRUO-COMM-PCT        PIC V9999 USAGE BINARY.
+PPC470             07 RSP74-ADDON-COMM-PCT       PIC V9999 USAGE BINARY.
+PPC470             07 RSP74-TRANSFER-COMM-PCT    PIC V9999 USAGE BINARY.
+PPC470             07 RSP74-INSURANCE-COMM-PCT   PIC V9999 USAGE BINARY.
+PPC470             07 RSP74-PACKAGE-COMM-PCT     PIC V9999 USAGE BINARY.
+PPC470             07 FILLER                     PIC X(21). 
+
+      *         --------------------
+
+           03  RSP74-FEE-INFO.  
+               05  RSP74-GBR-FEE-REC.   
+                   07  RSP74-GFR-BOOK-NUM         PIC X(6). 
+                   07  RSP74-GFR-ENTRY-CTR        PIC 9(2)      BINARY. 
+                   07  FILLER                     PIC X(5). 
+                   07  RSP74-GFR-FEE-ENTRY OCCURS 50 TIMES. 
+                       09  RSP74-GFR-FEE-CODE     PIC X(4). 
+                       09  RSP74-GFR-FEE-GROUP-CODE 
+                                                  PIC X.
+                       09  RSP74-GFR-FEE-TOTAL-AMT  
+                                                  PIC S9(13)V99 BINARY. 
+                       09  RSP74-GFR-FEE-SPECIAL-IND
+                                                  PIC X.
+197063                 09  RSP74-INDICATORS.
+197063                     11 RSP74-GOVT-FEE-IND  PIC 1.
+197063                     11 RSP74-INCL-IN-CRS-FARE-IND
+197063                                            PIC 1.
+197063                     11 RSP74-UNUSED-IND3   PIC 1.
+197063                     11 RSP74-UNUSED-IND4   PIC 1.
+197063                     11 RSP74-UNUSED-IND5   PIC 1.
+197063                     11 RSP74-UNUSED-IND6   PIC 1.
+197063                     11 RSP74-UNUSED-IND7   PIC 1.
+197063                     11 RSP74-UNUSED-IND8   PIC 1.
+197063                     11 RSP74-UNUSED-IND9   PIC 1.
+197063                 09  FILLER                 PIC X(3). 
+197063*                09  FILLER                 PIC X(4). 
+
+
+      *         --------------------
+
+           03  RSP74-MISC-INFO. 
+               05  RSP74-MISC-INFO-N.   
+                   07  RSP74-GB-TOTAL-AIR-FEES    PIC S9(8)V99  BINARY. 
+                   07  RSP74-GB-TOTAL-CRUISE-FEES PIC S9(8)V99  BINARY. 
+                   07  RSP74-GB-TOTAL-PAYMENT-AMT PIC S9(8)V99  BINARY. 
+                   07  RSP74-GB-TOTAL-COMM-AMT    PIC S9(8)V99  BINARY. 
+                   07  RSP74-GB-BOOKING-DBKEY     PIC 1(36)    BINARY-1.
+                   07  RSP74-GB-COURTESY-ORDER-AMT  
+                                                  PIC S9(13)V99 BINARY. 
+                   07  RSP74-GB-GROSS-AMT-DUE     PIC S9(13)V99 BINARY. 
+                   07  RSP74-GB-NET-FARE-AMT      PIC S9(13)V99 BINARY. 
+                   07  RSP74-GB-BLENDED-XCHG-RATE PIC S9(4)V9(6) BINARY.
+CCLAUS             07  RSP74-GB-EFF-INCL-GST-PCT  PIC 9V9(6) BINARY.
+CCLAUS             07  RSP74-GB-EFF-EXCL-GST-PCT  PIC 9V9(6) BINARY.
+CCLAUS             07  RSP74-GB-EFF-INCL-TRNS-GST-PCT   
+CCLAUS                                            PIC 9V9(6) BINARY.
+CCLAUS             07  RSP74-GB-CREDIT-GST-GST-AMT  
+CCLAUS                                            PIC S9(8)V99 BINARY.  
+CCLAUS             07  RSP74-GB-NET-FARE-GST-AMT  PIC S9(8)V99 BINARY.  
+CCLAUS             07  RSP74-GB-NSF-GST-AMT       PIC S9(8)V99 BINARY.  
+CCLAUS             07  RSP74-GB-DAMAGE-DEP-GST-AMT  
+CCLAUS                                            PIC S9(8)V99 BINARY.  
+CCLAUS             07  RSP74-GB-CRUISE-GST-AMT    PIC S9(8)V99 BINARY.  
+CCLAUS             07  RSP74-GB-ADDON-GST-AMT     PIC S9(8)V99 BINARY.  
+CCLAUS             07  RSP74-GB-PACKAGE-GST-AMT   PIC S9(8)V99 BINARY.  
+CCLAUS             07  RSP74-GB-COURTESY-ORD-GST-AMT
+CCLAUS                                            PIC S9(8)V99 BINARY.  
+CCLAUS             07  RSP74-GB-PP-GRATS-GST-AMT  PIC S9(8)V99 BINARY.  
+CCLAUS             07  RSP74-GB-TRANSFER-GST-AMT  PIC S9(8)V99 BINARY.  
+CCLAUS             07  RSP74-GB-MISC-GST-AMT      PIC S9(8)V99 BINARY.  
+CCLAUS             07  RSP74-GB-PENALTY-GST-AMT   PIC S9(8)V99 BINARY.  
+CCLAUS             07  RSP74-GB-INS-PREMIUM-GST-AMT 
+CCLAUS                                            PIC S9(8)V99 BINARY.  
+CCLAUS             07  RSP74-GB-ADMIN-FEE-GST-AMT PIC S9(8)V99 BINARY.  
+CCLAUS             07  RSP74-GB-PTCHG-GST-AMT     PIC S9(8)V99 BINARY.  
+CCLAUS             07  RSP74-GB-TOTAL-FEES-GST-AMT  
+CCLAUS                                            PIC S9(8)V99 BINARY.  
+CCLAUS             07  RSP74-GB-FIXED-BONUS-GST-AMT 
+CCLAUS                                            PIC S9(8)V99 BINARY.  
+CCLAUS             07  RSP74-GB-CABIN-CREDIT-GST-AMT
+CCLAUS                                            PIC S9(8)V99 BINARY.  
+CCLAUS             07  RSP74-GB-OBC-CHARGE-GST-AMT  
+CCLAUS                                            PIC S9(8)V99 BINARY.  
+CCLAUS             07  FILLER                     PIC X(01).
+
+
+      *         --------------------
+
+ END PROC   
+
+RSP74INT PROC   
+           MOVE SPACES       TO RSP74-I-AN-PARAMS.  
+           MOVE ZEROS        TO RSP74-I-SAIL-DATE   
+                                RSP74-I-DURATION-DAYS   
+214948*                         RSP74-I-CUSTOMER-NUM
+                                RSP74-OVERRIDE-RECAT-FLAG   
+                                RSP74-AREA-OPEN-FLG 
+                                RSP74-FORCE-DEPART-FLG. 
+
+           MOVE ALL 'N'      TO RSP74-I-READ-INDS OF RSP74-GBR-INPUT
+                                RSP74-EXIST-INDS  OF RSP74-GBR-OUTPUT.  
+           MOVE LOW-VALUES   TO RSP74-MISC-INFO-N.  
+ END PROC   

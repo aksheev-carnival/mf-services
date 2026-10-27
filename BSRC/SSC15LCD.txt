@@ -1,0 +1,1308 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.    SSC15LCD. 
+       AUTHOR.        Michael Evert.
+       DATE-WRITTEN.  March 2014.   
+
+      ****************************************************************  
+      *       Load a COMPANY record into Internal Cache              *  
+      ****************************************************************  
+      * Description:                                                 *  
+      *     The purpose of this FLSS routine is to load a central    *  
+      *     cache with a specific company (CMP), company reference   *  
+      *     (CRR), and/or company threshold (CTR) data record.       *  
+      *                                                              *  
+      *     It will reside in a Sub-system that is built and         *  
+      *     installed.  Changes to this require the sub-system to    *  
+      *     be rebuilt.  As long as the interface is not altered     *  
+      *     calling programs don't need to be re-compiled.           *  
+      *                                                              *  
+      * Input      DPP01-COMMON-DATA-FIELDS                          *  
+      *            DPP01-COMMON-INFO                                 *  
+      *            SSP15-INPUT-PARAMS                                *  
+      *                                                              *  
+      * Output     SSP15-OUTPUT-PARMS                                *  
+      *                                                              *  
+      * Calling Sequence                                             *  
+      *     CALL 'SSO15-LOAD-CMP'   USING DPP01-COMMON-DATA-FIELDS   *  
+      *                                   DPP01-COMMON-INFO          *  
+      *                                   SSP15-INPUT-PARAMS         *  
+      *                                   SSP15-OUTPUT-PARAMS.       *  
+      *                                                              *  
+      *     CALL 'SSO15-LOAD-CCR'   USING DPP01-COMMON-DATA-FIELDS   *  
+      *                                   DPP01-COMMON-INFO          *  
+      *                                   SSP15-INPUT-PARAMS         *  
+      *                                   SSP15-OUTPUT-PARAMS.       *  
+      *                                                              *  
+      *     CALL 'SSO15-LOAD-CTR'   USING DPP01-COMMON-DATA-FIELDS   *  
+      *                                   DPP01-COMMON-INFO          *  
+      *                                   SSP15-INPUT-PARAMS         *  
+      *                                   SSP15-OUTPUT-PARAMS.       *  
+      *                                                              *  
+      * Return Status Values:                                        *  
+      *                00       OK                                   *  
+      *                01       Informational                        *  
+      *                02       RPC Error                            *  
+      *                03       Fatal or Severe Error                *  
+      ****************************************************************  
+PPC470* 25-MAR-16     RK2     TCS LTD.               PPC470          *  
+PPC470* PPC PROJECT CHANGES.                                         *  
+PPC470* 16-SEP-16     V2B     JAI BHIMANI            PPC470          *  
+PPC470* PPC - FIX DINING SUBSCRIPT FOR COMPANY DINING.               *  
+**********************************************************************  
+213512* 29-AUG-18     TEK     TCS LTD.               CQ213512        *  
+213512* CHANGES DONE TO ACCEPT JCB,CUP AND DC CARDS AS WELL WHILE    *  
+213512* SETTING ONBOARD EXPENSE ACCOUNT IN OLC.                      *  
+************************************************************************
+CCLAUS* 23-AUG-19     4NS     TCS LTD.               CCLAUS            *
+CCLAUS* CARNIVAL AUSTRALIA PROJECT CHANGES.                            *
+************************************************************************
+215963* 02-DEC-19     V2B     JAI BHIMANI            CQ215963          *
+215963* ADD AN EFFECTIVE DATE TO THE COMPANY RECORD FOR CHECKING THE   *
+215963* RESIDENT STATE CODE WHEN VPP IS BEING ADDED OR BEING CHANGED.  *
+************************************************************************
+CALFEE* 10-APR-24     RMP     TCS LTD.               ADO1871081        *
+CALFEE* Changes done for California Law Price Advertising.             *
+************************************************************************
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER.           UNISYS.   
+       OBJECT-COMPUTER. UNISYS-2200 MEMORY 3 MODULES.   
+       SPECIAL-NAMES.   PRINTER IS PRINTER  
+                        CONSOLE IS CONSOLE. 
+
+       DATA DIVISION.   
+       SUBSCHEMA SECTION.   
+       INVOKE SUBSCHEMA PST300UCOBSU
+           IN FILE SUBSCHEMAS OF SCHEMA PST300SCHEMA
+              COPYING RECORDS    INTO COMMON
+              COPYING DATA-NAMES INTO COMMON
+              DMCA  COMMON  
+              SAVE DATA INCLUDES DEFERRED-UPDATES   
+              ERROR RECOVERY IS 9100-DATABASE-ERROR.
+
+       WORKING-STORAGE SECTION. 
+       01  MCFLAG                         PIC S9(10) BINARY.
+       01  WS-CONSTANTS.
+           03 WS-PROG-ID                  PIC X(12) VALUE 'SSC15LCD'.   
+
+       01  WS-MISC-VARIABLES.   
+           03 SUB                         PIC S9(10) BINARY.
+
+PPC470 01  WS-COMPANY-REC.  
+PPC470     03 WS-COMPANY-CODE               PIC X.  
+PPC470     03 WS-ACCT-COMPANY-CODE          PIC X(5).   
+PPC470     03 WS-COMPANY-NAME               PIC X(30).  
+PPC470     03 WS-ADDRESS-1                  PIC X(30).  
+PPC470     03 WS-ADDRESS-2                  PIC X(30).  
+PPC470     03 WS-ADDRESS-3                  PIC X(30).  
+PPC470     03 WS-CITY-NAME                  PIC X(25).  
+PPC470*    03 WS-STATE-CODE                 PIC XX. 
+PPC470     03 WS-STATE-CODE                 PIC X(03).  
+PPC470*    03 WS-ZIP-CODE                   PIC X(11).  
+PPC470*    03 WS-COUNTRY-CODE               PIC XX. 
+PPC470     03 WS-COUNTRY-CODE               PIC X(03).  
+PPC470*    03 WS-PHONE-NUM                  PIC 9(10).  
+PPC470     03 WS-PHONE-NUM                  PIC S9(11) USAGE BINARY.
+213512*    03 WS-VALID-CREDIT-CARDS OCCURS 5 TIMES. 
+213512     03 WS-VALID-CREDIT-CARDS OCCURS 8 TIMES. 
+PPC470        05 WS-VALID-CREDIT-CARD       PIC X(2).   
+PPC470     03 WS-PSUEDO-CITY                PIC X(5).   
+PPC470*    03 WS-LETTER-CHG-ALLOWED         PIC 9(2) BINARY.
+PPC470     03 WS-LETTER-CHG-ALLOWED         PIC S9(6) USAGE BINARY. 
+PPC470     03 WS-GROUP-BEST-FARE-FLG        PIC X(1).   
+PPC470*    03 WS-TSA-SEND-DAYS              PIC 9(2).   
+PPC470     03 WS-TSA-SEND-DAYS              PIC S9(6) USAGE BINARY. 
+PPC470     03 WS-MISC-FLAGS.
+PPC470        05 WS-AUTO-GEN-CNF-FLG        PIC 1 BINARY-1. 
+PPC470        05 WS-CURRENCY-UPDATE-FLG     PIC 1 BINARY-1. 
+PPC470        05 WS-LOCALITY-UPDATE-FLG     PIC 1 BINARY-1. 
+PPC470        05 FILLER                     PIC 1(6) BINARY-1.  
+PPC470*    03 WS-IR-FAX-PHONE-NUM           PIC 9(10).  
+PPC470*    03 WS-IR-ADMIN-FAX-PHONE-NUM     PIC 9(10).  
+PPC470*    03 WS-GR-FAX-PHONE-NUM           PIC 9(10).  
+PPC470*    03 WS-GR-ADMIN-FAX-PHONE-NUM     PIC 9(10).  
+PPC470*    03 WS-IR-PHONE-NUM               PIC 9(10).  
+PPC470*    03 WS-GR-PHONE-NUM               PIC 9(10).  
+PPC470*    03 WS-SGL-INV-DAYS-PRIOR         PIC 9(5) BINARY.
+PPC470     03 WS-IR-FAX-PHONE-NUM           PIC S9(11) USAGE BINARY.
+PPC470     03 WS-IR-ADMIN-FAX-PHONE-NUM     PIC S9(11) USAGE BINARY.
+PPC470     03 WS-GR-FAX-PHONE-NUM           PIC S9(11) USAGE BINARY.
+PPC470     03 WS-GR-ADMIN-FAX-PHONE-NUM     PIC S9(11) USAGE BINARY.
+PPC470     03 WS-IR-PHONE-NUM               PIC S9(11) USAGE BINARY.
+PPC470     03 WS-GR-PHONE-NUM               PIC S9(11) USAGE BINARY.
+PPC470     03 WS-SGL-INV-DAYS-PRIOR         PIC S9(6) USAGE BINARY. 
+PPC470     03 WS-DISP-SAVED-CC-CODE         PIC X(1).   
+PPC470     03 FILLER                        PIC X(1).   
+PPC470     03 WS-CURRENCY-CODE              PIC X(3).   
+PPC470*    03 WS-BROCHURE-TYPE              PIC X.  
+PPC470*    03 WS-NATIONALITY-CODE           PIC X(2).   
+PPC470     03 WS-NATIONALITY-CODE           PIC X(3).   
+PPC470     03 WS-LANGUAGE-CODE              PIC X.  
+PPC470     03 WS-INCL-GRP-IN-BEST-FARE      PIC X.  
+PPC470     03 WS-SPILL-CAPTURE-IND          PIC X.  
+PPC470*    03 WS-INTEREST-RATE-1            PIC V9(5) BINARY.   
+PPC470*    03 WS-INTEREST-RATE-2            PIC V9(5) BINARY.   
+PPC470*    03 WS-FACTOR-1                   PIC V9(10) BINARY.  
+PPC470*    03 WS-FACTOR-2                   PIC V9(10) BINARY.  
+PPC470*    03 WS-AMENITY-POINT-VALUE        PIC 9(11)V99 BINARY.
+PPC470     03 WS-INTEREST-RATE-1            PIC S9(2)V9(5)  
+PPC470                                          SIGN LEADING SEPARATE.  
+PPC470     03 WS-INTEREST-RATE-2            PIC S9(2)V9(5)  
+PPC470                                          SIGN LEADING SEPARATE.  
+PPC470     03 WS-FACTOR-1                   PIC S9(2)V9(10) 
+PPC470                                          SIGN LEADING SEPARATE.  
+PPC470     03 WS-FACTOR-2                   PIC S9(2)V9(10) 
+PPC470                                          SIGN LEADING SEPARATE.  
+PPC470     03 WS-AMENITY-POINT-VALUE        PIC S9(9)V9(2)  
+PPC470                                          SIGN LEADING SEPARATE.  
+PPC470     03 WS-ALLOW-REVISIONS-IND        PIC X.  
+PPC470     03 WS-REVISIONS-IND              PIC X.  
+PPC470     03 WS-ALL-GUEST-REQ-DATA-TABLE   OCCURS 30 TIMES.
+PPC470        05 WS-ALL-GUEST-REQ-CODE      PIC X(3).   
+PPC470        05 WS-ALL-GUEST-OPT-CODE      PIC X.  
+PPC470*    03 WS-GRP-HARD-MAX               PIC 9(5) BINARY.
+PPC470*    03 WS-GRP-SOFT-MAX               PIC 9(5) BINARY.
+PPC470*    03 WS-GROUP-LEADER-MAX           PIC 9(2) BINARY.
+PPC470*    03 WS-IR-DIRECT-PHONE-NUM        PIC 9(10).  
+PPC470*    03 WS-GR-DIRECT-PHONE-NUM        PIC 9(10).  
+PPC470*    03 WS-PVP-PHONE-NUM              PIC 9(10).  
+PPC470*    03 WS-MIN-SENIOR-AGE             PIC 9(02) BINARY.   
+PPC470*    03 WS-UCC-MAX-CHARGE-ALLOWED     PIC 9(8)V99 BINARY. 
+PPC470*    03 WS-MIN-SENIOR-AGE             PIC 9(02) BINARY.   
+PPC470*    03 WS-UCC-MAX-CHARGE-ALLOWED     PIC 9(8)V99 BINARY. 
+PPC470     03 WS-GRP-HARD-MAX               PIC S9(6) USAGE BINARY. 
+PPC470     03 WS-GRP-SOFT-MAX               PIC S9(6) USAGE BINARY. 
+PPC470     03 WS-GROUP-LEADER-MAX           PIC S9(6) USAGE BINARY. 
+PPC470     03 WS-IR-DIRECT-PHONE-NUM        PIC S9(11) USAGE BINARY.
+PPC470     03 WS-GR-DIRECT-PHONE-NUM        PIC S9(11) USAGE BINARY.
+PPC470     03 WS-PVP-PHONE-NUM              PIC S9(11) USAGE BINARY.
+PPC470     03 WS-UCC-MAX-CHARGE-ALLOWED     PIC S9(9)V9(2)  
+PPC470                                          SIGN LEADING SEPARATE.  
+PPC470     03 WS-DINING-INFO      OCCURS 10 TIMES.  
+PPC470        05 WS-DINING-TIME-CODE        PIC X(1).   
+PPC470        05 WS-DINING-ROOM-CODE        PIC X(1).   
+PPC470*       05 WS-GRP-DINING-MAX          PIC 9(5) BINARY.
+PPC470*       05 WS-DINING-TIME             PIC 9(4) BINARY.
+PPC470        05 WS-GRP-DINING-MAX          PIC S9(6) USAGE BINARY. 
+PPC470        05 WS-DINING-TIME             PIC X(8).   
+PPC470        05 WS-DINING-DESC             PIC X(20).  
+PPC470*       05 FILLER                     PIC X(2).   
+CCLAUS*       05 FILLER                     PIC X(03).  
+CCLAUS        05 WS-FNC-COMPANY-CODE        PIC X(01).  
+CCLAUS        05 FILLER                     PIC X(02).  
+PPC470*    03 WS-DINING-INDV-DISP-CAP       PIC 9(5) BINARY.
+PPC470*    03 WS-CONN-BOOKING-CUTOFF-DAYS   PIC 9(1).   
+PPC470*    03 WS-CONN-CHECK-CUTOFF-DAYS     PIC 9(2).   
+PPC470*    03 WS-CONN-OTHER-CUTOFF-DAYS     PIC 9(2).   
+PPC470*    03 WS-AUTO-CANCEL-FIELDS.
+PPC470*       05 WS-DEP-ADV-DAYS            PIC 9(2).   
+PPC470*       05 WS-FNL-DUE-DAYS            PIC 9(2).   
+PPC470*       05 WS-FP-BAL-DUE-PCT          PIC V99.
+PPC470*       05 WS-DEP-DUE-SAIL-DD         PIC 9(1).   
+PPC470*       05 WS-DEP-DUE-LESS-DD-AMT     PIC 9(3).   
+PPC470*       05 WS-DEP-DUE-GREAT-DD-AMT    PIC 9(3).   
+PPC470*       05 WS-FNL-DUE-DAYS-2          PIC 9(2).   
+PPC470*       05 WS-FNL-DUE-SAIL-DD         PIC 9.  
+PPC470*       05 WS-FNL-DUE-LESS-TH-AMT     PIC 9(3).   
+PPC470*       05 WS-FNL-DUE-GREAT-TH-AMT    PIC 9(3).   
+PPC470*    03 WS-SGL-DEP-DBL-DATE           PIC 9(08) BINARY.   
+PPC470*    03 WS-FNL-FIRST-REM-DAYS         PIC 9(4) BINARY.
+PPC470*    03 WS-FNL-SECOND-REM-DAYS        PIC 9(4) BINARY.
+PPC470*    03 WS-FNL-REM-LETTER-FLAG        PIC X.  
+PPC470*    03 WS-FNL-PMT-FST-REM-DAYS       PIC 9(04) BINARY.   
+PPC470*    03 WS-FNL-PMT-SEC-REM-DAYS       PIC 9(04) BINARY.   
+PPC470*    03 WS-MAX-CH-HOLD-OPT-HRS        PIC 9(3) BINARY.
+PPC470*    03 WS-AGENT-OPTION-DAYS          PIC 9(02) BINARY.   
+PPC470*    03 WS-AGENT-OPTION-HOURS         PIC 9(02) BINARY.   
+PPC470*    03 FILLER                        PIC X(946). 
+PPC470     03 WS-DINING-INDV-DISP-CAP       PIC S9(6) USAGE BINARY. 
+PPC470     03 WS-CONN-BOOKING-CUTOFF-DAYS   PIC S9(6) USAGE BINARY. 
+PPC470     03 WS-CONN-CHECK-CUTOFF-DAYS     PIC S9(6) USAGE BINARY. 
+PPC470     03 WS-CONN-OTHER-CUTOFF-DAYS     PIC S9(6) USAGE BINARY. 
+PPC470     03 WS-AUTO-CANCEL-FIELDS.
+PPC470        05 WS-DEP-ADV-DAYS            PIC S9(6) USAGE BINARY. 
+PPC470        05 WS-FNL-DUE-DAYS            PIC S9(6) USAGE BINARY. 
+PPC470        05 WS-FP-BAL-DUE-PCT          PIC S9(3)V9(2)  
+PPC470                                          SIGN LEADING SEPARATE.  
+PPC470        05 WS-DEP-DUE-SAIL-DD         PIC S9(6) USAGE BINARY. 
+PPC470        05 WS-DEP-DUE-LESS-DD-AMT     PIC S9(6) USAGE BINARY. 
+PPC470        05 WS-DEP-DUE-GREAT-DD-AMT    PIC S9(6) USAGE BINARY. 
+PPC470        05 WS-FNL-DUE-DAYS-2          PIC S9(6) USAGE BINARY. 
+PPC470        05 WS-FNL-DUE-SAIL-DD         PIC S9(6) USAGE BINARY. 
+PPC470        05 WS-FNL-DUE-LESS-TH-AMT     PIC S9(6) USAGE BINARY. 
+PPC470        05 WS-FNL-DUE-GREAT-TH-AMT    PIC S9(6) USAGE BINARY. 
+PPC470     03 WS-SGL-DEP-DBL-DATE           PIC 9(08).  
+PPC470     03 FILLER                        PIC X(02).  
+PPC470     03 WS-FNL-FIRST-REM-DAYS         PIC S9(6) USAGE BINARY. 
+PPC470     03 WS-FNL-SECOND-REM-DAYS        PIC S9(6) USAGE BINARY. 
+PPC470     03 WS-FNL-REM-LETTER-FLAG        PIC X(01).  
+PPC470     03 WS-FNL-PMT-FST-REM-DAYS       PIC S9(6) USAGE BINARY. 
+PPC470     03 WS-FNL-PMT-SEC-REM-DAYS       PIC S9(6) USAGE BINARY. 
+PPC470     03 WS-MAX-CH-HOLD-OPT-HRS        PIC S9(6) USAGE BINARY. 
+PPC470     03 WS-AGENT-OPTION-DAYS          PIC S9(6) USAGE BINARY. 
+PPC470     03 WS-AGENT-OPTION-HOURS         PIC S9(6) USAGE BINARY. 
+187869     03 WS-AUTOBERTH-FIELDS.  
+PPC470*       05 WS-AUTOBERTH-START-DAYS    PIC 9(2).   
+PPC470*       05 WS-AUTOBERTH-END-DAYS      PIC 9(2).   
+PPC470        05 WS-AUTOBERTH-START-DAYS    PIC S9(6) USAGE BINARY. 
+PPC470        05 WS-AUTOBERTH-END-DAYS      PIC S9(6) USAGE BINARY. 
+187869        05 WS-AUTOBERTH-CAT-ORDER     PIC X.  
+PPC470     03 WS-AUTOBERTH-DPLTN     OCCURS 4 TIMES.
+PPC470*       05 WS-AUTOBERTH-DPLTN-DAYS PIC 9(2).  
+PPC470*       05 WS-AUTOBERTH-DPLTN-NUM  PIC 9(2).  
+PPC470        05 WS-AUTOBERTH-DPLTN-DAYS    PIC S9(6) USAGE BINARY. 
+PPC470        05 WS-AUTOBERTH-DPLTN-NUM     PIC S9(6) USAGE BINARY. 
+PPC470     03 WS-VPP-GOLD-ADMIN-PCT         PIC S9(6)V9(5)  
+PPC470                                          SIGN LEADING SEPARATE.  
+PPC470     03 WS-VPP-GOLD-ACH-PCT           PIC S9(6)V9(5)  
+PPC470                                          SIGN LEADING SEPARATE.  
+PPC470     03 WS-VPP-STANDARD-ADMIN-PCT     PIC S9(6)V9(5)  
+PPC470                                          SIGN LEADING SEPARATE.  
+PPC470     03 WS-VPP-STANDARD-ACH-PCT       PIC S9(6)V9(5)  
+PPC470                                          SIGN LEADING SEPARATE.  
+PPC470     03 WS-SCHEDULED-PAYMENT-IND      PIC X(1).   
+215963     03 WS-VPP-STATE-RQRD-DATE        PIC 9(08) BINARY.   
+PPC470     03 WS-UPDATE-DATETIME            PIC X(26).  
+CALFEE     03 WS-GOVT-FEE-INCL-IND          PIC X(1).   
+213512*    03 FILLER                        PIC X(917). 
+215963*    03 FILLER                        PIC X(911). 
+CALFEE*    03 FILLER                        PIC X(910). 
+CALFEE     03 FILLER                        PIC X(909). 
+PPC470*    03 FILLER                     PIC X(925).
+
+PPC470 01  WS-SGL-DEP-DBL-DATE-X.   
+PPC470     03 WS-SGL-DEP-DBL-DATE1          PIC 9(08).  
+215963  
+215963 01  WS-VPP-STATE-RQRD-DATE-X.
+215963     03 WS-VPP-STATE-RQRD-DATE1       PIC 9(08).  
+PPC470  
+PPC470 01  WS-DINING-TIME-X.
+PPC470     03 WS-DINING-TIME1               PIC 9(04).  
+PPC470     03 FILLER                        PIC 9(02) VALUE ZEROES. 
+PPC470  
+PPC470 01  WS-T-MISC-FLAGS. 
+PPC470     03 WS-T-AUTO-GEN-CNF-FLG       PIC X(01).
+PPC470     03 WS-T-CURRENCY-UPDATE-FLG    PIC X(01).
+PPC470     03 WS-T-LOCALITY-UPDATE-FLG    PIC X(01).
+PPC470     03 FILLER                      PIC X(06).
+PPC470  
+PPC470 01  WS-DINING-CNT                  PIC 9(02).
+PPC470 01  WS-CARD-CNT                    PIC 9(02).
+PPC470 01  WS-REQ-CNT                     PIC 9(02).
+187869 01  WS-AUTO-CNT                    PIC 9(02).
+PPC470  
+PPC470 01  WS-DINING-TEMP.  
+PPC470     03 WS-DINING-REC.
+PPC470        05 WS-T-DINING-TIME-CODE    PIC X(01).
+PPC470        05 WS-T-DINING-ROOM-CODE    PIC X(01).
+PPC470*       05 WS-T-GRP-DINING-MAX      PIC 9(05) BINARY. 
+PPC470        05 WS-T-GRP-DINING-MAX      PIC S9(6) USAGE BINARY.   
+PPC470*       05 WS-T-DINING-TIME         PIC 9(04) BINARY. 
+PPC470        05 WS-T-DINING-TIME         PIC X(8). 
+PPC470        05 WS-T-DINING-DESC         PIC X(20).
+PPC470*       05 FILLER                   PIC X(02).
+CCLAUS*       05 FILLER                   PIC X(03).
+CCLAUS        05 WS-T-FNC-COMPANY-CODE    PIC X(01).
+CCLAUS        05 FILLER                   PIC X(02).
+PPC470  
+187869 01  WS-T-AUTOBERTH-DPLTN-TEMP.   
+187869     03 WS-AUTOBERTH-DPLTN-REC.   
+PPC470*       05 WS-T-AUTOBERTH-DPLTN-DAYS PIC 9(2).
+PPC470*       05 WS-T-AUTOBERTH-DPLTN-NUM  PIC 9(2).
+PPC470        05 WS-T-AUTOBERTH-DPLTN-DAYS PIC S9(6) USAGE BINARY.  
+PPC470        05 WS-T-AUTOBERTH-DPLTN-NUM  PIC S9(6) USAGE BINARY.  
+
+PPC470 01  WS-VALID-CARD-TEMP.  
+PPC470     03 WS-VALID-CARD-REC.
+PPC470        05 WS-T-VALID-CREDIT-CARD   PIC X(02).
+PPC470  
+PPC470 01  WS-ALL-GUEST-TEMP.   
+PPC470     03 WS-ALL-GUEST-REC. 
+PPC470        05 WS-T-ALL-GUEST-REQ-CODE  PIC X(03).
+PPC470        05 WS-T-ALL-GUEST-OPT-CODE  PIC X(01).
+PPC470  
+PPC470 01  WS-COMPANY-REFERENCE.
+PPC470     03 WS-CRR-CALC-KEY.  
+PPC470        05 WS-AGENCY-CONN-CODE      PIC X(02).
+PPC470        05 WS-CRUISE-LINE-CODE      PIC X(03).
+PPC470     03 WS-COMPANY-REF-CODE         PIC X(01).
+PPC470     03 WS-PSEUDO-CITY-CODE         PIC X(05).
+PPC470     03 FILLER                      PIC X(25).
+PPC470  
+PPC470 01  WS-COMPANY-THRESHOLD.
+PPC470     03 WS-THRESHOLD-TYPE           PIC X(01).
+PPC470     03 FILLER                      PIC X(01).
+PPC470     03 WS-TSHD-ENTRY-CNT           PIC 9(03)  BINARY.
+PPC470     03 WS-TSHD-REF-TABLE           OCCURS 200 TIMES. 
+PPC470*       05 WS-REFERENCE-PRICE-LEVEL PIC 9(04)  BINARY.
+PPC470*       05 WS-REFERENCE-PCT         PIC V999   BINARY.
+PPC470        05 WS-REFERENCE-PRICE-LEVEL PIC S9(6) USAGE BINARY.   
+PPC470        05 WS-REFERENCE-PCT         PIC S9(2)V9(3)
+PPC470                                        SIGN LEADING SEPARATE.
+
+PPC470 01  WS-T-TSHD-REF-ENTRY. 
+PPC470*    05 WS-T-REFERENCE-PRICE-LEVEL PIC 9(04) BINARY.  
+PPC470*    05 WS-T-REFERENCE-PCT         PIC V999  BINARY.  
+PPC470     05 WS-T-REFERENCE-PRICE-LEVEL PIC S9(6) USAGE BINARY.
+PPC470     05 WS-T-REFERENCE-PCT         PIC S9(2)V9(3) 
+PPC470                                        SIGN LEADING SEPARATE.
+
+       COPY DPP01DTA.   
+       COPY DPP42ERR.   
+       COPY DPP42SWS.   
+       COPY RSP00DMS.   
+PPC470*COPY RSP03COM.   
+       COPY SSP00EXT.   
+       COPY SSP15EXT.   
+       COPY SSP02CON.   
+       COPY SSP99CHK.   
+
+       COMMON-STORAGE SECTION.  
+
+       LINKAGE SECTION. 
+       COPY DPP01SCO.   
+       COPY DPP01CIW.   
+       COPY SSP15LCD.   
+       COPY SSP15OUT.   
+
+       PROCEDURE DIVISION USING DPP01-COMMON-DATA-FIELDS
+                                DPP01-COMMON-INFO   
+                                SSP15-INPUT-PARAMS  
+                                SSP15-OUTPUT-PARAMS 
+                          ENTRY SSO15-LOAD-CMP  
+                                SSO15-LOAD-CRR  
+                                SSO15-LOAD-CTR. 
+
+       0000-SSC15LCD-MAIN-CONTROL.  
+           MOVE 0 TO MCFLAG.
+           COPY DPP42INT.   
+
+PPC470     EXEC SQL USE DEFAULT SCHEMA PSTRDMS END-EXEC.
+
+           MOVE 1          TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+      *================================================================ 
+       SSO15-LOAD-CMP.  
+           MOVE 1 TO MCFLAG.
+           COPY DPP42INT.   
+
+           MOVE LOW-VALUES TO SSP15-O-N-PARAMS. 
+
+      *    M3E Note:  The following adds confidence that record layout  
+      *    in proc is the same as in database.  
+
+PPC470*    IF FUNCTION LENGTH (COMPANY-REC) NOT =   
+PPC470*          FUNCTION LENGTH (SSP15-COMPANY-REC (1))
+PPC470*       MOVE 2 TO DPP42-HOLD-MSG-INDEX
+PPC470*       GO TO 9200-EDIT-ERROR-MSG.
+
+           IF DPP42-CALLING-OBJECT = 'SSC15UCD' 
+              GO TO 0050-SKIP-UPDATE-CHECK. 
+
+           MOVE SPACES             TO SSP99-INPUT-KEY.  
+      *    Typically, the following should be field name prefix used
+      *    for the database record. 
+           MOVE 'CMP'                TO SSP99-I-UPDATE-REC-CODE.
+           MOVE SSP15-I-COMPANY-CODE TO SSP99-I-UPDATE-KEY. 
+
+169239     CALL 'SSC99CHK' USING DPP42-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 SSP99-INPUT-PARAMS 
+                                 SSP99-OUTPUT-PARAMS.   
+
+           IF DPP42-SUB-MSG-CTR > ZERO AND DPP42-SUB-MSG-STATUS (1) > 1 
+              GO TO 9500-RETURN-SUBROUTINE-ERROR.   
+
+           IF DPP42-CALLING-OBJECT = 'SSC15SPC' 
+              IF SSP99-O-FOUND-IND = 'Y'
+                 MOVE 3 TO DPP42-HOLD-MSG-INDEX 
+                 GO TO 9200-EDIT-ERROR-MSG. 
+
+           IF SSP99-O-FOUND-IND = 'Y'   
+              IF SSP99-O-UPDATE-CODE = 'D'  
+                 MOVE 4 TO DPP42-HOLD-MSG-INDEX 
+                 GO TO 9200-EDIT-ERROR-MSG  
+              ELSE  
+                 CALL 'SSC15FCD' USING SSP15-INPUT-PARAMS   
+                                       SSP15-OUTPUT-PARAMS  
+                 IF SSP15-O-CMP-SUB > ZERO  
+                    GO TO 9000-END-OF-JOB.  
+
+       0050-SKIP-UPDATE-CHECK.  
+           MOVE SSP02-COMPANY-DATA-CODE TO DPP42-TEST-SET-CODE. 
+
+           PERFORM DPP42-SET-TS-CELL
+              THRU DPP42-SET-TS-CELL-EXIT.  
+
+           CALL 'SSC15FCD' USING SSP15-INPUT-PARAMS 
+                                 SSP15-OUTPUT-PARAMS.   
+
+           IF (DPP42-CALLING-OBJECT NOT = 'SSC15UCD')   
+              IF SSP15-O-CMP-SUB > ZERO 
+                 IF SSP15-CMP-UPDATE-FLAG (SSP15-O-CMP-SUB) = 0 
+                    GO TO 9000-END-OF-JOB.  
+
+           CALL 'INC_COUNTER' USING SSP15-LOAD-CNT. 
+
+PPC470*    PERFORM 8000-START-DMS THRU 8099-EXIT.   
+PPC470* 
+PPC470*    MOVE SSP15-I-COMPANY-CODE         TO CMP-COMPANY-CODE.   
+PPC470* 
+PPC470*    FETCH COMPANY-REC RECORD 
+PPC470*          ON ERROR GO TO 0120-REMOVE-CMP-FROM-CACHE. 
+PPC470  
+PPC470     MOVE LOW-VALUES              TO WS-COMPANY-REC   
+PPC470                                     WS-T-MISC-FLAGS. 
+PPC470  
+PPC470     EXEC SQL WHENEVER NOT FOUND  
+PPC470          GO TO 0120-REMOVE-CMP-FROM-CACHE
+PPC470     END-EXEC.
+PPC470  
+PPC470     EXEC SQL 
+PPC470           SELECT COMPANY_CODE,   
+PPC470                  ACCT_COMPANY_CODE,  
+PPC470                  COMPANY_NAME,   
+PPC470                  ADDRESS_1,  
+PPC470                  ADDRESS_2 , 
+PPC470                  ADDRESS_3,  
+PPC470                  CITY_NAME,  
+PPC470                  STATE_CODE ,
+PPC470                  COUNTRY_CODE,   
+PPC470                  PHONE_NUMBER ,  
+PPC470                  PSUEDO_CITY_CODE,   
+PPC470                  LETTER_CHANGE_ALLOWED,  
+PPC470                  GROUP_BEST_FARE_FLAG,   
+PPC470                  TSA_SEND_DAYS,  
+PPC470                  AUTO_GEN_CNF_FLG ,  
+PPC470                  CURRENCY_UPDATE_FLG,
+PPC470                  LOCALITY_UPDATE_FLG,
+PPC470                  INDV_FAX_PHONE_NUM, 
+PPC470                  INDV_ADMIN_FAX_PHONE_NUM,   
+PPC470                  GROUP_FAX_PHONE_NUM,
+PPC470                  GROUP_ADMIN_FAX_PHONE_NUM,  
+PPC470                  INDV_PHONE_NUM, 
+PPC470                  GROUP_PHONE_NUM,
+PPC470                  SINGLE_INV_DAYS_PRIOR,  
+PPC470                  DISP_SAVED_CC_CODE, 
+PPC470                  CURRENCY_CODE,  
+PPC470*                 BROCHURE_TYPE,  
+PPC470                  NATIONALITY_CODE,   
+PPC470                  LANGUAGE_CODE,  
+PPC470                  INCLUDE_GRP_IN_BEST_FARE,   
+PPC470                  SPILL_CAPTURE_IND,  
+PPC470                  INTEREST_RATE_1,
+PPC470                  INTEREST_RATE_2,
+PPC470                  FACTOR_1,   
+PPC470                  FACTOR_2,   
+PPC470                  AMENITY_POINT_VALUE,
+PPC470                  ALLOW_REVISIONS_IND,
+PPC470                  REVISIONS_IND,  
+PPC470                  GROUP_HARD_MAX, 
+PPC470                  GROUP_SOFT_MAX, 
+PPC470                  GROUP_LEADER_MAX,   
+PPC470                  INDV_DIRECT_PHONE_NUM,  
+PPC470                  GROUP_DIRECT_PHONE_NUM, 
+PPC470                  PVP_PHONE_NUM,  
+PPC470*                 MIN_SENIOR_AGE, 
+PPC470                  UCC_MAX_CC_CHARGE_ALLOWED,  
+PPC470                  DINING_INDV_DISP_CAP,   
+PPC470                  CONN_BOOKING_CUTOFF_DAYS,   
+PPC470                  CONN_CHECK_CUTOFF_DAYS, 
+PPC470                  CONN_OTHER_PAY_CUTOFF_DAYS, 
+PPC470                  DEP_ADV_DAYS,   
+PPC470                  FNL_DUE_DAYS,   
+PPC470                  FP_BAL_DUE_PCT, 
+PPC470                  DEP_DUE_SAIL_DD,
+PPC470                  DEP_DUE_LESS_DD_AMT,
+PPC470                  DEP_DUE_GREAT_DD_AMT,   
+PPC470                  FNL_DUE_SAIL_DD,
+PPC470                  FNL_DUE_LESS_TH_AMT,
+PPC470                  FNL_DUE_GREAT_TH_AMT,   
+PPC470                  TO_CHAR(SGL_DEP_DBL_DATE,'YYYYMMDD'),   
+PPC470                  FNL_FIRST_REM_DAYS ,
+PPC470                  FNL_SECOND_REM_DAYS,
+PPC470                  FNL_REM_LETTER_FLG, 
+PPC470                  FNL_PMT_TXT_FST_REM_DAYS,   
+PPC470                  FNL_PMT_TXT_SEC_REM_DAYS,   
+PPC470                  MAX_CH_HOLD_OPT_HRS,
+PPC470                  AGENT_OPTION_DAYS,  
+PPC470                  AGENT_OPTION_HOURS, 
+187869                  FNL_DUE_DAYS_2, 
+187869                  AUTOBERTH_START_DAYS,   
+187869                  AUTOBERTH_END_DAYS, 
+PPC470*                 AUTOBERTH_CAT_ORDER 
+PPC470                  AUTOBERTH_CAT_ORDER,
+PPC470                  VPP_GOLD_ADMIN_PCT, 
+PPC470                  VPP_GOLD_ACH_PCT,   
+PPC470                  VPP_STANDARD_ADMIN_PCT, 
+PPC470                  VPP_STANDARD_ACH_PCT,   
+PPC470                  SCHEDULED_PAYMENT_IND,  
+215963                  TO_CHAR(
+215963                     IFNULL(  
+215963                        VPP_STATE_REQUIRED_DATE   
+215963                       ,'2099-12-31') 
+215963                    ,'YYYYMMDD'), 
+PPC470                  UPDATE_DATETIME,
+CALFEE                  GOVT_FEE_INCLUDE_IND
+PPC470            INTO :WS-COMPANY-CODE 
+PPC470                ,:WS-ACCT-COMPANY-CODE
+PPC470                ,:WS-COMPANY-NAME 
+PPC470                ,:WS-ADDRESS-1
+PPC470                ,:WS-ADDRESS-2
+PPC470                ,:WS-ADDRESS-3
+PPC470                ,:WS-CITY-NAME
+PPC470                ,:WS-STATE-CODE   
+PPC470                ,:WS-COUNTRY-CODE 
+PPC470                ,:WS-PHONE-NUM
+PPC470                ,:WS-PSUEDO-CITY  
+PPC470                ,:WS-LETTER-CHG-ALLOWED   
+PPC470                ,:WS-GROUP-BEST-FARE-FLG  
+PPC470                ,:WS-TSA-SEND-DAYS
+PPC470                ,:WS-T-AUTO-GEN-CNF-FLG   
+PPC470                ,:WS-T-CURRENCY-UPDATE-FLG
+PPC470                ,:WS-T-LOCALITY-UPDATE-FLG
+PPC470                ,:WS-IR-FAX-PHONE-NUM 
+PPC470                ,:WS-IR-ADMIN-FAX-PHONE-NUM   
+PPC470                ,:WS-GR-FAX-PHONE-NUM 
+PPC470                ,:WS-GR-ADMIN-FAX-PHONE-NUM   
+PPC470                ,:WS-IR-PHONE-NUM 
+PPC470                ,:WS-GR-PHONE-NUM 
+PPC470                ,:WS-SGL-INV-DAYS-PRIOR   
+PPC470                ,:WS-DISP-SAVED-CC-CODE   
+PPC470                ,:WS-CURRENCY-CODE
+PPC470*               ,:WS-BROCHURE-TYPE
+PPC470                ,:WS-NATIONALITY-CODE 
+PPC470                ,:WS-LANGUAGE-CODE
+PPC470                ,:WS-INCL-GRP-IN-BEST-FARE
+PPC470                ,:WS-SPILL-CAPTURE-IND
+PPC470                ,:WS-INTEREST-RATE-1  
+PPC470                ,:WS-INTEREST-RATE-2  
+PPC470                ,:WS-FACTOR-1 
+PPC470                ,:WS-FACTOR-2 
+PPC470                ,:WS-AMENITY-POINT-VALUE  
+PPC470                ,:WS-ALLOW-REVISIONS-IND  
+PPC470                ,:WS-REVISIONS-IND
+PPC470                ,:WS-GRP-HARD-MAX 
+PPC470                ,:WS-GRP-SOFT-MAX 
+PPC470                ,:WS-GROUP-LEADER-MAX 
+PPC470                ,:WS-IR-DIRECT-PHONE-NUM  
+PPC470                ,:WS-GR-DIRECT-PHONE-NUM  
+PPC470                ,:WS-PVP-PHONE-NUM
+PPC470*               ,:WS-MIN-SENIOR-AGE   
+PPC470                ,:WS-UCC-MAX-CHARGE-ALLOWED   
+PPC470                ,:WS-DINING-INDV-DISP-CAP 
+PPC470                ,:WS-CONN-BOOKING-CUTOFF-DAYS 
+PPC470                ,:WS-CONN-CHECK-CUTOFF-DAYS   
+PPC470                ,:WS-CONN-OTHER-CUTOFF-DAYS   
+PPC470                ,:WS-DEP-ADV-DAYS 
+PPC470                ,:WS-FNL-DUE-DAYS 
+PPC470                ,:WS-FP-BAL-DUE-PCT   
+PPC470                ,:WS-DEP-DUE-SAIL-DD  
+PPC470                ,:WS-DEP-DUE-LESS-DD-AMT  
+PPC470                ,:WS-DEP-DUE-GREAT-DD-AMT 
+PPC470                ,:WS-FNL-DUE-SAIL-DD  
+PPC470                ,:WS-FNL-DUE-LESS-TH-AMT  
+PPC470                ,:WS-FNL-DUE-GREAT-TH-AMT 
+PPC470                ,:WS-SGL-DEP-DBL-DATE-X   
+PPC470                ,:WS-FNL-FIRST-REM-DAYS   
+PPC470                ,:WS-FNL-SECOND-REM-DAYS  
+PPC470                ,:WS-FNL-REM-LETTER-FLAG  
+PPC470                ,:WS-FNL-PMT-FST-REM-DAYS 
+PPC470                ,:WS-FNL-PMT-SEC-REM-DAYS 
+PPC470                ,:WS-MAX-CH-HOLD-OPT-HRS  
+PPC470                ,:WS-AGENT-OPTION-DAYS
+PPC470                ,:WS-AGENT-OPTION-HOURS   
+187869                ,:WS-FNL-DUE-DAYS-2   
+187869                ,:WS-AUTOBERTH-START-DAYS 
+187869                ,:WS-AUTOBERTH-END-DAYS   
+187869                ,:WS-AUTOBERTH-CAT-ORDER  
+PPC470                ,:WS-VPP-GOLD-ADMIN-PCT   
+PPC470                ,:WS-VPP-GOLD-ACH-PCT 
+PPC470                ,:WS-VPP-STANDARD-ADMIN-PCT   
+PPC470                ,:WS-VPP-STANDARD-ACH-PCT 
+PPC470                ,:WS-SCHEDULED-PAYMENT-IND
+215963                ,:WS-VPP-STATE-RQRD-DATE-X
+PPC470                ,:WS-UPDATE-DATETIME  
+CALFEE                ,:WS-GOVT-FEE-INCL-IND
+PPC470            FROM  COMPANY 
+PPC470            WHERE COMPANY_CODE    = :SSP15-I-COMPANY-CODE 
+PPC470     END-EXEC.
+PPC470  
+PPC470     MOVE WS-SGL-DEP-DBL-DATE1 TO WS-SGL-DEP-DBL-DATE.
+215963  
+215963     MOVE WS-VPP-STATE-RQRD-DATE1 TO WS-VPP-STATE-RQRD-DATE.  
+PPC470  
+PPC470     IF WS-T-AUTO-GEN-CNF-FLG     = 'Y'   
+PPC470        MOVE 1                    TO  WS-AUTO-GEN-CNF-FLG 
+PPC470     ELSE 
+PPC470        MOVE 0                    TO  WS-AUTO-GEN-CNF-FLG 
+PPC470     END-IF.  
+PPC470  
+PPC470     IF WS-T-CURRENCY-UPDATE-FLG  = 'Y'   
+PPC470        MOVE 1                    TO  WS-CURRENCY-UPDATE-FLG  
+PPC470     ELSE 
+PPC470        MOVE 0                    TO  WS-CURRENCY-UPDATE-FLG  
+PPC470     END-IF.  
+PPC470  
+PPC470     IF WS-T-LOCALITY-UPDATE-FLG  = 'Y'   
+PPC470        MOVE 1                    TO  WS-LOCALITY-UPDATE-FLG  
+PPC470     ELSE 
+PPC470        MOVE 0                    TO  WS-LOCALITY-UPDATE-FLG  
+PPC470     END-IF.  
+PPC470  
+PPC470     MOVE 0                       TO  WS-DINING-CNT   
+PPC470                                      WS-CARD-CNT 
+PPC470                                      WS-REQ-CNT  
+187869                                      WS-AUTO-CNT.
+PPC470     EXEC SQL 
+PPC470          DECLARE  COMPANY_DINING_TBL CURSOR  
+PPC470           SELECT  DINING_CODE
+PPC470                  ,DINING_ROOM_CODE   
+PPC470                  ,DINING_ROOM_MAX
+PPC470                  ,TO_CHAR(DINING_TIME,'HH24MI')  
+PPC470                  ,DESCRIPTION
+CCLAUS                  ,FINANCIAL_COMPANY_CODE 
+PPC470             FROM  COMPANY_DINING 
+PPC470            WHERE  COMPANY_CODE = :SSP15-I-COMPANY-CODE   
+PPC470     END-EXEC.
+PPC470  
+PPC470     EXEC SQL 
+PPC470          DECLARE  CREDIT_CARDS_TBL CURSOR
+PPC470           SELECT  CREDIT_CARD
+PPC470*            FROM  COMPANY_VALID_CREDIT_CARDS 
+PPC470             FROM  COMPANY_VAL_CRDT_CARD  
+PPC470            WHERE  COMPANY_CODE = :SSP15-I-COMPANY-CODE   
+PPC470     END-EXEC.
+PPC470  
+187869     EXEC SQL 
+187869          DECLARE  COMPANY_AUTOBERTH_DEPLTION_TBL CURSOR  
+187869           SELECT  AUTOBERTH_DEPLETION_DAYS,  
+187869                   AUTOBERTH_DEPLETION_NUMBER 
+PPC470*            FROM  COMPANY_AUTOBERTH_DEPLTION 
+PPC470             FROM  COMPANY_AUTOBRTH_DPLT  
+187869            WHERE  COMPANY_CODE = :SSP15-I-COMPANY-CODE   
+187869     END-EXEC.
+
+PPC470     EXEC SQL 
+PPC470          DECLARE  REQ_DATA_TBL CURSOR
+PPC470           SELECT  GUEST_REQ_CODE 
+PPC470                  ,GUEST_OPT_CODE 
+PPC470*            FROM  COMPANY_ALL_GUEST_REQ_DATA 
+PPC470             FROM  COMPANY_ALL_GST_RQ_DTA 
+PPC470            WHERE  COMPANY_CODE = :SSP15-I-COMPANY-CODE   
+PPC470     END-EXEC.
+PPC470  
+PPC470     EXEC SQL 
+PPC470          OPEN COMPANY_DINING_TBL 
+PPC470     END-EXEC.
+PPC470  
+PPC470     EXEC SQL 
+PPC470          OPEN CREDIT_CARDS_TBL   
+PPC470     END-EXEC.
+PPC470  
+PPC470     EXEC SQL 
+PPC470          OPEN REQ_DATA_TBL   
+PPC470     END-EXEC.
+PPC470  
+PPC470     EXEC SQL 
+PPC470          OPEN COMPANY_AUTOBERTH_DEPLTION_TBL 
+PPC470     END-EXEC.
+
+PPC470     EXEC SQL WHENEVER NOT FOUND  
+PPC470          GO TO 0060-CONTINUE 
+PPC470     END-EXEC.
+PPC470  
+PPC470 0060-COMPANY-DINING. 
+PPC470  
+PPC470     EXEC SQL 
+PPC470          FETCH  COMPANY_DINING_TBL   
+PPC470           INTO :WS-T-DINING-TIME-CODE
+PPC470               ,:WS-T-DINING-ROOM-CODE
+PPC470               ,:WS-T-GRP-DINING-MAX  
+PPC470               ,:WS-DINING-TIME-X 
+PPC470               ,:WS-T-DINING-DESC 
+CCLAUS               ,:WS-T-FNC-COMPANY-CODE
+PPC470     END-EXEC.
+PPC470  
+V2B470     ADD 1                        TO WS-DINING-CNT.   
+PPC470     MOVE WS-DINING-TIME1 TO WS-DINING-TIME(WS-DINING-CNT).   
+PPC470  
+V2B470*    ADD 1                        TO WS-DINING-CNT.   
+PPC470     MOVE WS-DINING-TEMP          TO  
+PPC470                                  WS-DINING-INFO(WS-DINING-CNT).  
+PPC470     GO TO 0060-COMPANY-DINING.   
+PPC470  
+PPC470 0060-CONTINUE.   
+PPC470  
+PPC470     EXEC SQL 
+PPC470          CLOSE COMPANY_DINING_TBL
+PPC470     END-EXEC.
+PPC470  
+PPC470     EXEC SQL WHENEVER NOT FOUND  
+PPC470          GO TO 0070-CONTINUE 
+PPC470     END-EXEC.
+PPC470  
+PPC470 0070-CREDIT-CARD.
+PPC470  
+PPC470     EXEC SQL 
+PPC470          FETCH  CREDIT_CARDS_TBL 
+PPC470           INTO :WS-T-VALID-CREDIT-CARD   
+PPC470     END-EXEC.
+PPC470  
+PPC470     ADD 1                        TO WS-CARD-CNT. 
+PPC470     MOVE WS-VALID-CARD-TEMP      TO  
+PPC470          WS-VALID-CREDIT-CARD(WS-CARD-CNT).  
+PPC470  
+PPC470     GO TO 0070-CREDIT-CARD.  
+PPC470  
+PPC470 0070-CONTINUE.   
+PPC470  
+PPC470     EXEC SQL 
+PPC470          CLOSE CREDIT_CARDS_TBL  
+PPC470     END-EXEC.
+PPC470  
+PPC470     EXEC SQL WHENEVER NOT FOUND  
+PPC470          GO TO 0080-CONTINUE 
+PPC470     END-EXEC.
+PPC470  
+PPC470 0080-REQ-DATA.   
+PPC470  
+PPC470     EXEC SQL 
+PPC470          FETCH  REQ_DATA_TBL 
+PPC470           INTO :WS-T-ALL-GUEST-REQ-CODE  
+PPC470               ,:WS-T-ALL-GUEST-OPT-CODE  
+PPC470     END-EXEC.
+PPC470  
+PPC470     ADD 1                        TO WS-REQ-CNT   
+PPC470     MOVE WS-ALL-GUEST-TEMP       TO  
+PPC470          WS-ALL-GUEST-REQ-DATA-TABLE(WS-REQ-CNT).
+PPC470  
+PPC470     GO TO 0080-REQ-DATA. 
+PPC470  
+PPC470 0080-CONTINUE.   
+PPC470  
+PPC470     EXEC SQL 
+PPC470          CLOSE REQ_DATA_TBL  
+PPC470     END-EXEC.
+PPC470  
+PPC470     EXEC SQL WHENEVER NOT FOUND  
+187869          GO TO 0090-CONTINUE 
+PPC470     END-EXEC.
+
+187869 0090-AUTOBERTH-DATA. 
+187869     EXEC SQL 
+187869          FETCH  COMPANY_AUTOBERTH_DEPLTION_TBL   
+187869           INTO :WS-T-AUTOBERTH-DPLTN-DAYS
+187869               ,:WS-T-AUTOBERTH-DPLTN-NUM 
+187869     END-EXEC.
+187869  
+187869     ADD 1                        TO WS-AUTO-CNT  
+187869     MOVE WS-T-AUTOBERTH-DPLTN-TEMP  TO   
+187869          WS-AUTOBERTH-DPLTN         (WS-AUTO-CNT).   
+187869  
+187869     GO TO 0090-AUTOBERTH-DATA.   
+187869  
+187869 0090-CONTINUE.   
+187869  
+187869     EXEC SQL 
+187869          CLOSE COMPANY_AUTOBERTH_DEPLTION_TBL
+187869     END-EXEC.
+187869  
+      *    M3E Note:  Fetching COR-REC removes the current of run-unit  
+      *    lock that may be on any other record.  COR-REC will become   
+      *    current of run-unit but no other process should queue to wait
+      *    for update on it.  This will avoid deadlocks if this process 
+      *    is forced to wait on a lock. 
+
+PPC470*    FIND COR-REC RECORD ON ERROR GO TO 10100-FETCH-COR-ERROR.
+
+           IF SSP15-O-CMP-SUB > ZERO
+              GO TO 0110-UPDATE-CMP-CACHE.  
+
+       0100-LOAD-CMP-CACHE. 
+
+      *    We will look for point to insert record from database
+      *    into the cache according to its sort order.  
+
+           IF (SSP15-CMP-CNT >= SSP15-CMP-MAX)  
+              MOVE 5 TO DPP42-HOLD-MSG-INDEX
+              GO TO 9200-EDIT-ERROR-MSG.
+
+      *       Existing records after the insert point will be   
+      *       pushed down to open up the position for the   
+      *       position for new one. 
+
+           IF  SSP15-CMP-CNT < 0
+      *      Avoid messing up data adjacent to cache tables 
+      *      if RUNCHECK is off and cnt is negative.
+             MOVE 0 TO SSP15-CMP-CNT.   
+
+           ADD 1 TO SSP15-CMP-CNT GIVING SSP15-O-CMP-SUB.   
+
+           IF SSP15-CMP-CNT > 0 
+              PERFORM VARYING SUB FROM SSP15-O-CMP-SUB BY -1
+                       UNTIL SUB < 1
+                 IF (SUB = 1) OR
+                       (SSP15-CMP-COMPANY-CODE (SUB - 1) <  
+                         SSP15-I-COMPANY-CODE)  
+                    MOVE SUB TO SSP15-O-CMP-SUB 
+                    MOVE 1   TO SUB 
+                 ELSE   
+                    MOVE SSP15-CMP-UPDATE-FLAG (SUB - 1) TO 
+                         SSP15-CMP-UPDATE-FLAG (SUB)
+                    MOVE SSP15-CMP-ENTRY (SUB - 1) TO   
+                         SSP15-CMP-ENTRY (SUB)  
+                 END-IF 
+              END-PERFORM.  
+
+           ADD 1 TO SSP15-CMP-CNT.  
+
+      *-----------------------------------------------------------------
+       0110-UPDATE-CMP-CACHE.   
+           MOVE ZERO    TO SSP15-CMP-UPDATE-FLAG (SSP15-O-CMP-SUB). 
+PPC470*    MOVE COMPANY-REC TO  
+PPC470     MOVE WS-COMPANY-REC TO   
+               SSP15-COMPANY-REC (SSP15-O-CMP-SUB). 
+
+           GO TO 9000-END-OF-JOB.   
+
+      *-----------------------------------------------------------------
+       0120-REMOVE-CMP-FROM-CACHE.  
+PPC470*    IF ERROR-NUM NOT = '0013'
+PPC470*       GO TO 10000-FETCH-CMP-ERROR.  
+
+           IF SSP15-O-CMP-SUB = ZERO
+              GO TO 10000-FETCH-CMP-ERROR.  
+
+      *    Move up all records in cache that occur after the one
+      *    we are removing. 
+
+           PERFORM VARYING SUB FROM SSP15-O-CMP-SUB BY 1
+               UNTIL (SUB >= SSP15-CMP-CNT) 
+              MOVE SSP15-CMP-ENTRY (SUB + 1) TO 
+                   SSP15-CMP-ENTRY (SUB)
+              MOVE SSP15-CMP-UPDATE-FLAG (SUB + 1) TO   
+                   SSP15-CMP-UPDATE-FLAG (SUB)  
+           END-PERFORM. 
+
+           SUBTRACT 1 FROM SSP15-CMP-CNT.   
+
+           GO TO 10000-FETCH-CMP-ERROR. 
+
+      *================================================================ 
+       SSO15-LOAD-CRR.  
+           COPY DPP42INT.   
+
+           MOVE LOW-VALUES TO SSP15-O-N-PARAMS. 
+
+PPC470*    IF FUNCTION LENGTH (COMPANY-REFERENCE-REC) NOT = 
+PPC470*          FUNCTION LENGTH (SSP15-COMPANY-REFERENCE-REC (1))  
+PPC470*       MOVE 6 TO DPP42-HOLD-MSG-INDEX
+PPC470*       GO TO 9200-EDIT-ERROR-MSG.
+
+           IF DPP42-CALLING-OBJECT = 'SSC15UCD' 
+              GO TO 0150-SKIP-UPDATE-CHECK. 
+
+           MOVE SPACES             TO SSP99-INPUT-KEY.  
+      *    Typically, the following should be field name prefix used
+      *    for the database record. 
+           MOVE 'CRR'                   TO SSP99-I-UPDATE-REC-CODE. 
+           MOVE SSP15-I-CRR-CALC-KEY    TO SSP99-I-UPDATE-KEY.  
+
+169239     CALL 'SSC99CHK' USING DPP42-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 SSP99-INPUT-PARAMS 
+                                 SSP99-OUTPUT-PARAMS.   
+
+           IF DPP42-SUB-MSG-CTR > ZERO AND DPP42-SUB-MSG-STATUS (1) > 1 
+              GO TO 9500-RETURN-SUBROUTINE-ERROR.   
+
+           IF DPP42-CALLING-OBJECT = 'SSC15SPC' 
+              IF SSP99-O-FOUND-IND = 'Y'
+                 MOVE 16 TO DPP42-HOLD-MSG-INDEX
+                 GO TO 9200-EDIT-ERROR-MSG. 
+
+           IF SSP99-O-FOUND-IND = 'Y'   
+              IF SSP99-O-UPDATE-CODE = 'D'  
+                 MOVE 17 TO DPP42-HOLD-MSG-INDEX
+                 GO TO 9200-EDIT-ERROR-MSG  
+              ELSE  
+                 CALL 'SSC15FCD' USING SSP15-INPUT-PARAMS   
+                                       SSP15-OUTPUT-PARAMS  
+                 IF SSP15-O-CRR-SUB > ZERO  
+                    GO TO 9000-END-OF-JOB.  
+
+       0150-SKIP-UPDATE-CHECK.  
+           MOVE SSP02-COMPANY-DATA-CODE TO DPP42-TEST-SET-CODE. 
+
+           PERFORM DPP42-SET-TS-CELL
+              THRU DPP42-SET-TS-CELL-EXIT.  
+
+           CALL 'SSC15FCD' USING SSP15-INPUT-PARAMS 
+                                 SSP15-OUTPUT-PARAMS.   
+
+           IF (DPP42-CALLING-OBJECT NOT = 'SSC15UCD')   
+              IF SSP15-O-CRR-SUB > ZERO 
+                 IF SSP15-CRR-UPDATE-FLAG (SSP15-O-CRR-SUB) = 0 
+                    GO TO 9000-END-OF-JOB.  
+
+           CALL 'INC_COUNTER' USING SSP15-LOAD-CNT. 
+
+PPC470*    PERFORM 8000-START-DMS THRU 8099-EXIT.   
+PPC470* 
+PPC470*    MOVE SSP15-I-CRR-CALC-KEY         TO CRR-CALC-KEY.   
+PPC470  
+PPC470     MOVE SSP15-I-CRR-CALC-KEY         TO WS-CRR-CALC-KEY.
+PPC470  
+PPC470     EXEC SQL WHENEVER NOT FOUND  
+PPC470          GO TO 0220-REMOVE-CRR-FROM-CACHE
+PPC470     END-EXEC.
+PPC470  
+PPC470     EXEC SQL 
+PPC470           SELECT COMPANY_CODE
+PPC470                 ,PSEUDO_CITY_CODE
+PPC470            INTO :WS-COMPANY-REF-CODE 
+PPC470                ,:WS-PSEUDO-CITY-CODE 
+PPC470            FROM  COMPANY_REFERENCE   
+PPC470           WHERE  AGENCY_CONN_CODE = :WS-AGENCY-CONN-CODE 
+PPC470             AND  CRUISE_LINE_CODE = :WS-CRUISE-LINE-CODE 
+PPC470     END-EXEC.
+PPC470  
+PPC470*    FETCH COMPANY-REFERENCE-REC RECORD   
+PPC470*          ON ERROR GO TO 0220-REMOVE-CRR-FROM-CACHE. 
+PPC470* 
+PPC470*    FIND COR-REC RECORD ON ERROR GO TO 10200-FETCH-COR-ERROR.
+
+           IF SSP15-O-CRR-SUB > ZERO
+              GO TO 0210-UPDATE-CRR-CACHE.  
+
+       0200-LOAD-CRR-CACHE. 
+
+           IF (SSP15-CRR-CNT >= SSP15-CRR-MAX)  
+              MOVE 7 TO DPP42-HOLD-MSG-INDEX
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           IF  SSP15-CRR-CNT < 0
+             MOVE 0 TO SSP15-CRR-CNT.   
+
+           ADD 1 TO SSP15-CRR-CNT GIVING SSP15-O-CRR-SUB.   
+
+           IF SSP15-CRR-CNT > 0 
+              PERFORM VARYING SUB FROM SSP15-O-CRR-SUB BY -1
+                       UNTIL SUB < 1
+                 IF (SUB = 1) OR
+                       ( SSP15-CRR-CALC-KEY (SUB - 1) < 
+                         SSP15-I-CRR-CALC-KEY)  
+                    MOVE SUB TO SSP15-O-CRR-SUB 
+                    MOVE 1   TO SUB 
+                 ELSE   
+                    MOVE SSP15-CRR-UPDATE-FLAG (SUB - 1) TO 
+                         SSP15-CRR-UPDATE-FLAG (SUB)
+                    MOVE SSP15-CRR-ENTRY (SUB - 1) TO   
+                         SSP15-CRR-ENTRY (SUB)  
+                 END-IF 
+              END-PERFORM.  
+
+           ADD 1 TO SSP15-CRR-CNT.  
+
+      *-----------------------------------------------------------------
+       0210-UPDATE-CRR-CACHE.   
+           MOVE ZERO    TO SSP15-CRR-UPDATE-FLAG (SSP15-O-CRR-SUB). 
+PPC470*    MOVE COMPANY-REFERENCE-REC TO
+PPC470     MOVE WS-COMPANY-REFERENCE TO 
+                SSP15-COMPANY-REFERENCE-REC (SSP15-O-CRR-SUB).  
+
+           GO TO 9000-END-OF-JOB.   
+
+      *-----------------------------------------------------------------
+       0220-REMOVE-CRR-FROM-CACHE.  
+
+PPC470*           IF ERROR-NUM NOT = '0013' 
+PPC470*              GO TO 10400-FETCH-CRR-ERROR.   
+
+           IF SSP15-O-CRR-SUB = ZERO
+              GO TO 10400-FETCH-CRR-ERROR.  
+
+      *    Move up all records in cache that occur after the one
+      *    we are removing. 
+
+           PERFORM VARYING SUB FROM SSP15-O-CRR-SUB BY 1
+               UNTIL (SUB >= SSP15-CRR-CNT) 
+              MOVE SSP15-CRR-ENTRY (SUB + 1) TO 
+                   SSP15-CRR-ENTRY (SUB)
+              MOVE SSP15-CRR-UPDATE-FLAG (SUB + 1) TO   
+                   SSP15-CRR-UPDATE-FLAG (SUB)  
+           END-PERFORM. 
+
+           SUBTRACT 1 FROM SSP15-CRR-CNT.   
+
+           GO TO 10400-FETCH-CRR-ERROR. 
+
+      *================================================================ 
+       SSO15-LOAD-CTR.  
+           COPY DPP42INT.   
+
+           MOVE LOW-VALUES TO SSP15-O-N-PARAMS. 
+
+PPC470*    IF FUNCTION LENGTH (COMPANY-THRESHOLD-REC) NOT = 
+PPC470*          FUNCTION LENGTH (SSP15-COMPANY-THRESHOLD-REC (1))  
+PPC470*       MOVE 8 TO DPP42-HOLD-MSG-INDEX
+PPC470*       GO TO 9200-EDIT-ERROR-MSG.
+
+           IF DPP42-CALLING-OBJECT = 'SSC15UCD' 
+              GO TO 0250-SKIP-UPDATE-CHECK. 
+
+           MOVE SPACES             TO SSP99-INPUT-KEY.  
+      *    Typically, the following should be field name prefix used
+      *    for the database record. 
+           MOVE 'CTR'                   TO SSP99-I-UPDATE-REC-CODE. 
+           MOVE SSP15-I-TSHD-TYPE       TO SSP99-I-UPDATE-KEY.  
+
+169239     CALL 'SSC99CHK' USING DPP42-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 SSP99-INPUT-PARAMS 
+                                 SSP99-OUTPUT-PARAMS.   
+
+           IF DPP42-SUB-MSG-CTR > ZERO AND DPP42-SUB-MSG-STATUS (1) > 1 
+              GO TO 9500-RETURN-SUBROUTINE-ERROR.   
+
+           IF DPP42-CALLING-OBJECT = 'SSC15SPC' 
+              IF SSP99-O-FOUND-IND = 'Y'
+                 MOVE 18 TO DPP42-HOLD-MSG-INDEX
+                 GO TO 9200-EDIT-ERROR-MSG. 
+
+           IF SSP99-O-FOUND-IND = 'Y'   
+              IF SSP99-O-UPDATE-CODE = 'D'  
+                 MOVE 19 TO DPP42-HOLD-MSG-INDEX
+                 GO TO 9200-EDIT-ERROR-MSG  
+              ELSE  
+                 CALL 'SSC15FCD' USING SSP15-INPUT-PARAMS   
+                                       SSP15-OUTPUT-PARAMS  
+                 IF SSP15-O-CTR-SUB > ZERO  
+                    GO TO 9000-END-OF-JOB.  
+
+       0250-SKIP-UPDATE-CHECK.  
+           MOVE SSP02-COMPANY-DATA-CODE TO DPP42-TEST-SET-CODE. 
+
+           PERFORM DPP42-SET-TS-CELL
+              THRU DPP42-SET-TS-CELL-EXIT.  
+
+           CALL 'SSC15FCD' USING SSP15-INPUT-PARAMS 
+                                 SSP15-OUTPUT-PARAMS.   
+
+           IF (DPP42-CALLING-OBJECT NOT = 'SSC15UCD')   
+              IF SSP15-O-CTR-SUB > ZERO 
+                 IF SSP15-CTR-UPDATE-FLAG (SSP15-O-CTR-SUB) = 0 
+                    GO TO 9000-END-OF-JOB.  
+
+           CALL 'INC_COUNTER' USING SSP15-LOAD-CNT. 
+
+PPC470*    PERFORM 8000-START-DMS THRU 8099-EXIT.   
+PPC470* 
+PPC470*    MOVE SSP15-I-TSHD-TYPE         TO CTR-TSHD-TYPE. 
+PPC470  
+PPC470     EXEC SQL WHENEVER SQLERROR   
+PPC470          GO TO 0320-REMOVE-CTR-FROM-CACHE
+PPC470     END-EXEC.
+PPC470  
+PPC470     MOVE SSP15-I-TSHD-TYPE       TO WS-THRESHOLD-TYPE.   
+PPC470  
+PPC470     EXEC SQL 
+PPC470          DECLARE COMPANY_THRESHOLD_REC CURSOR
+PPC470           SELECT REFERENCE_PRICE_LEVEL   
+PPC470                 ,REFERENCE_PCT   
+PPC470             FROM COMPANY_THRESHOLD   
+PPC470           WHERE  THRESHOLD_TYPE = :SSP15-I-TSHD-TYPE 
+PPC470     END-EXEC.
+PPC470  
+PPC470     EXEC SQL 
+PPC470          OPEN COMPANY_THRESHOLD_REC  
+PPC470     END-EXEC.
+PPC470  
+PPC470     MOVE 0                       TO WS-TSHD-ENTRY-CNT.   
+PPC470  
+PPC470     EXEC SQL WHENEVER NOT FOUND  
+PPC470          GO TO 0250-CONTINUE 
+PPC470     END-EXEC.
+PPC470  
+PPC470     MOVE LOW-VALUES              TO WS-COMPANY-THRESHOLD.
+PPC470     MOVE SSP15-I-TSHD-TYPE       TO WS-THRESHOLD-TYPE.   
+PPC470  
+PPC470 0250-FETCH-COMPANY-THRESHOLD.
+PPC470  
+PPC470     EXEC SQL 
+PPC470          FETCH  COMPANY_THRESHOLD_REC
+PPC470           INTO :WS-T-REFERENCE-PRICE-LEVEL   
+PPC470               ,:WS-T-REFERENCE-PCT   
+PPC470     END-EXEC.
+PPC470  
+PPC470     ADD 1                        TO  WS-TSHD-ENTRY-CNT.  
+PPC470     MOVE WS-T-TSHD-REF-ENTRY TO  
+PPC470          WS-TSHD-REF-TABLE (WS-TSHD-ENTRY-CNT).  
+PPC470  
+PPC470        GO TO 0250-FETCH-COMPANY-THRESHOLD.   
+PPC470  
+PPC470 0250-CONTINUE.   
+PPC470  
+PPC470     EXEC SQL 
+PPC470          CLOSE COMPANY_THRESHOLD_REC 
+PPC470     END-EXEC.
+PPC470  
+PPC470*    FETCH COMPANY-THRESHOLD-REC RECORD   
+PPC470*          ON ERROR GO TO 0320-REMOVE-CTR-FROM-CACHE. 
+PPC470* 
+PPC470*    FIND COR-REC RECORD ON ERROR GO TO 10300-FETCH-COR-ERROR.
+
+           IF SSP15-O-CTR-SUB > ZERO
+              GO TO 0310-UPDATE-CTR-CACHE.  
+
+       0300-LOAD-CTR-CACHE. 
+
+           IF (SSP15-CTR-CNT >= SSP15-CTR-MAX)  
+              MOVE 9 TO DPP42-HOLD-MSG-INDEX
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           IF  SSP15-CTR-CNT < 0
+             MOVE 0 TO SSP15-CTR-CNT.   
+
+           ADD 1 TO SSP15-CTR-CNT GIVING SSP15-O-CTR-SUB.   
+
+           IF SSP15-CTR-CNT > 0 
+              PERFORM VARYING SUB FROM SSP15-O-CTR-SUB BY -1
+                       UNTIL SUB < 1
+                 IF (SUB = 1) OR
+                       ( SSP15-CTR-TSHD-TYPE (SUB - 1) <
+                         SSP15-I-TSHD-TYPE) 
+                    MOVE SUB TO SSP15-O-CTR-SUB 
+                    MOVE 1   TO SUB 
+                 ELSE   
+                    MOVE SSP15-CTR-UPDATE-FLAG (SUB - 1) TO 
+                         SSP15-CTR-UPDATE-FLAG (SUB)
+                    MOVE SSP15-CTR-ENTRY (SUB - 1) TO   
+                         SSP15-CTR-ENTRY (SUB)  
+                 END-IF 
+              END-PERFORM.  
+
+           ADD 1 TO SSP15-CTR-CNT.  
+
+      *-----------------------------------------------------------------
+       0310-UPDATE-CTR-CACHE.   
+           MOVE ZERO    TO SSP15-CTR-UPDATE-FLAG (SSP15-O-CTR-SUB). 
+PPC470*    MOVE COMPANY-THRESHOLD-REC TO
+PPC470     MOVE WS-COMPANY-THRESHOLD TO 
+               SSP15-COMPANY-THRESHOLD-REC (SSP15-O-CTR-SUB).   
+
+           GO TO 9000-END-OF-JOB.   
+
+      *-----------------------------------------------------------------
+       0320-REMOVE-CTR-FROM-CACHE.  
+PPC470*    IF ERROR-NUM NOT = '0013'
+PPC470*       GO TO 10500-FETCH-CTR-ERROR.  
+
+           IF SSP15-O-CTR-SUB = ZERO
+              GO TO 10500-FETCH-CTR-ERROR.  
+
+      *    Move up all records in cache that occur after the one
+      *    we are removing. 
+
+           PERFORM VARYING SUB FROM SSP15-O-CTR-SUB BY 1
+               UNTIL (SUB >= SSP15-CTR-CNT) 
+              MOVE SSP15-CTR-ENTRY (SUB + 1) TO 
+                   SSP15-CTR-ENTRY (SUB)
+              MOVE SSP15-CTR-UPDATE-FLAG (SUB + 1) TO   
+                   SSP15-CTR-UPDATE-FLAG (SUB)  
+           END-PERFORM. 
+
+           SUBTRACT 1 FROM SSP15-CTR-CNT.   
+
+           GO TO 10500-FETCH-CTR-ERROR. 
+
+      *================================================================ 
+PPC470*8000-START-DMS.  
+PPC470*    IF (IMPART-DEPART = 1) AND RSP03-SSC15LCD-FLG = 1
+PPC470*       GO TO 8099-EXIT.  
+PPC470* 
+PPC470*COPY RSP00INT.   
+PPC470* 
+PPC470*    MOVE 'I' TO RSP00-I-CONTROL-CODE.
+PPC470*    MOVE 1   TO RSP00-COR-OPEN-FLG   
+PPC470*                RSP00-COMPANY-OPEN-FLG.  
+PPC470* 
+PPC470*    CALL 'RSC00DMS' USING DPP42-COMMON-DATA-FIELDS   
+PPC470*                          DPP01-COMMON-INFO  
+PPC470*                          RSP00-INPUT-PARAMS.
+PPC470* 
+PPC470*    IF DPP42-SUB-MSG-CTR > ZERO  
+PPC470*       GO TO 9500-RETURN-SUBROUTINE-ERROR.   
+PPC470* 
+PPC470*    MOVE 1 TO RSP03-SSC15LCD-FLG.
+PPC470* 
+PPC470*8099-EXIT.   
+PPC470*    EXIT.
+
+
+       9000-END-OF-JOB. 
+           GO TO DPP42-END-OF-JOB.  
+
+       9100-DATABASE-ERROR. 
+           GO TO DPP42-DATABASE-ERROR.  
+
+       9200-EDIT-ERROR-MSG. 
+           PERFORM DPP42-EDIT-ERROR-MSG 
+              THRU DPP42-EDIT-ERROR-MSG-EXIT.   
+
+           GO TO DPP42-END-OF-JOB.  
+
+       9500-RETURN-SUBROUTINE-ERROR.
+           GO TO DPP42-RETURN-SUBROUTINE-ERROR. 
+
+       10000-FETCH-CMP-ERROR.   
+
+PPC470*    IF ERROR-NUM = '0013'
+PPC470*       MOVE 10 TO DPP42-HOLD-MSG-INDEX   
+PPC470*       GO TO 9200-EDIT-ERROR-MSG 
+PPC470*    ELSE 
+              MOVE 20 TO DPP42-HOLD-MSG-INDEX   
+PPC470        GO TO DPP42-RDMS-ERROR.   
+PPC470*       GO TO 9100-DATABASE-ERROR.
+PPC470* 
+PPC470*10100-FETCH-COR-ERROR.   
+PPC470*    MOVE 11 TO DPP42-HOLD-MSG-INDEX. 
+PPC470* 
+PPC470*    GO TO 9100-DATABASE-ERROR.   
+PPC470* 
+PPC470*10200-FETCH-COR-ERROR.   
+PPC470*    MOVE 12 TO DPP42-HOLD-MSG-INDEX. 
+PPC470* 
+PPC470*    GO TO 9100-DATABASE-ERROR.   
+PPC470* 
+PPC470*10300-FETCH-COR-ERROR.   
+PPC470*    MOVE 13 TO DPP42-HOLD-MSG-INDEX. 
+PPC470* 
+PPC470*    GO TO 9100-DATABASE-ERROR.   
+PPC470* 
+       10400-FETCH-CRR-ERROR.   
+
+PPC470*    IF ERROR-NUM = '0013'
+PPC470*       MOVE 14 TO DPP42-HOLD-MSG-INDEX   
+PPC470*       GO TO 9200-EDIT-ERROR-MSG 
+PPC470*    ELSE 
+              MOVE 21 TO DPP42-HOLD-MSG-INDEX   
+PPC470*       GO TO 9100-DATABASE-ERROR.
+PPC470        GO TO DPP42-RDMS-ERROR.   
+
+       10500-FETCH-CTR-ERROR.   
+
+PPC470*    IF ERROR-NUM = '0013'
+PPC470*       MOVE 15 TO DPP42-HOLD-MSG-INDEX   
+PPC470*       GO TO 9200-EDIT-ERROR-MSG 
+PPC470*    ELSE 
+              MOVE 22 TO DPP42-HOLD-MSG-INDEX   
+PPC470*       GO TO 9100-DATABASE-ERROR.
+PPC470        GO TO DPP42-RDMS-ERROR.   
+
+       COPY DPP42SER.   
+       COPY DPP42WDB.   

@@ -1,0 +1,15 @@
+SELECT PORT_CODE,
+       NAME,
+       COUNTRY_CODE
+FROM PORT
+WHERE PORT_CODE IN ('TYO','OSA','FUK','SPO',
+'KEL','HKG','PHM','SIN');
+
+TYO TOKYO, JAPAN                   JP   
+OSA OSAKA (KYOTO), JAPAN           JP   
+FUK FUKUOKA (HAKATA), JAPAN        JP   
+SPO SEOGWIPO (JEJU), SOUTH KOREA   KR   
+KEL KEELUNG (TAIPEI), TAIWAN       TW   
+HKG HONG KONG                      HK   
+PHM PHU MY (HO CHI MINH), VIETNAM  VN   
+SIN SINGAPORE                      SG   

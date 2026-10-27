@@ -1,0 +1,3206 @@
+      * PROGRAM-ID.   SXB14SDS. 
+      * AUTHOR.       TATA INFOTECH.
+      * DATE-WRITTEN. AUGUST, 2004. 
+      * Remarks: This is third and last program for Global Update   
+      *          functionality. It reads the EXCURSION-KEY-FILE created 
+      *          by SXB12SDS & SAILING-SUMMARY-FILE CREATED BY SXB13SDS.
+      *          For every new EXC-ST-SETUP-REC new records are created 
+      *          in EXC-MMYY-REC EXC-SAILING-PORT-DATE-REC, 
+      *          EXC-SAILING-REC, EXC-DEPARTURE-REC and 
+      *          EXC-SAILING-DEPARTURE-REC. For an update to the
+      *          EXC-ST-SETUP-REC, records are modified in  
+      *          EXC-DEPARTURE-REC and EXC-SAILING-DEPARTURE-REC.   
+      *          For any error writing to the records an error report   
+      *           file is generated.
+      * INPUT FILES :-  1. SXBSDS01D.   
+      *                 2. SXBSDS03D.   
+      * 
+      * OUTPUT FILES:-  1. SXBSDS01P.   
+      * 
+      ******************************************************************
+GS0405* 25 APR  2005     TATA INFOTECH LTD.     GS9      CQ40861
+GS0405* INSERTED FREE STATEMENT AFTER 10 STORES IN THE DATABASE.
+      ******************************************************************
+PG0505* 10 MAY  2005     TATA INFOTECH LTD.     P1G      CQ41233
+PG0505* MORE VALIDATIONS IN PROGRAM WHICH STORES DT-SETUP-RECORDS IN
+PG0505* THE DATABASE
+      ******************************************************************
+C56050* 21 AUG  2006     TCS LTD.               XS9      CQ56050
+C56050* CHANGE EDSR-SET-UP-STATUS TO 'E' SO THAT SXB12SDS DOES NOT  
+C56050* READ EDSR RECORDS AGAIN.
+      ******************************************************************
+DK1206* 10 JAN 2007      TCS LTD.               D8K      CQ43223
+DK1206* MODIFIED THE CODE TO STORE SHIP ARRIVAL TIME IN ESDR-EXC-TIME   
+DK1206* IN CASE OF ON-ARRIVAL-IND = 'Y' 
+      ******************************************************************
+PSSSPA* JULY-2007        TCS LTD.               XG5      PSSSPA 
+PSSSPA* MODIFIED THE CODE FOR PRESALES PROJECT TO INCLUDE EXC-TYPE  
+PSSSPA* IN ESDR RECORD. 
+PSSSPA***************************************************************** 
+C41280* 15-JUL-09     9RG     TCS LTD                CQ41280           *
+C41280* CODE MODIFIED TO UPDATE THE HISTORY IN RDMS TABLES IN CASE     *
+C41280* EXC-MASTER-REC,EXC-SAILING-DEPARTURE-REC OR                    *
+C41280* EXC-DEPARTURE-REC IS MODIFIED.                                 *
+************************************************************************
+C35907* 20-OCT-09     M5J     TCS LTD.               CQ35907           *
+C35907* CODE MODIFIED TO READ THE SAILING-SUMMARY-FILE FOR             *
+C35907* EMBARKATION AND DEBARKATION PORT ALSO. IT WILL BE USED IN      *
+C35907* GLOBAL UPDATE ADDITION OF DEPARTURES AND SAILING DEPARTURES IN *
+C35907* CASE OF EMBARKATION AND DEBARKATION PORTS.                     *
+************************************************************************
+102202* 19-JAN-10     XG5     TCS LTD.              CQ102202           *
+102202* To avoid the SXBSDS abort (Global Spread sheet issue)          *
+************************************************************************
+103563* 16-MAR-10     XG5     TCS LTD.              CQ103563           *
+103563* CODE CHANGES TO PROVIDE CAPABILITY TO USERS TO INDIVIDUALLY    *
+103563* CREATE THE PRE/POST/PORT EXCURSIONS.                           *
+************************************************************************
+102575* 18-MAY-10     P1R     TCS LTD.              CQ102575           *
+102575* WRITE HISTORY FOR 'EET' ACTIVITY CODE                          *
+************************************************************************
+107687* 14-JUN-10     GS9     SHERLOCK TECHNOLOGY   CQ107687           *
+107687* Remove references to EXCSETUP-CALCAREA.                        *
+************************************************************************
+101498* 07-JUL-10     XG5     TCS LTD.              CQ101498           *
+101498* KEN PERFORMANCE ISSUE                                          *
+************************************************************************
+C96793* 04-AUG-10     GS9     SHERLOCK TECHNOLOGY    CQ96793           *
+C96793* ADDING LOGIC TO MAINTAIN EPDR-OPEN-ESDR-CNT                    *
+************************************************************************
+C67814* 31-AUG-10     GS9     SHERLOCK TECHNOLOGY    CQ67814           *
+C67814* ADDING ESDR-GROUPS-ALLOC TO INPUT + ADDING VALIDATIONS         *
+************************************************************************
+138014* 14-NOV-11     RK3     TCS LTD.               CQ138014          *
+138014* INSERTED FREE STATEMENT AFTER 4 DATABASE CHANGES.              *
+************************************************************************
+145885* 11-SEP-12     RGM     TCS LTD.               CQ145885          *
+145885* UNABLE TO ALLOCATE EXCURSIONS ON 2013 SAILINGS OF VI           *
+************************************************************************
+112797* 23-JUL-13     7SG     TCS LTD.               CQ112797          *
+112797* CORRECT THE LOGIC TO DO FREE AT EVERY ITERATION                *
+************************************************************************
+165283* 19-MAY-14     DOB     TCS LTD.               CQ165283          *
+165283* FIX TO PREVENT QUEING.                                         *
+************************************************************************
+177338* 28-APR-15     AZ4     TCS LTD.               CQ177338          *
+177338* PICK ESDR PRICE FROM RDMS - CQ177349.                          *
+************************************************************************
+192197* 07-SEP-16     GRS     CARNIVAL                  CQ192197       *
+192197* ITINERARY TENDER AND FOOTNOTE CHANGES.                         *
+192197******************************************************************
+198667* 28-SEP-16     DC6     TCS LTD.               CQ198667          *
+198667* REQUIRED DURATION IN PORT NOT PREVENTING UNWANTED DEPARTURES   *
+************************************************************************
+200243* 24-MAR-17     9RG     TCS LTD.               CQ200243          *
+200243* CHANGES DONE FOR WORKING STORAGE TO BE IN SYNC WITH EDSR.      *
+************************************************************************
+200243* 28-MAR-17     RVC     TCS LTD.               CQ200243          *
+200243* SAILING DEPARTURE PRICE OVERRIDE CHANGES.                      *
+************************************************************************
+208566* 11-JUN-18     WEA     TCS LTD.               CQ208566          *
+208566* DMS CHANGES FOR BIGFILE ENHANCEMENT                            *
+************************************************************************
+208566* 02-NOV-18     9AA     TCS LTD.               CQ208566          *
+208566* CHANGES DONE TO MAINTAIN RDMS TABLE CORRESPONDING TO EMR.      *
+************************************************************************
+219999* 25-JAN-21     BK4     TCS LTD.               CQ219999          *
+219999* CHANGES DONE TO ADD NEW FIELD IN ERROR REPORT FILE.            *
+************************************************************************
+AUPRSL* 27-JAN-22     IUJ     TCS LTD.               CQAUPRSL          *
+AUPRSL* CHANGES DONE TO STORE CURRENCY-CODE IN ESDR REC                *
+************************************************************************
+
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.   SXB14SDS.  
+       AUTHOR.       TATA INFOTECH. 
+       DATE-WRITTEN. AUGUST, 2004.  
+
+       ENVIRONMENT DIVISION.
+
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER. UNISYS. 
+       OBJECT-COMPUTER. UNISYS MEMORY 3 MODULES.
+       SPECIAL-NAMES.   
+C41280        PRINTER IS PRT
+              PRINTER IS PRINTER
+              CONSOLE IS CONSOLE
+              SWITCH-24 IS ERROR-SW, ON STATUS IS IN-ERROR, 
+                                    OFF STATUS IS NO-ERROR. 
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+             SELECT EXCURSION-KEY-FILE     ASSIGN TO DISC SXBSDS01D 
+                                           FILE STATUS IS   
+                                                  WS-EK-FILE-STATUS.
+             SELECT SAILING-SUMMARY-FILE   ASSIGN TO DISC SXBSDS03D 
+                                           ORGANIZATION IS INDEXED  
+                                           ACCESS MODE IS RANDOM
+                                           RECORD KEY IS
+                                                SAILING-SUMMARY-KEY 
+                                           FILE STATUS IS   
+                                                WS-SS-FILE-STATUS.  
+             SELECT ERROR-REPORT-FILE   ASSIGN TO PRINTER SXBSDS01P 
+                                        FILE STATUS IS  
+                                                  WS-ER-FILE-STATUS.
+
+       DATA DIVISION.   
+       SUBSCHEMA SECTION.   
+144449 INVOKE SUBSCHEMA PST200UCOBSU
+144449        IN FILE SUBSCHEMAS OF SCHEMA PST200SCHEMA 
+144449        COPYING RECORDS    INTO COMMON
+144449        COPYING DATA-NAMES INTO COMMON
+144449        SAVE DATA INCLUDES DEFERRED-UPDATES   
+144449        DMCA  COMMON  
+144449        ERROR RECOVERY IS 9100-DATABASE-ERROR 
+144449        ROLLBACK       IS 9100-DATABASE-ERROR.
+
+       FILE SECTION.
+       FD  EXCURSION-KEY-FILE   
+           LABEL RECORDS ARE STANDARD.  
+       01  EXCURSION-KEY-REC.   
+           03 EK-DATABASE-KEY             PIC 9(10) BINARY. 
+
+       FD  SAILING-SUMMARY-FILE 
+           LABEL RECORDS ARE STANDARD.  
+       01  SAILING-SUMMARY-REC. 
+           03  SAILING-SUMMARY-KEY. 
+               07  SS-SHIP-CODE              PIC X(2).  
+               07  SS-DATE-RANGE             PIC 9(8).  
+               07  SS-ITIN-PORT-CODE         PIC X(3).  
+103563*        07  SS-DEBARK-PORT-IND        PIC X(01). 
+103563         07  SS-PORT-DAY-IND           PIC X(01). 
+           03  SS-SAIL-DATE                  PIC 9(8).  
+           03  SS-PORT-ARRIVE-DATE           PIC 9(8).  
+           03  SS-PORT-DEPART-DATE           PIC 9(8).  
+           03  SS-DURATION-DAYS              PIC 99.
+           03  SS-EMBK-PORT-CODE             PIC X(3).  
+           03  SS-DAY-ABBREV                 PIC X(3).  
+           03  SS-PORT-NAME                  PIC X(20). 
+      *     03  SS-ARRIVE-TIME. 
+           03  SS-ARRIVE-HH                  PIC 99.
+           03  SS-ARRIVE-MM                  PIC 99.
+           03  SS-ARRIVE-AM-PM               PIC X(2).  
+      *     03  SS-DEPART-TIME. 
+           03  SS-DEPART-HH                  PIC 99.
+           03  SS-DEPART-MM                  PIC 99.
+           03  SS-DEPART-AM-PM               PIC X(2).  
+           03  SS-TENDER-IND                 PIC X. 
+           03  SS-DAY-NUM                    PIC 9(2).  
+           03  SS-ENTRY-TYPE                 PIC X. 
+           03  SS-INET-PORT-CODE             PIC X(3).  
+           03  SS-ITR-NUM-DAY                PIC 9(2).  
+192197     03  SS-FOOTNOTE-CODE              PIC X(2).  
+AUPRSL     03  SS-CURRENCY-CODE              PIC X(03). 
+
+       FD  ERROR-REPORT-FILE
+           LABEL RECORDS ARE OMITTED.   
+219999*01  ERROR-REPORT-REC                      PIC X(132).
+219999 01  ERROR-REPORT-REC                      PIC X(143).
+
+       WORKING-STORAGE SECTION. 
+144449 01  WS-PROG-ID            PIC X(8) VALUE 'SXB14SDS'. 
+
+      *--------------------------------------------------------------*  
+      *      DATABASE & OUTPUT FILES VARIABLES                       *  
+      *--------------------------------------------------------------*  
+       01  MCFLAG             PIC 9(10)  USAGE BINARY  VALUE 0. 
+138014 01  WS-DB-CNT-1        PIC 9(05) VALUE 0.
+C40861 01  WS-DB-CNT          PIC 9(5) VALUE 0. 
+       01  TAB-BIT            PIC 1(9). 
+       01  WS-5               PIC 9(1) VALUES  5.   
+       01  WS-20              PIC 9(1) VALUES 20.   
+
+       01  WS-DATABASE-KEY       BINARY      PIC 9(10) VALUE 0. 
+       01  WS-SXBSDS02-OUT. 
+           05 WS-BEGIN-DATE                  PIC 9(08). 
+           05 WS-END-DATE                    PIC 9(08). 
+       01  WS-END-DATE1                      PIC 9(08). 
+
+       01  WS-SYSTEM-DATE                    PIC 9(8) VALUE ZEROES. 
+
+       01  WS-SYS-DATE REDEFINES WS-SYSTEM-DATE.
+           03  WS-SYS-CC                     PIC 9(2).  
+           03  WS-SYS-YY                     PIC 9(2).  
+           03  WS-SYS-MM                     PIC 9(2).  
+           03  WS-SYS-DD                     PIC 9(2).  
+
+       01  WS-CREATED-DATE                   PIC X(08). 
+
+       01  WS-SYS-TIME. 
+           03  WS-SYS-TIME-HH                PIC 99.
+           03  WS-SYS-TIME-MM                PIC 99.
+           03  WS-SYS-TIME-SS                PIC 99.
+           03  WS-SYS-TIME-MS                PIC 99.
+
+       01  WS-FILE-STATUS                    VALUE ZERO.
+           03  WS-EK-FILE-STATUS             PIC X(2).  
+               88  EK-FILE-AT-END            VALUE '10'.
+               88  EK-FILE-OK                VALUE '00'.
+           03  WS-SS-FILE-STATUS             PIC X(2).  
+               88  SS-FILE-AT-END            VALUE '10'.
+               88  SS-FILE-OK                VALUE '00'.
+           03  WS-ER-FILE-STATUS             PIC X(2).  
+               88  ER-FILE-AT-END            VALUE '10'.
+               88  ER-FILE-OK                VALUE '00'.
+
+144449 01  WS-EXC-DT-SETUP-DBKEY             PIC 1(36) BINARY-1.
+
+       01  WS-PORT-CODE                      PIC X(3).  
+       01  WS-EMR-DURATION-TYPE              PIC X. 
+       01  WS-NUM-OF-REC-MATCHED             PIC 9(4) VALUE ZEROS.  
+
+       01  WS-EXC-DATE                       PIC 9(08). 
+       01  WS-EXC-DATE1 REDEFINES WS-EXC-DATE.  
+           05  WS-EXC-YR                     PIC 9(4).  
+           05  WS-EXC-MM                     PIC 9(2).  
+           05  WS-EXC-DD                     PIC 9(2).  
+
+       01  WS-END-TIME1                      PIC 9(4).  
+       01  WS-END-TIME2                      PIC 9(4).  
+       01  WS-END-TIME3.
+           05  WS-TIME3-HH                   PIC 9(2).  
+           05  WS-TIME3-MM                   PIC 9(2).  
+       01  WS-EMR-EXC-DURATION               PIC 9(3)V99.   
+       01  WS-DURATION REDEFINES WS-EMR-EXC-DURATION.   
+           03 WS-DURATION-HH                 PIC 9(3).  
+           03 WS-DURATION-MM                 PIC 9(2).  
+
+PSSSPA 01  WS-ESDR-EXC-END-DATE1             PIC 9(08). 
+PSSSPA 01  WS-ESDR-EXC-END-TIME1             PIC 9(04). 
+103563*01  WS-DEBARK-PROCESSED               PIC X(01). 
+C35907 01  WS-SAIL-END-DATE                  PIC 9(08). 
+102202 01  WS-REPEAT-CNT                     PIC 9(02) VALUE ZEROS. 
+
+       01  WS-VARIOUS-DATES.
+           03  WS-TODAYS-YYYYMMDD            PIC 9(8) VALUE ZEROES. 
+           03  WS-EDSR-START-JULIAN-DATE     PIC 9(7) VALUE ZEROES. 
+           03  WS-EDSR-START-DAY-NAME        PIC X(9) VALUE SPACES. 
+
+       01  WS-SUBS                           PIC 99 VALUE ZEROES.   
+
+       01  WS-SUB1                           PIC 99 VALUE ZEROES.   
+
+       01  WS-DEPART-FL                      PIC 99 VALUE ZEROES.   
+
+       01  WS-SUB2                           PIC 99 VALUE ZEROES.   
+
+       01  WS-ESDR                           PIC 99 VALUE ZEROES.   
+
+       01  WS-PRICE                          PIC 9 VALUE ZEROES.
+
+       01  WS-SETUP-STATUS                   PIC X. 
+
+       01  WS-TOT-ALLOC                      PIC 9(5) USAGE COMP.   
+
+       01  WS-PRE-ALLOC                      PIC 9(5) USAGE COMP.   
+
+       01  WS-COUNT-PRESALE                  PIC 9(5) USAGE COMP.   
+
+       01  WS-COUNT-TOTAL                    PIC 9(5) USAGE COMP.   
+
+       01  WS-TOTAL-SOLD                     PIC 9(5) USAGE COMP.   
+
+       01  WS-PRESALES-SOLD                  PIC 9(5) USAGE COMP.   
+
+       01  WS-TOTAL-TOT                      PIC 9(5) USAGE COMP.   
+
+       01  WS-PRESALE-TOT                    PIC 9(5) USAGE COMP.   
+
+       01  WS-DATE-DAY                       PIC X(3) VALUE SPACES. 
+
+       01  WS-NUM-DAY                        PIC 9(1) VALUE ZERO.   
+
+       01  WS-CNTR                           PIC 9(04) VALUE ZEROS. 
+
+       01  WS-ALLOCATION-FLAG                PIC 9(01) VALUE ZEROS. 
+
+       01  WS-RETAIN-DATE                    PIC 9(8)  VALUE ZEROES.
+
+219999 01  WS-ERR-DURATION                   PIC 9(3)  VALUE ZEROES.
+
+219999 01  WS-ERR-SAIL-DATE                  PIC 9(8)  VALUE ZEROES.
+
+       01  WS-DESCRIPTION                    PIC X(25) VALUE SPACES.
+
+       01  WS-DURATION-T                     PIC 9(4).  
+
+       01  WS-DURATION-D1                    PIC 9(3).  
+       01  WS-DURATION-D                     PIC 9(3).  
+       01  WS-DURATION-H                     PIC 9(2).  
+       01  WS-DURATION-M                     PIC 9(3).  
+
+       01 WS-BEGIN-TIME-X                    PIC 9(4).  
+       01 WS-BEGIN-TIME-XX REDEFINES WS-BEGIN-TIME-X.   
+          05 WS-BEGIN-H                      PIC 9(2).  
+          05 WS-BEGIN-M                      PIC 9(2).  
+198667*01 WS-DURATION-XX                     PIC 9(5).  
+
+       01 WS-DURATION-TEMP                   PIC 9(3).  
+       01 WS-DURATION-TEMP-X REDEFINES WS-DURATION-TEMP.
+          03 WS-DURATION-TEMP-2              PIC 9(2).  
+          03 WS-DURATION-TEMP-1              PIC 9. 
+
+       01 WS-DURATION-TEMP1                  PIC 9(4).  
+       01 WS-DURATION-TEMP1-X REDEFINES WS-DURATION-TEMP1.  
+          03 WS-DURATION-TEMP1-H             PIC 9(2).  
+          03 WS-DURATION-TEMP1-M             PIC 9(2).  
+
+       01  WS-TOT-ALLOC-IND                  PIC X VALUE ZEROS. 
+           88  TOT-INV-NOT-SAME              VALUE '1'. 
+
+       01  WS-DEP-FLAG                       PIC X(03) VALUE SPACES.
+
+       01  WS-DUP-FLAG                       PIC 9(1)  VALUE ZEROS. 
+
+       01  WS-TAB                            PIC 99 VALUE ZEROES.   
+
+       01  WS-NO-OF-REC-READ                 PIC 9(4) VALUE ZEROS.  
+
+       01  WS-END-OF-SET                     PIC 9 VALUE ZEROES.
+           88  END-OF-SET                    VALUE 1.   
+
+C43223 01  WS-END-OF-REC-FLAG                PIC 9 VALUE ZEROES.
+C43223     88  WS-END-OF-REC                 VALUE 1.   
+
+       01  WS-DAY-OF-WEEK.  
+           03  FILLER                        PIC X(3)   VALUE 'SUN'.
+           03  FILLER                        PIC X(3)   VALUE 'MON'.
+           03  FILLER                        PIC X(3)   VALUE 'TUE'.
+           03  FILLER                        PIC X(3)   VALUE 'WED'.
+           03  FILLER                        PIC X(3)   VALUE 'THU'.
+           03  FILLER                        PIC X(3)   VALUE 'FRI'.
+           03  FILLER                        PIC X(3)   VALUE 'SAT'.
+           03  FILLER                        PIC X(3)   VALUE SPACES.   
+           03  FILLER                        PIC X(3)   VALUE 'ALL'.
+
+       01  WS-DAYS REDEFINES WS-DAY-OF-WEEK.
+           03  WS-DAY-TABLE            OCCURS 9 TIMES.  
+               05  WS-DAY-ABBV               PIC X(3).  
+
+       01  WS-DAY-OF-WEEK1. 
+           03  FILLER                        PIC X(3)   VALUE 'MON'.
+           03  FILLER                        PIC X(3)   VALUE 'TUE'.
+           03  FILLER                        PIC X(3)   VALUE 'WED'.
+           03  FILLER                        PIC X(3)   VALUE 'THU'.
+           03  FILLER                        PIC X(3)   VALUE 'FRI'.
+           03  FILLER                        PIC X(3)   VALUE 'SAT'.
+           03  FILLER                        PIC X(3)   VALUE 'SUN'.
+
+       01  WS-DAYS1 REDEFINES WS-DAY-OF-WEEK1.  
+           03  WS-DAY-TABLE1            OCCURS 9 TIMES. 
+               05  WS-DAY-ABBV1               PIC X(3). 
+
+
+       01  WS-ARRIVE-TIME                    PIC 9(4).  
+       01  WS-ARRIVE-TIME-R REDEFINES  WS-ARRIVE-TIME.  
+           07  WS-ARRIVE-TIME-HH             PIC 9(2).  
+           07  WS-ARRIVE-TIME-MM             PIC 9(2).  
+
+       01  WS-DEPART-TIME                    PIC 9(4).  
+       01  WS-DEPART-TIME-R REDEFINES  WS-DEPART-TIME.  
+           07  WS-DEPART-TIME-HH             PIC 9(2).  
+           07  WS-DEPART-TIME-MM             PIC 9(2).  
+
+       01  WS-EDSR-ARRIVE-MIN                PIC 9(10). 
+       01  WS-EDSR-DEPART-MIN                PIC 9(10). 
+       01  WS-SHP-ARRIVE-MIN                 PIC 9(10). 
+       01  WS-SHP-DEPART-MIN                 PIC 9(10). 
+
+       01  WS-EDR-STORED                     PIC X. 
+
+       01  WS-PORT-EXC-ID.  
+           03  WS-NUM-PORTCODE               PIC X(3).  
+           03  FILLER                        PIC X(3).  
+
+C43223 01  WS-START-TIME-TEMP                PIC 9(4)   VALUE ZEROES.   
+C43223 01  WS-FIRST-TIME-FLAG                PIC 9(1)   VALUE ZEROES.   
+
+C41280     EXEC SQL BEGIN DECLARE SECTION END-EXEC. 
+C41280  
+C41280 01  SWITCHES.
+C41280     05  BGN-THRD-SW                   PIC X(01)  VALUE 'N'.  
+C41280         88  BGN-THRD-NOT-DONE                    VALUE 'N'.  
+C41280         88  BGN-THRD-DONE                        VALUE 'Y'.  
+C41280     05  ROLLBACK-SW                   PIC X(01)  VALUE 'N'.  
+C41280         88  ROLLBACK-NEEDED                      VALUE 'Y'.  
+C41280         88  COMMIT-NEEDED                        VALUE 'N'.  
+C41280  
+C41280     COPY SXP09EHP-DATA.  
+C41280     COPY SXP08SER-DATA.  
+C41280     COPY SXP11EHW.   
+C41280  
+C41280     EXEC SQL END DECLARE SECTION END-EXEC.   
+C41280  
+C41280 01  WS-START-DATE                     PIC 9(08). 
+C41280 01  WS-END-DATE-2                     PIC 9(08). 
+
+      ***************************************************** 
+      *    CONVERT AM/PM TIME TO MILITARY TIME            * 
+      ***************************************************** 
+      * 01  DPP10-12HR-TIME.
+       01  DPP10-12HR-TIME-HH                  PIC 99.  
+       01  DPP10-12HR-TIME-MM                  PIC 99.  
+       01  DPP10-12HR-TIME-AM-PM               PIC X(2).
+
+       01  DPP10-24HR-TIME. 
+           05  DPP10-24HR-TIME-HH              PIC 99.  
+           05  DPP10-24HR-TIME-MM              PIC 99.  
+
+       01  DPP10-24HR-TIME-N REDEFINES DPP10-24HR-TIME PIC 9(4).
+
+      *--------------------------------------------------------------*  
+      *     WORKING STORAGE VARIABLE FOR  EXC-DT-SETUP-REC  
+      *--------------------------------------------------------------*  
+       01  WS-EXC-DT-SETUP-REC. 
+           03  WS-EDSR-EXC-ID                         PIC X(6). 
+           03  WS-EDSR-START-DATE                     PIC 9(08).
+           03  WS-EDSR-ST-DT-R REDEFINES WS-EDSR-START-DATE.
+               05 EDSR-START-CC                       PIC 9(2). 
+               05 EDSR-START-YY                       PIC 9(2). 
+               05 EDSR-START-MM                       PIC 9(2). 
+               05 EDSR-START-DD                       PIC 9(2). 
+           03  WS-EDSR-END-DATE                       PIC 9(8). 
+           03  WS-EDSR-DURATION-DAYS                  PIC 9(3). 
+           03  WS-EDSR-SETUP-STATUS                   PIC X.
+           03  WS-EDSR-MAINTENANCE-IND                PIC X.
+           03  WS-EDSR-BEGIN-BOOK-DATE                PIC 9(8). 
+           03  WS-EDSR-DAY-TABLE     OCCURS 9 TIMES.
+               05  WS-EDSR-DAY                        PIC 1.
+           03  WS-EDSR-ON-ARRIVAL-IND                 PIC X.
+           03  WS-EDSR-AT-YOUR-LEISURE-IND            PIC X.
+           03  WS-EDSR-AUTO-SHIP-ALLOC-IND            PIC X.
+           03  WS-EDSR-AVAIL-STATUS                   PIC X.
+           03  WS-EDSR-TOTAL-ALLOC           PIC 9(5) USAGE COMP.   
+           03  WS-EDSR-PRESALES-ALLOC        PIC 9(5) USAGE COMP.   
+           03  WS-EDSR-MIN-SALES-REQ         PIC 9(5) USAGE COMP.   
+           03  WS-EDSR-TIME-TABLE    OCCURS 20 TIMES.   
+               05  WS-EDSR-START-TIME                 PIC 9(4). 
+               05  WS-EDSR-START-TIME-R REDEFINES WS-EDSR-START-TIME.   
+                   07  WS-EDSR-START-HH               PIC 9(2). 
+                   07  WS-EDSR-START-MM               PIC 9(2). 
+               05  WS-EDSR-END-TIME                   PIC 9(4). 
+               05  WS-EDSR-END-TIME-R REDEFINES WS-EDSR-END-TIME.   
+                   07  WS-EDSR-END-HH                 PIC 9(2). 
+                   07  WS-EDSR-END-MM                 PIC 9(2). 
+               05  WS-EDSR-SHIP-TABLE OCCURS 5 TIMES.   
+                   07  WS-EDSR-SHIP-CODE              PIC X(2). 
+                   07  WS-EDSR-SHIP-TOTAL-ALLOC       PIC 9(5)  
+                                                      USAGE COMP.   
+                   07  WS-EDSR-PRESALE-ALLOC          PIC 9(5)  
+                                                      USAGE COMP.   
+                   07  WS-EDSR-OPERATIONAL-LIMIT      PIC 9(5)  
+                                                      USAGE COMP.   
+                   07  WS-EDSR-START-TIME-BUFF-TYPE   PIC X.
+                   07  WS-EDSR-START-TIME-BUFF        PIC 9(3). 
+                   07  WS-EDSR-END-TIME-BUFF-TYPE     PIC X.
+                   07  WS-EDSR-END-TIME-BUFF          PIC 9(3). 
+                   07  WS-EDSR-SHIP-ON-ARRIVAL-IND    PIC X.
+                   07  WS-EDSR-SHIP-AT-YR-LEISURE-IND PIC X.
+                   07  WS-EDSR-BASE-PRICE             PIC 9(5)V99   
+                                                      USAGE COMP.   
+                   07  WS-EDSR-SHIP-AUTO-SHIP-ALLOC-I PIC X.
+                   07  WS-EDSR-STATUS                 PIC X.
+                   07  WS-EDSR-PRICING-TABLE OCCURS 5 TIMES.
+                       09  WS-EDSR-PRICE-CODE         PIC X.
+                       09  WS-EDSR-AVAIL              PIC X.
+                       09  WS-EDSR-MAX-CAPACITY       PIC 9(5)  
+                                                      USAGE COMP.   
+                       09  WS-EDSR-PRICE              PIC 9(5)V99   
+                                                      USAGE COMP.   
+                       09  WS-FILLER                  PIC X(2). 
+200243             07  WS-EDSR-PRC-OVERRIDE-CODE      PIC X.
+200243             07  FILLER                         PIC X(3). 
+103563    03 WS-EDSR-PORT-TYPE                       PIC X(01). 
+103563    03 FILLER                                  PIC X(65). 
+103563*   03  FILLER                                 PIC X(66). 
+
+      *--------------------------------------------------------------*  
+      *     WORKING STORAGE VARIABLE FOR  EXC-DEPARTURE-REC 
+      *--------------------------------------------------------------*  
+       01  WS-EXCINV-AREA                     PIC X(8). 
+
+       01  WS-EXC-DEPARTURE-REC.
+           03  WS-EDR-CALC-KEY. 
+               05  WS-EDR-EXC-ID              PIC X(6). 
+               05  WS-EDR-START-DATE          PIC 9(8). 
+               05  WS-EDR-START-TIME          PIC 9(4). 
+           03  WS-EDR-END-DATE                PIC 9(8). 
+           03  WS-EDR-END-TIME                PIC 9(4). 
+           03  WS-EDR-ON-ARRIVAL-IND          PIC X.
+           03  WS-EDR-AT-YOUR-LEISURE-IND     PIC X.
+           03  WS-EDR-AUTO-SHIP-ALLOC-IND     PIC X.
+           03  WS-EDR-TOTAL-ALLOC             PIC 9(5) USAGE COMP.  
+           03  WS-EDR-TOTAL-SOLD              PIC 9(5) USAGE COMP.  
+           03  WS-EDR-PRESALES-ALLOC          PIC 9(5) USAGE COMP.  
+           03  WS-EDR-PRESALES-SOLD           PIC 9(5) USAGE COMP.  
+           03  WS-EDR-DAY-OF-WEEK             PIC X(3). 
+           03  WS-EDR-BEGIN-BOOK-DATE         PIC 9(8). 
+           03  WS-EDR-AVAIL-STATUS            PIC X.
+           03  WS-EDR-MIN-SALES-REQ           PIC 9(5) USAGE COMP.  
+208566     03  WS-EDR-UPDATE-DATE             PIC 9(08) USAGE COMP. 
+208566     03  WS-EDR-UPDATE-TIME             PIC 9(06) USAGE COMP. 
+208566*    03  FILLER                         PIC X(38).
+208566     03  FILLER                         PIC X(34).
+      *--------------------------------------------------------------*  
+      *     WORKING STORAGE VARIABLE FOR  EXC-SAILING-DEPARTURE-REC 
+      *--------------------------------------------------------------*  
+       01  WS-EXC-SAILING-DEPARTURE-REC.
+           03  WS-ESDR-CALC-KEY.
+               05  WS-ESDR-SHIP-CODE          PIC X(2). 
+               05  WS-ESDR-SAIL-DATE          PIC 9(8). 
+               05  WS-ESDR-DURATION-DAYS      PIC 9(3). 
+               05  WS-ESDR-EXC-ID             PIC X(6). 
+               05  WS-ESDR-EXC-DATE           PIC 9(8). 
+           03  WS-ESDR-EXC-TIME               PIC 9(4). 
+           03  WS-ESDR-STATUS                 PIC X.
+           03  WS-ESDR-TOTAL-ALLOC            PIC 9(5) USAGE COMP.  
+           03  WS-ESDR-PRESALES-ALLOC         PIC 9(5) USAGE COMP.  
+           03  WS-ESDR-START-TIME-BUFF-TYPE   PIC X.
+           03  WS-ESDR-START-TIME-BUFF        PIC 9(3). 
+           03  WS-ESDR-END-TIME-BUFF-TYPE     PIC X.
+           03  WS-ESDR-END-TIME-BUFF          PIC 9(3). 
+           03  WS-ESDR-AUTO-SHIP-ALLOC-IND    PIC X.
+200243*    03  FILLER                         PIC X(2). 
+200243     03  WS-ESDR-PRC-OVERRIDE-CODE      PIC X(01).
+200243     03  FILLER                         PIC X(01).
+           03  WS-ESDR-OPERATIONAL-LIMIT      PIC 9(5) USAGE COMP.  
+           03  WS-ESDR-PRICING-TABLE    OCCURS  5 TIMES.
+               05  WS-ESDR-PRICE-CODE         PIC X.
+               05  WS-ESDR-TOTAL-SOLD         PIC 9(5) USAGE COMP.  
+               05  WS-ESDR-PRESALES-SOLD      PIC 9(5) USAGE COMP.  
+               05  WS-ESDR-PRICE-AVAIL        PIC X.
+               05  WS-ESDR-PRICE-MAX-CAPACITY PIC 9(5) USAGE COMP.  
+               05  WS-ESDR-PRICE              PIC 9(5)V99 USAGE COMP.   
+           03  WS-ESDR-BASE-PRICE             PIC 9(5)V99 USAGE COMP.   
+PSSSPA     03  WS-ESDR-EXC-TYPE               PIC X(2). 
+PSSSPA     03  WS-ESDR-EXC-END-DATE           PIC 9(8). 
+PSSSPA     03  WS-ESDR-EXC-END-TIME           PIC 9(4). 
+PSSSPA     03  WS-ESDR-ON-ARRIVAL-IND         PIC X(1). 
+PSSSPA     03  WS-ESDR-AT-YOUR-LEISURE-IND    PIC X(1). 
+C67814     03  WS-ESDR-GROUPS-ALLOC           PIC 9(5) USAGE COMP.  
+208566     03  FILLER                         PIC X(04).
+208566     03  WS-ESDR-UPDATE-DATE            PIC 9(08) USAGE COMP. 
+208566     03  WS-ESDR-UPDATE-TIME            PIC 9(06) USAGE COMP. 
+AUPRSL     03  WS-ESDR-CURRENCY-CODE          PIC X(3). 
+C67814*    03  FILLER                         PIC X(21).
+208566     03  FILLER                         PIC X(01).
+      *--------------------------------------------------------------*  
+      *     WORKING STORAGE VARIABLE FOR  EXC-MMYY-REC  
+      *--------------------------------------------------------------*  
+
+       01  WS-EXC-MMYY-REC. 
+           03  WS-EMYR-CALC-KEY.
+               05  WS-EMYR-EXC-ID              PIC X(6).
+               05  WS-EMYR-MM                  PIC 9(2).
+               05  WS-EMYR-CC                  PIC 9(2).
+               05  WS-EMYR-YY                  PIC 9(2).
+           03  FILLER                          PIC X(28).   
+
+      *--------------------------------------------------------------*  
+      *     WORKING STORAGE VARIABLE FOR  EXC-SAILING-PORT-DATE-REC 
+      *--------------------------------------------------------------*  
+       01  WS-EXC-SAILING-PORT-DATE-REC.
+           03 WS-EPDR-CALC-KEY. 
+              05  WS-EPDR-SHIP-CODE               PIC X(2). 
+              05  WS-EPDR-SAILDATE                PIC 9(8). 
+              05  WS-EPDR-DURATIONDAYS            PIC 9(3). 
+              05  WS-EPDR-PORTCODE                PIC 9(3). 
+              05  WS-EPDR-DEPARTURE-DATE          PIC X(8). 
+           03 FILLER                              PIC X(16).
+
+      *--------------------------------------------------------------*  
+      *     WORKING STORAGE VARIABLE FOR  EXC-SAILING-REC   
+      *--------------------------------------------------------------*  
+       01  WS-EXC-SAILING-REC.  
+           03  WS-ESR-CALC-KEY. 
+               05  WS-ESR-SHIP-CODE            PIC X(2).
+               05  WS-ESR-SAIL-DATE            PIC 9(8).
+               05  WS-ESR-DURATION-DAYS        PIC 9(3).
+               05  WS-ESR-EXC-ID               PIC X(6).
+           03 FILLER                           PIC X(21).   
+
+      *--------------------------------------------------------------*  
+      ****** HEADINGS FOR ERROR REPORT FILE -           **  
+      *--------------------------------------------------------------*  
+       01  TITLE-1. 
+           03  FILLER                     PIC X(92) VALUE   
+              ' SXB14SDS                              C A R N I V A L   
+      -       '  C R U I S E   L I N E S   I N C .'.
+219999*    03  FILLER                    PIC X(22) VALUE SPACES.
+219999     03  FILLER                    PIC X(33) VALUE SPACES.
+           03  FILLER                    PIC X(10) VALUE '    PAGE:'.   
+           03  FILLER                    PIC X(05) VALUE '     '.   
+           03  TTL-PAGE-NUM              PIC ZZ9.   
+
+       01  TITLE-2. 
+           03  FILLER                    PIC X VALUE SPACES.
+           03  FILLER                    PIC X(45) VALUE SPACES.
+           03  FILLER                    PIC X(39) VALUE
+               'EXC DT SETUP ERRORS REPORT'.
+219999*    03  FILLER                    PIC X(30) VALUE SPACES.
+219999     03  FILLER                    PIC X(41) VALUE SPACES.
+           03  FILLER                    PIC X(9) VALUE '   DATE: '.
+           03  TTL-DATE-MM               PIC XX.
+           03  FILLER                    PIC X VALUE '/'.   
+           03  TTL-DATE-DD               PIC XX.
+           03  FILLER                    PIC X VALUE '/'.   
+           03  TTL-DATE-YY               PIC XX.
+
+       01  TITLE-21.
+219999*    03  FILLER                    PIC X(118) VALUE SPACES.   
+219999     03  FILLER                    PIC X(129) VALUE SPACES.   
+           03  FILLER                    PIC X(06)  VALUE 'TIME: '. 
+           03  TTL-TIME-HH               PIC XX.
+           03  FILLER                    PIC X VALUE ':'.   
+           03  TTL-TIME-MM               PIC XX.
+           03  FILLER                    PIC X VALUE ':'.   
+           03  TTL-TIME-SS               PIC XX.
+
+       01  TITLE-3. 
+219999*    03  FILLER                    PIC X(132) VALUE   
+219999     03  FILLER                    PIC X(143) VALUE   
+           'Exc-ID   StartDt    EndDate    Durday   setupSt   Main-ind  
+219999*    'StTime     EndTime     ShpCode     ErrDesc'.
+219999-    'StTime     EndTime     ShpCode     SailDate     ErrDesc'.   
+       01  DET2-PRT-REC.
+           03 DET-EDSR-EXC-ID                     PIC X(6). 
+           03 FILLER                              PIC X(3) VALUE SPACES.
+           03 DET-EDSR-START-DATE                 PIC 9(8). 
+           03 FILLER                              PIC X(4) VALUE SPACES.
+           03 DET-EDSR-END-DATE                   PIC 9(8). 
+           03 FILLER                              PIC X(4) VALUE SPACES.
+219999*    03 DET-EDSR-DURATION-DAYS              PIC 9(3). 
+219999     03 DET-EDSR-DURATION-DAYS              PIC Z(3). 
+           03 FILLER                              PIC X(6) VALUE SPACES.
+           03 DET-EDSR-SETUP-STATUS               PIC X.
+           03 FILLER                              PIC X(9) VALUE SPACES.
+           03 DET-EDSR-MAINTENANCE-IND            PIC X.
+           03 FILLER                              PIC X(9) VALUE SPACES.
+           03 DET-EDSR-START-TIME                 PIC 9(4). 
+           03 FILLER                              PIC X(9) VALUE SPACES.
+           03 DET-EDSR-END-TIME                   PIC 9(4). 
+           03 FILLER                              PIC X(9) VALUE SPACES.
+           03 DET-EDSR-SHIP-CODE                  PIC X(2). 
+219999*    03 FILLER                              PIC X(3) VALUE SPACES.
+219999     03 FILLER                              PIC X(5) VALUE SPACES.
+219999     03 DET-EDSR-SAIL-DATE                  PIC Z(8). 
+219999     03 FILLER                              PIC X(5) VALUE SPACES.
+           03 DET-EDSR-DESCRIPTION                PIC X(25).
+           03 FILLER                              PIC X(3) VALUE SPACES.
+
+       01  WS-LINE-CNT                   PIC 99   VALUE ZEROES. 
+
+       01  WS-ERR-COUNT                  PIC 9(4)   VALUE ZEROES.   
+
+       01  WS-PAGE-CNT2                  PIC 9(3) VALUE ZEROES. 
+
+       01  WS-NO-ERROR-LINE              PIC X(23) VALUE
+           'NO ERRORS TO REPORT'.   
+
+219999*01  WS-BLANK-LINE                 PIC X(132) VALUE ALL SPACES.   
+
+219999*01  WS-ASTERISK-LINE              PIC X(132) VALUE ALL '*'.  
+
+219999*01  WS-EQUAL-LINE                 PIC X(132) VALUE ALL '='.  
+
+219999 01  WS-BLANK-LINE                 PIC X(143) VALUE ALL SPACES.   
+
+219999 01  WS-ASTERISK-LINE              PIC X(143) VALUE ALL '*'.  
+
+219999 01  WS-EQUAL-LINE                 PIC X(143) VALUE ALL '='.  
+
+C96793 01  WS-STATUS-CHANGED-CHECK       PIC X. 
+C96793     88  WS-STATUS-CHANGED                    VALUE 'Y'.  
+C96793     88  WS-STATUS-NOT-CHANGED                VALUE 'N'.  
+208566 01  WS-SYSTEM-TIME.  
+208566     03 WS-SYSTEM-HHMMSS           PIC 9(06). 
+208566     03 WS-SYSTEM-PP               PIC 9(02). 
+208566 01  WS-EMR-BEG-DATE-X.   
+208566     03  WS-EMR-BEG-DATE                    PIC 9(08).
+208566 01  WS-EMR-END-DATE-X.   
+208566     03  WS-EMR-END-DATE                    PIC 9(08).
+208566 01  WS-EMR-BEG-DATE-NI                     PIC S9(01)
+208566                                            SIGN LEADING SEPARATE.
+208566 01  WS-EMR-END-DATE-NI                     PIC S9(01)
+208566                                            SIGN LEADING SEPARATE.
+      *--------------------------------------------------------------*  
+      *      COPY LIBRARIES                                          *  
+      *--------------------------------------------------------------*  
+       COPY DPP02Y2K.   
+144449*COPY DPP01BWS.   
+144449 COPY DPP01DTA.   
+144449 COPY DPP01ERR.   
+144449 COPY DPP01MCB.   
+144449 COPY DPP12SCO.   
+144449 COPY DPP42ERR.   
+144449 COPY RSP00DMS.   
+144449 COPY RSP32DMS.   
+144449 COPY RSP64DMS.   
+144449 COPY RSP77GMD.   
+       COPY DPP01CIW.   
+       COPY DPP20DWS.   
+       COPY DPP01SCO.   
+177338 COPY SXP50PRW.   
+       COMMON-STORAGE SECTION.  
+       PROCEDURE DIVISION.  
+       0000-START-THE-RUN.  
+
+144449     COPY DPP01INT.   
+      *--------------------------------------------------------------*  
+      *  INITIALIZE VARIABLES                                        *  
+      *--------------------------------------------------------------*  
+
+           SET ERROR-SW TO OFF. 
+           ACCEPT WS-SYSTEM-DATE   FROM DATE YYYYMMDD.  
+           MOVE WS-SYS-YY   TO  TTL-DATE-YY.
+           MOVE WS-SYS-MM   TO  TTL-DATE-MM.
+           MOVE WS-SYS-DD   TO  TTL-DATE-DD.
+
+           ACCEPT WS-SYS-TIME FROM TIME.
+           MOVE WS-SYS-TIME-HH   TO TTL-TIME-HH.
+           MOVE WS-SYS-TIME-MM   TO TTL-TIME-MM.
+           MOVE WS-SYS-TIME-SS   TO TTL-TIME-SS.
+208566     MOVE WS-SYS-TIME      TO WS-SYSTEM-TIME. 
+
+C41280     MOVE 'N'              TO BGN-THRD-SW 
+C41280                              ROLLBACK-SW.
+
+
+      *--------------------------------------------------------------*  
+      *   DATABASE & INPUT/OUTPUT FILES OPEN                         *  
+      *--------------------------------------------------------------*  
+       0000-OPEN-ROUTINE.   
+144449*    EXEC SQL WHENEVER SQLERROR GO TO 9200-RDMS-ERROR END-EXEC.   
+144449*    BEGIN THREAD UPDATE (DEFERRED).  
+
+144449     PERFORM DPP12-BEGIN-THREAD THRU  
+144449             DPP12-BEGIN-THREAD-EXIT. 
+
+144449     IF DPP01-SQL-ERROR-IND = 'Y' 
+144449        GO TO DPP12-THREAD-ERROR-EXIT.
+
+C41280     EXEC SQL USE DEFAULT SCHEMA PSTRDMS END-EXEC.
+208566  
+208566     EXEC SQL WHENEVER SQLERROR   
+208566          CONTINUE
+208566     END-EXEC.
+208566  
+208566     EXEC SQL WHENEVER NOT FOUND  
+208566          CONTINUE
+208566     END-EXEC.
+208566  
+C41280     MOVE 'Y'              TO BGN-THRD-SW.
+C41280  
+           MOVE 01010101     TO DPP01-ERROR-NUMBER. 
+           IMPART.  
+
+           MOVE 08080101     TO DPP01-ERROR-NUMBER. 
+           PERFORM DEPEXAR-OPEN-EDR-UPDATE     THRU 
+                   DEPEXAR-OPEN-EDR-AREAS-EXIT. 
+
+           MOVE 07970102     TO  DPP01-ERROR-NUMBER.
+           OPEN EXCSETUP         USAGE-MODE IS UPDATE.  
+
+           MOVE 06080102     TO  DPP01-ERROR-NUMBER.
+           OPEN EXCURSION         USAGE-MODE IS UPDATE. 
+
+           MOVE 22910103     TO  DPP01-ERROR-NUMBER.
+177338*    OPEN ERROR-DESC1      USAGE-MODE IS RETRIEVAL.   
+177338     OPEN EXCSAIL 
+177338          ERROR-DESC1.
+
+           MOVE "ERROR-DESC" TO  ERROR-DESC-CALCAREA.   
+           MOVE "EXCURSION"  TO  EXCURSION-CALCAREA.
+107687*    MOVE "EXCSETUP"   TO  EXCSETUP-CALCAREA. 
+
+           OPEN INPUT  EXCURSION-KEY-FILE.  
+           IF EK-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY "I-O ERROR " " " "SXBSDS01D FILE STATUS = "   
+                      WS-EK-FILE-STATUS UPON PRINTER
+              GO TO 9100-I-O-FILE-ERROR.
+           OPEN INPUT  SAILING-SUMMARY-FILE.
+           IF SS-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY "I-O ERROR " " " "SXBSDS03D FILE STATUS = "   
+                      WS-SS-FILE-STATUS UPON PRINTER
+              GO TO 9100-I-O-FILE-ERROR.
+
+           OPEN OUTPUT ERROR-REPORT-FILE.   
+           IF ER-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY "I-O ERROR " " " "SXBSDS01P FILE STATUS = "   
+                      WS-ER-FILE-STATUS UPON PRINTER
+              GO TO 9100-I-O-FILE-ERROR.
+C96793     MOVE 'N'   TO WS-STATUS-CHANGED-CHECK.   
+      *--------------------------------------------------------------*  
+      * PROGRAM LOGIC IS CONTROLLED HERE
+      *--------------------------------------------------------------*  
+           PERFORM 1000-MAIN-PARA THRU 1000-MAIN-PARA-EXIT. 
+           GO TO 9000-END-OF-JOB.   
+
+       1000-MAIN-PARA.  
+           PERFORM 2000-READ-FILE THRU 2000-READ-FILE-EXIT. 
+           DISPLAY 'TOTAL EDSR REC READ: ' WS-NO-OF-REC-READ
+                                           UPON PRINTER.
+      * If no error write no-error to report in error report file.  
+           IF WS-LINE-CNT > 0   
+              NEXT SENTENCE 
+           ELSE 
+              PERFORM 9100-REPORT-HEADING THRU  
+                      9100-REPORT-HEADING-EXIT  
+              WRITE ERROR-REPORT-REC FROM WS-BLANK-LINE AFTER 1 
+              WRITE ERROR-REPORT-REC FROM WS-NO-ERROR-LINE AFTER 1. 
+
+       1000-MAIN-PARA-EXIT. 
+           EXIT.
+
+      *--------------------------------------------------------------*  
+      * Read all records in file and process one by one 
+      *--------------------------------------------------------------*  
+       2000-READ-FILE.  
+
+112797     IF WS-DB-CNT-1 > 0   
+112797         MOVE ZERO         TO WS-DB-CNT-1 
+165283*        FREE 
+165283         PERFORM DPP12-COMMIT THRU DPP12-COMMIT-EXIT  
+112797     END-IF.  
+
+           READ EXCURSION-KEY-FILE RECORD   
+                 AT END 
+                 GO TO 2000-READ-FILE-EXIT. 
+
+           MOVE EK-DATABASE-KEY  TO WS-EXC-DT-SETUP-DBKEY.  
+
+144449     MOVE WS-EXC-DT-SETUP-DBKEY   
+144449                           TO GENERIC-DBK.
+           MOVE 06031004     TO  DPP01-ERROR-NUMBER.
+144449*    FETCH EXC-DT-SETUP-REC RECORD WS-EXC-DT-SETUP-DBKEY  
+144449     FETCH EXC-DT-SETUP-REC RECORD GENERIC-DBK
+                 ON ERROR GO TO 2100-READ-ERROR-CHK.
+
+       2100-READ-ERROR-CHK. 
+C41280*    IF ERROR-STATUS NOT = "000000"   
+C41280     IF ERROR-STATUS OF DMCA NOT = "000000"   
+C56050*       IF ERROR-NUM = "13"   
+C56050        IF ERROR-NUM = "0013" 
+                 GO TO 2000-READ-FILE   
+              ELSE  
+                 GO TO 9100-DATABASE-ERROR  
+              END-IF
+           END-IF.  
+
+       2200-READ-CONT.  
+
+C56050     MOVE 0 TO WS-NUM-OF-REC-MATCHED. 
+C56050     MOVE SPACES  
+C56050            TO WS-SETUP-STATUS.   
+           ADD 1  TO WS-NO-OF-REC-READ. 
+           MOVE 0 TO WS-SUB1, WS-SUB2.  
+           IF EDSR-MAINTENANCE-IND NOT = 'A'
+              GO TO 2000-READ-FILE  
+           END-IF.  
+           MOVE EXC-DT-SETUP-REC   TO WS-EXC-DT-SETUP-REC.  
+
+           IF WS-EDSR-START-DATE > WS-EDSR-END-DATE 
+              MOVE 'EXC START DT > EXC END DT' TO WS-DESCRIPTION
+              PERFORM 9000-ERROR-REPORT-PARA THRU   
+                      9000-ERROR-REPORT-PARA-EXIT   
+C56050        PERFORM 2290-EDSR-MOD-STATUS THRU 
+C56050                2290-EDSR-MOD-STATUS-EXIT 
+              GO TO 2000-READ-FILE. 
+
+
+           MOVE WS-EDSR-EXC-ID     TO EMR-EXC-ID.   
+           MOVE WS-EDSR-START-DATE TO WS-EXC-DATE.  
+
+           MOVE  06081005          TO  DPP01-ERROR-NUMBER.  
+           FETCH EXC-MASTER-REC RECORD  
+                 ON ERROR GO       TO 2210-EMR-ERR-CHK. 
+
+       2210-EMR-ERR-CHK.
+C41280*    IF ERROR-STATUS NOT = "000000"   
+C41280     IF ERROR-STATUS OF DMCA NOT = "000000"   
+C56050*       IF ERROR-NUM = "13"   
+C56050        IF ERROR-NUM = "0013" 
+                 MOVE 'EXC-MASTER DOES NOT EXIST' TO WS-DESCRIPTION 
+                 PERFORM 9000-ERROR-REPORT-PARA THRU
+                         9000-ERROR-REPORT-PARA-EXIT
+C56050           PERFORM 2290-EDSR-MOD-STATUS THRU  
+C56050                   2290-EDSR-MOD-STATUS-EXIT  
+                 GO TO 2000-READ-FILE   
+              ELSE  
+                 GO TO 9100-DATABASE-ERROR  
+              END-IF
+           END-IF.  
+
+       2220-EDSR-MAIN-CONT. 
+           MOVE EMR-PORT-CODE      TO WS-PORT-CODE. 
+198667*    MOVE EMR-EXC-DURATION   TO WS-EMR-EXC-DURATION   
+198667*                               WS-DURATION-XX.   
+198667*    MOVE EMR-DURATION-TYPE  TO WS-EMR-DURATION-TYPE. 
+
+198667     MOVE EMR-MIN-PORT-TIME-DURATION  
+198667                             TO WS-EMR-EXC-DURATION.  
+198667     MOVE EMR-MIN-PORT-TIME-DUR-TYPE  
+198667                             TO WS-EMR-DURATION-TYPE. 
+
+           IF EDSR-MAINTENANCE-IND = 'E' OR 'A' 
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY 'WRONG MAINTENANCE INDICATOR ENCOUNTERED: '   
+                EDSR-MAINTENANCE-IND UPON PRINTER   
+              MOVE 'WRONG MAINTENANCE IND' TO WS-DESCRIPTION
+              PERFORM 9000-ERROR-REPORT-PARA THRU   
+                      9000-ERROR-REPORT-PARA-EXIT   
+              GO TO 2000-READ-FILE. 
+
+C41233     MOVE WS-EDSR-BEGIN-BOOK-DATE TO DPP02-YYYYMMDD-DATE. 
+C41233     PERFORM DPP10-VALIDATE-YYYYMMDD-DATE.
+C41233  
+C41233     IF  DPP02-DATE-IS-NOT-VALID  
+C41233        MOVE 'INVALID BEGIN BOOK DATE'
+C41233           TO  WS-DESCRIPTION 
+C41233        PERFORM 9000-ERROR-REPORT-PARA THRU   
+C41233                9000-ERROR-REPORT-PARA-EXIT   
+C56050        PERFORM 2290-EDSR-MOD-STATUS THRU 
+C56050                2290-EDSR-MOD-STATUS-EXIT 
+C41233        GO TO 2000-READ-FILE. 
+
+            MOVE 0 TO WS-ALLOCATION-FLAG.   
+
+      *     IF EDSR-MAINTENANCE-IND = 'E'   
+      *        PERFORM 7600-DAY-WEEK-UPD-PARA THRU  
+      *                7600-DAY-WEEK-UPD-PARA-EXIT. 
+
+           IF EDSR-MAINTENANCE-IND = 'A'
+
+              PERFORM 2250-ALLOC-CHECK THRU 2250-ALLOC-CHECK-EXIT   
+
+              IF TOT-INV-NOT-SAME   
+                 MOVE 0 TO WS-TOT-ALLOC-IND 
+                 MOVE "INV IS NOT EQ DISTRIBUTED" TO WS-DESCRIPTION 
+                 PERFORM 9000-ERROR-REPORT-PARA THRU
+                         9000-ERROR-REPORT-PARA-EXIT
+C56050           PERFORM 2290-EDSR-MOD-STATUS THRU  
+C56050                   2290-EDSR-MOD-STATUS-EXIT  
+                 GO TO 2000-READ-FILE   
+              END-IF
+
+              MOVE 'N' TO WS-EDR-STORED 
+              PERFORM 3000-ADD-INVENTORY-PARA THRU  
+                      3000-ADD-INVENTORY-PARA-EXIT  
+
+              IF WS-NUM-OF-REC-MATCHED > 0  
+                 MOVE WS-SETUP-STATUS TO EDSR-SETUP-STATUS  
+                 DISPLAY "FOR EXC-ID: " WS-EDSR-EXC-ID "NO OF SPREADS=" 
+                         WS-NUM-OF-REC-MATCHED UPON PRINTER 
+              ELSE  
+C56050           PERFORM 2290-EDSR-MOD-STATUS THRU  
+C56050                   2290-EDSR-MOD-STATUS-EXIT  
+                 GO TO 2000-READ-FILE   
+              END-IF
+           END-IF.  
+
+           MOVE 06031034     TO  DPP01-ERROR-NUMBER 
+144449     MOVE WS-EXC-DT-SETUP-DBKEY   
+144449                       TO GENERIC-DBK.
+144449*    FIND EXC-DT-SETUP-REC RECORD WS-EXC-DT-SETUP-DBKEY   
+144449     FIND EXC-DT-SETUP-REC RECORD GENERIC-DBK 
+                 ON ERROR GO TO 2230-EDSR-FIND-ERR-CHK. 
+
+       2230-EDSR-FIND-ERR-CHK.  
+C41280*    IF ERROR-STATUS NOT = "000000"   
+C41280     IF ERROR-STATUS OF DMCA NOT = "000000"   
+C56050*       IF ERROR-NUM = "13"   
+C56050        IF ERROR-NUM = "0013" 
+                 MOVE 'EDSR LOST-STS NOT UPD' TO WS-DESCRIPTION 
+                 PERFORM 9000-ERROR-REPORT-PARA THRU
+                         9000-ERROR-REPORT-PARA-EXIT
+                 GO TO 2000-READ-FILE   
+              ELSE  
+                 GO TO 9100-DATABASE-ERROR  
+              END-IF
+           END-IF.  
+
+       2230-EDSR-MOD-CONT.  
+
+           MOVE WS-SETUP-STATUS TO EDSR-SETUP-STATUS
+           MOVE 06031006        TO DPP01-ERROR-NUMBER   
+           MODIFY EXC-DT-SETUP-REC RECORD   
+                  ON ERROR GO TO 2240-EDSR-MOD-ERR-CHK. 
+138014     ADD 1 TO WS-DB-CNT-1.
+
+       2240-EDSR-MOD-ERR-CHK.   
+C41280*    IF ERROR-STATUS NOT = "000000"   
+C41280     IF ERROR-STATUS OF DMCA NOT = "000000"   
+C56050*       IF ERROR-NUM = "13"   
+C56050        IF ERROR-NUM = "0013" 
+                 MOVE 'EDSR MOD ERR-STS NOT UPD' TO WS-DESCRIPTION  
+                 PERFORM 9000-ERROR-REPORT-PARA THRU
+                         9000-ERROR-REPORT-PARA-EXIT
+                 GO TO 2000-READ-FILE   
+              ELSE  
+                 GO TO 9100-DATABASE-ERROR  
+              END-IF
+           END-IF.  
+
+       2250-EMR-MOD-CONT.   
+           IF EDSR-MAINTENANCE-IND = 'A'
+
+              MOVE 'EXCURSION'     TO EXCURSION-CALCAREA
+              MOVE WS-EDSR-EXC-ID  TO EMR-EXC-ID
+              FETCH EXC-MASTER-REC RECORD   
+                    ON ERROR GO TO 2260-EMR-MOD-ERR-CHK.
+
+       2260-EMR-MOD-ERR-CHK.
+C41280*    IF ERROR-STATUS NOT = "000000"   
+C41280     IF ERROR-STATUS OF DMCA NOT = "000000"   
+C56050*       IF ERROR-NUM = "13"   
+C56050        IF ERROR-NUM = "0013" 
+                 MOVE 'EMR NOT FOUND FOR UPD' TO WS-DESCRIPTION 
+                 PERFORM 9000-ERROR-REPORT-PARA THRU
+                         9000-ERROR-REPORT-PARA-EXIT
+                 GO TO 2000-READ-FILE   
+              ELSE  
+                 GO TO 9100-DATABASE-ERROR  
+              END-IF
+           END-IF.  
+
+       2270-MODIFY-EMR-DATE.
+C41280  
+C41280        MOVE EMR-BEGIN-DATE     TO WS-START-DATE  
+208566                                   WS-EMR-BEG-DATE.   
+C41280        MOVE EMR-END-DATE       TO WS-END-DATE-2  
+208566                                   WS-EMR-END-DATE.   
+              IF EMR-BEGIN-DATE = SPACES OR ZEROS   
+                 MOVE EDSR-START-DATE TO EMR-BEGIN-DATE 
+208566                                   WS-EMR-BEG-DATE
+              ELSE  
+                 IF EDSR-START-DATE < EMR-BEGIN-DATE
+                    MOVE EDSR-START-DATE TO EMR-BEGIN-DATE  
+208566                                      WS-EMR-BEG-DATE 
+                 END-IF 
+              END-IF
+
+              IF EMR-END-DATE = SPACES OR ZEROS 
+                 MOVE EDSR-END-DATE TO EMR-END-DATE 
+208566                                 WS-EMR-END-DATE  
+              ELSE  
+                 IF EDSR-END-DATE > EMR-END-DATE
+                    MOVE EDSR-END-DATE TO EMR-END-DATE  
+208566                                    WS-EMR-END-DATE   
+                 END-IF 
+              END-IF
+
+208566     IF WS-EMR-BEG-DATE <= 0  
+208566        MOVE -1                  TO WS-EMR-BEG-DATE-NI
+208566     ELSE 
+208566        MOVE 0                   TO WS-EMR-BEG-DATE-NI
+208566     END-IF.  
+208566  
+208566     IF WS-EMR-END-DATE <= 0  
+208566        MOVE -1                  TO WS-EMR-END-DATE-NI
+208566     ELSE 
+208566        MOVE 0                   TO WS-EMR-END-DATE-NI
+208566     END-IF.  
+208566  
+              MODIFY EXC-MASTER-REC RECORD  
+                     ON ERROR GO TO 2280-EMR-MOD-ERR-CHK.   
+208566  
+208566     EXEC SQL 
+208566          UPDATE SMF_EXC_MASTER   
+208566             SET BEGIN_DATE = DATE(STRPTIME(:WS-EMR-BEG-DATE-X
+208566                                   :WS-EMR-BEG-DATE-NI,'%Y%m%d')),
+208566                 END_DATE = DATE(STRPTIME(:WS-EMR-END-DATE-X  
+208566                                   :WS-EMR-END-DATE-NI,'%Y%m%d')) 
+208566           WHERE EXC_ID = :EMR-EXC-ID 
+208566     END-EXEC.
+208566  
+208566     IF SQLCODE < 0   
+208566        GO TO 9150-RDMS-ERROR 
+208566     END-IF.  
+208566  
+208566     IF SQLCODE = 100 
+208566        GO TO 2300-EMR-MOD-SQL-ERR
+208566     END-IF.  
+208566  
+138014        ADD 1 TO WS-DB-CNT-1. 
+
+       2280-EMR-MOD-ERR-CHK.
+C41280*    IF ERROR-STATUS NOT = "000000"   
+C41280     IF ERROR-STATUS OF DMCA NOT = "000000"   
+C56050*       IF ERROR-NUM = "13"   
+C56050        IF ERROR-NUM = "0013" 
+                 MOVE 'EMR MOD ERR-DT RG NOT UPD' TO WS-DESCRIPTION 
+                 PERFORM 9000-ERROR-REPORT-PARA THRU
+                         9000-ERROR-REPORT-PARA-EXIT
+                 GO TO 2000-READ-FILE   
+              ELSE  
+                 GO TO 9100-DATABASE-ERROR  
+              END-IF
+           END-IF.  
+C41280  
+C41280     MOVE 'SYS'                 TO SXP09-USER-ID. 
+C41280  
+C41280     IF  WS-START-DATE NOT = EMR-BEGIN-DATE   
+C41280         MOVE SPACES            TO SXP09-COMMENT  
+C41280         MOVE 1                 TO SXP09-PNTR 
+C41280         MOVE 'EED'             TO SXP09-ACTIVITY-CODE
+C41280         STRING 'BEGIN DATE: '     WS-START-DATE  
+C41280         DELIMITED BY SIZE INTO SXP09-COMMENT 
+C41280                                           WITH POINTER SXP09-PNTR
+145885*        PERFORM SXP09-EXC-MASTER-HIST THRU   
+145885*                SXP09-EXC-MASTER-HIST-EXIT   
+C41280     END-IF.  
+C41280  
+102202*    IF  WS-END-DATE-2 NOT = EMR-END-DATE 
+102202*        MOVE SPACES            TO SXP09-COMMENT  
+102202*        MOVE 1                 TO SXP09-PNTR 
+102202*        MOVE 'EET'             TO SXP09-ACTIVITY-CODE
+102202*        STRING 'END DATE: '       WS-END-DATE-2  
+102202*        DELIMITED BY SIZE INTO SXP09-COMMENT 
+102202*                  WITH POINTER SXP09-PNTR
+102202*        PERFORM SXP09-EXC-MASTER-HIST THRU   
+102202*                SXP09-EXC-MASTER-HIST-EXIT   
+102202*    END-IF.  
+
+102575     IF   WS-END-DATE-2 NOT = EMR-END-DATE
+102575          MOVE SPACES           TO SXP09-COMMENT  
+102575          MOVE 1                TO SXP09-PNTR 
+102575          MOVE 'EET'            TO SXP09-ACTIVITY-CODE
+102575          STRING 'END DATE: '       WS-END-DATE-2 
+102575          DELIMITED BY SIZE INTO SXP09-COMMENT
+102575                    WITH POINTER SXP09-PNTR   
+145885*         PERFORM SXP09-EXC-MASTER-HIST THRU  
+145885*                 SXP09-EXC-MASTER-HIST-EXIT  
+102575     END-IF.  
+
+144449     MOVE WS-EXC-DT-SETUP-DBKEY  TO GENERIC-DBK.  
+144449*    FIND EXC-DT-SETUP-REC RECORD WS-EXC-DT-SETUP-DBKEY.  
+144449     FIND EXC-DT-SETUP-REC RECORD GENERIC-DBK.
+103563     IF  EDSR-PORT-TYPE = 'D' OR 'E'  
+103563         MOVE 'P'  TO EDSR-SETUP-STATUS   
+103563         MOVE 'E'  TO EDSR-MAINTENANCE-IND
+103563         MODIFY EXC-DT-SETUP-REC RECORD   
+138014         ADD 1 TO WS-DB-CNT-1 
+103563     END-IF.  
+           GO TO 2000-READ-FILE.
+
+       2000-READ-FILE-EXIT. 
+           EXIT.
+
+208566 2300-EMR-MOD-SQL-ERR.
+208566  
+208566     MOVE 'EMR MOD ERR-DT RG NOT UPD' TO WS-DESCRIPTION   
+208566     PERFORM 9000-ERROR-REPORT-PARA THRU  
+208566             9000-ERROR-REPORT-PARA-EXIT. 
+208566     GO TO 2000-READ-FILE.
+      *--------------------------------------------------------------*  
+      *    CHECK FOR TOTAL ALLOCATION & PRESALES-ALLOC               *  
+      *--------------------------------------------------------------*  
+       2250-ALLOC-CHECK.
+           IF EDSR-AUTO-SHIP-ALLOC-IND = 'Y'
+               PERFORM VARYING WS-SUB1 FROM 1 BY 1 UNTIL WS-SUB1 > 20   
+                       AFTER WS-SUB2 FROM 1 BY 1 UNTIL WS-SUB2 > 5  OR  
+                       TOT-INV-NOT-SAME                             OR  
+                       EDSR-SHIP-CODE (WS-SUB1, WS-SUB2) = SPACES   OR  
+                       EDSR-SHIP-CODE (WS-SUB1, WS-SUB2) = LOW-VALUES   
+
+                   IF EDSR-TOTAL-ALLOC NOT =
+                      EDSR-SHIP-TOTAL-ALLOC (WS-SUB1, WS-SUB2)  
+
+                      DISPLAY "INVENTORY IS NOT EQUALLY DISTRIBUTED"
+                      UPON PRINTER  
+                      DISPLAY "EDSR REC WITH EDSR-EXC-ID: " EDSR-EXC-ID 
+                      " SKIPPED" UPON PRINTER   
+                      MOVE 1 TO WS-TOT-ALLOC-IND
+                   END-IF   
+                   IF EDSR-PRESALES-ALLOC NOT = 
+                      EDSR-PRESALE-ALLOC (WS-SUB1, WS-SUB2) 
+
+                      DISPLAY "INVENTORY IS NOT EQUALLY DISTRIBUTED"
+                      UPON PRINTER  
+                      DISPLAY "EDSR REC WITH EDSR-EXC-ID: " EDSR-EXC-ID 
+                      " SKIPPED" UPON PRINTER   
+                      MOVE 1 TO WS-TOT-ALLOC-IND
+                   END-IF   
+
+               END-PERFORM  
+           END-IF.  
+
+           IF EDSR-AUTO-SHIP-ALLOC-IND = 'N'
+              PERFORM VARYING WS-SUB1 FROM 1 BY 1 UNTIL WS-SUB1 > 20 OR 
+                              TOT-INV-NOT-SAME  
+                MOVE ZEROS TO WS-TOTAL-TOT  
+                              WS-PRESALE-TOT
+                              WS-TOT-ALLOC  
+                              WS-PRE-ALLOC  
+
+                PERFORM VARYING WS-SUB2 FROM 1 BY 1 UNTIL WS-SUB2 > 5 OR
+                              EDSR-SHIP-CODE(WS-SUB1, WS-SUB2) = SPACES 
+
+                  ADD EDSR-SHIP-TOTAL-ALLOC (WS-SUB1, WS-SUB2)  TO  
+                      WS-TOTAL-TOT  
+                  ADD EDSR-PRESALE-ALLOC (WS-SUB1, WS-SUB2)     TO  
+                             WS-PRESALE-TOT 
+                END-PERFORM 
+                  IF WS-TOTAL-TOT > WS-EDSR-TOTAL-ALLOC 
+                      MOVE 1 TO WS-TOT-ALLOC-IND
+                      DISPLAY "INVENTORY IS NOT EQUALLY DISTRIBUTED"
+                      UPON PRINTER  
+                      DISPLAY "EDSR REC WITH EDSR-EXC-ID: " EDSR-EXC-ID 
+                      " SKIPPED" UPON PRINTER   
+                  END-IF
+                  IF  WS-PRESALE-TOT > WS-EDSR-PRESALES-ALLOC   
+                      MOVE 1 TO WS-TOT-ALLOC-IND
+                      DISPLAY "INVENTORY IS NOT EQUALLY DISTRIBUTED"
+                      UPON PRINTER  
+                      DISPLAY "EDSR REC WITH EDSR-EXC-ID: " EDSR-EXC-ID 
+                      " SKIPPED" UPON PRINTER   
+                  END-IF
+              END-PERFORM   
+           END-IF.  
+
+       2250-ALLOC-CHECK-EXIT.   
+
+C56050*--------------------------------------------------------------*  
+C56050*    CHANGE EDSR-SET-UP-STATUS TO 'E'                          *  
+C56050*--------------------------------------------------------------*  
+C56050 2290-EDSR-MOD-STATUS.
+C56050  
+144449     MOVE WS-EXC-DT-SETUP-DBKEY  TO GENERIC-DBK.  
+144449*    FIND EXC-DT-SETUP-REC RECORD WS-EXC-DT-SETUP-DBKEY   
+144449     FIND EXC-DT-SETUP-REC RECORD GENERIC-DBK 
+C56050           ON ERROR GO TO 2290-EDSR-MOD-STATUS-ERR.   
+
+C56050 2290-EDSR-MOD-STATUS-ERR.
+C41280*    IF ERROR-STATUS NOT = "000000"   
+C41280     IF ERROR-STATUS OF DMCA NOT = "000000"   
+C56050        IF ERROR-NUM = "0013" 
+C56050           GO TO 2290-EDSR-MOD-STATUS-EXIT
+C56050        ELSE  
+C56050           GO TO 9100-DATABASE-ERROR  
+C56050        END-IF
+C56050     END-IF.  
+
+C56050 2290-EDSR-STATUS-CONT.   
+C56050  
+C56050     MOVE 'E'          TO EDSR-SETUP-STATUS.  
+C56050     MODIFY EXC-DT-SETUP-REC RECORD   
+C56050            ON ERROR GO TO 2290-EDSR-STATUS-CONT-ERR. 
+138014     ADD 1 TO WS-DB-CNT-1.
+165283     IF WS-DB-CNT-1 > 0   
+165283        MOVE ZERO       TO WS-DB-CNT-1
+165283*       FREE  
+165283        PERFORM DPP12-COMMIT THRU DPP12-COMMIT-EXIT   
+165283     END-IF.  
+
+C56050 2290-EDSR-STATUS-CONT-ERR.   
+C41280*    IF ERROR-STATUS NOT = "000000"   
+C41280     IF ERROR-STATUS OF DMCA NOT = "000000"   
+C56050        IF ERROR-NUM = "0013" 
+C56050           GO TO 2290-EDSR-MOD-STATUS-EXIT
+C56050        ELSE  
+C56050           GO TO 9100-DATABASE-ERROR  
+C56050        END-IF
+C56050     END-IF.  
+
+C56050 2290-EDSR-MOD-STATUS-EXIT.   
+C56050     EXIT.
+
+      *--------------------------------------------------------------*  
+      * Create new records for a new excursion as per EXC-DT-SETUP-REC  
+      *--------------------------------------------------------------*  
+       3000-ADD-INVENTORY-PARA. 
+
+
+           MOVE 9 TO WS-SUBS.   
+
+ME1306*    Prior to RPCMan conversion, the single bit was saved in  
+ME1306*    low-order bit in EDSR-DAY-TABLE which is a character.
+ME1306*    EDSR-DAY always got filled with 0.  After RPCMan conversion  
+ME1306*    EDSR-DAY (PIC 1) will hold the single bit.  This is the  
+ME1306*    high order bit in the EDSR-DAY-TABLE character.  
+
+ME1306*    MOVE WS-EDSR-DAY-TABLE (WS-SUBS) TO TAB-BIT. 
+ME1306*    IF TAB-BIT = 1   
+ME1306     IF  WS-EDSR-DAY (WS-SUBS) = 1
+                PERFORM 6000-ALL-INVENTORY-PARA THRU
+                        6000-ALL-INVENTORY-PARA-EXIT
+                GO TO   3000-ADD-INVENTORY-PARA-EXIT
+           END-IF.  
+
+           PERFORM 4000-SPD-INV-PARA  THRU 4000-SPD-INV-PARA-EXIT.  
+
+       3000-ADD-INVENTORY-PARA-EXIT.
+           EXIT.
+      *--------------------------------------------------------------*  
+      * 
+      *--------------------------------------------------------------*  
+
+       4000-SPD-INV-PARA.   
+
+           IF WS-EDSR-START-DATE > WS-EDSR-END-DATE 
+                GO TO 4000-SPD-INV-PARA-EXIT.   
+           MOVE WS-EDSR-START-DATE   TO DPP02-YYYYMMDD-DATE.
+           PERFORM DPP10-YYYYMMDD-TO-JULIAN.
+           MOVE DPP02-JULIAN-DATE TO WS-EDSR-START-JULIAN-DATE. 
+           PERFORM DPP10-DETERMINE-WEEK-DAY.
+           MOVE DPP02-DAY-OF-WEEK TO WS-DATE-DAY.   
+           IF WS-DATE-DAY = 'MON'   
+              MOVE 1 TO WS-SUBS.
+           IF WS-DATE-DAY = 'TUE'   
+              MOVE 2 TO WS-SUBS.
+           IF WS-DATE-DAY = 'WED'   
+              MOVE 3 TO WS-SUBS.
+           IF WS-DATE-DAY = 'THU'   
+              MOVE 4 TO WS-SUBS.
+           IF WS-DATE-DAY = 'FRI'   
+              MOVE 5 TO WS-SUBS.
+           IF WS-DATE-DAY = 'SAT'   
+              MOVE 6 TO WS-SUBS.
+           IF WS-DATE-DAY = 'SUN'   
+              MOVE 7 TO WS-SUBS.
+ME1306*    Prior to RPCMan conversion, the single bit was saved in  
+ME1306*    low-order bit in EDSR-DAY-TABLE which is a character.
+ME1306*    EDSR-DAY always got filled with 0.  After RPCMan conversion  
+ME1306*    EDSR-DAY (PIC 1) will hold the single bit.  This is the  
+ME1306*    high order bit in the EDSR-DAY-TABLE character.  
+
+ME1306*    MOVE WS-EDSR-DAY-TABLE (WS-SUBS) TO TAB-BIT. 
+ME1306*    IF TAB-BIT = 1   
+ME1306     IF  WS-EDSR-DAY (WS-SUBS) = 1
+                PERFORM 6000-ALL-INVENTORY-PARA THRU
+                        6000-ALL-INVENTORY-PARA-EXIT.   
+           MOVE WS-EDSR-START-DATE  TO DPP02-YYYYMMDD-DATE. 
+           MOVE 1                   TO DPP02-NUMBER-DAYS.   
+           PERFORM DPP10-ADVANCE-YYYYMMDD-DATE. 
+           MOVE DPP02-YYYYMMDD-DATE TO WS-EDSR-START-DATE.  
+           GO TO 4000-SPD-INV-PARA. 
+
+       4000-SPD-INV-PARA-EXIT.  
+
+      *--------------------------------------------------------------*  
+      * SPREADING THE INVENTORY 
+      *--------------------------------------------------------------*  
+       6000-ALL-INVENTORY-PARA. 
+
+           MOVE 0 TO WS-DEPART-FL.  
+           PERFORM 6100-ALL-INV THRU 6100-ALL-INV-EXIT  
+                  VARYING WS-SUB1 FROM 1 BY 1 UNTIL WS-SUB1 > 20 OR 
+                               WS-EDSR-START-TIME(WS-SUB1) = SPACES 
+                  AFTER WS-SUB2 FROM 1 BY 1 UNTIL WS-SUB2 > 5.  
+
+       6000-ALL-INVENTORY-PARA-EXIT.
+           EXIT.
+
+      *---------------------------------------------------------------- 
+       6100-ALL-INV.
+      * 
+      * Resetting the edr-stored flag for processing of next departure  
+      * time.   
+
+           IF WS-SUB1 > WS-DEPART-FL
+              MOVE 'N' TO WS-EDR-STORED 
+              MOVE WS-SUB1 TO WS-DEPART-FL. 
+      * 
+           IF (WS-EDSR-START-TIME(WS-SUB1) = SPACES ) AND   
+              (WS-EDSR-SHIP-CODE(WS-SUB1, WS-SUB2) = SPACES )   
+              GO TO 6100-ALL-INV-EXIT.  
+
+           IF WS-SUBS = 9   
+219999*      IF (WS-EDSR-SHIP-CODE(WS-SUB1, WS-SUB2) NOT = SPACES ) AND 
+219999*         (WS-EDSR-START-DATE NOT = ZEROS )                   AND 
+219999*         (WS-EDSR-END-DATE NOT = ZEROS   )   
+219999       IF (WS-EDSR-SHIP-CODE(WS-SUB1, WS-SUB2) > SPACES )     AND 
+219999          (WS-EDSR-START-DATE > ZEROS )                       AND 
+219999          (WS-EDSR-END-DATE > ZEROS   )   
+                 MOVE 1 TO WS-ALLOCATION-FLAG   
+                 GO TO 6110-READ-SPREAD-PARA
+             END-IF 
+           END-IF.  
+
+           IF WS-SUBS < 9   
+219999*       IF (WS-EDSR-SHIP-CODE(WS-SUB1, WS-SUB2) NOT = SPACES ) AND
+219999*         (WS-EDSR-START-DATE NOT = ZEROS )                    AND
+219999*         (WS-EDSR-END-DATE NOT = ZEROS   )   
+219999        IF (WS-EDSR-SHIP-CODE(WS-SUB1, WS-SUB2) > SPACES )     AND
+219999          (WS-EDSR-START-DATE > ZEROS )                        AND
+219999          (WS-EDSR-END-DATE > ZEROS   )   
+                 MOVE 1 TO WS-ALLOCATION-FLAG   
+                 GO TO 6120-READ-SPREAD-PARA
+
+              END-IF
+           END-IF.  
+      * 
+      * IF ALLOCATION FLAG IS 'ON' ITS MEAN NO NEED TO SPREAD   
+      *        DEPARTURE'S RECORDS. 
+      * 
+           IF WS-ALLOCATION-FLAG = 1
+                 GO TO 6100-ALL-INV-EXIT.   
+
+           IF WS-SUBS = 9   
+219999*      IF (WS-EDSR-EXC-ID NOT = SPACES )          AND 
+219999*         (WS-EDSR-START-DATE NOT = ZEROS )       AND 
+219999*         (WS-EDSR-END-DATE NOT = ZEROS   )       AND 
+219999       IF (WS-EDSR-EXC-ID > SPACES )              AND 
+219999          (WS-EDSR-START-DATE > ZEROS )           AND 
+219999          (WS-EDSR-END-DATE > ZEROS   )           AND 
+                (WS-EDSR-SHIP-CODE(WS-SUB1, WS-SUB2) = SPACES)  
+                 GO TO 6105-READ-SPREAD-PARA
+
+             END-IF 
+           END-IF.  
+
+           IF WS-SUBS < 9   
+219999*      IF (WS-EDSR-EXC-ID NOT = SPACES )          AND 
+219999*         (WS-EDSR-START-DATE NOT = ZEROS )       AND 
+219999*         (WS-EDSR-END-DATE NOT = ZEROS   )       AND 
+219999       IF (WS-EDSR-EXC-ID > SPACES )              AND 
+219999          (WS-EDSR-START-DATE > ZEROS )           AND 
+219999          (WS-EDSR-END-DATE > ZEROS   )           AND 
+                (WS-EDSR-SHIP-CODE(WS-SUB1, WS-SUB2) = SPACES)  
+                 GO TO 6115-READ-SPREAD-PARA
+
+             END-IF 
+           END-IF.  
+
+
+      * 
+      * SPREAD DEPARTURE ONLY FOR ALL DAYS. 
+      * 
+       6105-READ-SPREAD-PARA.   
+
+           MOVE 'DEP' TO WS-DEP-FLAG.   
+           PERFORM 7000-SPREAD-INVENTORY-PARA THRU  
+                   7000-SPREAD-INVENTORY-PARA-X.
+           MOVE SPACES TO WS-DEP-FLAG.  
+           ADD 1                  TO WS-NUM-OF-REC-MATCHED  
+           MOVE WS-EDSR-START-DATE  TO DPP02-YYYYMMDD-DATE. 
+           MOVE 1 TO DPP02-NUMBER-DAYS. 
+           PERFORM DPP10-ADVANCE-YYYYMMDD-DATE. 
+           MOVE DPP02-YYYYMMDD-DATE TO WS-EDSR-START-DATE.  
+
+           IF WS-EDSR-START-DATE <= WS-EDSR-END-DATE
+               GO TO 6100-ALL-INV   
+            ELSE
+      * 
+      * Resetting the start date for similar processing to be done for  
+      *  next Departure time
+      * 
+               MOVE 'N' TO WS-EDR-STORED
+               MOVE EDSR-START-DATE TO WS-EDSR-START-DATE   
+               GO TO 6100-ALL-INV-EXIT. 
+
+       6110-READ-SPREAD-PARA.   
+            MOVE WS-EDSR-SHIP-CODE(WS-SUB1, WS-SUB2)
+                                          TO SS-SHIP-CODE.  
+            MOVE WS-EDSR-START-DATE       TO SS-DATE-RANGE. 
+            MOVE WS-PORT-CODE             TO SS-ITIN-PORT-CODE. 
+103563      MOVE WS-EDSR-PORT-TYPE        TO SS-PORT-DAY-IND.   
+103563*     IF  WS-EDSR-START-DATE = WS-SAIL-END-DATE   
+103563*         AND WS-DEBARK-PROCESSED NOT = 'Y'   
+103563*         MOVE 'Y'                  TO SS-DEBARK-PORT-IND 
+103563*     ELSE
+103563*         MOVE 'N'                  TO SS-DEBARK-PORT-IND 
+103563*     END-IF. 
+103563D 
+103563D     DISPLAY 'PARA PRIOR READ'       UPON PRINTER.   
+103563D     DISPLAY ' SS-SHIP-CODE      '    SS-SHIP-CODE   
+103563D             ' SS-DATE-RANGE     '    SS-DATE-RANGE  
+103563D             ' SS-ITIN-PORT-CODE '    SS-ITIN-PORT-CODE  
+103563D             ' SS-PORT-DAY-IND   '    SS-PORT-DAY-IND
+103563D     UPON PRINTER.   
+103563********************************************************* 
+            READ SAILING-SUMMARY-FILE RECORD
+                 KEY IS SAILING-SUMMARY-KEY 
+                 INVALID KEY GO TO 6210-INVALID-KEY.
+103563********************************************************* 
+103563D     DISPLAY 'PARA AFTER READ'       UPON PRINTER.   
+103563D     DISPLAY ' SS-SHIP-CODE      '    SS-SHIP-CODE   
+103563D             ' SS-DATE-RANGE     '    SS-DATE-RANGE  
+103563D             ' SS-ITIN-PORT-CODE '    SS-ITIN-PORT-CODE  
+103563D             ' SS-PORT-DAY-IND   '    SS-PORT-DAY-IND
+103563D     UPON PRINTER.   
+103563********************************************************* 
+
+C35907      MOVE SS-SAIL-DATE             TO DPP02-YYYYMMDD-DATE.   
+C35907      MOVE SS-DURATION-DAYS         TO DPP02-NUMBER-DAYS. 
+C35907      PERFORM DPP10-ADVANCE-YYYYMMDD-DATE.
+C35907      MOVE DPP02-YYYYMMDD-DATE      TO WS-SAIL-END-DATE.  
+
+103563*     MOVE SS-DEBARK-PORT-IND       TO WS-DEBARK-PROCESSED.   
+      * check if the excursion time lies between ships arrival and  
+      * departure time. For on arrival indicator 'Y' spread inv anyways 
+
+      * Convert AM/PM time to 24 HR format  
+C43223         MOVE SS-ARRIVE-HH         TO DPP10-12HR-TIME-HH. 
+C43223         MOVE SS-ARRIVE-MM         TO DPP10-12HR-TIME-MM. 
+C43223         MOVE SS-ARRIVE-AM-PM      TO DPP10-12HR-TIME-AM-PM.  
+C43223         PERFORM DPP10-CONVERT-TO-24HR-FORMAT THRU
+C43223                 DPP10-CONVERT-TO-24HR-EXIT.  
+C43223         MOVE DPP10-24HR-TIME-N    TO WS-ARRIVE-TIME. 
+C43223  
+C43223         MOVE SS-DEPART-HH         TO DPP10-12HR-TIME-HH. 
+C43223         MOVE SS-DEPART-MM         TO DPP10-12HR-TIME-MM. 
+C43223         MOVE SS-DEPART-AM-PM      TO DPP10-12HR-TIME-AM-PM . 
+C43223         PERFORM DPP10-CONVERT-TO-24HR-FORMAT THRU
+C43223                 DPP10-CONVERT-TO-24HR-EXIT.  
+C43223         MOVE DPP10-24HR-TIME-N    TO WS-DEPART-TIME .
+C43223  
+C43223         PERFORM 6300-CONVERT-IN-MINUTES THRU 
+C43223                 6300-CONVERT-IN-MINUTES-EXIT.
+103563*     IF WS-EDSR-ARRIVE-MIN  >= WS-SHP-ARRIVE-MIN  AND
+103563*        WS-EDSR-DEPART-MIN  <= WS-SHP-DEPART-MIN 
+103563      IF  (WS-EDSR-ARRIVE-MIN  >= WS-SHP-ARRIVE-MIN  AND  
+103563           WS-EDSR-DEPART-MIN  <= WS-SHP-DEPART-MIN  ) OR 
+103563          (WS-EDSR-START-DATE = SS-SAIL-DATE AND  
+103563           WS-EDSR-PORT-TYPE = 'E') OR
+103563          (WS-EDSR-START-DATE = WS-SAIL-END-DATE AND  
+103563           WS-EDSR-PORT-TYPE = 'D')   
+103563D          DISPLAY ' WS-EDSR-PORT-TYPE : ' WS-EDSR-PORT-TYPE  
+103563D          UPON PRINTER   
+                  ADD 1                  TO WS-NUM-OF-REC-MATCHED   
+                  PERFORM 7000-SPREAD-INVENTORY-PARA THRU   
+                          7000-SPREAD-INVENTORY-PARA-X  
+C43223         END-IF.  
+103563*     IF  WS-DEBARK-PROCESSED = 'Y'   
+103563*         GO TO 6100-ALL-INV  
+103563*     END-IF. 
+            MOVE WS-EDSR-START-DATE  TO DPP02-YYYYMMDD-DATE.
+            MOVE 1 TO DPP02-NUMBER-DAYS.
+            PERFORM DPP10-ADVANCE-YYYYMMDD-DATE.
+            MOVE DPP02-YYYYMMDD-DATE TO WS-EDSR-START-DATE. 
+
+            IF WS-EDSR-START-DATE <= WS-EDSR-END-DATE   
+               GO TO 6100-ALL-INV   
+            ELSE
+      * Resetting the start date for similar processing to be done for  
+      *  next ship  
+               MOVE EDSR-START-DATE TO WS-EDSR-START-DATE   
+               GO TO 6100-ALL-INV-EXIT. 
+      * 
+      * SPREAD DEPARTURE ONLY FOR SPECIFIC DAYS.
+      * 
+       6115-READ-SPREAD-PARA.   
+
+            IF  WS-EDSR-START-DATE > WS-EDSR-END-DATE   
+                GO TO 6000-ALL-INVENTORY-PARA-EXIT. 
+            MOVE 'DEP'      TO WS-DEP-FLAG  
+
+            PERFORM 7000-SPREAD-INVENTORY-PARA THRU 
+                    7000-SPREAD-INVENTORY-PARA-X
+            MOVE SPACES     TO WS-DEP-FLAG. 
+            ADD 1           TO WS-NUM-OF-REC-MATCHED.   
+            MOVE WS-5       TO WS-SUB2. 
+            GO TO 6100-ALL-INV-EXIT.
+
+       6120-READ-SPREAD-PARA.   
+            IF  WS-EDSR-START-DATE > WS-EDSR-END-DATE   
+                GO TO 6000-ALL-INVENTORY-PARA-EXIT. 
+
+            MOVE WS-EDSR-SHIP-CODE(WS-SUB1, WS-SUB2)
+                                          TO SS-SHIP-CODE.  
+            MOVE WS-EDSR-START-DATE       TO SS-DATE-RANGE. 
+            MOVE WS-PORT-CODE             TO SS-ITIN-PORT-CODE. 
+103563      MOVE WS-EDSR-PORT-TYPE        TO SS-PORT-DAY-IND.   
+103563*     IF  WS-EDSR-START-DATE = WS-SAIL-END-DATE   
+103563*         AND WS-DEBARK-PROCESSED NOT = 'Y'   
+103563*         MOVE 'Y'                  TO SS-DEBARK-PORT-IND 
+103563*     ELSE
+103563*         MOVE 'N'                  TO SS-DEBARK-PORT-IND 
+103563*     END-IF. 
+103563********************************************************* 
+103563D     DISPLAY ' PARA PRIOR READ'       UPON PRINTER.  
+103563D     DISPLAY ' SS-SHIP-CODE      '    SS-SHIP-CODE   
+103563D             ' SS-DATE-RANGE     '    SS-DATE-RANGE  
+103563D             ' SS-ITIN-PORT-CODE '    SS-ITIN-PORT-CODE  
+103563D             ' SS-PORT-DAY-IND   '    SS-PORT-DAY-IND
+103563D     UPON PRINTER.   
+103563********************************************************* 
+            READ SAILING-SUMMARY-FILE RECORD
+                 KEY IS SAILING-SUMMARY-KEY 
+                 INVALID KEY GO TO 6200-INVALID-KEY.
+103563********************************************************* 
+103563D     DISPLAY ' PARA PRIOR READ'       UPON PRINTER.  
+103563D     DISPLAY ' SS-SHIP-CODE      '    SS-SHIP-CODE   
+103563D             ' SS-DATE-RANGE     '    SS-DATE-RANGE  
+103563D             ' SS-ITIN-PORT-CODE '    SS-ITIN-PORT-CODE  
+103563D             ' SS-PORT-DAY-IND   '    SS-PORT-DAY-IND
+103563D     UPON PRINTER.   
+103563********************************************************* 
+C35907      MOVE SS-SAIL-DATE             TO DPP02-YYYYMMDD-DATE.   
+C35907      MOVE SS-DURATION-DAYS         TO DPP02-NUMBER-DAYS. 
+C35907      PERFORM DPP10-ADVANCE-YYYYMMDD-DATE.
+C35907      MOVE DPP02-YYYYMMDD-DATE      TO WS-SAIL-END-DATE.  
+103563*     MOVE SS-DEBARK-PORT-IND       TO WS-DEBARK-PROCESSED.   
+      * check if the excursion time lies between ships arrival and  
+      * departure time. For on arrival indicator 'Y' spread inv anyways 
+
+      * Convert AM/PM time to 24 HR format  
+C43223         MOVE SS-ARRIVE-HH         TO DPP10-12HR-TIME-HH. 
+C43223         MOVE SS-ARRIVE-MM         TO DPP10-12HR-TIME-MM. 
+C43223         MOVE SS-ARRIVE-AM-PM      TO DPP10-12HR-TIME-AM-PM.  
+C43223         PERFORM DPP10-CONVERT-TO-24HR-FORMAT THRU
+C43223                 DPP10-CONVERT-TO-24HR-EXIT.  
+C43223         MOVE DPP10-24HR-TIME-N    TO WS-ARRIVE-TIME. 
+C43223  
+C43223         MOVE SS-DEPART-HH         TO DPP10-12HR-TIME-HH. 
+C43223         MOVE SS-DEPART-MM         TO DPP10-12HR-TIME-MM. 
+C43223         MOVE SS-DEPART-AM-PM      TO DPP10-12HR-TIME-AM-PM.  
+C43223         PERFORM DPP10-CONVERT-TO-24HR-FORMAT THRU
+C43223                 DPP10-CONVERT-TO-24HR-EXIT.  
+C43223         MOVE DPP10-24HR-TIME-N    TO WS-DEPART-TIME. 
+C43223  
+C43223         PERFORM 6300-CONVERT-IN-MINUTES THRU 
+C43223                 6300-CONVERT-IN-MINUTES-EXIT.
+
+      * check if the excursion time lies between ships arrival and  
+      * departure time  
+103563************************************************************  
+103563* THIS CHECK WAS OVERRIDE AS PER THE REQUEST OF SA FOR
+103563* DEBARK DAY AND EMBARK DAY.  
+103563************************************************************  
+103563*     IF WS-EDSR-ARRIVE-MIN  >= WS-SHP-ARRIVE-MIN  AND
+103563*        WS-EDSR-DEPART-MIN  <= WS-SHP-DEPART-MIN 
+103563      IF  (WS-EDSR-ARRIVE-MIN  >= WS-SHP-ARRIVE-MIN  AND  
+103563           WS-EDSR-DEPART-MIN  <= WS-SHP-DEPART-MIN  ) OR 
+103563          (WS-EDSR-START-DATE = SS-SAIL-DATE AND  
+103563           WS-EDSR-PORT-TYPE = 'E') OR
+103563          (WS-EDSR-START-DATE = WS-SAIL-END-DATE AND  
+103563           WS-EDSR-PORT-TYPE = 'D')   
+103563D          DISPLAY ' WS-EDSR-PORT-TYPE : ' WS-EDSR-PORT-TYPE  
+103563D          UPON PRINTER   
+                 ADD 1                  TO WS-NUM-OF-REC-MATCHED
+
+                  PERFORM 7000-SPREAD-INVENTORY-PARA THRU   
+                          7000-SPREAD-INVENTORY-PARA-X  
+C43223         END-IF.  
+103563*     IF  WS-DEBARK-PROCESSED = 'Y'   
+103563*         GO TO 6120-READ-SPREAD-PARA 
+103563*     END-IF. 
+            GO TO 6100-ALL-INV-EXIT.
+
+       6210-INVALID-KEY.
+103563********************************************************* 
+103563D     DISPLAY 'PARA: 6210-INVALID-KEY' UPON PRINTER.  
+103563D     DISPLAY ' SS-SHIP-CODE      '    SS-SHIP-CODE   
+103563D             ' SS-DATE-RANGE     '    SS-DATE-RANGE  
+103563D             ' SS-ITIN-PORT-CODE '    SS-ITIN-PORT-CODE  
+103563D             ' SS-PORT-DAY-IND   '    SS-PORT-DAY-IND
+103563D     UPON PRINTER.   
+103563********************************************************* 
+
+           MOVE 'SHIP NOT IN PORT' TO WS-DESCRIPTION.   
+           PERFORM 9000-ERROR-REPORT-PARA THRU  
+                   9000-ERROR-REPORT-PARA-EXIT. 
+103563*    IF  WS-DEBARK-PROCESSED = 'Y' AND
+103563*        WS-REPEAT-CNT < 3
+103563*        ADD 1                TO WS-REPEAT-CNT
+103563*        GO TO 6100-ALL-INV   
+103563*    ELSE 
+103563*        IF  WS-REPEAT-CNT = 3
+103563*            MOVE 0           TO WS-REPEAT-CNT
+103563*        END-IF   
+103563*    END-IF.  
+           MOVE WS-EDSR-START-DATE  TO DPP02-YYYYMMDD-DATE. 
+           MOVE 1 TO DPP02-NUMBER-DAYS. 
+           PERFORM DPP10-ADVANCE-YYYYMMDD-DATE. 
+           MOVE DPP02-YYYYMMDD-DATE TO WS-EDSR-START-DATE.  
+           IF WS-EDSR-START-DATE <= WS-EDSR-END-DATE
+              GO TO 6100-ALL-INV
+           ELSE 
+      * Resetting the start date for similar processing to be done for  
+      *  next ship  
+              MOVE EDSR-START-DATE TO WS-EDSR-START-DATE
+              GO TO 6100-ALL-INV-EXIT.  
+
+       6200-INVALID-KEY.
+103563********************************************************* 
+103563D     DISPLAY 'PARA: 6200-INVALID-KEY' UPON PRINTER.  
+103563D     DISPLAY ' SS-SHIP-CODE      '    SS-SHIP-CODE   
+103563D             ' SS-DATE-RANGE     '    SS-DATE-RANGE  
+103563D             ' SS-ITIN-PORT-CODE '    SS-ITIN-PORT-CODE  
+103563D             ' SS-PORT-DAY-IND   '    SS-PORT-DAY-IND
+103563D     UPON PRINTER.   
+103563********************************************************* 
+           MOVE 'SHIP NOT IN PORT' TO WS-DESCRIPTION.   
+           PERFORM 9000-ERROR-REPORT-PARA THRU  
+                   9000-ERROR-REPORT-PARA-EXIT. 
+103563*    IF  WS-DEBARK-PROCESSED = 'Y' AND
+103563*        WS-REPEAT-CNT < 3
+103563*        ADD 1                TO WS-REPEAT-CNT
+103563*        GO TO 6120-READ-SPREAD-PARA  
+103563*    ELSE 
+103563*        IF  WS-REPEAT-CNT = 3
+103563*            MOVE 0           TO WS-REPEAT-CNT
+103563*        END-IF   
+103563*    END-IF.  
+
+       6100-ALL-INV-EXIT.   
+           EXIT.
+
+      *--------------------------------------------------------------*  
+      * FOR CONVERTING DATE AND TIME IN TO MINUTES  
+      *--------------------------------------------------------------*  
+       6300-CONVERT-IN-MINUTES. 
+
+               MOVE WS-EDSR-START-DATE TO WS-EXC-DATE.  
+
+C43223         IF WS-EDSR-ON-ARRIVAL-IND = 'Y'  
+C43223            MOVE WS-ARRIVE-TIME              TO WS-BEGIN-TIME-X   
+C43223         ELSE 
+C43223            MOVE WS-EDSR-START-TIME(WS-SUB1) TO WS-BEGIN-TIME-X   
+C43223         END-IF.  
+      * 
+      * EXCURSION MINUTES   
+      * 
+PSSSPA         IF  WS-EDSR-AT-YOUR-LEISURE-IND NOT = 'Y'
+                   PERFORM 8125-DATE-TIME-CAL   
+                      THRU 8125-DATE-TIME-CAL-EXIT  
+PSSSPA             MOVE WS-END-DATE  TO WS-ESDR-EXC-END-DATE1   
+PSSSPA             MOVE WS-END-TIME1 TO WS-ESDR-EXC-END-TIME1   
+PSSSPA         ELSE 
+PSSSPA             MOVE ZEROS TO WS-ESDR-EXC-END-DATE1  
+PSSSPA                           WS-ESDR-EXC-END-TIME1. 
+
+               COMPUTE  WS-EDSR-ARRIVE-MIN  
+                        = FUNCTION INTEGER-OF-DATE (WS-EDSR-START-DATE) 
+               COMPUTE WS-EDSR-ARRIVE-MIN = WS-EDSR-ARRIVE-MIN * 1440.  
+C43223         COMPUTE WS-EDSR-ARRIVE-MIN = WS-EDSR-ARRIVE-MIN +
+C43223                                      (WS-BEGIN-H * 60)  +
+C43223                                       WS-BEGIN-M 
+               COMPUTE WS-EDSR-ARRIVE-MIN = WS-EDSR-ARRIVE-MIN -
+                              WS-EDSR-START-TIME-BUFF(WS-SUB1, WS-SUB2) 
+
+               IF WS-END-DATE1 = SPACES OR  
+                  WS-END-DATE1 = LOW-VALUES 
+                  MOVE ZEROS TO WS-EDSR-DEPART-MIN  
+               ELSE 
+               COMPUTE  WS-EDSR-DEPART-MIN  
+                        = FUNCTION INTEGER-OF-DATE (WS-END-DATE1)   
+
+               COMPUTE WS-EDSR-DEPART-MIN = WS-EDSR-DEPART-MIN * 1440.  
+               COMPUTE WS-EDSR-DEPART-MIN = WS-EDSR-DEPART-MIN +
+                                            WS-END-TIME2
+
+      *************** SHIP MINUTES  
+
+               COMPUTE  WS-SHP-ARRIVE-MIN   
+                        = FUNCTION INTEGER-OF-DATE (SS-PORT-ARRIVE-DATE)
+               COMPUTE WS-SHP-ARRIVE-MIN =  WS-SHP-ARRIVE-MIN * 1440.   
+               COMPUTE WS-SHP-ARRIVE-MIN =  WS-SHP-ARRIVE-MIN + 
+                                           (WS-ARRIVE-TIME-HH * 60) +   
+                                           (WS-ARRIVE-TIME-MM). 
+
+               COMPUTE  WS-SHP-DEPART-MIN   
+                        = FUNCTION INTEGER-OF-DATE (SS-PORT-DEPART-DATE)
+               COMPUTE WS-SHP-DEPART-MIN = (WS-SHP-DEPART-MIN * 1440).  
+               COMPUTE WS-SHP-DEPART-MIN = WS-SHP-DEPART-MIN +  
+                                           (WS-DEPART-TIME-HH * 60) +   
+                                           (WS-DEPART-TIME-MM). 
+
+       6300-CONVERT-IN-MINUTES-EXIT.
+           EXIT.
+      *--------------------------------------------------------------*  
+      * 
+      *--------------------------------------------------------------*  
+       7000-SPREAD-INVENTORY-PARA.  
+
+           MOVE WS-EDSR-EXC-ID        TO WS-EMYR-EXC-ID 
+           MOVE EDSR-START-CC         TO WS-EMYR-CC 
+           MOVE EDSR-START-YY         TO WS-EMYR-YY 
+           MOVE EDSR-START-MM         TO WS-EMYR-MM 
+           MOVE WS-EMYR-CALC-KEY      TO EMYR-CALC-KEY  
+
+           STRING 'EXCINV' EDSR-START-MM
+                        DELIMITED BY SIZE INTO WS-EXCINV-AREA.  
+           MOVE  WS-EXCINV-AREA  TO EXCINV-CALCAREA 
+
+           MOVE 06101007 TO DPP01-ERROR-NUMBER. 
+           FETCH EXC-MMYY-REC RECORD
+                 ON ERROR GO TO 7010-EMR-FETCH-ERROR-CHK.   
+
+       7010-EMR-FETCH-ERROR-CHK.
+C41280*    IF ERROR-STATUS = "000000"   
+C41280     IF ERROR-STATUS OF DMCA = "000000"   
+              GO TO 7040-FETCH-ESPDR-CONT   
+           ELSE 
+              IF ERROR-NUM = "0013" OR "0007"   
+                 NEXT SENTENCE  
+              ELSE  
+                 MOVE 'E' TO WS-SETUP-STATUS
+                 MOVE 'MNTH NOT FOUND IN MMYY' TO WS-DESCRIPTION
+                 PERFORM 9000-ERROR-REPORT-PARA THRU
+                         9000-ERROR-REPORT-PARA-EXIT
+                 GO TO 7000-SPREAD-INVENTORY-PARA-X.
+
+       7020-STORE-EMR-CONT. 
+
+           MOVE 06100508 TO DPP01-ERROR-NUMBER. 
+           STORE EXC-MMYY-REC   
+               ON ERROR GO TO 7030-EMR-STORE-ERROR-CHK. 
+112797     ADD 1         TO WS-DB-CNT-1.
+
+       7030-EMR-STORE-ERROR-CHK.
+C41280*    IF ERROR-STATUS = "000000"   
+C41280     IF ERROR-STATUS OF DMCA = "000000"   
+              NEXT SENTENCE 
+           ELSE 
+              MOVE 'E' TO WS-SETUP-STATUS   
+              MOVE 'MNTH NOT FOUND IN MMYY' TO WS-DESCRIPTION   
+              PERFORM 9000-ERROR-REPORT-PARA THRU   
+                      9000-ERROR-REPORT-PARA-EXIT   
+              GO TO 7000-SPREAD-INVENTORY-PARA-X.   
+
+       7040-FETCH-ESPDR-CONT.   
+
+           IF WS-DEP-FLAG = 'DEP'   
+                            GO TO 7120-FETCH-EDR-CONT.  
+           MOVE SS-SHIP-CODE             TO WS-EPDR-SHIP-CODE.  
+           MOVE SS-SAIL-DATE             TO WS-EPDR-SAILDATE.   
+           MOVE SS-DURATION-DAYS         TO WS-EPDR-DURATIONDAYS.   
+           MOVE WS-EDSR-EXC-ID           TO WS-PORT-EXC-ID. 
+           MOVE WS-PORT-CODE             TO WS-EPDR-PORTCODE.   
+           MOVE WS-EDSR-START-DATE       TO WS-EPDR-DEPARTURE-DATE. 
+           MOVE WS-EPDR-CALC-KEY         TO EPDR-CALC-KEY.  
+
+           MOVE 06171009 TO DPP01-ERROR-NUMBER. 
+           FETCH EXC-SAILING-PORT-DATE-REC RECORD   
+                 ON ERROR GO TO 7050-FETCH-ESPDR-ERROR-CHK. 
+
+       7050-FETCH-ESPDR-ERROR-CHK.  
+
+C41280*    IF ERROR-STATUS = "000000"   
+C41280     IF ERROR-STATUS OF DMCA = "000000"   
+              GO TO 7080-FETCH-ESR-CONT 
+           ELSE 
+              IF ERROR-NUM = "0013" 
+                 NEXT SENTENCE  
+              ELSE  
+                 MOVE 'E' TO WS-SETUP-STATUS
+219999           MOVE SS-DURATION-DAYS           TO WS-ERR-DURATION 
+219999           MOVE SS-SAIL-DATE               TO WS-ERR-SAIL-DATE
+                 MOVE 'ERROR IN SAILIN-PORT REC' TO WS-DESCRIPTION  
+                 PERFORM 9000-ERROR-REPORT-PARA THRU
+                         9000-ERROR-REPORT-PARA-EXIT
+                 GO TO 7000-SPREAD-INVENTORY-PARA-X.
+
+       7060-STORE-ESPDR-CONT.   
+           MOVE WS-EPDR-CALC-KEY         TO EPDR-CALC-KEY.  
+
+           MOVE 06170509 TO DPP01-ERROR-NUMBER. 
+           STORE EXC-SAILING-PORT-DATE-REC  
+               ON ERROR GO TO 7070-STORE-ESPDR-ERROR-CHK.   
+112797     ADD 1         TO WS-DB-CNT-1.
+
+       7070-STORE-ESPDR-ERROR-CHK.  
+C41280*    IF ERROR-STATUS = "000000"   
+C41280     IF ERROR-STATUS OF DMCA = "000000"   
+              NEXT SENTENCE 
+           ELSE 
+              MOVE 'E' TO WS-SETUP-STATUS   
+219999        MOVE SS-DURATION-DAYS           TO WS-ERR-DURATION
+219999        MOVE SS-SAIL-DATE               TO WS-ERR-SAIL-DATE   
+              MOVE 'ERROR IN SAILIN-PORT REC' TO WS-DESCRIPTION 
+              PERFORM 9000-ERROR-REPORT-PARA THRU   
+                      9000-ERROR-REPORT-PARA-EXIT   
+              GO TO 7000-SPREAD-INVENTORY-PARA-X.   
+
+       7080-FETCH-ESR-CONT. 
+           MOVE SS-SHIP-CODE        TO  WS-ESR-SHIP-CODE.   
+           MOVE SS-SAIL-DATE        TO  WS-ESR-SAIL-DATE.   
+           MOVE SS-DURATION-DAYS    TO  WS-ESR-DURATION-DAYS.   
+           MOVE WS-EDSR-EXC-ID      TO  WS-ESR-EXC-ID.  
+           MOVE WS-ESR-CALC-KEY     TO  ESR-CALC-KEY.   
+
+           MOVE 06161010 TO DPP01-ERROR-NUMBER. 
+           FETCH EXC-SAILING-REC RECORD 
+                 ON ERROR GO TO 7090-FETCH-ESR-ERROR-CHK.   
+
+       7090-FETCH-ESR-ERROR-CHK.
+
+C41280*    IF ERROR-STATUS = "000000"   
+C41280     IF ERROR-STATUS OF DMCA = "000000"   
+              GO TO 7120-FETCH-EDR-CONT 
+           ELSE 
+              IF ERROR-NUM = "0013" 
+                 NEXT SENTENCE  
+              ELSE  
+                 MOVE 'E' TO WS-SETUP-STATUS
+219999           MOVE SS-DURATION-DAYS      TO WS-ERR-DURATION  
+219999           MOVE SS-SAIL-DATE          TO WS-ERR-SAIL-DATE 
+                 MOVE 'ERROR IN SAILIN REC' TO WS-DESCRIPTION   
+                 PERFORM 9000-ERROR-REPORT-PARA THRU
+                         9000-ERROR-REPORT-PARA-EXIT
+                 GO TO 7000-SPREAD-INVENTORY-PARA-X.
+
+       7100-STORE-ESR-CONT. 
+           MOVE WS-ESR-CALC-KEY     TO  ESR-CALC-KEY.   
+
+           MOVE 06160510 TO DPP01-ERROR-NUMBER. 
+           STORE EXC-SAILING-REC
+               ON ERROR GO TO 7110-STORE-ESR-ERROR-CHK. 
+112797     ADD 1         TO WS-DB-CNT-1.
+
+       7110-STORE-ESR-ERROR-CHK.
+C41280*    IF ERROR-STATUS = "000000"   
+C41280     IF ERROR-STATUS OF DMCA = "000000"   
+              NEXT SENTENCE 
+           ELSE 
+              MOVE 'E' TO WS-SETUP-STATUS   
+219999        MOVE SS-DURATION-DAYS      TO WS-ERR-DURATION 
+219999        MOVE SS-SAIL-DATE          TO WS-ERR-SAIL-DATE
+              MOVE 'ERROR IN SAILIN REC' TO WS-DESCRIPTION  
+              PERFORM 9000-ERROR-REPORT-PARA THRU   
+                      9000-ERROR-REPORT-PARA-EXIT   
+              GO TO 7000-SPREAD-INVENTORY-PARA-X.   
+
+       7120-FETCH-EDR-CONT. 
+           MOVE WS-EDSR-EXC-ID                 TO  WS-EDR-EXC-ID.   
+           MOVE WS-EDSR-START-DATE             TO  WS-EDR-START-DATE.   
+           MOVE WS-EDSR-START-TIME(WS-SUB1)    TO  WS-EDR-START-TIME.   
+           MOVE WS-EDR-CALC-KEY                TO  EDR-CALC-KEY.
+
+           MOVE  060210011        TO  DPP01-ERROR-NUMBER.   
+           FETCH EXC-DEPARTURE-REC RECORD   
+                  ON ERROR GO TO 7130-FETCH-EDR-ERROR-CHK.  
+
+       7130-FETCH-EDR-ERROR-CHK.
+
+C41280*    IF ERROR-STATUS = "000000"   
+C41280     IF ERROR-STATUS OF DMCA = "000000"   
+              IF WS-EDR-STORED = 'Y'
+                 GO TO 7160-FETCH-ESDR-CONT 
+              ELSE  
+                 MOVE 'E' TO WS-SETUP-STATUS
+219999           MOVE SS-DURATION-DAYS          TO WS-ERR-DURATION  
+219999           MOVE SS-SAIL-DATE              TO WS-ERR-SAIL-DATE 
+                 MOVE 'DEPARTURE ALREADY EXIST' TO WS-DESCRIPTION   
+                 PERFORM 9000-ERROR-REPORT-PARA THRU
+                         9000-ERROR-REPORT-PARA-EXIT
+                 GO TO 7000-SPREAD-INVENTORY-PARA-X 
+           ELSE 
+              IF ERROR-NUM = "0013" 
+                 NEXT SENTENCE  
+              ELSE  
+                 MOVE 'E' TO WS-SETUP-STATUS
+219999           MOVE SS-DURATION-DAYS TO WS-ERR-DURATION   
+219999           MOVE SS-SAIL-DATE     TO WS-ERR-SAIL-DATE  
+                 MOVE 'FETCH ERR- EDR' TO WS-DESCRIPTION
+                 PERFORM 9000-ERROR-REPORT-PARA THRU
+                         9000-ERROR-REPORT-PARA-EXIT
+                 GO TO 7000-SPREAD-INVENTORY-PARA-X.
+
+       7140-STORE-EDR-CONT. 
+           PERFORM 8120-EDR-MOVE-DATA THRU  
+                   8120-EDR-MOVE-DATA-EXIT. 
+
+           MOVE WS-EDSR-EXC-ID     TO EMR-EXC-ID.   
+           FIND EXC-MASTER-REC RECORD.  
+
+           MOVE WS-EMYR-CALC-KEY      TO EMYR-CALC-KEY  
+           FETCH EXC-MMYY-REC RECORD.   
+
+           MOVE  060205012        TO  DPP01-ERROR-NUMBER.   
+           STORE EXC-DEPARTURE-REC  
+               ON ERROR GO TO 7150-STORE-EDR-ERROR-CHK. 
+112797     ADD 1                  TO WS-DB-CNT-1.   
+
+       7150-STORE-EDR-ERROR-CHK.
+C41280*    IF ERROR-STATUS = "000000"   
+C41280     IF ERROR-STATUS OF DMCA = "000000"   
+              MOVE 'Y' TO WS-EDR-STORED 
+           ELSE 
+              MOVE 'E' TO WS-SETUP-STATUS   
+219999        MOVE SS-DURATION-DAYS  TO WS-ERR-DURATION 
+219999        MOVE SS-SAIL-DATE      TO WS-ERR-SAIL-DATE
+              MOVE 'EDR STORE ERROR' TO WS-DESCRIPTION  
+              PERFORM 9000-ERROR-REPORT-PARA THRU   
+                      9000-ERROR-REPORT-PARA-EXIT   
+              GO TO 7000-SPREAD-INVENTORY-PARA-X.   
+
+C41280     MOVE SPACES               TO SXP09-COMMENT.  
+C41280     MOVE 1                    TO SXP09-PNTR. 
+C41280     STRING 'NEW EXC-DEPARTURE-REC '  
+C41280     DELIMITED BY SIZE INTO SXP09-COMMENT 
+C41280                                          WITH POINTER SXP09-PNTR.
+C41280     MOVE 'EDN'                TO SXP09-ACTIVITY-CODE.
+C41280     MOVE 'SYS'                TO SXP09-USER-ID.  
+C41280  
+C41280     PERFORM SXP09-EXC-DEP-HIST THRU  
+C41280             SXP09-EXC-DEP-HIST-EXIT. 
+
+       7160-FETCH-ESDR-CONT.
+
+           IF WS-DEP-FLAG = 'DEP'   
+               GO TO 7200-CHANGE-WS-STATUS. 
+
+200243     INITIALIZE                 WS-EXC-SAILING-DEPARTURE-REC. 
+
+           MOVE SS-SHIP-CODE                 TO  WS-ESDR-SHIP-CODE. 
+           MOVE SS-SAIL-DATE                 TO  WS-ESDR-SAIL-DATE. 
+           MOVE SS-DURATION-DAYS             TO  WS-ESDR-DURATION-DAYS. 
+AUPRSL     MOVE SS-CURRENCY-CODE             TO  WS-ESDR-CURRENCY-CODE. 
+           MOVE WS-EDSR-EXC-ID               TO  WS-ESDR-EXC-ID.
+           MOVE WS-EDSR-START-DATE           TO  WS-ESDR-EXC-DATE.  
+           MOVE WS-ESDR-CALC-KEY             TO  ESDR-CALC-KEY. 
+
+           IF WS-EDR-STORED = 'Y'   
+              GO TO 7180-STORE-ESDR-CONT.   
+
+           FIND  EXC-DEPARTURE-REC RECORD.  
+           IF EXC-DEPARTURE-SAILING-SET SET EMPTY   
+              GO TO 7180-STORE-ESDR-CONT
+           ELSE 
+              MOVE 'E' TO WS-SETUP-STATUS   
+219999        MOVE SS-DURATION-DAYS     TO WS-ERR-DURATION  
+219999        MOVE SS-SAIL-DATE         TO WS-ERR-SAIL-DATE 
+              MOVE 'EDSS SET NOT EMPTY' TO WS-DESCRIPTION   
+              PERFORM 9000-ERROR-REPORT-PARA THRU   
+                      9000-ERROR-REPORT-PARA-EXIT   
+              GO TO 7000-SPREAD-INVENTORY-PARA-X.   
+
+       7180-STORE-ESDR-CONT.
+           MOVE ZERO    TO WS-END-OF-SET
+           MOVE 0       TO WS-DUP-FLAG  
+           PERFORM 7500-DUP-SAIL-PARA THRU 7500-DUP-EXIT
+                                           UNTIL END-OF-SET OR  
+                                                 WS-DUP-FLAG = 1.   
+C43223     MOVE 1       TO WS-FIRST-TIME-FLAG . 
+C43223     MOVE ZERO    TO WS-END-OF-REC-FLAG.  
+C43223     PERFORM 7520-DUP-REC-CHECK THRU 7530-EXIT
+C43223                                     UNTIL WS-END-OF-REC OR   
+C43223                                           WS-DUP-FLAG = 1 .  
+           IF WS-DUP-FLAG = 1   
+              GO TO 7000-SPREAD-INVENTORY-PARA-X.   
+
+           PERFORM 8250-MOVE-ESDR-DATA THRU 8250-MOVE-ESDR-DATA-EXIT.   
+
+177338     IF SXP50-ERR-SUB = 0 
+177338        CONTINUE  
+177338     ELSE 
+177338        GO TO 7185-ESDR-PRICING-ERROR 
+177338     END-IF.  
+
+C67814     MOVE 0                     TO WS-ESDR-GROUPS-ALLOC.  
+
+           MOVE WS-EXC-SAILING-DEPARTURE-REC
+                                      TO EXC-SAILING-DEPARTURE-REC. 
+
+      * Set the currency for the owners of SAILING-DEPARTURE RECORD.
+
+           MOVE  06170519        TO  DPP01-ERROR-NUMBER.
+           FIND CURRENT EXC-SAILING-PORT-DATE-REC RECORD.   
+
+           MOVE  06160520        TO  DPP01-ERROR-NUMBER.
+           FIND CURRENT EXC-SAILING-REC RECORD. 
+
+           MOVE  06150514        TO  DPP01-ERROR-NUMBER.
+           FIND CURRENT EXC-DEPARTURE-REC RECORD.   
+
+           STORE EXC-SAILING-DEPARTURE-REC  
+               ON ERROR GO TO 7190-STORE-ESDR-ERROR-CHK.
+112797     ADD 1                 TO WS-DB-CNT-1.
+C96793     FETCH CURRENT EXC-SAILING-PORT-DATE-REC RECORD.  
+GSTEST*    DISPLAY 'OP-ESDR-CNT BEF: ' EPDR-OPEN-ESDR-CNT UPON PRINTER. 
+C96793     IF ESDR-STATUS = 'A' 
+C96793        ADD 1              TO EPDR-OPEN-ESDR-CNT  
+C96793        MODIFY EXC-SAILING-PORT-DATE-REC RECORD   
+C96793           ON ERROR GO TO 7190-STORE-ESDR-ERROR-CHK   
+138014        ADD 1 TO WS-DB-CNT-1  
+C96793     END-IF.  
+165283     IF WS-DB-CNT-1 > 0   
+165283        MOVE ZERO       TO WS-DB-CNT-1
+165283*       FREE  
+165283        PERFORM DPP12-COMMIT THRU DPP12-COMMIT-EXIT   
+165283     END-IF.  
+GSTEST*    DISPLAY 'OP-ESDR-CNT AFT: ' EPDR-OPEN-ESDR-CNT UPON PRINTER. 
+C41280     MOVE SPACES           TO SXP09-COMMENT.  
+C41280     MOVE 1                TO SXP09-PNTR. 
+C41280     STRING 'NEW EXC-SAILING-DEPARTURE-REC '  
+C41280     DELIMITED BY SIZE INTO SXP09-COMMENT 
+C41280                                          WITH POINTER SXP09-PNTR.
+C41280     MOVE 'ESN'            TO SXP09-ACTIVITY-CODE.
+C41280     MOVE 'SYS'            TO SXP09-USER-ID.  
+C41280  
+C41280     PERFORM SXP09-EXC-SAIL-DEP-HIST THRU 
+C41280             SXP09-EXC-SAIL-DEP-HIST-EXIT.
+C41280  
+C40861     ADD 1 TO WS-DB-CNT.  
+101498*    IF WS-DB-CNT > 9 
+101498     IF WS-DB-CNT > 2 
+C40861         MOVE ZERO TO WS-DB-CNT   
+C41280*        FREE 
+C41280         EXEC SQL COMMIT WORK END-EXEC
+C40861     END-IF.  
+
+
+177338 7185-ESDR-PRICING-ERROR. 
+177338     IF SXP50-ERR-SUB = 0 
+177338        GO TO 7190-STORE-ESDR-ERROR-CHK   
+177338     END-IF.  
+177338  
+177338     MOVE 'E'              TO WS-SETUP-STATUS.
+177338     EVALUATE SXP50-ERR-SUB   
+177338      WHEN 1  
+177338         MOVE 'SXP50:ESOR NOT FETCHED'
+177338                           TO WS-DESCRIPTION  
+177338      WHEN 2  
+177338         MOVE 'SXP50:RDMS EPR NOT FTHD'   
+177338                           TO WS-DESCRIPTION  
+177338      WHEN OTHER  
+177338         MOVE 'SXP50:ERROR IN PROC'   
+177338                           TO WS-DESCRIPTION  
+177338     END-EVALUATE.
+219999     MOVE WS-ESDR-DURATION-DAYS   
+219999                           TO WS-ERR-DURATION.
+219999     MOVE WS-ESDR-SAIL-DATE   
+219999                           TO WS-ERR-SAIL-DATE.   
+177338     PERFORM 9000-ERROR-REPORT-PARA   
+177338                               THRU 9000-ERROR-REPORT-PARA-EXIT.  
+177338     GO TO 7000-SPREAD-INVENTORY-PARA-X.  
+
+       7190-STORE-ESDR-ERROR-CHK.   
+C41280*    IF ERROR-STATUS = "000000"   
+C41280     IF ERROR-STATUS OF DMCA = "000000"   
+              NEXT SENTENCE 
+           ELSE 
+              MOVE 'E' TO WS-SETUP-STATUS   
+219999        MOVE WS-ESDR-DURATION-DAYS
+219999                                 TO WS-ERR-DURATION   
+219999        MOVE WS-ESDR-SAIL-DATE   TO WS-ERR-SAIL-DATE  
+              MOVE 'SAILIN NOT SPREAD' TO WS-DESCRIPTION
+              PERFORM 9000-ERROR-REPORT-PARA THRU   
+                      9000-ERROR-REPORT-PARA-EXIT   
+              GO TO 7000-SPREAD-INVENTORY-PARA-X.   
+
+       7200-CHANGE-WS-STATUS.   
+           MOVE 'A' TO WS-SETUP-STATUS. 
+
+       7000-SPREAD-INVENTORY-PARA-X.
+           EXIT.
+
+       7500-DUP-SAIL-PARA.  
+C43223     IF WS-EDSR-ON-ARRIVAL-IND = 'Y'  
+C43223        MOVE WS-ARRIVE-TIME TO WS-START-TIME-TEMP 
+C43223     ELSE 
+C43223        MOVE EDSR-START-TIME (WS-SUB1)
+C43223                            TO WS-START-TIME-TEMP 
+C43223     END-IF.  
+           MOVE  06151013        TO  DPP01-ERROR-NUMBER.
+           FETCH NEXT WITHIN EXC-DEPARTURE-SAILING-SET SET  
+                 ON ERROR GO TO 7510-DUP-ERR-CHK.   
+
+       7510-DUP-ERR-CHK.
+C41280*    IF ERROR-STATUS = "000000"   
+C41280     IF ERROR-STATUS OF DMCA = "000000"   
+C43223        IF WS-START-TIME-TEMP = ESDR-EXC-TIME AND 
+                 WS-EDSR-SHIP-CODE(WS-SUB1, WS-SUB2) =  
+                 ESDR-SHIP-CODE 
+103563*          AND WS-DEBARK-PROCESSED NOT = 'N'  
+                 MOVE 1 TO WS-DUP-FLAG  
+                 MOVE 'E' TO WS-SETUP-STATUS
+219999           MOVE ESDR-DURATION-DAYS           TO WS-ERR-DURATION   
+219999           MOVE ESDR-SAIL-DATE               TO WS-ERR-SAIL-DATE  
+                 MOVE 'DUPLICATE ESDR NOT ALLOWED' TO WS-DESCRIPTION
+                 PERFORM 9000-ERROR-REPORT-PARA THRU
+                         9000-ERROR-REPORT-PARA-EXIT
+              END-IF
+           ELSE 
+              IF ERROR-NUM = '0006' OR '0007' OR '0013' 
+                 MOVE 1 TO WS-END-OF-SET
+              ELSE  
+                 GO TO 9100-DATABASE-ERROR. 
+
+       7500-DUP-EXIT.   
+           EXIT.
+C43223* THIS PARA WE HAVE ADDED TO CHECK FOR DUPLICATION OF ESDR RECORD 
+C43223 7520-DUP-REC-CHECK.  
+C43223  
+C43223     IF WS-FIRST-TIME-FLAG = 1
+C43223        PERFORM 7531-FIRST-FETCH-PARA THRU 7531-EXIT  
+C43223     ELSE 
+C43223        FETCH NEXT DUPLICATE WITHIN EXC-SAILING-DEPARTURE-REC 
+C43223                   RECORD ON ERROR GO TO 7530-DUP-ERROR   
+C43223     END-IF.  
+C43223  
+C43223 7520-EXIT.   
+C43223     EXIT.
+
+C43223* HERE IT IS CHECKING FOR ERROR STATUS
+C43223 7530-DUP-ERROR.  
+C43223  
+C41280*    IF ERROR-STATUS NOT = "000000"   
+C41280     IF ERROR-STATUS OF DMCA NOT = "000000"   
+C43223        IF ERROR-NUM = '0007' OR '0013'   
+C43223           MOVE 1                            TO WS-END-OF-REC-FLAG
+C43223           GO TO 7530-EXIT
+C43223        ELSE  
+C43223           GO TO 9100-DATABASE-ERROR  
+C43223        END-IF
+C43223     ELSE 
+C43223        IF ESDR-EXC-TIME  = WS-START-TIME-TEMP
+C43223           MOVE 1                            TO WS-DUP-FLAG   
+C43223           MOVE 'E'                          TO WS-SETUP-STATUS   
+219999           MOVE ESDR-DURATION-DAYS           TO WS-ERR-DURATION   
+219999           MOVE ESDR-SAIL-DATE               TO WS-ERR-SAIL-DATE  
+C43223           MOVE 'DUPLICATE ESDR NOT ALLOWED' TO WS-DESCRIPTION
+C43223           PERFORM 9000-ERROR-REPORT-PARA THRU
+C43223                   9000-ERROR-REPORT-PARA-EXIT
+C43223           GO TO 7530-EXIT
+C43223        END-IF
+C43223     END-IF.  
+C43223  
+C43223 7530-EXIT.   
+C43223     EXIT.
+
+C43223* HERE THE FIRST RECORD IS GETTING FETCHED.   
+C43223 7531-FIRST-FETCH-PARA.   
+C43223  
+C43223     MOVE SS-SHIP-CODE                 TO  WS-ESDR-SHIP-CODE. 
+C43223     MOVE SS-SAIL-DATE                 TO  WS-ESDR-SAIL-DATE. 
+C43223     MOVE SS-DURATION-DAYS             TO  WS-ESDR-DURATION-DAYS. 
+C43223     MOVE WS-EDSR-EXC-ID               TO  WS-ESDR-EXC-ID.
+C43223     MOVE WS-EDSR-START-DATE           TO  WS-ESDR-EXC-DATE.  
+C43223     MOVE WS-ESDR-CALC-KEY             TO  ESDR-CALC-KEY. 
+C43223  
+C43223     IF WS-EDSR-ON-ARRIVAL-IND   = 'Y'
+C43223        MOVE WS-ARRIVE-TIME            TO  WS-START-TIME-TEMP 
+C43223     ELSE 
+C43223        MOVE EDSR-START-TIME (WS-SUB1) TO  WS-START-TIME-TEMP 
+C43223     END-IF.  
+C43223     MOVE 0                            TO WS-FIRST-TIME-FLAG  
+C43223     FETCH EXC-SAILING-DEPARTURE-REC RECORD   
+C43223                       ON ERROR GO TO 7530-DUP-ERROR .
+C43223 7531-EXIT.   
+C43223     EXIT.
+      *--------------------------------------------------------------*  
+      * EDIT THE EXISTING INVENTORY 
+      *--------------------------------------------------------------*  
+
+       7600-DAY-WEEK-UPD-PARA.  
+
+           IF WS-EDSR-START-DATE > WS-EDSR-END-DATE 
+                GO TO 7600-DAY-WEEK-UPD-PARA-EXIT.  
+           MOVE WS-EDSR-START-DATE   TO DPP02-YYYYMMDD-DATE.
+           PERFORM DPP10-YYYYMMDD-TO-JULIAN.
+           MOVE DPP02-JULIAN-DATE TO WS-EDSR-START-JULIAN-DATE. 
+           PERFORM DPP10-DETERMINE-WEEK-DAY.
+           MOVE DPP02-DAY-OF-WEEK TO WS-DATE-DAY.   
+           IF WS-DATE-DAY = 'MON'   
+              MOVE 1 TO WS-SUBS.
+           IF WS-DATE-DAY = 'TUE'   
+              MOVE 2 TO WS-SUBS.
+           IF WS-DATE-DAY = 'WED'   
+              MOVE 3 TO WS-SUBS.
+           IF WS-DATE-DAY = 'THU'   
+              MOVE 4 TO WS-SUBS.
+           IF WS-DATE-DAY = 'FRI'   
+              MOVE 5 TO WS-SUBS.
+           IF WS-DATE-DAY = 'SAT'   
+              MOVE 6 TO WS-SUBS.
+           IF WS-DATE-DAY = 'SUN'   
+              MOVE 7 TO WS-SUBS.
+ME1306*    Prior to RPCMan conversion, the single bit was saved in  
+ME1306*    low-order bit in EDSR-DAY-TABLE which is a character.
+ME1306*    EDSR-DAY always got filled with 0.  After RPCMan conversion  
+ME1306*    EDSR-DAY (PIC 1) will hold the single bit.  This is the  
+ME1306*    high order bit in the EDSR-DAY-TABLE character.  
+
+ME1306*    MOVE WS-EDSR-DAY-TABLE (WS-SUBS) TO TAB-BIT. 
+ME1306*    IF TAB-BIT = 1   
+ME1306     IF  WS-EDSR-DAY (WS-SUBS) = 1
+                PERFORM 8000-UPDATE-PARA THRU   
+                        8000-UPDATE-PARA-EXIT.  
+           MOVE WS-EDSR-START-DATE  TO DPP02-YYYYMMDD-DATE. 
+           MOVE 1                   TO DPP02-NUMBER-DAYS.   
+           PERFORM DPP10-ADVANCE-YYYYMMDD-DATE. 
+           MOVE DPP02-YYYYMMDD-DATE TO WS-EDSR-START-DATE.  
+           GO TO 7600-DAY-WEEK-UPD-PARA.
+
+
+       7600-DAY-WEEK-UPD-PARA-EXIT. 
+           EXIT.
+
+      *-----------------------------------------------------------* 
+      * 
+      *-----------------------------------------------------------* 
+       8000-UPDATE-PARA.
+
+           IF WS-EDSR-START-DATE > WS-EDSR-END-DATE 
+                   GO TO 8000-UPDATE-PARA-EXIT. 
+           PERFORM 8100-EDR-ESDR-UPDATE THRU 8100-EDR-ESDR-UPDATE-EXIT  
+                   VARYING WS-SUB1 FROM 1 BY 1 UNTIL WS-SUB1 > 20 OR
+                   WS-EDSR-START-TIME(WS-SUB1) = SPACES 
+                  AFTER WS-SUB2 FROM 1 BY 1 UNTIL WS-SUB2 > 5.  
+
+       8000-UPDATE-PARA-EXIT.   
+           EXIT.
+
+      *-----------------------------------------------------------* 
+      * Fetch & Modify EXC-DEPARTURE-REC
+      *-----------------------------------------------------------* 
+
+       8100-EDR-ESDR-UPDATE.
+
+           MOVE WS-EDSR-EXC-ID                 TO  WS-EDR-EXC-ID.   
+           MOVE WS-EDSR-START-DATE             TO  WS-EDR-START-DATE.   
+           MOVE WS-EDSR-START-TIME(WS-SUB1)    TO  WS-EDR-START-TIME.   
+           MOVE WS-EDR-CALC-KEY                TO  EDR-CALC-KEY.
+
+           STRING 'EXCINV' EDSR-START-MM
+                        DELIMITED BY SIZE INTO WS-EXCINV-AREA.  
+           MOVE  WS-EXCINV-AREA  TO EXCINV-CALCAREA 
+
+           MOVE  060210015        TO  DPP01-ERROR-NUMBER.   
+           FETCH EXC-DEPARTURE-REC RECORD   
+                  ON ERROR GO TO 8110-EDR-FETCH-ERROR-CHK.  
+
+       8110-EDR-FETCH-ERROR-CHK.
+C41280*       IF ERROR-STATUS NOT = "000000"
+C41280        IF ERROR-STATUS OF DMCA NOT = "000000"
+                 IF ERROR-NUM = "0013"  
+                    MOVE 'E' TO WS-SETUP-STATUS 
+                    MOVE 'ERROR IN EDR REC' TO WS-DESCRIPTION   
+                    PERFORM 9000-ERROR-REPORT-PARA THRU 
+                            9000-ERROR-REPORT-PARA-EXIT 
+                    GO TO 8100-EDR-ESDR-UPDATE-EXIT 
+                 ELSE   
+                    SET ERROR-SW  TO ON 
+                    GO TO 9100-DATABASE-ERROR   
+                 END-IF.
+
+C41280     INITIALIZE                 SXP11-EXC-DEPARTURE-REC.  
+C41280     MOVE EXC-DEPARTURE-REC  TO SXP11-EXC-DEPARTURE-REC.  
+
+       8120-EDR-MOVE-DATA.  
+           MOVE WS-EDSR-START-DATE TO WS-EXC-DATE.  
+           MOVE WS-EDSR-START-TIME(WS-SUB1) TO WS-BEGIN-TIME-X. 
+           IF WS-EDSR-ON-ARRIVAL-IND = 'N' AND  
+              WS-EDSR-AT-YOUR-LEISURE-IND = 'N' 
+              PERFORM 8125-DATE-TIME-CAL THRU   
+                      8125-DATE-TIME-CAL-EXIT   
+              MOVE WS-END-DATE   TO WS-EDR-END-DATE.
+              MOVE WS-END-TIME1  TO WS-EDR-END-TIME.
+
+           IF WS-EDSR-ON-ARRIVAL-IND = 'Y'  
+              MOVE ZEROS        TO WS-EDR-END-DATE  
+              MOVE ZEROS        TO WS-EDR-END-TIME. 
+
+           IF WS-EDSR-ON-ARRIVAL-IND = 'N' AND  
+              WS-EDSR-AT-YOUR-LEISURE-IND = 'Y' 
+              MOVE ZEROS        TO WS-EDR-END-DATE  
+              MOVE ZEROS        TO WS-EDR-END-TIME. 
+
+           MOVE WS-EDSR-ON-ARRIVAL-IND  
+                                    TO WS-EDR-ON-ARRIVAL-IND.   
+           MOVE WS-EDSR-AT-YOUR-LEISURE-IND 
+                                    TO WS-EDR-AT-YOUR-LEISURE-IND.  
+           MOVE WS-EDSR-AUTO-SHIP-ALLOC-IND 
+                                    TO WS-EDR-AUTO-SHIP-ALLOC-IND.  
+
+           MOVE WS-EDSR-BEGIN-BOOK-DATE 
+                                    TO WS-EDR-BEGIN-BOOK-DATE.  
+      * Below code is for getting the day of week.  
+
+           MOVE WS-EDSR-START-DATE   TO DPP02-YYYYMMDD-DATE.
+           PERFORM DPP10-YYYYMMDD-TO-JULIAN.
+           MOVE DPP02-JULIAN-DATE TO WS-EDSR-START-JULIAN-DATE. 
+           PERFORM DPP10-DETERMINE-WEEK-DAY.
+           MOVE DPP02-DAY-OF-WEEK TO WS-EDR-DAY-OF-WEEK.
+      * *** 
+
+           MOVE WS-EDSR-TOTAL-ALLOC        TO WS-EDR-TOTAL-ALLOC.   
+           MOVE WS-EDSR-AVAIL-STATUS       TO WS-EDR-AVAIL-STATUS.  
+           MOVE WS-EDSR-MIN-SALES-REQ      TO WS-EDR-MIN-SALES-REQ. 
+           MOVE WS-EDSR-PRESALES-ALLOC     TO WS-EDR-PRESALES-ALLOC.
+208566     MOVE WS-SYSTEM-DATE             TO WS-EDR-UPDATE-DATE.   
+208566     MOVE WS-SYSTEM-HHMMSS           TO WS-EDR-UPDATE-TIME.   
+           MOVE WS-EXC-DEPARTURE-REC       TO  EXC-DEPARTURE-REC.   
+
+       8120-EDR-MOVE-DATA-EXIT. 
+           EXIT.
+
+       8130-EDR-MODIFY. 
+           MOVE  060206016     TO  DPP01-ERROR-NUMBER.  
+           MODIFY EXC-DEPARTURE-REC RECORD  
+                ON ERROR GO TO 8140-EDR-MODIFY-ERROR-CHK.   
+138014     ADD 1 TO WS-DB-CNT-1.
+
+       8140-EDR-MODIFY-ERROR-CHK.   
+C41280*    IF ERROR-STATUS = "000000"   
+C41280     IF ERROR-STATUS OF DMCA = "000000"   
+              NEXT SENTENCE 
+           ELSE 
+              MOVE 'E' TO WS-SETUP-STATUS   
+              MOVE 'ERROR IN EDRREC MOD' TO WS-DESCRIPTION  
+              PERFORM 9000-ERROR-REPORT-PARA THRU   
+                      9000-ERROR-REPORT-PARA-EXIT   
+              GO TO 8100-EDR-ESDR-UPDATE-EXIT.  
+
+C41280     MOVE 'SYS'                    TO SXP09-USER-ID.  
+C41280     PERFORM SXP11-DEP-HIST-COMMENT THRU  
+C41280             SXP11-DEP-HIST-COMMENT-EXIT. 
+
+      *-----------------------------------------------------------* 
+      * Fetch & Modify member record EXC-SAILING-DEPARTURE-REC  
+      *-----------------------------------------------------------* 
+
+       8200-ESDR-UPDATE.
+           IF WS-EDSR-SHIP-CODE(WS-SUB1, WS-SUB2) = SPACES  
+              GO TO 8100-EDR-ESDR-UPDATE-EXIT.  
+
+      * Checking if there are membrs in the set 
+           IF EXC-DEPARTURE-SAILING-SET SET EMPTY   
+              MOVE 'E' TO WS-SETUP-STATUS   
+              MOVE 'NO SAILIN EXIST' TO WS-DESCRIPTION  
+              PERFORM 9000-ERROR-REPORT-PARA THRU   
+                      9000-ERROR-REPORT-PARA-EXIT   
+              GO TO 8100-EDR-ESDR-UPDATE-EXIT.  
+           MOVE ZERO    TO WS-END-OF-SET.   
+      * The member present- now modifying all members   
+           PERFORM 8210-MODIFY-ESDR THRU
+                   8210-MODIFY-ESDR-EXIT UNTIL END-OF-SET.  
+
+       8100-EDR-ESDR-UPDATE-EXIT.   
+           EXIT.
+
+       8210-MODIFY-ESDR.
+           MOVE 06151017 TO DPP01-ERROR-NUMBER. 
+           FETCH NEXT EXC-SAILING-DEPARTURE-REC 
+                  WITHIN EXC-DEPARTURE-SAILING-SET SET  
+                  ON ERROR GO TO 8220-FETCH-ESDR-ERROR-CHK. 
+C41280     INITIALIZE                SXP11-EXC-SAILING-DEPART-REC.  
+C41280     MOVE EXC-SAILING-DEPARTURE-REC   
+C41280                               TO SXP11-EXC-SAILING-DEPART-REC.   
+           MOVE EXC-SAILING-DEPARTURE-REC   
+                                     TO WS-EXC-SAILING-DEPARTURE-REC.   
+
+       8220-FETCH-ESDR-ERROR-CHK.   
+C41280*    IF ERROR-STATUS NOT = "000000"   
+C41280     IF ERROR-STATUS OF DMCA NOT = "000000"   
+              IF ERROR-NUM = '0013' 
+                 MOVE 'E' TO WS-SETUP-STATUS
+                 MOVE 'NO SAILIN EXIST' TO WS-DESCRIPTION   
+                 PERFORM 9000-ERROR-REPORT-PARA THRU
+                         9000-ERROR-REPORT-PARA-EXIT
+              ELSE  
+                 IF ERROR-NUM = '0007'  
+                    MOVE 1 TO WS-END-OF-SET 
+                    GO TO 8100-EDR-ESDR-UPDATE-EXIT 
+                 ELSE   
+                 GO TO 9100-DATABASE-ERROR  
+                 END-IF 
+              END-IF
+           END-IF.  
+
+       8240-MODIFY-CONT.
+
+           IF WS-EDSR-SHIP-CODE(WS-SUB1, WS-SUB2)   
+                                 = WS-ESDR-SHIP-CODE  AND   
+              WS-EDSR-EXC-ID     = WS-ESDR-EXC-ID     AND   
+              WS-EDSR-START-DATE = WS-ESDR-EXC-DATE 
+
+              PERFORM 8250-MOVE-ESDR-DATA THRU  
+                      8250-MOVE-ESDR-DATA-EXIT  
+177338        IF SXP50-ERR-SUB = 0  
+177338           CONTINUE   
+177338        ELSE  
+177338           GO TO 9100-DATABASE-ERROR  
+177338        END-IF
+C96793        IF WS-ESDR-STATUS NOT = ESDR-STATUS   
+C96793           MOVE 'Y'             TO WS-STATUS-CHANGED-CHECK
+C96793        ELSE  
+C96793           MOVE 'N'             TO WS-STATUS-CHANGED-CHECK
+C96793        END-IF
+              MOVE WS-EXC-SAILING-DEPARTURE-REC 
+                                      TO EXC-SAILING-DEPARTURE-REC  
+177338        FIND CURRENT EXC-SAILING-DEPARTURE-REC RECORD 
+              MOVE 'A' TO WS-SETUP-STATUS   
+              MOVE 06150618 TO DPP01-ERROR-NUMBER   
+              MODIFY EXC-SAILING-DEPARTURE-REC RECORD   
+138014*              ON ERROR GO TO 9100-DATABASE-ERROR.
+138014               ON ERROR GO TO 9100-DATABASE-ERROR 
+138014        ADD 1 TO WS-DB-CNT-1. 
+C96793        IF WS-STATUS-CHANGED  
+C96793           FETCH OWNER RECORD 
+C96793              WITHIN EXC-SAIL-PT-DATE-SAIL-DEP-SET SET
+C96793                 ON ERROR GO TO 9100-DATABASE-ERROR   
+GSTEST*          DISPLAY 'OP-ESDR-CNT BEF: ' EPDR-OPEN-ESDR-CNT 
+GSTEST*             UPON PRINTER
+C96793           IF ESDR-STATUS = 'A'   
+C96793              ADD 1            TO EPDR-OPEN-ESDR-CNT  
+C96793           ELSE   
+C96793              IF EPDR-OPEN-ESDR-CNT > 0   
+C96793                 SUBTRACT 1    FROM EPDR-OPEN-ESDR-CNT
+C96793              END-IF  
+C96793           END-IF 
+C96793           MODIFY EXC-SAILING-PORT-DATE-REC RECORD
+C96793              ON ERROR GO TO 9100-DATABASE-ERROR  
+138014           ADD 1 TO WS-DB-CNT-1   
+GSTEST*          DISPLAY 'OP-ESDR-CNT AFT: ' EPDR-OPEN-ESDR-CNT 
+GSTEST*             UPON PRINTER
+C96793        END-IF
+C41280        MOVE 'SYS'              TO SXP09-USER-ID. 
+C41280        PERFORM SXP11-SAIL-HIST-COMMENT THRU  
+C41280                SXP11-SAIL-HIST-COMMENT-EXIT. 
+112797*       IF WS-DB-CNT-1 > 3
+112797*           MOVE ZERO TO WS-DB-CNT-1  
+112797*           FREE  
+112797*       END-IF.   
+
+       8210-MODIFY-ESDR-EXIT.   
+            EXIT.   
+
+       8250-MOVE-ESDR-DATA. 
+PSSSPA        MOVE EMR-EXC-TYPE        TO WS-ESDR-EXC-TYPE. 
+PSSSPA        MOVE WS-ESDR-EXC-END-DATE1
+PSSSPA                                 TO WS-ESDR-EXC-END-DATE. 
+PSSSPA        MOVE WS-ESDR-EXC-END-TIME1
+PSSSPA                                 TO WS-ESDR-EXC-END-TIME. 
+PSSSPA        MOVE WS-EDSR-ON-ARRIVAL-IND   
+PSSSPA                                 TO WS-ESDR-ON-ARRIVAL-IND.   
+PSSSPA        MOVE WS-EDSR-AT-YOUR-LEISURE-IND  
+PSSSPA                                 TO WS-ESDR-AT-YOUR-LEISURE-IND.  
+
+C43223        IF WS-EDSR-ON-ARRIVAL-IND = 'Y'   
+C43223           MOVE WS-ARRIVE-TIME   TO WS-ESDR-EXC-TIME  
+C43223        ELSE  
+C43223           MOVE WS-EDSR-START-TIME(WS-SUB1)   
+C43223                                 TO WS-ESDR-EXC-TIME  
+C43223        END-IF.   
+              MOVE 'A'                       TO WS-ESDR-STATUS. 
+              MOVE WS-EDSR-SHIP-TOTAL-ALLOC (WS-SUB1, WS-SUB2)  
+                                       TO WS-ESDR-TOTAL-ALLOC.  
+              MOVE WS-EDSR-PRESALE-ALLOC (WS-SUB1, WS-SUB2) 
+                                       TO WS-ESDR-PRESALES-ALLOC.   
+
+              MOVE WS-EDSR-START-TIME-BUFF(WS-SUB1, WS-SUB2)
+                                       TO WS-ESDR-START-TIME-BUFF.  
+
+              MOVE WS-EDSR-START-TIME-BUFF-TYPE(WS-SUB1, WS-SUB2)   
+                                       TO WS-ESDR-START-TIME-BUFF-TYPE. 
+
+              MOVE WS-EDSR-END-TIME-BUFF-TYPE(WS-SUB1, WS-SUB2) 
+                                       TO WS-ESDR-END-TIME-BUFF-TYPE.   
+
+              MOVE WS-EDSR-END-TIME-BUFF(WS-SUB1, WS-SUB2)  
+                                       TO  WS-ESDR-END-TIME-BUFF.   
+
+              MOVE WS-EDSR-SHIP-AUTO-SHIP-ALLOC-I(WS-SUB1, WS-SUB2) 
+                                       TO  WS-ESDR-AUTO-SHIP-ALLOC-IND. 
+
+200243        IF WS-EDSR-PRC-OVERRIDE-CODE(WS-SUB1, WS-SUB2) =  
+200243                                                        'Y' OR 'N'
+200243           MOVE WS-EDSR-PRC-OVERRIDE-CODE(WS-SUB1, WS-SUB2)   
+200243                                 TO  WS-ESDR-PRC-OVERRIDE-CODE
+200243        ELSE  
+200243            IF WS-EDSR-PRC-OVERRIDE-CODE(WS-SUB1, WS-SUB2) =  
+200243                                                            SPACES
+200243               AND WS-ESDR-PRC-OVERRIDE-CODE = SPACES 
+200243               MOVE 'N'          TO  WS-ESDR-PRC-OVERRIDE-CODE
+200243            END-IF
+200243        END-IF.   
+
+177338        IF EMR-ACTIVITY-BIT(32) = 1 OR
+177338           EMR-ACTIVITY-BIT(33) = 1   
+200243           OR WS-ESDR-PRC-OVERRIDE-CODE = 'Y' 
+177338           GO TO 8255-MOVE-ESDR-CONT  
+177338        END-IF.   
+
+177338 COPY SXP50INT.   
+
+177338        MOVE WS-ESDR-EXC-ID      TO SXP50-EXC-ID. 
+177338        MOVE WS-ESDR-SHIP-CODE   TO SXP50-SHIP-CODE.  
+177338        MOVE WS-ESDR-SAIL-DATE   TO SXP50-SAIL-DATE.  
+177338        MOVE WS-ESDR-DURATION-DAYS
+177338                                 TO SXP50-DURATION-DAYS.  
+177338        MOVE WS-ESDR-EXC-DATE    TO SXP50-EXC-DATE.   
+
+177338        PERFORM SXP50-GET-ESDR-PRICING THRU   
+177338                                SXP50-GET-ESDR-PRICING-EXIT.  
+
+177338        IF SXP50-ERR-SUB = 0  
+177338           CONTINUE   
+177338        ELSE  
+177338           GO TO 8250-MOVE-ESDR-DATA-EXIT 
+177338        END-IF.   
+
+
+177338 8255-MOVE-ESDR-CONT. 
+177338*       MOVE WS-EDSR-BASE-PRICE(WS-SUB1, WS-SUB2) 
+177338*                                TO WS-ESDR-BASE-PRICE.   
+177338*       MOVE SXP50-ADULT-PRICE   TO WS-ESDR-BASE-PRICE.   
+
+177338        IF EMR-ACTIVITY-BIT(32) = 1 OR
+177338           EMR-ACTIVITY-BIT(33) = 1   
+200243           OR WS-ESDR-PRC-OVERRIDE-CODE = 'Y' 
+177338           MOVE WS-EDSR-BASE-PRICE(WS-SUB1, WS-SUB2)  
+177338                                 TO WS-ESDR-BASE-PRICE
+177338        ELSE  
+177338           MOVE SXP50-ADULT-PRICE 
+177338                                 TO WS-ESDR-BASE-PRICE
+177338        END-IF.   
+
+              MOVE WS-EDSR-OPERATIONAL-LIMIT(WS-SUB1, WS-SUB2)  
+                                       TO  WS-ESDR-OPERATIONAL-LIMIT.   
+
+      * Move price table variable which occurs 5 times  
+              PERFORM VARYING WS-PRICE FROM 1 BY 1 UNTIL
+                              WS-PRICE > 5  
+              MOVE LOW-VALUES TO  WS-ESDR-PRICING-TABLE(WS-PRICE)   
+              MOVE WS-EDSR-PRICE-CODE(WS-SUB1, WS-SUB2, WS-PRICE)   
+                              TO  WS-ESDR-PRICE-CODE(WS-PRICE)  
+
+              MOVE WS-EDSR-AVAIL(WS-SUB1, WS-SUB2, WS-PRICE)
+                              TO  WS-ESDR-PRICE-AVAIL(WS-PRICE) 
+
+              MOVE WS-EDSR-MAX-CAPACITY(WS-SUB1, WS-SUB2, WS-PRICE) 
+                              TO  WS-ESDR-PRICE-MAX-CAPACITY(WS-PRICE)  
+
+177338*       MOVE WS-EDSR-PRICE(WS-SUB1, WS-SUB2, WS-PRICE)
+177338*                       TO  WS-ESDR-PRICE(WS-PRICE)   
+177338*       IF WS-ESDR-PRICE-CODE (WS-PRICE) = 'C' OR 'I' 
+177338*          MOVE SXP50-CHILD-PRICE 
+177338*                       TO  WS-ESDR-PRICE(WS-PRICE)   
+177338*       ELSE  
+177338*          MOVE SXP50-ADULT-PRICE 
+177338*                       TO  WS-ESDR-PRICE(WS-PRICE)   
+177338*       END-IF
+
+177338        IF EMR-ACTIVITY-BIT(32) = 1 OR
+177338           EMR-ACTIVITY-BIT(33) = 1   
+200243           OR WS-ESDR-PRC-OVERRIDE-CODE = 'Y' 
+177338           MOVE WS-EDSR-PRICE(WS-SUB1, WS-SUB2, WS-PRICE) 
+177338                        TO  WS-ESDR-PRICE(WS-PRICE)   
+177338        ELSE  
+177338           IF WS-ESDR-PRICE-CODE (WS-PRICE) = 'C' OR 'I'  
+177338              MOVE SXP50-CHILD-PRICE  
+177338                        TO  WS-ESDR-PRICE(WS-PRICE)   
+177338           ELSE   
+177338              MOVE SXP50-ADULT-PRICE  
+177338                        TO  WS-ESDR-PRICE(WS-PRICE)   
+177338           END-IF 
+177338        END-IF
+
+              END-PERFORM.  
+
+208566     MOVE WS-SYSTEM-DATE         TO WS-ESDR-UPDATE-DATE.  
+208566     MOVE WS-SYSTEM-HHMMSS       TO WS-ESDR-UPDATE-TIME.  
+
+       8250-MOVE-ESDR-DATA-EXIT.
+           EXIT.
+
+       8125-DATE-TIME-CAL.  
+
+           MOVE 0 TO WS-DURATION-M. 
+           MOVE 0 TO WS-DURATION-H. 
+           MOVE 0 TO WS-DURATION-D. 
+           MOVE 0 TO WS-DURATION-D1.
+           MOVE ZEROES TO WS-DURATION-TEMP. 
+           MOVE ZEROES TO WS-DURATION-TEMP1.
+
+      * If duration time is in minutes. 
+           IF WS-EMR-DURATION-TYPE = 'M'
+
+              DIVIDE WS-DURATION-HH BY 60 GIVING WS-DURATION-H  
+                                           REMAINDER WS-DURATION-M  
+
+              COMPUTE WS-DURATION-M = WS-DURATION-M + WS-BEGIN-M
+              IF WS-DURATION-M NOT < 60 
+                   ADD 1 TO WS-DURATION-H   
+                   COMPUTE WS-DURATION-M = WS-DURATION-M - 60   
+              END-IF
+
+              COMPUTE WS-DURATION-T = ( WS-DURATION-H * 100 ) + 
+                                                     WS-DURATION-M  
+
+              COMPUTE WS-END-TIME1 = ( WS-BEGIN-H * 100 ) + 
+                                                     WS-DURATION-T  
+              MOVE WS-END-TIME1   TO  WS-END-TIME3  
+              COMPUTE WS-END-TIME2 = ( WS-TIME3-HH * 60 ) + 
+                                       WS-TIME3-MM  
+
+              COMPUTE WS-END-TIME2 = WS-END-TIME2 + 
+                                 WS-EDSR-END-TIME-BUFF(WS-SUB1, WS-SUB2)
+
+              IF WS-END-TIME1 NOT < 2400
+                   ADD 1 TO WS-DURATION-D   
+                   COMPUTE WS-END-TIME1 = WS-END-TIME1 - 2400   
+              END-IF
+              IF WS-END-TIME2 NOT < 1440
+                   ADD  1 TO WS-DURATION-D1 
+                   COMPUTE WS-END-TIME2 = WS-END-TIME2 - 1440   
+              END-IF
+
+           END-IF.  
+
+      * If the excursion duration is in hours.  
+           IF WS-EMR-DURATION-TYPE = 'H'
+
+              DIVIDE WS-DURATION-HH BY 24 GIVING WS-DURATION-D  
+                                          REMAINDER WS-DURATION-H   
+
+              COMPUTE WS-DURATION-TEMP = WS-DURATION-MM * 6 
+
+              MOVE    WS-DURATION-TEMP-2 TO WS-DURATION-M   
+
+              COMPUTE WS-DURATION-M = WS-DURATION-M + WS-BEGIN-M
+
+              IF WS-DURATION-M NOT < 60 
+                   ADD 1 TO WS-DURATION-H   
+                   COMPUTE WS-DURATION-M = WS-DURATION-M - 60   
+              END-IF
+
+              COMPUTE WS-DURATION-T = ( WS-DURATION-H * 100 ) + 
+                                                       WS-DURATION-M
+
+              COMPUTE WS-END-TIME1 = ( WS-BEGIN-H  * 100 ) +
+                                                       WS-DURATION-T
+
+              MOVE WS-END-TIME1   TO  WS-END-TIME3  
+              COMPUTE WS-END-TIME2 = ( WS-TIME3-HH * 60 ) + 
+                                       WS-TIME3-MM  
+
+              COMPUTE WS-END-TIME2 = WS-END-TIME2 + 
+                                 WS-EDSR-END-TIME-BUFF(WS-SUB1, WS-SUB2)
+
+              IF WS-END-TIME1 NOT < 2400
+                   ADD 1 TO WS-DURATION-D   
+                   COMPUTE WS-END-TIME1 = WS-END-TIME1 - 2400   
+              END-IF
+              IF WS-END-TIME2 NOT < 1440
+                 ADD  1 TO WS-DURATION-D1   
+                 COMPUTE WS-END-TIME2 = WS-END-TIME2 - 1440 
+              END-IF
+           END-IF.  
+
+      * If the excursion duration is in days.   
+           IF WS-EMR-DURATION-TYPE = 'D'
+                MOVE WS-DURATION-HH TO WS-DURATION-D
+
+                COMPUTE WS-DURATION-TEMP1 = WS-DURATION-MM * 24 
+
+                MOVE WS-DURATION-TEMP1-H TO WS-DURATION-H   
+
+                COMPUTE WS-DURATION-TEMP = WS-DURATION-TEMP1-M * 6  
+
+                MOVE WS-DURATION-TEMP-2 TO WS-DURATION-M
+
+                COMPUTE WS-DURATION-M = WS-DURATION-M + WS-BEGIN-M  
+
+                IF WS-DURATION-M NOT < 60   
+                    ADD 1 TO WS-DURATION-H  
+                    COMPUTE WS-DURATION-M = WS-DURATION-M - 60  
+                END-IF  
+
+                COMPUTE WS-DURATION-T = ( WS-DURATION-H * 100 ) +   
+                                                          WS-DURATION-M 
+
+                COMPUTE WS-END-TIME1 = ( WS-BEGIN-H * 100 ) +   
+                                                        WS-DURATION-T   
+                MOVE WS-END-TIME1   TO  WS-END-TIME3
+                COMPUTE WS-END-TIME2 = ( WS-TIME3-HH * 60 ) +   
+                                         WS-TIME3-MM
+
+                COMPUTE WS-END-TIME2 = WS-END-TIME2 +   
+                                WS-EDSR-END-TIME-BUFF(WS-SUB1, WS-SUB2) 
+
+                IF WS-END-TIME1 NOT < 2400  
+                     ADD 1 TO WS-DURATION-D 
+                     COMPUTE WS-END-TIME1 = WS-END-TIME1 - 2400 
+                END-IF  
+                IF WS-END-TIME2 NOT < 1440  
+                   ADD  1 TO WS-DURATION-D1 
+                   COMPUTE WS-END-TIME2 = WS-END-TIME2 - 1440   
+                END-IF  
+
+                DISPLAY 'WS-END-TIME1' WS-END-TIME1 UPON PRINTER
+           END-IF.  
+
+      * Advance the number of days to get the new date. 
+           MOVE WS-EXC-YR             TO DPP02-GD-YYYY  
+           MOVE WS-EXC-MM             TO DPP02-GD-MM
+           MOVE WS-EXC-DD             TO DPP02-GD-DD
+           MOVE WS-DURATION-D         TO DPP02-NUMBER-DAYS  
+           PERFORM DPP10-ADVANCE-GREGORIAN-DATE 
+           MOVE DPP02-GREGORIAN-DATE  TO DPP02-MMDDYYYY-DATE
+           MOVE DPP02-YYYYMMDD-DATE   TO WS-END-DATE.   
+
+           MOVE WS-EXC-YR             TO DPP02-GD-YYYY  
+           MOVE WS-EXC-MM             TO DPP02-GD-MM
+           MOVE WS-EXC-DD             TO DPP02-GD-DD
+           MOVE WS-DURATION-D1        TO DPP02-NUMBER-DAYS  
+           PERFORM DPP10-ADVANCE-GREGORIAN-DATE 
+           MOVE DPP02-GREGORIAN-DATE  TO DPP02-MMDDYYYY-DATE
+           MOVE DPP02-YYYYMMDD-DATE   TO WS-END-DATE1.  
+
+
+       8125-DATE-TIME-CAL-EXIT. 
+           EXIT.
+
+       8200-COUNT-CHECK-PARA.   
+           MOVE ZERO                           TO  WS-TOT-ALLOC 
+                                                   WS-PRE-ALLOC 
+                                                   WS-TOTAL-SOLD
+                                                   WS-PRESALES-SOLD 
+                                                   WS-COUNT-PRESALE 
+                                                   WS-COUNT-TOTAL.  
+           MOVE WS-EDSR-EXC-ID                 TO  WS-EDR-EXC-ID.   
+           MOVE WS-EDSR-START-DATE             TO  WS-EDR-START-DATE.   
+           MOVE WS-EDSR-START-TIME(WS-SUB1)    TO  WS-EDR-START-TIME.   
+           MOVE WS-EDR-CALC-KEY                TO  EDR-CALC-KEY.
+           STRING 'EXCINV' EDSR-START-MM
+                        DELIMITED BY SIZE INTO WS-EXCINV-AREA.  
+           MOVE  WS-EXCINV-AREA                TO EXCINV-CALCAREA.  
+           FETCH EXC-DEPARTURE-REC RECORD   
+                 ON ERROR GO TO 8210-COUNT-ERR-CHK. 
+
+       8210-COUNT-ERR-CHK.  
+C41280*    IF ERROR-STATUS NOT = "000000"   
+C41280     IF ERROR-STATUS OF DMCA NOT = "000000"   
+                 MOVE ZERO TO WS-TOT-ALLOC  
+                              WS-PRE-ALLOC  
+                              WS-TOTAL-SOLD 
+                              WS-PRESALES-SOLD  
+                 GO TO 8200-COUNT-CHECK-PARA-EXIT.  
+
+       8220-COUNT-CONT. 
+           MOVE EDR-TOTAL-ALLOC                TO  WS-TOT-ALLOC.
+           MOVE EDR-PRESALES-ALLOC             TO  WS-PRE-ALLOC.
+           MOVE EDR-TOTAL-SOLD                 TO  WS-TOTAL-SOLD.   
+           MOVE EDR-PRESALES-SOLD              TO  WS-PRESALES-SOLD.
+
+           IF EXC-DEPARTURE-SAILING-SET SET EMPTY   
+                   GO TO 8200-COUNT-CHECK-PARA-EXIT.
+
+           FETCH FIRST EXC-SAILING-DEPARTURE-REC
+                 WITHIN EXC-DEPARTURE-SAILING-SET SET   
+
+           MOVE EDR-PRESALES-ALLOC  TO WS-COUNT-PRESALE.
+           MOVE EDR-TOTAL-ALLOC     TO WS-COUNT-TOTAL.  
+           PERFORM 8300-CONT THRU 8300-CONT-EXIT.   
+
+       8200-COUNT-CHECK-PARA-EXIT.  
+           EXIT.
+
+       8300-CONT.   
+           FETCH NEXT EXC-SAILING-DEPARTURE-REC 
+                 WITHIN EXC-DEPARTURE-SAILING-SET SET   
+                 ON ERROR GO TO 8310-ERR-CHK.   
+
+       8310-ERR-CHK.
+C41280*    IF ERROR-STATUS NOT = "000000"   
+C41280     IF ERROR-STATUS OF DMCA NOT = "000000"   
+                 GO TO 8300-CONT-EXIT.  
+           ADD ESDR-PRESALES-ALLOC    TO WS-COUNT-PRESALE.  
+           ADD ESDR-TOTAL-ALLOC       TO WS-COUNT-TOTAL.
+           GO TO 8300-CONT. 
+
+       8300-CONT-EXIT.  
+           EXIT.
+
+       9000-ERROR-REPORT-PARA.  
+
+           IF WS-LINE-CNT = 0   
+              PERFORM 9100-REPORT-HEADING THRU  
+                      9100-REPORT-HEADING-EXIT  
+           END-IF.  
+
+           IF WS-LINE-CNT > 50  
+              PERFORM 9100-REPORT-HEADING THRU  
+                      9100-REPORT-HEADING-EXIT  
+           END-IF.  
+
+           MOVE WS-EDSR-EXC-ID           TO  DET-EDSR-EXC-ID.   
+           MOVE WS-EDSR-START-DATE       TO  DET-EDSR-START-DATE.   
+           MOVE WS-EDSR-END-DATE         TO  DET-EDSR-END-DATE. 
+219999*    MOVE WS-EDSR-DURATION-DAYS    TO  DET-EDSR-DURATION-DAYS.
+219999     IF WS-EDSR-DURATION-DAYS > ZEROES
+219999        MOVE WS-EDSR-DURATION-DAYS TO  DET-EDSR-DURATION-DAYS 
+219999     ELSE 
+219999        MOVE WS-ERR-DURATION       TO  DET-EDSR-DURATION-DAYS 
+219999     END-IF.  
+           MOVE WS-EDSR-SETUP-STATUS     TO  DET-EDSR-SETUP-STATUS. 
+           MOVE WS-EDSR-MAINTENANCE-IND  TO  DET-EDSR-MAINTENANCE-IND.  
+ME1306     IF      (WS-SUB1 < 1)
+ME1306         OR  (WS-SUB1 > 20)   
+ME1306       MOVE 0                      TO DET-EDSR-START-TIME 
+ME1306       MOVE 0                      TO DET-EDSR-END-TIME   
+ME1306       MOVE SPACE                  TO DET-EDSR-SHIP-CODE  
+ME1306     ELSE 
+             MOVE WS-EDSR-START-TIME (WS-SUB1)  
+                                         TO DET-EDSR-START-TIME 
+             MOVE WS-EDSR-END-TIME (WS-SUB1)
+                                         TO DET-EDSR-END-TIME   
+             IF      (WS-SUB2 < 1)  
+                 OR  (WS-SUB2 > 5)  
+ME1306         MOVE SPACE                TO DET-EDSR-SHIP-CODE  
+ME1306       ELSE   
+               MOVE WS-EDSR-SHIP-CODE(WS-SUB1, WS-SUB2) 
+                                         TO  DET-EDSR-SHIP-CODE 
+ME1306       END-IF 
+ME1306     END-IF.  
+219999     MOVE WS-ERR-SAIL-DATE         TO  DET-EDSR-SAIL-DATE.
+           MOVE WS-DESCRIPTION           TO  DET-EDSR-DESCRIPTION.  
+
+           WRITE ERROR-REPORT-REC FROM DET2-PRT-REC AFTER 1.
+           IF NOT ER-FILE-OK
+              DISPLAY "I-O ERROR " " " "SXBSDS01P FILE STATUS = "   
+                      WS-ER-FILE-STATUS UPON PRINTER
+              GO TO 9100-I-O-FILE-ERROR 
+           END-IF.  
+
+           ADD 1 TO WS-LINE-CNT.
+           ADD 1 TO WS-ERR-COUNT.   
+219999     MOVE SPACES                   TO WS-DESCRIPTION. 
+219999     MOVE ZEROES                   TO WS-ERR-DURATION 
+219999                                      WS-ERR-SAIL-DATE.   
+
+       9000-ERROR-REPORT-PARA-EXIT. 
+           EXIT.
+
+       9100-REPORT-HEADING. 
+
+           ADD 1 TO WS-PAGE-CNT2.   
+           MOVE  WS-PAGE-CNT2     TO   TTL-PAGE-NUM.
+           WRITE ERROR-REPORT-REC FROM TITLE-1 AFTER PAGE.  
+           WRITE ERROR-REPORT-REC FROM TITLE-2 AFTER 1. 
+           WRITE ERROR-REPORT-REC FROM TITLE-21 AFTER 1.
+           WRITE ERROR-REPORT-REC FROM WS-EQUAL-LINE AFTER 1.   
+           WRITE ERROR-REPORT-REC FROM TITLE-3 AFTER 1. 
+           WRITE ERROR-REPORT-REC FROM WS-EQUAL-LINE AFTER 1.   
+           MOVE SPACES TO ERROR-REPORT-REC. 
+           WRITE ERROR-REPORT-REC AFTER 1.  
+           MOVE 8 TO WS-LINE-CNT.   
+           IF NOT ER-FILE-OK
+              DISPLAY "I-O ERROR " " " "SXBSDS01P FILE STATUS = "   
+                      WS-ER-FILE-STATUS UPON PRINTER
+              GO TO 9100-I-O-FILE-ERROR 
+           END-IF.  
+
+
+       9100-REPORT-HEADING-EXIT.
+           EXIT.
+
+      ******************************************************
+      *             PROGRAM TERMINATION ROUTINES           *
+      ******************************************************
+       9000-END-OF-JOB. 
+           IF IMPART-DEPART = 1 
+C41280*       CLOSE ALL ON ERROR  GO TO 9100-DATABASE-ERROR 
+C41280*       DEPART ON ERROR  GO TO 9100-DATABASE-ERROR
+C41280        PERFORM 9300-TERMINATE
+           END-IF.  
+           GO TO 9900-FINISH-PARA.  
+
+      ******************************************************
+      *                DATABASE ERROR ROUTINE              *
+      ******************************************************
+
+       9100-DATABASE-ERROR. 
+           DISPLAY 'ERROR FROM PROGRAM - SXB14SDS'   UPON PRINTER.  
+C41280*    DISPLAY 'ERROR STATUS = ' ERROR-STATUS    UPON PRINTER.  
+C41280     DISPLAY 'ERROR STATUS = ' ERROR-STATUS OF DMCA   
+C41280                                               UPON PRINTER.  
+           DISPLAY 'ERROR NUMBER = ' ERROR-NUM       UPON PRINTER.  
+           DISPLAY 'ERROR AREA   = ' ERROR-AREA      UPON PRINTER.  
+           DISPLAY 'ERROR RECORD = ' ERROR-RECORD    UPON PRINTER.  
+           DISPLAY 'ERROR SET    = ' ERROR-SET       UPON PRINTER.  
+144449     DISPLAY 'RB ERROR CODE = ' RB-ERROR-CODE  UPON PRINTER.  
+
+           IF IMPART-DEPART = 1 
+144449        MOVE 'Y'                    TO ROLLBACK-SW
+C41280*       CLOSE ALL ON ERROR  GO TO 9900-FINISH-PARA
+C41280*       DEPART    ON ERROR  GO TO 9900-FINISH-PARA
+C41280        PERFORM 9300-TERMINATE
+           END-IF.  
+           SET ERROR-SW TO  ON. 
+144449     GO TO DPP12-DATABASE-ERROR.  
+144449*    GO TO 9900-FINISH-PARA.  
+
+      ******************************************************
+      *        ROLLBACK ERROR ROUTINES                     *
+      ******************************************************
+144449*9100-ROLLBACK-ERROR. 
+144449*    DISPLAY 'RB ERROR FROM PROGRAM- SXB14SDS' UPON PRINTER.  
+144449*    DISPLAY 'ERROR STATUS = ' ERROR-STATUS    UPON PRINTER.  
+144449*    DISPLAY 'ERROR STATUS = ' ERROR-STATUS OF DMCA   
+144449*                                              UPON PRINTER.  
+144449*    DISPLAY 'ERROR NUMBER = ' ERROR-NUM       UPON PRINTER.  
+144449*    DISPLAY 'ERROR AREA   = ' ERROR-AREA      UPON PRINTER.  
+144449*    DISPLAY 'ERROR RECORD = ' ERROR-RECORD    UPON PRINTER.  
+144449*    DISPLAY 'ERROR SET    = ' ERROR-SET       UPON PRINTER.  
+144449*    SET ERROR-SW TO  ON. 
+144449*    IF IMPART-DEPART = 1 
+144449*       CLOSE ALL ON ERROR GO TO 9900-FINISH-PARA 
+144449*       DEPART WITH ROLLBACK ON ERROR GO 9900-FINISH-PARA 
+144449*       MOVE 'Y'                    TO ROLLBACK-SW
+144449*       PERFORM 9300-TERMINATE
+144449*    END-IF.  
+144449* 
+144449*    GO TO 9900-FINISH-PARA.  
+
+      ******************************************************
+      *        I-O ERROR ROUTINES                     * 
+      ******************************************************
+
+208566 9150-RDMS-ERROR. 
+208566     GO TO DPP12-RDMS-ERROR.  
+
+       9100-I-O-FILE-ERROR. 
+           SET ERROR-SW TO ON.  
+
+           IF IMPART-DEPART = 1 
+C41280*       CLOSE ALL ON ERROR GO TO 9100-DATABASE-ERROR  
+C41280*       DEPART WITH ROLLBACK ON ERROR GO 9100-DATABASE-ERROR  
+C41280        MOVE 'Y'                    TO ROLLBACK-SW
+C41280        PERFORM 9300-TERMINATE
+           END-IF.  
+
+
+      ******************************************************
+      *       Finish program                               *
+      ******************************************************
+       9900-FINISH-PARA.
+           CLOSE EXCURSION-KEY-FILE 
+                 SAILING-SUMMARY-FILE   
+                 ERROR-REPORT-FILE. 
+           IF SS-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY "I-O ERROR " " " "SXBSDS03D FILE STATUS = "   
+                      WS-SS-FILE-STATUS UPON PRINTER.   
+           IF EK-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY "I-O ERROR " " " "SXBSDS01D FILE STATUS = "   
+                      WS-EK-FILE-STATUS UPON PRINTER.   
+           IF ER-FILE-OK
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY "I-O ERROR " " " "SXBSDS01P FILE STATUS = "   
+                      WS-ER-FILE-STATUS UPON PRINTER.   
+
+144449     MOVE ZERO TO DPP42-HOLD-MSG-STATUS.  
+144449     GO TO DPP12-END-OF-JOB.  
+
+144449*    STOP RUN.
+
+      ******************************************************
+       DEPEXAR-OPEN-EDR-RETRIEVAL.  
+           OPEN EXCINV01
+                EXCINV02
+                EXCINV03
+                EXCINV04
+                EXCINV05
+                EXCINV06
+                EXCINV07
+                EXCINV08
+                EXCINV09
+                EXCINV10
+                EXCINV11
+                EXCINV12.   
+
+           GO TO DEPEXAR-OPEN-EDR-AREAS-EXIT.   
+
+       DEPEXAR-OPEN-EDR-UPDATE. 
+           OPEN   EXCINV01         USAGE-MODE IS UPDATE 
+                  EXCINV02         USAGE-MODE IS UPDATE 
+                  EXCINV03         USAGE-MODE IS UPDATE 
+                  EXCINV04         USAGE-MODE IS UPDATE 
+                  EXCINV05         USAGE-MODE IS UPDATE 
+                  EXCINV06         USAGE-MODE IS UPDATE 
+                  EXCINV07         USAGE-MODE IS UPDATE 
+                  EXCINV08         USAGE-MODE IS UPDATE 
+                  EXCINV09         USAGE-MODE IS UPDATE 
+                  EXCINV10         USAGE-MODE IS UPDATE 
+                  EXCINV11         USAGE-MODE IS UPDATE 
+                  EXCINV12         USAGE-MODE IS UPDATE.
+
+       DEPEXAR-OPEN-EDR-AREAS-EXIT. 
+           EXIT.
+
+      ***************************************************** 
+      *    CONVERT AM/PM TIME TO MILITARY TIME            * 
+      ***************************************************** 
+
+       DPP10-CONVERT-TO-24HR-FORMAT.
+
+
+           IF DPP10-12HR-TIME-AM-PM = 'AM'  
+              IF DPP10-12HR-TIME-HH = 12
+                 MOVE 0                   TO DPP10-24HR-TIME-HH 
+                 MOVE DPP10-12HR-TIME-MM  TO DPP10-24HR-TIME-MM 
+              ELSE  
+                 MOVE DPP10-12HR-TIME-HH  TO DPP10-24HR-TIME-HH 
+                 MOVE DPP10-12HR-TIME-MM  TO DPP10-24HR-TIME-MM.
+
+           IF DPP10-12HR-TIME-AM-PM = 'PM'  
+              IF DPP10-12HR-TIME-HH = 12
+                 MOVE DPP10-12HR-TIME-HH  TO DPP10-24HR-TIME-HH 
+                 MOVE DPP10-12HR-TIME-MM  TO DPP10-24HR-TIME-MM 
+              ELSE  
+                 ADD 12 TO DPP10-12HR-TIME-HH   
+                 MOVE DPP10-12HR-TIME-HH  TO DPP10-24HR-TIME-HH 
+                 MOVE DPP10-12HR-TIME-MM  TO DPP10-24HR-TIME-MM.
+
+       DPP10-CONVERT-TO-24HR-EXIT.  
+           EXIT.
+
+      ***************************************************************   
+      *   Copy libraries for procedure division are defined here    *   
+      ***************************************************************   
+       COPY DPP10Y2K.   
+C41280 COPY SXP09EHP.   
+C41280 COPY SXP11COM.   
+C41280  
+C41280 9001-ERROR-HANDLING. 
+C41280  
+C41280******************************************************************
+C41280* THE WHENEVER STATEMENT BELOW PREVENTS PROGRAM LOOPING WITHIN   *
+C41280* THE ERROR HANDLING SECTION.                                    *
+C41280******************************************************************
+C41280  
+C41280     EXEC SQL WHENEVER SQLERROR CONTINUE END-EXEC.
+C41280  
+C41280 9200-RDMS-ERROR. 
+C41280  
+C41280     PERFORM SXP08-DISPLAY-SQL-ERR THRU   
+C41280             SXP08-DISPLAY-SQL-END.   
+C41280  
+C41280     MOVE 'Y'       TO ROLLBACK-SW.   
+C41280     PERFORM 9300-TERMINATE.  
+144449     GO TO DPP12-DATABASE-ERROR.  
+144449*    PERFORM 9900-FINISH-PARA.
+C41280  
+C41280 9300-TERMINATE.  
+C41280  
+144449*    CLOSE ALL ON ERROR GO TO 9900-FINISH-PARA
+144449     CLOSE ALL ON ERROR GO TO DPP12-DATABASE-ERROR.   
+C41280  
+C41280     IF  ROLLBACK-NEEDED  
+C41280         EXEC SQL ROLLBACK WORK END-EXEC  
+C41280     END-IF.  
+C41280  
+C41280     IF  BGN-THRD-DONE
+144449         PERFORM DPP12-END-THREAD THRU
+144449                 DPP12-END-THREAD-EXIT
+144449*        EXEC SQL END THREAD END-EXEC 
+C41280     END-IF.  
+C41280  
+C41280* Copy here only error-handling procedures.   
+C41280     COPY SXP08SER.   
+      *--------------------------------------------------------------*  
+      *    PROGRAM END HERE                                          *  
+      *--------------------------------------------------------------*  
+
+144449 COPY DPP12BER.   
+144449 COPY DPP12ERR.   
+144449 COPY DPP12WDB.   
+177338 COPY SXP50PRP.   

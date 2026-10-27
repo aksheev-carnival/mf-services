@@ -1,0 +1,1929 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.     SXR70EEM.
+       DATE-WRITTEN.   JULY 2004.   
+       DATE-COMPILED.   
+      *REMARKS: This is an online program from which user can choose
+      *         to add or update shore excursion records. The user will 
+      *         have the option to ADD shore excursion with 
+      *         system-generated shore-excursion-id. as well as UPDATE  
+      *         the existing shore-excursion. The record that is in 
+      *         the picture for this program is EXC-MASTER-REC. 
+      *         EXC-MASTER-REC consists of the over-all information 
+      *         related to the shore-excursions.The program-flow depends
+      *         upon the process-mode provided by the user. 
+      ******************************************************************
+************************************************************************
+151933* 14-MAR-13     GS9     CCL                    CQ151933          *
+151933* Allow users to update exc-duration even if departure exist.    *
+************************************************************************
+P62525* 04-NOV-2014   MCA     CCL   PRICING          P62525            *
+P62525* Exception pricing                                              *
+P62525******************************************************************
+************************************************************************
+177338* 24-APR-15     RGM     TCS LTD.               CQ177338          *
+177338* Add new excursion to RDMS.                                     *
+************************************************************************
+180675* 08-SEP-15     RK2     TCS LTD.               CQ180675          *
+180675* CHANGES DONE FOR IMAX TYPE EXCURSIONS.                         *
+************************************************************************
+199829* 17-MAR-17     9AA     TCS LTD.               CQ199829          *
+199829* CHANGES DONE TO CREATE AN ENTRY IN THE RDMS TABLE EXCSPREAD    *
+199829* WHEN EXCURSION DURATION IS MODIFIED THROUGH SHOREX EXCURSION   *
+199829* ADMIN TOOL                                                     *
+************************************************************************
+208566* 03-NOV-18     9AA     TCS LTD.               CQ208566          *
+208566* CHANGES DONE TO MAINTAIN RDMS TABLES CORRESPONDING TO DMS      *
+208566* RECORDS EMR, ENR, EPR, EVIR, EADR, EACR.                       *
+************************************************************************
+218983* 11-MAY-20     PNK     TCS LTD.               CQ218983          *
+218983* CHANGES DONE TO INTRODUCE A CHECK WHERE VENDOR-TYPE IS CHECKED *
+************************************************************************
+187917* 07-JAN-26     2WN     TCS LTD.              ADO1879173         *
+187917* CHANGES DONE FOR UNIACCESS TO EPORTAL CONVERSION.              *
+************************************************************************
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER. UNISYS. 
+       OBJECT-COMPUTER. UNISYS  MEMORY SIZE 3 MODULES.  
+       SPECIAL-NAMES.   
+           PRINTER IS PRT   
+           PRINTER IS PRINTER.  
+
+       DATA DIVISION.   
+       SUBSCHEMA SECTION.   
+       INVOKE SUBSCHEMA PRD200UCOBSU
+           IN FILE SUBSCHEMAS OF SCHEMA PRD200SCHEMA
+           COPYING RECORDS    INTO COMMON   
+           COPYING DATA-NAMES INTO COMMON   
+           DMCA COMMON  
+           SAVE DATA INCLUDES DEFERRED-UPDATES  
+           ERROR RECOVERY IS 9100-DATABASE-ERROR
+           ROLLBACK       IS 9100-DATABASE-ERROR.   
+
+       WORKING-STORAGE SECTION. 
+       01  WS-PROG-ID            PIC X(8) VALUE 'SXR70EEM'. 
+177338 01  WS-CHG-EXC-NAME       PIC X(01). 
+208566 01  MCFLAG                PIC 9(10) BINARY.  
+       01  WS-COUNT              PIC S9(10) BINARY. 
+       01  WS-NUM                PIC S9(10) BINARY. 
+       01  WS-I                  PIC S9(10) BINARY. 
+       01  WS-J                  PIC S9(10) BINARY. 
+149439 01  WS-K                  PIC S9(10) BINARY. 
+149439 01  WS-L                  PIC S9(10) BINARY. 
+149439 01  WS-SUB                PIC  9(3) BINARY.  
+149439 01  SUB                   PIC  9(3) BINARY.  
+P62525 01  SUB-1                 PIC  9(3) BINARY.  
+P62525 01  SUB-2                 PIC  9(3) BINARY.  
+
+       01  REMOVE-IND            PIC X. 
+       01  WS-IP-COST-TABLE.
+           05 WS-IP-MIN-VOL                PIC 9(5).
+           05 WS-IP-MAX-VOL                PIC 9(5).
+           05 WS-IP-COST-TYPE OCCURS 5 TIMES.   
+              10 WS-IP-COST-CODE           PIC X.   
+              10 WS-IP-COST                PIC 9(5)V99. 
+       01  WS-STORE-INDS.   
+           05 WS-FULL-DESC-IND             PIC X.   
+           05 WS-DISCLAIMER-IND            PIC X.   
+           05 WS-NOTES-IND                 PIC X.   
+           05 WS-ACTIVITY-HDR-IND          PIC X.   
+           05 WS-EPR-IND                   PIC X.   
+           05 FILLER                       PIC X(3).
+P62525 01  WS-EXCEPTION-PRICING-CODES.  
+P62525     02 WS-EXCEPT-PRICING-CODE-TABLE  OCCURS 5 TIMES. 
+P62525        05 WS-EMR-BEGIN-AGE             PIC 9(3). 
+P62525        05 WS-EMR-END-AGE               PIC 9(3). 
+P62525        05 WS-EMR-AGE-TYPE              PIC X.
+P62525        05 WS-EMR-PRICING-CODE          PIC X.
+P62525        05 WS-EMR-PRICING-CODE-DESC     PIC X(20).
+P62525     02 WS-MIN-AGE-CHG-BY-EXCEPTION     PIC X.
+P62525     02 WS-MIN-AGE-CHG-FROM-EXCEPTION   PIC 9(3). 
+P62525 01     WS-TEXT                         PIC X(28).
+
+177338 01  WS-SQL-DATE. 
+177338     03 WS-SQL-DATE-YYYY                PIC X(04).
+177338     03 FILLER                          PIC X(01) VALUE '-'.  
+177338     03 WS-SQL-DATE-MM                  PIC X(02).
+177338     03 FILLER                          PIC X(01) VALUE '-'.  
+177338     03 WS-SQL-DATE-DD                  PIC X(02).
+
+177338 01  WS-TIME. 
+177338     03 WS-TIME-HH                      PIC 9(02).
+177338     03 WS-TIME-MM                      PIC 9(02).
+177338     03 WS-TIME-SS                      PIC 9(02).
+177338     03 WS-TIME-MS                      PIC 9(02).
+
+177338 01  WS-LU-TIME.  
+177338     03 WS-LU-TIME-HH                   PIC 9(02).
+177338     03 FILLER                          PIC X(01) VALUE ':'.  
+177338     03 WS-LU-TIME-MM                   PIC 9(02).
+177338     03 FILLER                          PIC X(01) VALUE ':'.  
+177338     03 WS-LU-TIME-SS                   PIC 9(02).
+
+208566 01  WS-EMR-BEG-DATE-X.   
+208566     03  WS-EMR-BEG-DATE                PIC 9(08).
+208566 01  WS-EMR-END-DATE-X.   
+208566     03  WS-EMR-END-DATE                PIC 9(08).
+208566 01  WS-EMR-CREATION-DATE-X.  
+208566     03  WS-EMR-CREATION-DATE           PIC 9(08).
+208566 01  WS-ADVISORY-TBL. 
+208566     03  WS-ADVISORY-ENTRY OCCURS 72 TIMES.   
+208566         05  WS-ADVISORY-TYPE           PIC X(01).
+208566 01  WS-ACTIVITY-TBL. 
+208566     03  WS-ACTIVITY-ENTRY OCCURS 72 TIMES.   
+208566         05  WS-ACTIVITY-DESC           PIC X(30).
+208566 01  WS-EMR-ADV-BITS                    PIC X(72).
+208566 01  WS-EMR-ADV-BITS-N REDEFINES WS-EMR-ADV-BITS. 
+208566     03  WS-EMR-ADV-BIT OCCURS 72 TIMES PIC 9(01).
+208566 01  WS-EMR-ACT-BITS                    PIC X(72).
+208566 01  WS-EMR-ACT-BITS-N REDEFINES WS-EMR-ACT-BITS. 
+208566     03  WS-EMR-ACT-BIT OCCURS 72 TIMES PIC 9(01).
+208566 01  WS-EMR-BEG-DATE-NI                 PIC S9(01)
+208566                                            SIGN LEADING SEPARATE.
+208566 01  WS-EMR-END-DATE-NI                 PIC S9(01)
+208566                                            SIGN LEADING SEPARATE.
+208566 01  WS-EXC-VENDOR-ID                   PIC 9(07).
+208566 01  WS-EMR-TKT-NUM                     PIC 9(01).
+208566 01  WS-EMR-TKT-DESC                    PIC X(20).
+208566  
+           EXEC SQL BEGIN DECLARE SECTION END-EXEC. 
+
+           COPY SXP09EHP-DATA.  
+           COPY SXP11EHW.   
+
+           EXEC SQL END DECLARE SECTION END-EXEC.   
+
+       COPY DPP01CIW.   
+       COPY DPP01DTA.   
+       COPY DPP01ERR.   
+187917 COPY DPP01EWS.   
+144449 COPY DPP01MCB.   
+       COPY DPP01SCO.   
+187917*COPY DPP01UWS.   
+       COPY DPP12SCO.   
+       COPY DPP42ERR.   
+187917 COPY ECP75ERR.   
+       COPY RSP00DMS.   
+       COPY RSP32DMS.   
+       COPY RSP64DMS.   
+       COPY RSP77GMD.   
+       COPY SLCPCOB.
+187917 COPY SXP-R-SX-SEM.   
+187917*COPY UAP01MWS.   
+187917*COPY SXSEM-W-1391.   
+187917*COPY SXRSEM-W-1393.  
+
+       COMMON-STORAGE SECTION.  
+
+       PROCEDURE DIVISION.  
+       0000-MAIN-LINE.  
+           COPY DPP01INT.   
+187917*    COPY UAP05INT.   
+
+           MOVE WS-PROG-ID TO TDPROGNAME.   
+
+187917*    PERFORM DPP12-TDINIT THRU DPP12-TDINIT-EXIT. 
+
+187917     MOVE SPACES     TO DPP01-MCB-INPUT-MESSAGE.  
+
+187917     MOVE 63 TO DPP01-AUX-LENGTH. 
+187917     MOVE FUNCTION LENGTH (DPP01-MCB-INPUT-MESSAGE)  TO   
+187917                           DPP01-INPUT-MSG-LENGTH.
+187917     PERFORM DPP12-MCB-RECIEVE-MSG
+187917        THRU DPP12-MCB-RECIEVE-MSG-EXIT.  
+
+           PERFORM DPP12-BEGIN-THREAD THRU DPP12-BEGIN-THREAD-EXIT. 
+
+           IF DPP01-SQL-ERROR-IND = 'Y' 
+              GO TO DPP12-THREAD-ERROR-EXIT.
+
+       0100-INIT-DATABASE.  
+           IMPART.  
+
+           OPEN EXCURSION USAGE-MODE IS UPDATE. 
+
+       0200-NEXT-MESSAGE.   
+           PERFORM DPP12-GET-NEXT-MESSAGE   
+              THRU DPP12-GET-NEXT-MESSAGE-EXIT. 
+187917     MOVE DPP01-MCB-INPUT-MESSAGE TO  X-INPUT-R-SXRSEM-BUFFER.
+187917     PERFORM SXP00-R-SX-SEM-INIT  
+187917        THRU SXP00-R-SX-SEM-INIT-EXIT.
+187917     MOVE ZEROES TO DPP01-ISUB.   
+
+           EXEC SQL USE DEFAULT SCHEMA PRDRDMS END-EXEC.
+199829  
+199829     EXEC SQL WHENEVER SQLERROR   
+208566*         GO TO DPP12-RDMS-ERROR  
+208566          CONTINUE
+199829     END-EXEC.
+208566  
+208566     EXEC SQL WHENEVER NOT FOUND  
+208566          CONTINUE
+208566     END-EXEC.
+208566  
+187917*    PERFORM SXSEM-RCV-STD-IN.
+
+187917*    EVALUATE U-1391-PI-STORED-PROCEDURE-NAM  
+187917*       WHEN 'SP_R_SX_SEM'
+187917*            MOVE 59 TO DPP01-PARAMETERS-EXPECTED 
+187917*            MOVE 55 TO DPP01-PARAMETERS-EXPECTED 
+187917*       WHEN OTHER
+187917*           MOVE 1 TO DPP42-HOLD-MSG-INDEX
+187917*           GO TO 9300-SEVERE-ERROR-MSG   
+187917*    END-EVALUATE.
+
+187917*    IF (SL-NUMBER-OF-PARMS NOT = DPP01-PARAMETERS-EXPECTED)  
+187917*       MOVE 9001               TO DPP42-HOLD-MSG-INDEX   
+187917*       MOVE SL-NUMBER-OF-PARMS TO DPP01-SIGNED   
+187917*       MOVE DPP01-UNSIGNED     TO DPP01-PARAMETERS-RECEIVED  
+187917*       STRING DPP01-PARAMETERS-EXPECTED ' Parameters required - '
+187917*              DPP01-PARAMETERS-RECEIVED ' Received, '
+187917*              'contact Help Desk!' DELIMITED BY SIZE 
+187917*             INTO DPP42-HOLD-MSG-DESC
+187917*       GO TO DPP12-SEVERE-ERROR-MSG. 
+
+187917*    PERFORM SXSEM-RCV-SX-SEM.
+
+187917*    PERFORM SXSEM-RCV-STD-OUT.   
+
+           MOVE DPP01-SYSTEM-DATETIME TO U-1391-PO-DATE-TIME.   
+
+187917*    PERFORM SXSEM-SET-STD-OUT.   
+           IF (U-1391-PROCESS-MODE NOT = 'ADD' AND 'UPD')   
+              MOVE 2 TO DPP42-HOLD-MSG-INDEX
+              GO TO 9300-SEVERE-ERROR-MSG.  
+
+P62525     IF U-1391-SELL-BY-UNIT-IND = 'Y' AND 
+P62525        U-1391-SELL-BY-UNIT-DESC > SPACES 
+P62525        CONTINUE  
+P62525     ELSE 
+P62525        IF U-1391-SELL-BY-UNIT-IND = 'Y'  
+P62525           MOVE 'SELL BY UNIT SHOULD HAVE A DESCRIPTION ' 
+P62525                 TO DPP42-HOLD-MSG-DESC   
+P62525        GO TO 9200-EDIT-ERROR-MSG 
+P62525        END-IF
+P62525     END-IF.  
+
+P62525     IF U-1391-SELL-BY-UNIT-IND = 'Y' 
+P62525        CONTINUE  
+P62525     ELSE 
+P62525        IF U-1391-SELL-BY-UNIT-DESC > SPACES  
+P62525           MOVE 'SELL BY UNIT DESC SHOULD BE SPACES ' 
+P62525                 TO DPP42-HOLD-MSG-DESC   
+P62525           GO TO 9200-EDIT-ERROR-MSG  
+P62525        ELSE  
+P62525           CONTINUE   
+P62525        END-IF
+P62525     END-IF.  
+P62525     MOVE 0 TO SUB-2  
+
+P62525     PERFORM VARYING SUB-1 FROM 1 BY 1 UNTIL SUB-1 > 5
+P62525       IF  U-1391-PRICING-CODE-TABLE (SUB-1) > SPACES 
+P62525       MOVE U-1391-PRICING-CODE-TABLE (SUB-1) TO WS-TEXT  
+P62525       IF WS-TEXT (1:3) IS NUMERIC
+P62525           MOVE U-1391-PRICING-CODE-TABLE (SUB-1) TO  
+P62525                WS-EXCEPT-PRICING-CODE-TABLE (SUB-1)  
+P62525           IF WS-EMR-PRICING-CODE (SUB-1) > SPACES AND
+P62525              (WS-EMR-AGE-TYPE (SUB-1) = 'Y' OR 'M')  
+P62525              ADD 1 TO SUB-2  
+P62525           END-IF 
+P62525       END-IF 
+P62525       END-IF 
+P62525     END-PERFORM. 
+           IF SUB-2 > 1 MOVE 5 TO SUB-2.
+P62525     MOVE SUB-2 TO U-1391-EXCEPT-PRICING-CNT. 
+
+P62525     PERFORM VARYING SUB-1 FROM 1 BY 1 UNTIL  
+p62525                     SUB-1 > U-1391-EXCEPT-PRICING-CNT
+               MOVE U-1391-PRICING-CODE-TABLE (SUB-1) TO
+                    WS-EXCEPT-PRICING-CODE-TABLE (SUB-1)
+P62525         IF WS-EMR-BEGIN-AGE (SUB-1) > 0 AND  
+P62525            WS-EMR-END-AGE (SUB-1) > 0 AND
+P62525            (WS-EMR-PRICING-CODE (SUB-1)  =   
+P62525                   'S' OR 'A' OR 'T' OR 'C' ) 
+P62525           CONTINUE   
+P62525         ELSE 
+P62525           IF WS-EMR-PRICING-CODE (SUB-1) NOT = 'I'   
+P62525              MOVE 'BEGIN AND END-AGE SHOULD BE > 0 ' 
+P62525                 TO DPP42-HOLD-MSG-DESC   
+P62525              GO TO 9200-EDIT-ERROR-MSG   
+P62525           END-IF 
+P62525         END-IF   
+P62525     END-PERFORM. 
+
+P62525     PERFORM VARYING SUB-1 FROM 1 BY 1 UNTIL  
+p62525                     SUB-1 > U-1391-EXCEPT-PRICING-CNT
+P62525         IF WS-EMR-PRICING-CODE-DESC (SUB-1) NOT > SPACES 
+P62525            MOVE 'NEED PRICE CODE DESCRIPTIONS'   
+P62525                 TO DPP42-HOLD-MSG-DESC   
+P62525            GO TO 9200-EDIT-ERROR-MSG 
+P62525         END-IF   
+P62525         IF WS-EMR-BEGIN-AGE (SUB-1) >
+P62525                            WS-EMR-END-AGE (SUB-1)
+P62525           MOVE 'BEGIN AGE SHOULD < END-AGE ' 
+P62525                 TO DPP42-HOLD-MSG-DESC   
+P62525           GO TO 9200-EDIT-ERROR-MSG  
+P62525         END-IF   
+P62525         IF (WS-EMR-PRICING-CODE (SUB-1) NOT =
+P62525                   'S' AND 'A' AND 'T' AND 'C' AND 'I' ) OR   
+P62525            ((WS-EMR-PRICING-CODE (SUB-1) =   
+P62525                   'S' OR 'A' OR 'T' OR 'C' ) AND 
+P62525              WS-EMR-AGE-TYPE (SUB-1) NOT = 'Y' ) OR  
+P62525            (WS-EMR-PRICING-CODE (SUB-1) = 'I' AND
+P62525              WS-EMR-AGE-TYPE (SUB-1) NOT = 'M')  
+P62525              MOVE 'INVALID PRICING CODE/AGE-CODE '   
+P62525                 TO DPP42-HOLD-MSG-DESC   
+P62525              GO TO 9200-EDIT-ERROR-MSG   
+P62525          END-IF  
+P62525     END-PERFORM. 
+P62525     MOVE 'N' TO WS-MIN-AGE-CHG-BY-EXCEPTION  
+P62525     MOVE 99  TO WS-MIN-AGE-CHG-FROM-EXCEPTION.   
+P62525     PERFORM VARYING SUB-1 FROM 1 BY 1 UNTIL  
+p62525                     SUB-1 > U-1391-EXCEPT-PRICING-CNT
+P62525         IF WS-EMR-BEGIN-AGE (SUB-1)  <   
+P62525            WS-MIN-AGE-CHG-FROM-EXCEPTION AND 
+P62525            U-1391-MIN-AGE-TYPE = WS-EMR-AGE-TYPE (SUB-1) 
+P62525            MOVE WS-EMR-BEGIN-AGE (SUB-1) TO  
+P62525                 WS-MIN-AGE-CHG-FROM-EXCEPTION
+P62525            MOVE 'Y' TO WS-MIN-AGE-CHG-BY-EXCEPTION   
+P62525         END-IF   
+P62525     END-PERFORM. 
+
+P62525     IF WS-MIN-AGE-CHG-BY-EXCEPTION  = 'Y'
+P62525        MOVE WS-MIN-AGE-CHG-FROM-EXCEPTION TO U-1391-MIN-AGE  
+P62525     END-IF.  
+
+
+P62525 200-CONTD.   
+208566*    FETCH EXC-ADVISORY-REC RECORD
+208566*         ON ERROR GO TO 10100-FETCH-EADR-ERROR.  
+208566* 
+208566*    FETCH EXC-ACTIVITY-REC RECORD
+208566*         ON ERROR GO TO 10200-FETCH-EACR-ERROR.  
+208566  
+208566     EXEC SQL 
+208566          DECLARE ADVISORY_CUR CURSOR 
+208566           SELECT ADVISORY_TYPE   
+208566             FROM EXC_ADVISORY
+208566     END-EXEC.
+208566  
+208566     IF SQLCODE < 0   
+208566        GO TO 9150-RDMS-ERROR 
+208566     END-IF.  
+208566  
+208566     EXEC SQL 
+208566          OPEN ADVISORY_CUR   
+208566     END-EXEC.
+208566  
+208566*    IF SQLCODE < 0   
+208566*       GO TO 9150-RDMS-ERROR 
+208566*    END-IF.  
+208566  
+208566     MOVE 0         TO SUB-1. 
+208566  
+208566 210-NEXT-ADVISORY-TYPE.  
+208566  
+208566     ADD 1          TO SUB-1. 
+208566  
+208566     EXEC SQL 
+208566          FETCH  NEXT ADVISORY_CUR
+208566           INTO :WS-ADVISORY-TYPE (SUB-1) 
+208566     END-EXEC.
+208566  
+208566     IF SQLCODE < 0   
+208566        GO TO 9150-RDMS-ERROR 
+208566     ELSE 
+208566        IF SQLCODE = 100  
+208566           GO TO 220-CLOSE-ADVISORY-CURSOR
+208566        END-IF
+208566     END-IF.  
+208566  
+208566     GO TO 210-NEXT-ADVISORY-TYPE.
+208566  
+208566 220-CLOSE-ADVISORY-CURSOR.   
+208566  
+208566     EXEC SQL 
+208566          CLOSE ADVISORY_CUR  
+208566     END-EXEC.
+208566  
+208566     IF SQLCODE < 0   
+208566        GO TO 9150-RDMS-ERROR 
+208566     END-IF.  
+208566  
+208566     EXEC SQL 
+208566          DECLARE ACTIVITY_CUR CURSOR 
+208566           SELECT ACTIVITY_DESC   
+208566             FROM EXC_ACTIVITY
+208566     END-EXEC.
+208566  
+208566     IF SQLCODE < 0   
+208566        GO TO 9150-RDMS-ERROR 
+208566     END-IF.  
+208566  
+208566     EXEC SQL 
+208566          OPEN ACTIVITY_CUR   
+208566     END-EXEC.
+208566  
+208566     IF SQLCODE < 0   
+208566        GO TO 9150-RDMS-ERROR 
+208566     END-IF.  
+208566  
+208566     MOVE 0          TO SUB-1.
+208566  
+208566 230-NEXT-ACTIVITY-DESC.  
+208566  
+208566     ADD 1           TO SUB-1.
+208566  
+208566     EXEC SQL 
+208566          FETCH  NEXT ACTIVITY_CUR
+208566           INTO :WS-ACTIVITY-DESC(SUB-1)  
+208566     END-EXEC.
+208566  
+208566     IF SQLCODE < 0   
+208566        GO TO 9150-RDMS-ERROR 
+208566     ELSE 
+208566        IF SQLCODE = 100  
+208566           GO TO 240-CLOSE-ACTIVITY-CURSOR
+208566        END-IF
+208566     END-IF.  
+208566  
+208566     GO TO 230-NEXT-ACTIVITY-DESC.
+208566  
+208566 240-CLOSE-ACTIVITY-CURSOR.   
+208566  
+208566     EXEC SQL 
+208566          CLOSE ACTIVITY_CUR  
+208566     END-EXEC.
+208566  
+208566     IF SQLCODE < 0   
+208566        GO TO 9150-RDMS-ERROR 
+208566     END-IF.  
+208566  
+           MOVE ZERO TO WS-COUNT
+                        WS-NUM. 
+
+           PERFORM VARYING WS-I FROM 1 BY 1 UNTIL WS-I > 72 
+               IF U-1391-ADVISORY-BIT (WS-I) = 1
+208566*           IF EADR-ADVISORY-TYPE (WS-I) = 'M'
+208566            IF WS-ADVISORY-TYPE (WS-I) = 'M'  
+                     ADD 1 TO WS-COUNT  
+                  END-IF
+                  MOVE WS-I TO WS-NUM   
+               END-IF   
+           END-PERFORM. 
+
+           IF WS-COUNT > 5  
+              MOVE 'MEDICAL ADVISORY SHOULD BE LESS THAN OR EQUAL TO 5' 
+                TO DPP42-HOLD-MSG-DESC  
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           IF WS-NUM > 0
+208566*       IF EADR-ADVISORY-TYPE (WS-NUM) = SPACES   
+208566        IF WS-ADVISORY-TYPE (WS-NUM) = SPACES 
+                 MOVE 'NO SUCH ADVISORY EXISTS IN DATABASE' TO  
+                       DPP42-HOLD-MSG-DESC  
+                 GO TO 9200-EDIT-ERROR-MSG. 
+
+           MOVE 0 TO WS-NUM.
+
+           PERFORM VARYING WS-I FROM 1 BY 1 UNTIL WS-I > 72 
+               IF U-1391-ACTIVITY-BIT (WS-I) = 1
+                  MOVE WS-I TO WS-NUM   
+               END-IF   
+           END-PERFORM. 
+           IF WS-NUM > 0
+208566*       IF EACR-DESC (WS-NUM) = SPACES
+208566        IF WS-ACTIVITY-DESC (WS-NUM) = SPACES 
+                 MOVE 'NO SUCH ACTIVITY EXISTS IN DATABASE' TO  
+                      DPP42-HOLD-MSG-DESC   
+                 GO TO 9200-EDIT-ERROR-MSG. 
+
+187917*    PERFORM SXRSEM-DSC-SX-SEM.   
+
+           IF U-1391-PROCESS-MODE = 'UPD'   
+              GO TO 0300-PROCESS-UPD-REQUEST.   
+
+           MOVE U-1391-EXC-VEN-ID        TO EVIR-VENDOR-ID. 
+
+           FETCH EXC-VENDOR-ID-REC RECORD   
+                ON ERROR GO TO 10000-FETCH-EVIR-ERROR.  
+
+218983     IF EVIR-EXC-TYPE NOT = U-1391-EXC-TYPE   
+218983            GO TO 10500-STORE-EMR-ERROR   
+218983     END-IF.  
+208566  
+208566     EXEC SQL 
+208566          SELECT  VENDOR_ID   
+208566            INTO :WS-EXC-VENDOR-ID
+208566            FROM  EXC_VENDOR_ID   
+208566           WHERE  VENDOR_ID = :U-1391-EXC-VEN-ID  
+208566     END-EXEC.
+208566  
+208566     IF SQLCODE < 0   
+208566        GO TO 9150-RDMS-ERROR 
+208566     ELSE 
+208566        IF SQLCODE = 100  
+208566           GO TO 10000-FETCH-EVIR-ERROR   
+208566        END-IF
+208566     END-IF.  
+
+           MOVE U-1391-PORT-CODE TO ELR-LOCATION-CODE.  
+
+           FETCH EXC-LOCATION-REC RECORD
+                 ON ERROR GO TO 10300-FETCH-ELR-ERROR.  
+
+      * INCREMENT SEQUENCE-NUMBER BY 1. EXC-LOCATION-REC STORES ONLY
+      * ONE RECORD THAT NEEDS TO BE UPDATED EVERY TIME A NEW EXCURSION  
+      * IS ADDED TO EXC-MASTER-REC, AND SO, SEQUENCE-NUMBER HAS BEEN
+      * INCREMENTED.
+
+           ADD 1                         TO ELR-SEQ-NUM.
+
+           MODIFY EXC-LOCATION-REC RECORD   
+                ON ERROR GO TO 10400-MODIFY-ELR-ERROR.  
+
+P64121*    INITIALIZE EXC-MASTER-REC.   
+P64121     PERFORM 0700-INIT-EMR.   
+
+           MOVE 'N'                        TO EMR-PRESALES-SOLD-IND 
+                                              EMR-TAX-IND   
+                                              EMR-COMM-IND  
+                                              EMR-GRATUITY-IND. 
+           MOVE U-1391-PORT-CODE           TO EMR-PORT-CODE.
+           MOVE U-1391-EXC-NAME            TO EMR-EXC-NAME. 
+           MOVE U-1391-ABBREV-NAME         TO EMR-ABBREV-NAME.  
+           MOVE U-1391-EXC-VEN-ID          TO EMR-VENDOR-ID.
+           MOVE U-1391-DURATION-TYPE       TO EMR-DURATION-TYPE.
+           MOVE U-1391-MIN-AGE             TO EMR-MIN-AGE.  
+           MOVE U-1391-MIN-AGE-TYPE        TO EMR-MIN-AGE-TYPE. 
+           MOVE U-1391-BOOK-TYPE           TO EMR-BOOK-TYPE.
+           MOVE DPP01-SYSTEM-DATE          TO EMR-CREATION-DATE.
+149439     MOVE U-1391-FORM-1099-IND       TO EMR-1099-IND. 
+149439     MOVE U-1391-TAX-DESC            TO EMR-TAX-DESC. 
+           MOVE U-1391-TAX-IND             TO EMR-TAX-IND.  
+           MOVE U-1391-TAX-PCT             TO EMR-TAX-PCT.  
+149439     MOVE U-1391-COMM-DESC           TO EMR-COMM-DETAIL-DESC. 
+           MOVE U-1391-COMM-IND            TO EMR-COMM-IND. 
+           MOVE U-1391-COMM-PCT            TO EMR-COMM-PCT. 
+149439     MOVE U-1391-GRATUITY-DESC       TO EMR-GRATUITY-DESC.
+           MOVE U-1391-GRATUITY-IND        TO EMR-GRATUITY-IND. 
+           MOVE U-1391-GRATUITY-PCT        TO EMR-GRATUITY-PCT .
+           MOVE U-1391-EXC-TYPE            TO EMR-EXC-TYPE. 
+           MOVE U-1391-VENDOR-REF-NUM      TO EMR-VENDOR-REF-NUM.   
+149439     MOVE U-1391-AVAIL-IMPACT-IND    TO EMR-AVAIL-IMPACT-IND. 
+           MOVE U-1391-STATUS              TO EMR-STATUS.   
+           MOVE U-1391-POPULAR-IND         TO EMR-POPULAR-CODE. 
+           MOVE U-1391-ONBOARD-IND         TO EMR-ONBOARD-CODE. 
+144449*   MOVE U-1391-MIN-TIME-IN-PORT    TO
+144449*        EMR-MIN-PORT-TIME-DURATION.  
+
+144449     DIVIDE U-1391-MIN-TIME-IN-PORT BY 100
+144449            GIVING EMR-MIN-PORT-TIME-DURATION.
+
+           MOVE U-1391-MIN-TIME-TYPE       TO   
+                EMR-MIN-PORT-TIME-DUR-TYPE. 
+           MOVE U-1391-DEF-PS-CUTOFF-DAYS TO
+                EMR-DEFAULT-PS-CUTOFF-DAYS. 
+           MOVE U-1391-SHIPBOARD-CUTOFF-HRS TO  
+                EMR-SHIPBOARD-CUTOFF-HRS.   
+
+           DIVIDE U-1391-DURATION BY 100 GIVING EMR-EXC-DURATION.   
+
+           STRING ELR-LOCATION-NUM ELR-SEQ-NUM  
+                  DELIMITED BY SIZE INTO EMR-EXC-ID.
+
+           PERFORM VARYING WS-I FROM 1 BY 1 UNTIL WS-I > 72 
+              IF U-1391-ADVISORY-BIT (WS-I) = 1 
+                 MOVE 1      TO EMR-ADVISORY-BIT (WS-I) 
+208566                          WS-EMR-ADV-BIT (WS-I)   
+              ELSE  
+                 MOVE ZEROES TO EMR-ADVISORY-BIT (WS-I) 
+208566                          WS-EMR-ADV-BIT (WS-I)   
+              END-IF
+              IF U-1391-ACTIVITY-BIT (WS-I) = 1 
+                 MOVE 1      TO EMR-ACTIVITY-BIT (WS-I) 
+208566                          WS-EMR-ACT-BIT (WS-I)   
+              ELSE  
+                 MOVE ZEROES TO EMR-ACTIVITY-BIT (WS-I) 
+208566                          WS-EMR-ACT-BIT (WS-I)   
+              END-IF
+           END-PERFORM. 
+      ********** code added to set single EMR-ACTIVITY-BIT for MOVIE****
+180675     IF EMR-EXC-TYPE = 'MO'   
+180675       IF EMR-ACTIVITY-BIT(34)     = 1
+180675          IF EMR-ACTIVITY-BIT(35) NOT = 1 
+180675             IF EMR-ACTIVITY-BIT(36)  NOT = 1 
+180675               IF EMR-ACTIVITY-BIT(37) NOT = 1
+180675                  NEXT SENTENCE   
+180675               ELSE   
+180675                  MOVE 'Can not set multiple bit for movie'   
+180675                  TO U-1393-ERROR-CODE
+180675                  GO TO 0800-SEND-ROW 
+180675             ELSE 
+180675                MOVE 'Can not set multiple bit for movie' 
+180675                TO U-1393-ERROR-CODE  
+180675                GO TO 0800-SEND-ROW   
+180675          ELSE
+180675             MOVE 'Can not set multiple bit for movie'
+180675             TO U-1393-ERROR-CODE 
+180675             GO TO 0800-SEND-ROW  
+180675       ELSE   
+180675          IF EMR-ACTIVITY-BIT(35)  = 1
+180675             IF EMR-ACTIVITY-BIT(36)  NOT = 1 
+180675                IF EMR-ACTIVITY-BIT(37) NOT = 1   
+180675                   NEXT SENTENCE  
+180675                ELSE  
+180675                   MOVE 'Can not set multiple bit for movie'  
+180675                   TO U-1393-ERROR-CODE   
+180675                   GO TO 0800-SEND-ROW
+180675             ELSE 
+180675                MOVE 'Can not set multiple bit for movie' 
+180675                TO U-1393-ERROR-CODE  
+180675                GO TO 0800-SEND-ROW   
+180675         ELSE 
+180675            IF EMR-ACTIVITY-BIT(36)  = 1  
+180675               IF EMR-ACTIVITY-BIT(37) NOT = 1
+180675                  NEXT SENTENCE   
+180675               ELSE   
+180675                  MOVE 'Can not set multiple bit for movie'   
+180675                  TO U-1393-ERROR-CODE
+180675                  GO TO 0800-SEND-ROW 
+180675            ELSE  
+180675               IF EMR-ACTIVITY-BIT(37)  = 1   
+180675                  NEXT SENTENCE   
+180675               ELSE   
+180675                  MOVE 'NONE OF SPECIFIC ATIVITY BIT SET FOR MO'  
+180675                  TO U-1393-ERROR-CODE
+180675                  GO TO 0800-SEND-ROW .   
+
+208566     MOVE 0                           TO WS-EMR-TKT-NUM.  
+208566     MOVE SPACES                      TO WS-EMR-TKT-DESC. 
+           PERFORM VARYING WS-I FROM 1 BY 1 UNTIL WS-I > 5  
+              MOVE U-1391-TKT-DETAIL-TBL (WS-I) TO  
+                   EMR-TKT-DETAIL-TABLE (WS-I)  
+208566        IF EMR-TKT-NUM (WS-I) > 0 
+208566           MOVE EMR-TKT-NUM (WS-I)  TO WS-EMR-TKT-NUM 
+208566           MOVE EMR-TKT-DESC (WS-I) TO WS-EMR-TKT-DESC
+208566        END-IF
+              MOVE U-1391-COST-TABLE (WS-I) TO WS-IP-COST-TABLE 
+              MOVE WS-IP-MIN-VOL            TO EMR-MIN-VOLUME (WS-I)
+              MOVE WS-IP-MAX-VOL            TO EMR-MAX-VOLUME (WS-I)
+              PERFORM VARYING WS-J FROM 1 BY 1 UNTIL WS-J > 5   
+                 MOVE WS-IP-COST-CODE (WS-J) TO 
+                      EMR-COST-CODE (WS-I WS-J) 
+                 MOVE WS-IP-COST (WS-J) TO EMR-COST (WS-I WS-J) 
+              END-PERFORM   
+           END-PERFORM. 
+P62525     IF U-1391-SELL-BY-UNIT-IND = 'Y' 
+P62525        MOVE 1 TO EMR-SELL-BY-UNIT-IND
+P62525        MOVE U-1391-SELL-BY-UNIT-DESC TO EMR-SELL-BY-UNIT-DESC
+P62525     ELSE 
+P62525        MOVE 0 TO EMR-SELL-BY-UNIT-IND
+P62525        MOVE SPACES TO EMR-SELL-BY-UNIT-DESC  
+P62525     END-IF.  
+
+P62525     MOVE U-1391-EXCEPT-PRICING-CNT  TO   
+P62525              EMR-EXCEPT-PRICING-CNT. 
+P62525     PERFORM VARYING SUB-1 FROM 1 BY 1 UNTIL  
+P62525                     SUB-1 > U-1391-EXCEPT-PRICING-CNT
+P62525     COMPUTE EMR-BEGIN-AGE (SUB-1) =  
+P62525                                   WS-EMR-BEGIN-AGE (SUB-1) + 0   
+P62525     COMPUTE EMR-END-AGE (SUB-1) = WS-EMR-END-AGE (SUB-1) + 0 
+P62525     MOVE  WS-EMR-AGE-TYPE  (SUB-1) TO EMR-AGE-TYPE  (SUB-1)  
+P62525     MOVE  WS-EMR-PRICING-CODE (SUB-1) TO 
+P62525                             EMR-PRICING-CODE (SUB-1) 
+P62525      MOVE  WS-EMR-PRICING-CODE-DESC (SUB-1) TO   
+P62525                              EMR-PRICING-CODE-DESC (SUB-1)   
+P62525     END-PERFORM. 
+
+180675*           IF (ELR-EXC-TYPE NOT = 'EX')  
+180675           IF (ELR-EXC-TYPE NOT = 'EX' AND 'MO')  
+              MOVE 'Can not create EMR for Spa' TO U-1393-ERROR-CODE
+              GO TO 0800-SEND-ROW.  
+P72713     MOVE 'P' TO EMR-STATUS.  
+
+           STORE EXC-MASTER-REC 
+                 ON ERROR GO TO 10500-STORE-EMR-ERROR.  
+208566  
+208566     IF EMR-BEGIN-DATE <= 0   
+208566        MOVE -1              TO WS-EMR-BEG-DATE-NI
+208566        MOVE 0               TO WS-EMR-BEG-DATE   
+208566     ELSE 
+208566        MOVE EMR-BEGIN-DATE  TO WS-EMR-BEG-DATE   
+208566        MOVE 0               TO WS-EMR-BEG-DATE-NI
+208566     END-IF.  
+208566  
+208566     IF EMR-END-DATE <= 0 
+208566        MOVE -1              TO WS-EMR-END-DATE-NI
+208566        MOVE 0               TO WS-EMR-END-DATE   
+208566     ELSE 
+208566        MOVE EMR-END-DATE    TO WS-EMR-END-DATE   
+208566        MOVE 0               TO WS-EMR-END-DATE-NI
+208566     END-IF.  
+208566  
+208566     MOVE EMR-CREATION-DATE  TO WS-EMR-CREATION-DATE. 
+208566  
+208566     EXEC SQL 
+208566          INSERT INTO SMF_EXC_MASTER  
+208566                 (EXC_ID, 
+208566                  EXC_NAME,   
+208566                  ABBREV_NAME,
+208566                  VENDOR_ID,  
+208566                  ADVISORY_BITS,  
+208566                  ACTIVITY_BITS,  
+208566                  PORT_CODE,  
+208566                  MIN_PORT_TIME_DURATION, 
+208566                  MIN_PORT_TIME_DUR_TYPE, 
+208566                  EXC_DURATION,   
+208566                  DURATION_TYPE,  
+208566                  BEGIN_DATE, 
+208566                  END_DATE,   
+208566                  MIN_AGE,
+208566                  MIN_AGE_TYPE,   
+208566                  BOOK_TYPE,  
+208566                  CREATION_DATE,  
+208566                  DEFAULT_PS_CUTOFF_DAYS, 
+208566                  SHIPBOARD_CUTOFF_HRS,   
+208566                  S1099_IND,  
+208566                  PRESALES_SOLD_IND,  
+208566                  TKT_NUM,
+208566                  TKT_DESC,   
+208566                  TAX_IND,
+208566                  TAX_DESC,   
+208566                  TAX_PCT,
+208566                  COMM_IND,   
+208566                  COMM_DETAIL_DESC,   
+208566                  COMM_PCT,   
+208566                  GRATUITY_IND,   
+208566                  GRATUITY_DESC,  
+208566                  GRATUITY_PCT,   
+208566                  VENDOR_REF_NUM, 
+208566                  AVAIL_IMPACT_IND,   
+208566                  EXC_TYPE)   
+208566          VALUES (:EMR-EXC-ID,
+208566                  :EMR-EXC-NAME,  
+208566                  :EMR-ABBREV-NAME,   
+208566                  :EMR-VENDOR-ID, 
+208566                  :WS-EMR-ADV-BITS,   
+208566                  :WS-EMR-ACT-BITS,   
+208566                  :EMR-PORT-CODE, 
+208566                   NULLIF(:EMR-MIN-PORT-TIME-DURATION,0), 
+208566                   NULLIF(:EMR-MIN-PORT-TIME-DUR-TYPE,' '),   
+208566                  :EMR-EXC-DURATION,  
+208566                  :EMR-DURATION-TYPE, 
+208566                   DATE(STRPTIME(:WS-EMR-BEG-DATE-X   
+208566                                   :WS-EMR-BEG-DATE-NI,'%Y%m%d')),
+208566                   DATE(STRPTIME(:WS-EMR-END-DATE-X   
+208566                                   :WS-EMR-END-DATE-NI,'%Y%m%d')),
+208566                   NULLIF(:EMR-MIN-AGE,0),
+208566                   NULLIF(:EMR-MIN-AGE-TYPE,' '), 
+208566                   NULLIF(:EMR-BOOK-TYPE,' '),
+208566                   DATE(STRPTIME(:WS-EMR-CREATION-DATE-X, 
+208566                                                       '%Y%m%d')),
+208566                   NULLIF(:EMR-DEFAULT-PS-CUTOFF-DAYS,0), 
+208566                   NULLIF(:EMR-SHIPBOARD-CUTOFF-HRS,0),   
+208566                   NULLIF(:EMR-1099-IND,' '), 
+208566                   NULLIF(:EMR-PRESALES-SOLD-IND,' '),
+208566                   NULLIF(:WS-EMR-TKT-NUM,0), 
+208566                   NULLIF(:WS-EMR-TKT-DESC,' '),  
+208566                   NULLIF(:EMR-TAX-IND,' '),  
+208566                   NULLIF(:EMR-TAX-DESC,' '), 
+208566                   NULLIF(:EMR-TAX-PCT,0),
+208566                   NULLIF(:EMR-COMM-IND,' '), 
+208566                   NULLIF(:EMR-COMM-DETAIL-DESC,' '), 
+208566                   NULLIF(:EMR-COMM-PCT,0),   
+208566                   NULLIF(:EMR-GRATUITY-IND,' '), 
+208566                   NULLIF(:EMR-GRATUITY-DESC,' '),
+208566                   NULLIF(:EMR-GRATUITY-PCT,0),   
+208566                   NULLIF(:EMR-VENDOR-REF-NUM,' '),   
+208566                  :EMR-AVAIL-IMPACT-IND,  
+208566                  :EMR-STATUS)
+208566     END-EXEC.
+208566  
+208566     IF SQLCODE < 0   
+208566        GO TO 10550-STORE-EMR-SQL-ERROR   
+208566     END-IF.  
+
+           MOVE SPACES                TO SXP09-COMMENT. 
+           MOVE 1                     TO SXP09-PNTR.
+           MOVE 'EMN'                 TO SXP09-ACTIVITY-CODE.   
+           MOVE U-1391-USER-ID        TO SXP09-USER-ID. 
+
+           STRING 'NEW EXC-MASTER-REC ' 
+                   DELIMITED BY SIZE INTO SXP09-COMMENT 
+                   WITH POINTER SXP09-PNTR. 
+
+           PERFORM SXP09-EXC-MASTER-HIST
+              THRU SXP09-EXC-MASTER-HIST-EXIT.  
+
+208566     FIND CURRENT EXC-MASTER-REC RECORD.  
+           INSERT EXC-MASTER-REC RECORD INTO EXC-VENDOR-MASTER-SET  
+                  ON ERROR GO TO 10600-INSERT-EMR-ERROR.
+
+149439     IF U-1391-DESCRIPTION-TEXT NOT = SPACES  
+149439        MOVE U-1391-DESCRIPTION-TEXT TO ENR-TEXT  
+           ELSE 
+              MOVE SPACES TO ENR-TEXT.  
+
+           MOVE 'D' TO ENR-TYPE.
+
+           STRING ELR-LOCATION-NUM ELR-SEQ-NUM  
+                  DELIMITED BY SIZE INTO ENR-EXC-ID.
+
+           STORE EXC-NOTE-REC   
+                ON ERROR GO TO 10700-STORE-ENR-ERROR.   
+
+208566     PERFORM 0750-STORE-ENR   
+208566        THRU 0750-STORE-ENR-EXIT. 
+
+149439     IF U-1391-DISCLAIMER-TEXT NOT = SPACES   
+149439         MOVE U-1391-DISCLAIMER-TEXT TO ENR-TEXT  
+           ELSE 
+               MOVE SPACES TO ENR-TEXT. 
+
+           MOVE 'A' TO ENR-TYPE.
+
+           STORE EXC-NOTE-REC   
+                ON ERROR GO TO 10800-STORE-ENR-ERROR.   
+
+208566     PERFORM 0750-STORE-ENR   
+208566        THRU 0750-STORE-ENR-EXIT. 
+
+           IF U-1391-NOTES NOT = SPACES 
+              MOVE U-1391-NOTES   TO ENR-TEXT   
+           ELSE 
+              MOVE SPACES     TO ENR-TEXT.  
+
+           MOVE 'N'            TO ENR-TYPE. 
+
+           STORE EXC-NOTE-REC   
+                 ON ERROR GO TO 10900-STORE-ENR-ERROR.  
+
+208566     PERFORM 0750-STORE-ENR   
+208566        THRU 0750-STORE-ENR-EXIT. 
+
+           IF (U-1391-ACTIVITY-HEADER NOT = SPACES) 
+              MOVE U-1391-ACTIVITY-HEADER TO ENR-TEXT   
+           ELSE 
+              MOVE SPACES     TO ENR-TEXT.  
+
+           MOVE 'H'            TO ENR-TYPE. 
+
+           STORE EXC-NOTE-REC   
+                 ON ERROR GO TO 11000-STORE-ENR-ERROR.  
+
+208566     PERFORM 0750-STORE-ENR   
+208566        THRU 0750-STORE-ENR-EXIT. 
+
+           MOVE SPACES TO EPR-LONG-DESC.
+           MOVE 1      TO WS-J. 
+
+           PERFORM VARYING WS-I FROM 1 BY 1 UNTIL WS-I > 8  
+              IF U-1391-PRICING-DESC (WS-I) > SPACES
+                 STRING U-1391-PRICING-DESC (WS-I) DELIMITED BY SIZE
+                        INTO EPR-LONG-DESC  
+                        WITH POINTER WS-J   
+              END-IF
+           END-PERFORM. 
+
+           STORE EXC-PRICING-DESC-REC   
+                 ON ERROR GO TO 11100-STORE-EPR-ERROR.  
+
+208566     EXEC SQL 
+208566          INSERT  INTO EXC_PRICING_DESC   
+208566                 (EXC_ID, 
+208566                  LONG_DESC)  
+208566          VALUES (:EMR-EXC-ID,
+208566                  :EPR-LONG-DESC) 
+208566     END-EXEC.
+208566  
+208566     IF SQLCODE < 0   
+208566        GO TO 11150-STORE-EPR-SQL-ERROR   
+208566     END-IF.  
+
+           MOVE EMR-EXC-ID              TO U-1393-SHOREEX-ID.   
+           MOVE EMR-CREATION-DATE       TO U-1393-CREATED-DATE. 
+           MOVE 'RECADDED'              TO U-1393-ERROR-CODE.   
+177338     PERFORM 6900-STORE-EPR THRU 6900-STORE-EPR-EXIT. 
+
+208566     PERFORM VARYING WS-I FROM 1 BY 1 
+208566        UNTIL WS-I > 5
+208566        IF (EMR-MIN-VOLUME (WS-I) > 0) AND
+208566           (EMR-MAX-VOLUME (WS-I) > 0)
+208566           PERFORM VARYING WS-SUB FROM 1 BY 1 
+208566              UNTIL WS-SUB > 5
+208566              IF (EMR-COST-CODE (WS-I WS-SUB) > SPACES) AND   
+208566                 (EMR-COST (WS-I WS-SUB) > 0) 
+208566                 EXEC SQL 
+208566                      INSERT  INTO SMF_EMR_COST_TYPE  
+208566                             (EXC_ID, 
+208566                              MIN_VOLUME, 
+208566                              MAX_VOLUME, 
+208566                              COST_CODE,  
+208566                              COST)   
+208566                      VALUES (:EMR-EXC-ID,
+208566                              :EMR-MIN-VOLUME (WS-I), 
+208566                              :EMR-MAX-VOLUME (WS-I), 
+208566                              :EMR-COST-CODE (WS-I WS-SUB),   
+208566                              :EMR-COST (WS-I WS-SUB))
+208566                 END-EXEC 
+208566                 IF SQLCODE < 0   
+208566                    GO TO 12700-STORE-EMR-COST-ERROR  
+208566                 END-IF   
+208566              END-IF  
+208566           END-PERFORM
+208566        END-IF
+208566     END-PERFORM. 
+208566  
+           GO TO 0800-SEND-ROW. 
+
+       0300-PROCESS-UPD-REQUEST.
+           MOVE U-1391-SHOREEX-ID TO EMR-EXC-ID.
+
+           FETCH EXC-MASTER-REC RECORD  
+                 ON ERROR GO TO 11200-FETCH-EMR-ERROR.  
+
+           MOVE EXC-MASTER-REC TO SXP11-EXC-MASTER-REC. 
+
+           IF (EMR-BEGIN-DATE = LOW-VALUES OR SPACES)   
+              MOVE ZEROES TO EMR-BEGIN-DATE 
+208566                       WS-EMR-BEG-DATE.   
+
+           IF (EMR-END-DATE = LOW-VALUES OR SPACES) 
+              MOVE ZEROES TO EMR-END-DATE   
+208566                       WS-EMR-END-DATE.   
+208566  
+208566     IF WS-EMR-BEG-DATE > 0   
+208566        MOVE 0      TO WS-EMR-BEG-DATE-NI 
+208566     ELSE 
+208566        MOVE -1     TO WS-EMR-BEG-DATE-NI 
+208566     END-IF.  
+208566  
+208566     IF WS-EMR-END-DATE > 0   
+208566        MOVE 0      TO WS-EMR-END-DATE-NI 
+208566     ELSE 
+208566        MOVE -1     TO WS-EMR-END-DATE-NI 
+208566     END-IF.  
+208566  
+208566     MOVE EMR-CREATION-DATE   
+208566                    TO WS-EMR-CREATION-DATE.  
+      * We have a validation for not allowing to update the EMR with the
+      * changed exc-duration. For validating this we are checking the   
+      * value of the emr-begin-date and emr-end-date as these fields are
+      * being populated by SXR74DEP and GU on creation of an EDR. If
+      * these fields are greater than zero then exc-duration should not 
+      * be updated. 
+
+151933*    IF ((EMR-EXC-DURATION * 100 ) NOT = U-1391-DURATION ) OR 
+151933*          (EMR-DURATION-TYPE NOT = U-1391-DURATION-TYPE) 
+151933*       IF (EMR-BEGIN-DATE > 0) AND (EMR-END-DATE > 0)
+151933*          MOVE 'DEPARTURE EXISTS - NO DURATION UPDATES' TO   
+151933*               DPP42-HOLD-MSG-DESC   
+151933*          GO TO 9200-EDIT-ERROR-MSG. 
+
+      * IF THE NEW VENDOR-ID IS DIFFERENT FROM THE EXISTING 
+      * VENDOR-ID, REMOVE THE SET RELATION OF VENDOR-ID-REC AND 
+      * MASTER-REC. 
+
+           IF U-1391-EXC-VEN-ID NOT = EMR-VENDOR-ID 
+              REMOVE EXC-MASTER-REC RECORD FROM EXC-VENDOR-MASTER-SET   
+                     ON ERROR GO TO 11300-REMOVE-EMR-ERROR  
+              MOVE 'Y' TO REMOVE-IND
+           ELSE 
+              MOVE 'N' TO REMOVE-IND.   
+
+P72713     IF ( EMR-STATUS NOT =  U-1391-STATUS )   
+P72713        IF ( EMR-STATUS = 'P' AND U-1391-STATUS = 'A') OR 
+P72713           ( EMR-STATUS = 'P' AND U-1391-STATUS = 'R' ) OR
+P72713           ( EMR-STATUS = 'A' AND U-1391-STATUS = 'R' ) OR
+P72713           ( EMR-STATUS = 'A' AND U-1391-STATUS = 'H' ) OR
+P72713           ( EMR-STATUS = 'H' AND U-1391-STATUS = 'R' ) OR
+P72713           ( EMR-STATUS = 'H' AND U-1391-STATUS = 'A' ) OR
+P72713           ( EMR-STATUS = 'R' AND U-1391-STATUS = 'H' )   
+P72713           CONTINUE   
+P72713        ELSE  
+P72713           MOVE 'Invalid EMR-Status change for updates '  TO  
+P72713                 DPP42-HOLD-MSG-DESC  
+P72713           GO TO 9200-EDIT-ERROR-MSG. 
+
+177338     MOVE 'N'                        TO WS-CHG-EXC-NAME.  
+177338     IF  U-1391-EXC-NAME NOT = EMR-EXC-NAME   
+177338         MOVE 'Y'                    TO WS-CHG-EXC-NAME   
+177338     END-IF.  
+
+           MOVE U-1391-EXC-NAME            TO EMR-EXC-NAME. 
+           MOVE U-1391-ABBREV-NAME         TO EMR-ABBREV-NAME.  
+           MOVE U-1391-EXC-VEN-ID          TO EMR-VENDOR-ID.
+           MOVE U-1391-DURATION-TYPE       TO EMR-DURATION-TYPE.
+           MOVE U-1391-MIN-AGE             TO EMR-MIN-AGE.  
+           MOVE U-1391-MIN-AGE-TYPE        TO EMR-MIN-AGE-TYPE. 
+           MOVE U-1391-BOOK-TYPE           TO EMR-BOOK-TYPE.
+149439     MOVE U-1391-FORM-1099-IND       TO EMR-1099-IND. 
+149439     MOVE U-1391-TAX-DESC            TO EMR-TAX-DESC. 
+           MOVE U-1391-TAX-IND             TO EMR-TAX-IND.  
+           MOVE U-1391-TAX-PCT             TO EMR-TAX-PCT.  
+149439     MOVE U-1391-COMM-DESC           TO EMR-COMM-DETAIL-DESC. 
+           MOVE U-1391-COMM-IND            TO EMR-COMM-IND. 
+           MOVE U-1391-COMM-PCT            TO EMR-COMM-PCT. 
+149439     MOVE U-1391-GRATUITY-DESC       TO EMR-GRATUITY-DESC.
+           MOVE U-1391-GRATUITY-IND        TO EMR-GRATUITY-IND. 
+           MOVE U-1391-GRATUITY-PCT        TO EMR-GRATUITY-PCT .
+           MOVE U-1391-EXC-TYPE            TO EMR-EXC-TYPE. 
+           MOVE U-1391-VENDOR-REF-NUM      TO EMR-VENDOR-REF-NUM.   
+149439     MOVE U-1391-AVAIL-IMPACT-IND    TO EMR-AVAIL-IMPACT-IND. 
+
+
+           MOVE U-1391-STATUS              TO EMR-STATUS.   
+           MOVE U-1391-POPULAR-IND         TO EMR-POPULAR-CODE. 
+           MOVE U-1391-ONBOARD-IND         TO EMR-ONBOARD-CODE. 
+144449*    MOVE U-1391-MIN-TIME-IN-PORT    TO   
+144449*         EMR-MIN-PORT-TIME-DURATION. 
+
+144449     DIVIDE U-1391-MIN-TIME-IN-PORT BY 100
+144449            GIVING EMR-MIN-PORT-TIME-DURATION.
+
+
+           MOVE U-1391-MIN-TIME-TYPE       TO   
+                EMR-MIN-PORT-TIME-DUR-TYPE. 
+           MOVE U-1391-DEF-PS-CUTOFF-DAYS TO
+                EMR-DEFAULT-PS-CUTOFF-DAYS. 
+           MOVE U-1391-SHIPBOARD-CUTOFF-HRS TO  
+                EMR-SHIPBOARD-CUTOFF-HRS.   
+
+           DIVIDE U-1391-DURATION BY 100 GIVING EMR-EXC-DURATION.   
+
+           PERFORM VARYING WS-I FROM 1 BY 1 UNTIL WS-I > 72 
+              IF U-1391-ADVISORY-BIT (WS-I) = 1 
+                 MOVE 1      TO EMR-ADVISORY-BIT (WS-I) 
+208566                          WS-EMR-ADV-BIT (WS-I)   
+              ELSE  
+                 MOVE ZEROES TO EMR-ADVISORY-BIT (WS-I) 
+208566                          WS-EMR-ADV-BIT (WS-I)   
+              END-IF
+              IF U-1391-ACTIVITY-BIT (WS-I) = 1 
+                 MOVE 1      TO EMR-ACTIVITY-BIT (WS-I) 
+208566                          WS-EMR-ACT-BIT (WS-I)   
+              ELSE  
+                 MOVE ZEROES TO EMR-ACTIVITY-BIT (WS-I) 
+208566                          WS-EMR-ACT-BIT (WS-I)   
+              END-IF
+           END-PERFORM. 
+
+      ********** code added to set single EMR-ACTIVITY-BIT for MOVIE****
+180675     IF EMR-EXC-TYPE = 'MO'   
+180675       IF EMR-ACTIVITY-BIT(34)     = 1
+180675          IF EMR-ACTIVITY-BIT(35) NOT = 1 
+180675             IF EMR-ACTIVITY-BIT(36)  NOT = 1 
+180675               IF EMR-ACTIVITY-BIT(37) NOT = 1
+180675                NEXT SENTENCE 
+180675               ELSE   
+180675                  MOVE 'Can not set multiple bit for movie'   
+180675                  TO U-1393-ERROR-CODE
+180675                  GO TO 0800-SEND-ROW 
+180675             ELSE 
+180675                MOVE 'Can not set multiple bit for movie' 
+180675                TO U-1393-ERROR-CODE  
+180675                GO TO 0800-SEND-ROW   
+180675          ELSE
+180675             MOVE 'Can not set multiple bit for movie'
+180675             TO U-1393-ERROR-CODE 
+180675             GO TO 0800-SEND-ROW  
+180675       ELSE   
+180675          IF EMR-ACTIVITY-BIT(35)  = 1
+180675              IF EMR-ACTIVITY-BIT(36)  NOT = 1
+180675                 IF EMR-ACTIVITY-BIT(37) NOT = 1  
+180675                    NEXT SENTENCE 
+180675                 ELSE 
+180675                    MOVE 'Can not set multiple bit for movie' 
+180675                    TO U-1393-ERROR-CODE  
+180675                    GO TO 0800-SEND-ROW   
+180675              ELSE
+180675                 MOVE 'Can not set multiple bit for movie'
+180675                 TO U-1393-ERROR-CODE 
+180675                 GO TO 0800-SEND-ROW  
+180675          ELSE
+180675             IF EMR-ACTIVITY-BIT(36)  = 1 
+180675                 IF EMR-ACTIVITY-BIT(37) NOT = 1  
+180675                    NEXT SENTENCE 
+180675                 ELSE 
+180675                    MOVE 'Can not set multiple bit for movie' 
+180675                    TO U-1393-ERROR-CODE  
+180675                    GO TO 0800-SEND-ROW   
+180675              ELSE
+180675                 IF EMR-ACTIVITY-BIT(37)  = 1 
+180675                    NEXT SENTENCE 
+180675                 ELSE 
+180675                    MOVE 'NONE OF SPECIFIC ATIVITY BIT SET FOR MO'
+180675                    TO U-1393-ERROR-CODE  
+180675                    GO TO 0800-SEND-ROW . 
+
+208566     MOVE 0                           TO WS-EMR-TKT-NUM.  
+208566     MOVE SPACES                      TO WS-EMR-TKT-DESC. 
+           PERFORM VARYING WS-I FROM 1 BY 1 UNTIL WS-I > 5  
+              MOVE U-1391-TKT-DETAIL-TBL (WS-I) TO  
+                   EMR-TKT-DETAIL-TABLE (WS-I)  
+208566        IF EMR-TKT-NUM (WS-I) > 0 
+208566           MOVE EMR-TKT-NUM (WS-I)
+208566                                      TO WS-EMR-TKT-NUM   
+208566           MOVE EMR-TKT-DESC (WS-I)   
+208566                                      TO WS-EMR-TKT-DESC  
+208566        END-IF
+              MOVE U-1391-COST-TABLE (WS-I) TO WS-IP-COST-TABLE 
+              MOVE WS-IP-MIN-VOL            TO EMR-MIN-VOLUME (WS-I)
+              MOVE WS-IP-MAX-VOL            TO EMR-MAX-VOLUME (WS-I)
+              PERFORM VARYING WS-J FROM 1 BY 1 UNTIL WS-J > 5   
+                 MOVE WS-IP-COST-CODE (WS-J) TO 
+                      EMR-COST-CODE (WS-I WS-J) 
+                 MOVE WS-IP-COST (WS-J) TO EMR-COST (WS-I WS-J) 
+              END-PERFORM   
+           END-PERFORM. 
+
+P62525     IF U-1391-SELL-BY-UNIT-IND = 'Y' 
+P62525        MOVE 1 TO EMR-SELL-BY-UNIT-IND
+P62525        MOVE U-1391-SELL-BY-UNIT-DESC TO EMR-SELL-BY-UNIT-DESC
+P62525     ELSE 
+P62525        MOVE 0 TO EMR-SELL-BY-UNIT-IND
+P62525        MOVE SPACES TO EMR-SELL-BY-UNIT-DESC  
+P62525     END-IF.  
+
+P62525     MOVE U-1391-EXCEPT-PRICING-CNT  TO   
+P62525              EMR-EXCEPT-PRICING-CNT. 
+P62525     PERFORM VARYING SUB-1 FROM 1 BY 1 UNTIL  
+P62525                     SUB-1 > U-1391-EXCEPT-PRICING-CNT
+P62525     COMPUTE EMR-BEGIN-AGE (SUB-1) =  
+P62525                                   WS-EMR-BEGIN-AGE (SUB-1) + 0   
+P62525     COMPUTE EMR-END-AGE (SUB-1) = WS-EMR-END-AGE (SUB-1) + 0 
+P62525      MOVE  WS-EMR-AGE-TYPE  (SUB-1) TO EMR-AGE-TYPE  (SUB-1) 
+P62525      MOVE  WS-EMR-PRICING-CODE (SUB-1) TO
+P62525                              EMR-PRICING-CODE (SUB-1)
+P62525      MOVE  WS-EMR-PRICING-CODE-DESC (SUB-1) TO   
+P62525                              EMR-PRICING-CODE-DESC (SUB-1)   
+P62525     END-PERFORM. 
+
+           MODIFY EXC-MASTER-REC RECORD 
+                ON ERROR GO TO 11400-MODIFY-EMR-ERROR.  
+
+208566     EXEC SQL 
+208566         UPDATE  SMF_EXC_MASTER   
+208566         SYNCHRONIZE  
+208566         VALUES (:EMR-EXC-ID, 
+208566                 :EMR-EXC-NAME,   
+208566                 :EMR-ABBREV-NAME,
+208566                 :EMR-VENDOR-ID,  
+208566                 :WS-EMR-ADV-BITS,
+208566                 :WS-EMR-ACT-BITS,
+208566                 :EMR-PORT-CODE,  
+208566                  NULLIF(:EMR-MIN-PORT-TIME-DURATION,0),  
+208566                  NULLIF(:EMR-MIN-PORT-TIME-DUR-TYPE,' '),
+208566                 :EMR-EXC-DURATION,   
+208566                 :EMR-DURATION-TYPE,  
+208566                  DATE(STRPTIME(:WS-EMR-BEG-DATE-X
+208566                                   :WS-EMR-BEG-DATE-NI,'%Y%m%d')),
+208566                  DATE(STRPTIME(:WS-EMR-END-DATE-X
+208566                                   :WS-EMR-END-DATE-NI,'%Y%m%d')),
+208566                  NULLIF(:EMR-MIN-AGE,0), 
+208566                  NULLIF(:EMR-MIN-AGE-TYPE,' '),  
+208566                  NULLIF(:EMR-BOOK-TYPE,' '), 
+208566                  DATE(STRPTIME(:WS-EMR-CREATION-DATE-X,  
+208566                                                       '%Y%m%d')),
+208566                  NULLIF(:EMR-DEFAULT-PS-CUTOFF-DAYS,0),  
+208566                  NULLIF(:EMR-SHIPBOARD-CUTOFF-HRS,0),
+208566                  NULLIF(:EMR-1099-IND,' '),  
+208566                  NULLIF(:EMR-PRESALES-SOLD-IND,' '), 
+208566                  NULLIF(:WS-EMR-TKT-NUM,0),  
+208566                  NULLIF(:WS-EMR-TKT-DESC,' '),   
+208566                  NULLIF(:EMR-TAX-IND,' '),   
+208566                  NULLIF(:EMR-TAX-DESC,' '),  
+208566                  NULLIF(:EMR-TAX-PCT,0), 
+208566                  NULLIF(:EMR-COMM-IND,' '),  
+208566                  NULLIF(:EMR-COMM-DETAIL-DESC,' '),  
+208566                  NULLIF(:EMR-COMM-PCT,0),
+208566                  NULLIF(:EMR-GRATUITY-IND,' '),  
+208566                  NULLIF(:EMR-GRATUITY-DESC,' '), 
+208566                  NULLIF(:EMR-GRATUITY-PCT,0),
+208566                  NULLIF(:EMR-VENDOR-REF-NUM,' '),
+208566                 :EMR-AVAIL-IMPACT-IND,   
+208566                 :EMR-EXC-TYPE )  
+208566         WHERE  (EXC_ID = :EMR-EXC-ID)
+208566     END-EXEC.
+208566  
+208566     IF SQLCODE < 0   
+208566        GO TO 11450-MODIFY-EMR-SQL-ERROR  
+208566     END-IF   
+208566  
+208566     PERFORM VARYING WS-I FROM 1 BY 1 
+208566        UNTIL WS-I > 5
+208566        IF (EMR-MIN-VOLUME (WS-I) > 0) AND
+208566           (EMR-MAX-VOLUME (WS-I) > 0)
+208566           PERFORM VARYING WS-SUB FROM 1 BY 1 
+208566              UNTIL WS-SUB > 5
+208566              IF (EMR-COST-CODE (WS-I WS-SUB) > SPACES) AND   
+208566                 (EMR-COST (WS-I WS-SUB) > 0) 
+208566                 EXEC SQL 
+208566                      UPDATE SMF_EMR_COST_TYPE
+208566                      SYNCHRONIZE 
+208566                      VALUES (:EMR-EXC-ID,
+208566                              :EMR-MIN-VOLUME (WS-I), 
+208566                              :EMR-MAX-VOLUME (WS-I), 
+208566                              :EMR-COST-CODE (WS-I WS-SUB),   
+208566                              :EMR-COST (WS-I WS-SUB))
+208566                       WHERE (EXC_ID = :EMR-EXC-ID
+208566                  AND  MIN_VOLUME = :EMR-MIN-VOLUME (WS-I)
+208566                  AND  MAX_VOLUME = :EMR-MAX-VOLUME (WS-I)
+208566                  AND  COST_CODE  = :EMR-COST-CODE (WS-I WS-SUB)) 
+208566                 END-EXEC 
+208566                 IF SQLCODE < 0   
+208566                    GO TO 12750-MODIFY-EMR-COST-ERROR 
+208566                 END-IF   
+208566              END-IF  
+208566           END-PERFORM
+208566        END-IF
+208566     END-PERFORM. 
+208566  
+177338     IF EMR-STATUS = 'R' OR WS-CHG-EXC-NAME = 'Y' 
+177338        PERFORM 7900-UPDATE-EPR THRU 7900-UPDATE-EPR-EXIT 
+177338     END-IF.  
+
+180675*    IF EMR-EXC-TYPE = 'EX'   
+180675     IF EMR-EXC-TYPE = 'EX' OR 'MO'   
+              MOVE U-1391-USER-ID    TO SXP09-USER-ID   
+              PERFORM SXP11-MASTER-HIST-COMMENT 
+                 THRU SXP11-MASTER-HIST-COMMENT-EXIT.   
+
+199829     IF  SXP11-EMR-EXC-DURATION NOT = EMR-EXC-DURATION
+199829         EXEC SQL 
+199829              UPDATE EXCSPREAD
+199829              SYNCHRONIZE VALUES (:EMR-EXC-ID,
+199829                                  'N',
+199829                                  :SXP09-USER-ID, 
+199829                                  CURRENT_TIMESTAMP(6)
+199829                                 )
+199829              WHERE EXC_ID = :EMR-EXC-ID  
+199829         END-EXEC 
+199829     END-IF.  
+208566  
+208566     IF SQLCODE < 0   
+208566        GO TO 9150-RDMS-ERROR 
+208566     END-IF.  
+208566  
+           MOVE U-1391-EXC-VEN-ID                TO EVIR-VENDOR-ID. 
+
+           FIND EXC-VENDOR-ID-REC RECORD
+                ON ERROR GO TO 11500-FIND-EVIR-ERROR.   
+
+           FIND CURRENT EXC-MASTER-REC RECORD   
+                ON ERROR GO TO 11600-FIND-EMR-ERROR.
+
+           IF REMOVE-IND = 'Y'  
+              INSERT EXC-MASTER-REC RECORD INTO EXC-VENDOR-MASTER-SET   
+                     ON ERROR GO TO 11700-INSERT-EMR-ERROR. 
+
+           MOVE ALL 'N' TO WS-STORE-INDS.   
+
+           FETCH FIRST RECORD WITHIN EXC-MASTER-NOTE-SET SET
+                 ON ERROR GO TO 11800-FETCH-ENR-ERROR.  
+
+           GO TO 0500-PROCESS-ENR-OR-EPR.   
+
+       0400-NEXT-ENR-REC.   
+           FETCH NEXT RECORD WITHIN EXC-MASTER-NOTE-SET SET 
+                 AT END GO TO 0700-DISC-NOTE-PARA   
+                 ON ERROR GO TO 11900-FETCH-ENR-ERROR.  
+
+       0500-PROCESS-ENR-OR-EPR. 
+           IF (RECORD-NAME NOT = 'EXC-NOTE-REC')
+              GO TO 0600-PRICING-DESC-REC.  
+
+           EVALUATE ENR-TYPE
+              WHEN 'D'  
+                   MOVE 'Y' TO WS-FULL-DESC-IND 
+149439             IF (U-1391-DESCRIPTION-TEXT NOT = ENR-TEXT)  
+149439                MOVE U-1391-DESCRIPTION-TEXT TO ENR-TEXT  
+                   ELSE 
+                      GO TO 0400-NEXT-ENR-REC   
+                   END-IF   
+              WHEN 'A'  
+                   MOVE 'Y' TO WS-DISCLAIMER-IND
+149439             IF (U-1391-DISCLAIMER-TEXT NOT = ENR-TEXT)   
+149439                MOVE U-1391-DISCLAIMER-TEXT TO ENR-TEXT   
+                   ELSE 
+                      GO TO 0400-NEXT-ENR-REC   
+                   END-IF   
+              WHEN 'N'  
+                   MOVE 'Y' TO WS-NOTES-IND 
+                   IF (U-1391-NOTES NOT = ENR-TEXT) 
+                      MOVE U-1391-NOTES TO ENR-TEXT 
+                   ELSE 
+                      GO TO 0400-NEXT-ENR-REC   
+                   END-IF   
+              WHEN OTHER
+                   MOVE 'Y' TO WS-ACTIVITY-HDR-IND  
+                   IF (U-1391-ACTIVITY-HEADER NOT = ENR-TEXT)   
+                      MOVE U-1391-ACTIVITY-HEADER TO ENR-TEXT   
+                   ELSE 
+                      GO TO 0400-NEXT-ENR-REC   
+                   END-IF   
+           END-EVALUATE.
+
+           MOVE U-1391-SHOREEX-ID          TO ENR-EXC-ID.   
+
+           MODIFY EXC-NOTE-REC RECORD   
+                  ON ERROR GO TO 12100-MODIFY-ENR-ERROR.
+
+208566     EXEC SQL 
+208566          UPDATE EXC_NOTE 
+208566             SET TEXT   = :ENR-TEXT   
+208566           WHERE EXC_ID = :ENR-EXC-ID 
+208566             AND TYPE   = :ENR-TYPE   
+208566     END-EXEC.
+208566  
+208566     IF (SQLCODE < 0) OR  
+208566        (SQLCODE = 100)   
+208566        GO TO 12150-MODIFY-ENR-SQL-ERROR  
+208566     END-IF.  
+
+           GO TO 0400-NEXT-ENR-REC. 
+
+       0600-PRICING-DESC-REC.   
+           MOVE 'Y' TO WS-EPR-IND.  
+
+149439*    Size of a block. 
+149439     MOVE FUNCTION LENGTH (U-1391-PRICING-DESC)   
+149439                TO WS-K.  
+149439*    Number of blocks in a whole text.
+149439     COMPUTE WS-L 
+149439         =   FUNCTION LENGTH (EPR-LONG-DESC)  
+149439           / WS-K.
+149439  
+149439*    To save a couple more CPU cycles, the above can be removed.  
+149439*    WS-K and WS-L can be replaced in the following with literal  
+149439*    250 and 8 respectively.  
+149439     MOVE 1 TO WS-J   
+149439     PERFORM  
+149439         VARYING WS-I  FROM 1 BY 1
+149439         UNTIL   (WS-I > WS-L)
+149439             OR  (      U-1391-PRICING-DESC (WS-I)
+149439                  NOT = EPR-LONG-DESC (WS-J:WS-K))
+149439       ADD WS-K TO WS-J   
+149439     END-PERFORM  
+149439     IF  (WS-I > WS-L)
+149439       GO TO 0400-NEXT-ENR-REC
+149439     END-IF.  
+149439  
+149439     MOVE 1 TO WS-J   
+149439     PERFORM  
+149439         VARYING WS-I  FROM 1 BY 1
+149439         UNTIL   (WS-I > WS-L)
+149439       MOVE   U-1391-PRICING-DESC (WS-I)  
+149439           TO EPR-LONG-DESC (WS-J:WS-K)   
+149439       ADD WS-K TO WS-J   
+149439     END-PERFORM. 
+
+      *    IF U-1391-PRICING-DESC (1) = EPR-LONG-DESC (1:250) AND   
+      *          U-1391-PRICING-DESC (2) = EPR-LONG-DESC (251:250) AND  
+      *          U-1391-PRICING-DESC (3) = EPR-LONG-DESC (501:250) AND  
+      *          U-1391-PRICING-DESC (4) = EPR-LONG-DESC (751:250) AND  
+      *          U-1391-PRICING-DESC (5) = EPR-LONG-DESC (1001:250) AND 
+      *          U-1391-PRICING-DESC (6) = EPR-LONG-DESC (1251:250) AND 
+      *          U-1391-PRICING-DESC (7) = EPR-LONG-DESC (1501:250) AND 
+      *          U-1391-PRICING-DESC (8) = EPR-LONG-DESC (1750:250) 
+      *       GO TO 0400-NEXT-ENR-REC.  
+      * 
+      *    MOVE SPACES TO EPR-LONG-DESC.
+      *    MOVE 1      TO WS-J. 
+      * 
+      *    PERFORM VARYING WS-I FROM 1 BY 1 UNTIL WS-I > 8  
+      *       IF U-1391-PRICING-DESC (WS-I) > SPACES
+      *          STRING U-1391-PRICING-DESC (WS-I) DELIMITED BY SIZE
+      *                 INTO EPR-LONG-DESC  
+      *                 WITH POINTER WS-J   
+      *       END-IF
+      *    END-PERFORM. 
+
+           MODIFY EXC-PRICING-DESC-REC RECORD   
+                  ON ERROR GO TO 12000-MODIFY-EPR-ERROR.
+
+208566     EXEC SQL 
+208566          UPDATE EXC_PRICING_DESC 
+208566             SET LONG_DESC = :EPR-LONG-DESC   
+208566           WHERE EXC_ID    = :EMR-EXC-ID  
+208566     END-EXEC.
+208566  
+208566     IF (SQLCODE < 0) OR  
+208566        (SQLCODE = 100)   
+208566        GO TO 12050-MODIFY-EPR-SQL-ERROR  
+208566     END-IF.  
+
+           GO TO 0400-NEXT-ENR-REC. 
+
+       0700-DISC-NOTE-PARA. 
+           IF WS-DISCLAIMER-IND = 'N'   
+149439        IF U-1391-DISCLAIMER-TEXT > SPACES
+                 MOVE U-1391-SHOREEX-ID     TO ENR-EXC-ID   
+                 MOVE 'A'                   TO ENR-TYPE 
+149439           MOVE U-1391-DISCLAIMER-TEXT     TO ENR-TEXT
+                 STORE EXC-NOTE-REC 
+                       ON ERROR GO TO 12200-STORE-ENR-ERROR 
+208566           PERFORM 0750-STORE-ENR 
+208566              THRU 0750-STORE-ENR-EXIT
+208566        END-IF
+208566     END-IF.  
+
+           IF WS-NOTES-IND = 'N'
+              IF U-1391-NOTES > SPACES  
+                 MOVE U-1391-SHOREEX-ID     TO ENR-EXC-ID   
+                 MOVE 'N'                   TO ENR-TYPE 
+                 MOVE U-1391-NOTES          TO ENR-TEXT 
+                 STORE EXC-NOTE-REC 
+                       ON ERROR GO TO 12300-STORE-ENR-ERROR 
+208566           PERFORM 0750-STORE-ENR 
+208566              THRU 0750-STORE-ENR-EXIT
+208566        END-IF
+208566     END-IF.  
+
+           IF WS-ACTIVITY-HDR-IND = 'N' 
+              IF U-1391-ACTIVITY-HEADER > SPACES
+                 MOVE U-1391-SHOREEX-ID      TO ENR-EXC-ID  
+                 MOVE 'H'                    TO ENR-TYPE
+                 MOVE U-1391-ACTIVITY-HEADER TO ENR-TEXT
+                 STORE EXC-NOTE-REC 
+                       ON ERROR GO TO 12400-STORE-ENR-ERROR 
+208566           PERFORM 0750-STORE-ENR 
+208566              THRU 0750-STORE-ENR-EXIT
+208566        END-IF
+208566     END-IF.  
+
+           IF WS-FULL-DESC-IND = 'N'
+149439        IF U-1391-DESCRIPTION-TEXT > SPACES   
+                 MOVE U-1391-SHOREEX-ID      TO ENR-EXC-ID  
+                 MOVE 'D'                    TO ENR-TYPE
+149439           MOVE U-1391-DESCRIPTION-TEXT   TO ENR-TEXT 
+                 STORE EXC-NOTE-REC 
+                       ON ERROR GO TO 12500-STORE-ENR-ERROR 
+208566           PERFORM 0750-STORE-ENR 
+208566              THRU 0750-STORE-ENR-EXIT
+208566        END-IF
+208566     END-IF.  
+
+           IF WS-EPR-IND = 'N'  
+              IF U-1391-PRICING-DESC (1) > SPACES OR
+                    U-1391-PRICING-DESC (2) > SPACES OR 
+                    U-1391-PRICING-DESC (3) > SPACES OR 
+                    U-1391-PRICING-DESC (4) > SPACES OR 
+                    U-1391-PRICING-DESC (5) > SPACES OR 
+                    U-1391-PRICING-DESC (6) > SPACES OR 
+                    U-1391-PRICING-DESC (7) > SPACES OR 
+                    U-1391-PRICING-DESC (8) > SPACES
+                 MOVE SPACES TO EPR-LONG-DESC   
+                 MOVE 1      TO WS-J
+                 PERFORM VARYING WS-I FROM 1 BY 1 UNTIL WS-I > 8
+                    IF U-1391-PRICING-DESC (WS-I) > SPACES  
+                       STRING U-1391-PRICING-DESC (WS-I)
+                              DELIMITED BY SIZE INTO EPR-LONG-DESC  
+                              WITH POINTER WS-J 
+                    END-IF  
+                 END-PERFORM
+                 STORE EXC-PRICING-DESC-REC 
+                       ON ERROR GO TO 12600-STORE-EPR-ERROR 
+208566           EXEC SQL   
+208566                INSERT  INTO EXC_PRICING_DESC 
+208566                       (EXC_ID,   
+208566                        LONG_DESC)
+208566                VALUES (:EMR-EXC-ID,  
+208566                        :EPR-LONG-DESC)   
+208566           END-EXEC   
+208566           IF SQLCODE < 0 
+208566              GO TO 12650-STORE-EPR-SQL-ERROR 
+208566           END-IF 
+208566        END-IF
+208566     END-IF.  
+208566  
+           MOVE EMR-EXC-ID              TO U-1393-SHOREEX-ID.   
+           MOVE 'UPDDONE'               TO U-1393-ERROR-CODE.   
+           MOVE EMR-CREATION-DATE       TO U-1393-CREATED-DATE. 
+P64121 0700-INIT-EMR.   
+P64121     MOVE ZEROS TO
+P64121          EMR-VENDOR-ID   
+P64121          EMR-MIN-PORT-TIME-DURATION  
+P64121          EMR-BEGIN-DATE  
+P64121          EMR-END-DATE
+P64121          EMR-MIN-AGE 
+P64121          EMR-EXC-DURATION
+P64121          EMR-SHIP-DEPT-LOCATION  
+P64121          EMR-SHIP-DEPT-NUM   
+P64121          EMR-TAX-PCT 
+P64121          EMR-COMM-PCT
+P64121          EMR-GRATUITY-PCT
+P64121          EMR-MIN-SEATING 
+P64121          EMR-MAX-SEATING 
+P64121          EMR-EXCEPT-PRICING-CNT  
+P64121          EMR-CREATION-DATE   
+P64121          EMR-DEFAULT-PS-CUTOFF-DAYS  
+P64121          EMR-SHIPBOARD-CUTOFF-HRS
+P64121          EMR-SELL-BY-UNIT-IND .  
+P64121     MOVE SPACES TO   
+P64121          EMR-EXC-ID  
+P64121          EMR-EXC-NAME
+P64121          EMR-ABBREV-NAME 
+P64121          EMR-PORT-CODE   
+P64121          EMR-MIN-PORT-TIME-DUR-TYPE  
+P64121          EMR-DURATION-TYPE   
+P64121          EMR-MIN-AGE-TYPE
+P64121          EMR-BOOK-TYPE   
+P64121          EMR-1099-IND
+P64121          EMR-PRESALES-SOLD-IND   
+P64121          EMR-TAX-IND 
+P64121          EMR-TAX-DESC
+P64121          EMR-COMM-IND
+P64121          EMR-COMM-DETAIL-DESC
+P64121          EMR-GRATUITY-IND
+P64121          EMR-GRATUITY-DESC   
+P64121          EMR-EXC-TYPE
+P64121          EMR-VENDOR-REF-NUM  
+P64121          EMR-AVAIL-IMPACT-IND
+P64121          EMR-STATUS  
+P64121          EMR-POPULAR-CODE
+P64121          EMR-ONBOARD-CODE
+P64121          EMR-SELL-BY-UNIT-DESC.  
+
+P64121     PERFORM VARYING WS-SUB FROM 1 BY 1 UNTIL WS-SUB > 5  
+P64121       MOVE ZEROS TO  
+P64121            EMR-TKT-NUM (WS-SUB)  
+P64121            EMR-ALT-EXC-ID (WS-SUB)   
+P64121            EMR-MIN-VOLUME (WS-SUB)   
+P64121            EMR-MAX-VOLUME (WS-SUB)   
+P64121     END-PERFORM. 
+P64121  
+P64121     PERFORM VARYING WS-SUB FROM 1 BY 1 UNTIL WS-SUB > 5  
+P64121       MOVE SPACES TO 
+P64121            EMR-TKT-DESC (WS-SUB) 
+P64121       PERFORM VARYING SUB FROM 1 BY 1 UNTIL SUB > 5  
+P64121            MOVE SPACES TO EMR-COST-CODE (WS-SUB SUB )
+P64121            MOVE ZEROS  TO EMR-COST  (WS-SUB SUB )
+             END-PERFORM
+P64121     END-PERFORM. 
+P64121  
+P64121     PERFORM VARYING WS-SUB FROM 1 BY 1 UNTIL WS-SUB > 72 
+P64121        MOVE ZERO TO EMR-ADVISORY-BIT (WS-SUB)
+P64121                     EMR-ACTIVITY-BIT (WS-SUB)
+P64121     END-PERFORM. 
+
+       0800-SEND-ROW.   
+187917*    PERFORM SXRSEM-NUL-SX-SEM.   
+
+187917*    PERFORM DPP12-SEND-ROW THRU DPP12-SEND-ROW-EXIT. 
+
+187917*    PERFORM DPP12-SEND-DONE-COUNT
+187917*       THRU DPP12-SEND-DONE-COUNT-EXIT.  
+187917     PERFORM 10000-SEND-OUTPUT
+187917        THRU 10000-SEND-OUTPUT-EXIT.  
+208566     GO TO 9000-END-OF-JOB.   
+208566  
+208566 0750-STORE-ENR.  
+208566  
+208566     EXEC SQL 
+208566          INSERT  INTO EXC_NOTE   
+208566                 (EXC_ID, 
+208566                  TYPE,   
+208566                  TEXT)   
+208566          VALUES (:ENR-EXC-ID,
+208566                  :ENR-TYPE,  
+208566                  :ENR-TEXT)  
+208566     END-EXEC.
+208566  
+208566     IF SQLCODE < 0   
+208566        GO TO 12250-STORE-ENR-SQL-ERROR   
+208566     END-IF.  
+208566  
+208566 0750-STORE-ENR-EXIT. 
+208566     EXIT.
+208566  
+       9000-END-OF-JOB. 
+           GO TO DPP12-END-OF-JOB.  
+
+       9100-DATABASE-ERROR. 
+           GO TO DPP12-DATABASE-ERROR.  
+
+208566 9150-RDMS-ERROR. 
+208566     GO TO DPP12-RDMS-ERROR.  
+
+       9200-EDIT-ERROR-MSG. 
+           PERFORM DPP12-EDIT-ERROR-MSG 
+              THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+
+           GO TO 9000-END-OF-JOB.   
+
+       9300-SEVERE-ERROR-MSG.   
+           GO TO DPP12-SEVERE-ERROR-MSG.
+
+187917*9300-UASL-ERROR. 
+187917*    GO TO DPP12-UASL-ERROR.  
+
+       10000-FETCH-EVIR-ERROR.  
+           MOVE 3 TO DPP42-HOLD-MSG-INDEX.  
+
+208566*    IF ERROR-NUM = '0007' OR '0013'  
+208566*       GO TO 9200-EDIT-ERROR-MSG.
+208566* 
+208566*    GO TO 9100-DATABASE-ERROR.   
+208566     GO TO 9150-RDMS-ERROR.   
+
+       10100-FETCH-EADR-ERROR.  
+           MOVE 4 TO DPP42-HOLD-MSG-INDEX.  
+
+208566*    GO TO 9100-DATABASE-ERROR.   
+208566     GO TO 9150-RDMS-ERROR.   
+
+       10200-FETCH-EACR-ERROR.  
+           MOVE 5 TO DPP42-HOLD-MSG-INDEX.  
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       10300-FETCH-ELR-ERROR.   
+           MOVE 6 TO DPP42-HOLD-MSG-INDEX.  
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       10400-MODIFY-ELR-ERROR.  
+           MOVE 7 TO DPP42-HOLD-MSG-INDEX.  
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       10500-STORE-EMR-ERROR.   
+           MOVE 8 TO DPP42-HOLD-MSG-INDEX.  
+
+           GO TO 9100-DATABASE-ERROR.   
+
+208566 10550-STORE-EMR-SQL-ERROR.   
+208566     MOVE 8 TO DPP42-HOLD-MSG-INDEX.  
+208566  
+208566     GO TO 9150-RDMS-ERROR.   
+
+       10600-INSERT-EMR-ERROR.  
+           MOVE 9 TO DPP42-HOLD-MSG-INDEX.  
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       10700-STORE-ENR-ERROR.   
+           MOVE 10 TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       10800-STORE-ENR-ERROR.   
+           MOVE 11 TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       10900-STORE-ENR-ERROR.   
+           MOVE 12 TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       11000-STORE-ENR-ERROR.   
+           MOVE 13 TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       11100-STORE-EPR-ERROR.   
+           MOVE 14 TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9100-DATABASE-ERROR.   
+
+208566 11150-STORE-EPR-SQL-ERROR.   
+208566     MOVE 14 TO DPP42-HOLD-MSG-INDEX. 
+208566  
+208566     GO TO 9150-RDMS-ERROR.   
+
+       11200-FETCH-EMR-ERROR.   
+           MOVE 15 TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       11300-REMOVE-EMR-ERROR.  
+           MOVE 16 TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       11400-MODIFY-EMR-ERROR.  
+           MOVE 17 TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9100-DATABASE-ERROR.   
+
+208566 11450-MODIFY-EMR-SQL-ERROR.  
+208566     MOVE 17 TO DPP42-HOLD-MSG-INDEX. 
+208566  
+208566     GO TO 9150-RDMS-ERROR.   
+
+       11500-FIND-EVIR-ERROR.   
+           MOVE 18 TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       11600-FIND-EMR-ERROR.
+           MOVE 19 TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       11700-INSERT-EMR-ERROR.  
+           MOVE 20 TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       11800-FETCH-ENR-ERROR.   
+           MOVE 21 TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       11900-FETCH-ENR-ERROR.   
+           MOVE 22 TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       12000-MODIFY-EPR-ERROR.  
+           MOVE 23 TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9100-DATABASE-ERROR.   
+
+208566 12050-MODIFY-EPR-SQL-ERROR.  
+208566     MOVE 23 TO DPP42-HOLD-MSG-INDEX. 
+208566  
+208566     GO TO 9150-RDMS-ERROR.   
+
+       12100-MODIFY-ENR-ERROR.  
+           MOVE 24 TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9100-DATABASE-ERROR.   
+
+208566 12150-MODIFY-ENR-SQL-ERROR.  
+208566     MOVE 24 TO DPP42-HOLD-MSG-INDEX. 
+208566  
+208566     GO TO 9150-RDMS-ERROR.   
+
+       12200-STORE-ENR-ERROR.   
+           MOVE 25 TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9100-DATABASE-ERROR.   
+
+208566 12250-STORE-ENR-SQL-ERROR.   
+208566     MOVE 25 TO DPP42-HOLD-MSG-INDEX. 
+208566  
+208566     GO TO 9150-RDMS-ERROR.   
+
+       12300-STORE-ENR-ERROR.   
+           MOVE 26 TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       12400-STORE-ENR-ERROR.   
+           MOVE 27 TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       12500-STORE-ENR-ERROR.   
+           MOVE 28 TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       12600-STORE-EPR-ERROR.   
+           MOVE 29 TO DPP42-HOLD-MSG-INDEX. 
+
+           GO TO 9100-DATABASE-ERROR.   
+
+208566 12650-STORE-EPR-SQL-ERROR.   
+208566     MOVE 29 TO DPP42-HOLD-MSG-INDEX. 
+208566     GO TO 9150-RDMS-ERROR.   
+208566  
+208566 12700-STORE-EMR-COST-ERROR.  
+208566     MOVE 31 TO DPP42-HOLD-MSG-INDEX. 
+208566  
+208566     GO TO 9150-RDMS-ERROR.   
+208566  
+208566 12750-MODIFY-EMR-COST-ERROR. 
+208566     MOVE 32 TO DPP42-HOLD-MSG-INDEX. 
+208566  
+208566     GO TO 9150-RDMS-ERROR.   
+208566  
+177338 6900-STORE-EPR.  
+177338     MOVE EMR-CREATION-DATE(1:4)  
+177338             TO WS-SQL-DATE-YYYY. 
+177338     MOVE EMR-CREATION-DATE(5:2)  
+177338             TO WS-SQL-DATE-MM.   
+177338     MOVE EMR-CREATION-DATE(7:2)  
+177338             TO WS-SQL-DATE-DD.   
+
+177338     ACCEPT WS-TIME FROM TIME.
+177338     MOVE WS-TIME-HH  
+177338             TO WS-LU-TIME-HH.
+177338     MOVE WS-TIME-MM  
+177338             TO WS-LU-TIME-MM.
+177338     MOVE WS-TIME-SS  
+177338             TO WS-LU-TIME-SS.
+
+177338     EXEC SQL INSERT INTO EXC_PRICING_TBL VALUES  
+177338              (:EMR-EXC-ID,   
+177338               :WS-SQL-DATE,  
+177338               0.00,  
+177338               0.00,  
+177338               :WS-SQL-DATE,  
+177338               :WS-LU-TIME,   
+177338               :U-1391-USER-ID,   
+177338               :EMR-EXC-NAME, 
+177338               :EMR-PORT-CODE,
+177338               :EMR-VENDOR-ID,
+177338               'N',   
+177338               'Y'
+177338              )   
+177338     END-EXEC.
+
+177338     EXEC SQL INSERT INTO EXC_MASTER_HIST_TBL VALUES  
+177338              (:EMR-EXC-ID,   
+177338               :WS-SQL-DATE,  
+177338               :WS-LU-TIME,   
+177338               'PRC', 
+177338               :U-1391-USER-ID,   
+177338               'New Excursion Inserted Into Pricing Table'
+177338              )   
+177338     END-EXEC.
+
+177338 6900-STORE-EPR-EXIT. 
+177338     EXIT.
+
+
+177338 7900-UPDATE-EPR. 
+177338     MOVE U-1391-PO-DATE-TIME(1:4)
+177338             TO WS-SQL-DATE-YYYY. 
+177338     MOVE U-1391-PO-DATE-TIME(5:2)
+177338             TO WS-SQL-DATE-MM.   
+177338     MOVE U-1391-PO-DATE-TIME(7:2)
+177338             TO WS-SQL-DATE-DD.   
+
+177338     ACCEPT WS-TIME FROM TIME.
+177338     MOVE WS-TIME-HH  
+177338             TO WS-LU-TIME-HH.
+177338     MOVE WS-TIME-MM  
+177338             TO WS-LU-TIME-MM.
+177338     MOVE WS-TIME-SS  
+177338             TO WS-LU-TIME-SS.
+
+177338     IF WS-CHG-EXC-NAME = 'Y' 
+177338        EXEC SQL UPDATE EXC_PRICING_TBL   
+177338             SET LAST_UPD_DATE = :WS-SQL-DATE,
+177338                 LAST_UPD_TIME = :WS-LU-TIME, 
+177338                 LAST_UPD_USER_ID = :U-1391-USER-ID,  
+177338                 EXC_NAME = :U-1391-EXC-NAME  
+177338             WHERE EXC_ID = :EMR-EXC-ID   
+177338        END-EXEC  
+177338     END-IF.  
+177338     IF EMR-STATUS = 'R'  
+177338        EXEC SQL UPDATE EXC_PRICING_TBL   
+177338             SET ACTIVE_IND = 'N',
+177338                 LAST_UPD_DATE = :WS-SQL-DATE,
+177338                 LAST_UPD_TIME = :WS-LU-TIME, 
+177338                 LAST_UPD_USER_ID = :U-1391-USER-ID   
+177338             WHERE EXC_ID = :EMR-EXC-ID   
+177338        END-EXEC  
+177338     END-IF.  
+
+177338 7900-UPDATE-EPR-EXIT.
+177338     EXIT.
+
+187917 10000-SEND-OUTPUT.   
+187917     PERFORM DPP12-OUTPUT-INFOMSG-TABLE   
+187917        THRU DPP12-OUTPUT-INFOMSG-TABLE-X.
+187917     IF DPP01-ISUB > 0
+187917        PERFORM VARYING DPP01-SUB FROM 1 BY 1 
+187917                UNTIL DPP01-SUB > DPP01-ISUB  
+187917           MOVE DPP01-INFO-MSG-SOURCE (DPP01-SUB) 
+187917                          TO U-1391-INFMSG-MSG-SOURCE (DPP01-SUB) 
+187917           MOVE DPP01-INFO-MSG-DESC (DPP01-SUB)   
+187917                          TO U-1391-INFMSG-MSG-DESC (DPP01-SUB)   
+187917           MOVE DPP01-INFO-MSG-STATUS (DPP01-SUB) 
+187917                          TO U-1391-INFMSG-MSG-STATUS (DPP01-SUB) 
+187917           MOVE DPP01-INFO-MSG-INDEX (DPP01-SUB)  
+187917                          TO U-1391-INFMSG-MSG-NUM (DPP01-SUB)
+187917           MOVE DPP01-INFO-MSG-BOOK-NUM (DPP01-SUB)   
+187917                          TO U-1391-INFMSG-BOOK-NUM (DPP01-SUB)   
+187917        END-PERFORM   
+187917     END-IF.  
+187917     MOVE FUNCTION LENGTH (X-OUTPUT-R-SXRSEM-BUFFER)  
+187917                                 TO DPP01-PLENGHT.
+187917     MOVE X-OUTPUT-R-SXRSEM-BUFFER TO DPP01-MCB-OUTPUT-MESSAGE.   
+187917     PERFORM ECP75-SEND-OUTPUT
+187917        THRU ECP75-SEND-OUTPUT-EXIT.  
+
+187917 10000-SEND-OUTPUT-EXIT.  
+187917     EXIT.
+
+187917 COPY DPP12EER.   
+187917*COPY DPP12UER.   
+187917*COPY DPP12UMI.   
+       COPY DPP12ERR.   
+187917 COPY DPP12MMI.   
+       COPY DPP12WDB.   
+187917 COPY ECP75MSG.   
+       COPY SXP09EHP.   
+       COPY SXP11COM.   
+187917*COPY SXSEM-P-1391.   
+187917*COPY SXRSEM-R-1393.  
+187917 COPY SXP-R-SX-SEM-INT.   

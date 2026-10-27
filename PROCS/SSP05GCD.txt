@@ -1,0 +1,290 @@
+SSP05GCD PROC   
+      ****************************************************************  
+      *      Fetch COMPANY ROUTINE                                   *  
+      ****************************************************************  
+      * Description:                                                 *  
+      *    Used to fetch the company record                          *  
+      ****************************************************************  
+************************************************************************
+148695* 13-JUN-14     PY0     TCS LTD.               CQ148695          *
+148695* ADD REMINDER DAYS                                              *
+************************************************************************
+P71312* 09-FEB-15     MCA     CCL                    PBI P71312        *
+P71312* Added a new field for Courtacy hold max Option hours for Ecom  *
+P71312* direct bookings  if this field is zero normal rules apply      *
+************************************************************************
+171289* 16-MAR-15     PY0     TCS LTD.               CQ171289          *
+171289* ADDED AGENT-OPTION-DAYS AND AGENT-OPTION-HOURS                 *
+************************************************************************
+187869* 12-APR-16     GRS     CARNIVAL               CQ187869          *
+187869* AUTOBERTH INDICATION ADDED                                     *
+************************************************************************
+213512* 29-AUG-18     TEK     TCS LTD.               CQ213512          *
+213512* CHANGES DONE TO ACCEPT JCB,CUP AND DC CARDS AS WELL WHILE      *    
+213512* SETTING ONBOARD EXPENSE ACCOUNT IN OLC.                        *
+************************************************************************
+PPC470* 09-FEB-18     STP     TCS LTD.               PPC470            *    
+PPC470* PPC PROJECT CHANGES.                                           *    
+************************************************************************    
+CALFEE* 10-APR-24     RMP     TCS LTD.               ADO1871081        *
+CALFEE* Changes done for California Law Price Advertising.             *
+************************************************************************    
+       01  SSP05-INPUT-PARAMS.  
+           03  SSP05-I-AN-PARAMS.   
+               05 SSP05-I-COMPANY-CODE               PIC X(1).  
+               05 SSP05-I-TSHD-TYPE                  PIC X(1).  
+               05  FILLER                            PIC X(1).  
+               05 SSP05-I-CRR-CALC-KEY. 
+                  07 SSP05-I-AGENCY-CONN-CODE        PIC X(2).  
+                  07 SSP05-I-CRUISE-LINE-CODE        PIC X(3).  
+
+       01  SSP05-OUTPUT-PARAMS. 
+           03 SSP05-O-COMPANY-REC.  
+              05 SSP05-O-COMPANY-CODE               PIC X.  
+              05 SSP05-O-ACCT-COMPANY-CODE          PIC X(5).   
+              05 SSP05-O-COMPANY-NAME               PIC X(30).  
+              05 SSP05-O-ADDRESS-1                  PIC X(30).  
+              05 SSP05-O-ADDRESS-2                  PIC X(30).  
+              05 SSP05-O-ADDRESS-3                  PIC X(30).  
+              05 SSP05-O-CITY-NAME                  PIC X(25).  
+PPC470*       05 SSP05-O-STATE-CODE                 PIC XX. 
+PPC470        05 SSP05-O-STATE-CODE                 PIC X(03).  
+PPC470*       05 SSP05-O-ZIP-CODE                   PIC X(11).  
+PPC470*       05 SSP05-O-COUNTRY-CODE               PIC XX. 
+PPC470*       05 SSP05-O-PHONE-NUM                  PIC 9(10).  
+PPC470        05 SSP05-O-COUNTRY-CODE               PIC X(03).  
+PPC470        05 SSP05-O-PHONE-NUM                  PIC S9(11)  
+PPC470                                                     USAGE BINARY.    
+213512*       05 SSP05-O-VALID-CREDIT-CARDS OCCURS 5 TIMES. 
+213512        05 SSP05-O-VALID-CREDIT-CARDS OCCURS 8 TIMES. 
+                 07 SSP05-O-VALID-CREDIT-CARD       PIC X(2).   
+              05 SSP05-O-PSUEDO-CITY                PIC X(5).   
+PPC470*       05 SSP05-O-LETTER-CHG-ALLOWED         PIC 9(2) BINARY.
+PPC470        05 SSP05-O-LETTER-CHG-ALLOWED         PIC S9(6)   
+PPC470                                                     USAGE BINARY.
+              05 SSP05-O-GROUP-BEST-FARE-FLG        PIC X(1).   
+PPC470*       05 SSP05-O-TSA-SEND-DAYS              PIC 9(2).   
+PPC470        05 SSP05-O-TSA-SEND-DAYS              PIC S9(6)   
+PPC470                                                     USAGE BINARY.
+              05 SSP05-O-MISC-FLAGS.
+                 07 SSP05-O-AUTO-GEN-CNF-FLG        PIC 1 BINARY-1. 
+                 07 SSP05-O-CURRENCY-UPDATE-FLG     PIC 1 BINARY-1. 
+                 07 SSP05-O-LOCALITY-UPDATE-FLG     PIC 1 BINARY-1. 
+                 07 FILLER                          PIC 1(6) BINARY-1.  
+PPC470*       05 SSP05-O-IR-FAX-PHONE-NUM           PIC 9(10).  
+PPC470*       05 SSP05-O-IR-ADMIN-FAX-PHONE-NUM     PIC 9(10).  
+PPC470*       05 SSP05-O-GR-FAX-PHONE-NUM           PIC 9(10).  
+PPC470*       05 SSP05-O-GR-ADMIN-FAX-PHONE-NUM     PIC 9(10).  
+PPC470*       05 SSP05-O-IR-PHONE-NUM               PIC 9(10).  
+PPC470*       05 SSP05-O-GR-PHONE-NUM               PIC 9(10).  
+PPC470*       05 SSP05-O-SGL-INV-DAYS-PRIOR         PIC 9(5) BINARY.
+PPC470*       05 SSP05-O-DISP-SAVED-CC-FLG          PIC X.  
+PPC470        05 SSP05-O-IR-FAX-PHONE-NUM           PIC S9(11)  
+PPC470                                                     USAGE BINARY.
+PPC470        05 SSP05-O-IR-ADMIN-FAX-PHONE-NUM     PIC S9(11)  
+PPC470                                                     USAGE BINARY.
+PPC470        05 SSP05-O-GR-FAX-PHONE-NUM           PIC S9(11)  
+PPC470                                                     USAGE BINARY.
+PPC470        05 SSP05-O-GR-ADMIN-FAX-PHONE-NUM     PIC S9(11)  
+PPC470                                                     USAGE BINARY.
+PPC470        05 SSP05-O-IR-PHONE-NUM               PIC S9(11)  
+PPC470                                                     USAGE BINARY.
+PPC470        05 SSP05-O-GR-PHONE-NUM               PIC S9(11)  
+PPC470                                                     USAGE BINARY.
+PPC470        05 SSP05-O-SGL-INV-DAYS-PRIOR         PIC S9(6)   
+PPC470                                                     USAGE BINARY.        
+PPC470        05 SSP05-O-DISP-SAVED-CC-CODE         PIC X(1).   
+              05 FILLER                             PIC X(1).   
+              05 SSP05-O-CURRENCY-CODE              PIC X(3).   
+PPC470*       05 SSP05-O-BROCHURE-TYPE              PIC X.  
+PPC470*       05 SSP05-O-NATIONALITY-CODE           PIC X(2).   
+PPC470        05 SSP05-O-NATIONALITY-CODE           PIC X(03).          
+              05 SSP05-O-LANGUAGE-CODE              PIC X.  
+              05 SSP05-O-INCL-GRP-IN-BEST-IND      PIC X.   
+              05 SSP05-O-SPILL-CAPTURE-IND          PIC X.  
+PPC470*       05 SSP05-O-INTEREST-RATE-1            PIC V9(5) BINARY.   
+PPC470*       05 SSP05-O-INTEREST-RATE-2            PIC V9(5) BINARY.   
+PPC470*       05 SSP05-O-FACTOR-1                   PIC V9(10) BINARY.  
+PPC470*       05 SSP05-O-FACTOR-2                   PIC V9(10) BINARY.  
+PPC470*       05 SSP05-O-AMENITY-POINT-VALUE        PIC 9(11)V99 BINARY.
+PPC470        05 SSP05-O-INTEREST-RATE-1            PIC S9(2)V9(5)  
+PPC470                                            SIGN LEADING SEPARATE.    
+PPC470        05 SSP05-O-INTEREST-RATE-2            PIC S9(2)V9(5)  
+PPC470                                            SIGN LEADING SEPARATE.
+PPC470        05 SSP05-O-FACTOR-1                   PIC S9(2)V9(10) 
+PPC470                                            SIGN LEADING SEPARATE.    
+PPC470        05 SSP05-O-FACTOR-2                   PIC S9(2)V9(10)     
+PPC470                                            SIGN LEADING SEPARATE.    
+PPC470        05 SSP05-O-AMENITY-POINT-VALUE        PIC S9(9)V9(2)  
+PPC470                                            SIGN LEADING SEPARATE.    
+              05 SSP05-O-ALLOW-REVISIONS-IND        PIC X.  
+              05 SSP05-O-REVISIONS-IND              PIC X.  
+              05 SSP05-O-ALL-GUEST-REQ-DATA-TBL   OCCURS 30 TIMES.  
+                 07 SSP05-O-ALL-GUEST-REQ-CODE      PIC X(3).   
+                 07 SSP05-O-ALL-GUEST-OPT-CODE      PIC X.  
+PPC470*       05 SSP05-O-GRP-HARD-MAX               PIC 9(5) BINARY.
+PPC470*       05 SSP05-O-GRP-SOFT-MAX               PIC 9(5) BINARY.
+PPC470*       05 SSP05-O-GROUP-LEADER-MAX           PIC 9(2) BINARY.
+PPC470*       05 SSP05-O-IR-DIRECT-PHONE-NUM        PIC 9(10).  
+PPC470*       05 SSP05-O-GR-DIRECT-PHONE-NUM        PIC 9(10).  
+PPC470*       05 SSP05-O-PVP-PHONE-NUM              PIC 9(10).  
+PPC470*       05 SSP05-O-MIN-SENIOR-AGE             PIC 9(02) BINARY.   
+PPC470*       05 SSP05-O-UCC-MAX-CC-CHRG-ALLWD      PIC 9(8)V99 BINARY. 
+PPC470        05 SSP05-O-GRP-HARD-MAX               PIC S9(6)   
+PPC470                                                     USAGE BINARY.
+PPC470        05 SSP05-O-GRP-SOFT-MAX               PIC S9(6)   
+PPC470                                                     USAGE BINARY.
+PPC470        05 SSP05-O-GROUP-LEADER-MAX           PIC S9(6)   
+PPC470                                                     USAGE BINARY.    
+PPC470        05 SSP05-O-IR-DIRECT-PHONE-NUM        PIC S9(11)  
+PPC470                                                     USAGE BINARY.
+PPC470        05 SSP05-O-GR-DIRECT-PHONE-NUM        PIC S9(11)  
+PPC470                                                     USAGE BINARY.
+PPC470        05 SSP05-O-PVP-PHONE-NUM              PIC S9(11)      
+PPC470                                                     USAGE BINARY.
+PPC470        05 SSP05-O-UCC-MAX-CC-CHRG-ALLWD      PIC S9(9)V9(2)  
+PPC470                                          SIGN LEADING SEPARATE.  
+              05 SSP05-O-DINING-INFO-TABLE OCCURS 10 TIMES. 
+                 07 SSP05-O-DINING-TIME-CODE        PIC X(1).   
+                 07 SSP05-O-DINING-ROOM-CODE        PIC X(1).   
+PPC470*          07 SSP05-O-GRP-DINING-MAX          PIC 9(5) BINARY.
+PPC470*          07 SSP05-O-DINING-TIME             PIC 9(4) BINARY.
+PPC470           07 SSP05-O-GRP-DINING-MAX          PIC S9(6)   
+PPC470                                                     USAGE BINARY.    
+PPC470           07 SSP05-O-DINING-TIME             PIC X(8).   
+                 07 SSP05-O-DINING-DESC             PIC X(20).  
+CCLAUS           07 SSP05-O-FIN-COMPANY-CODE        PIC X(01).  
+CCLAUS           07 FILLER                          PIC X(2).   
+CCLAUS*          07 FILLER                          PIC X(03).      
+PPC470*       05 SSP05-O-DINING-INDV-DISP-CAP       PIC 9(5) BINARY.
+PPC470*       05 SSP05-O-CONN-BOOKING-CUTOFF        PIC 9(1).   
+PPC470*       05 SSP05-O-CONN-CHECK-CUTOFF-DAYS     PIC 9(2).   
+PPC470*       05 SSP05-O-CONN-OTH-PAY-CUTOFF        PIC 9(2).   
+PPC470*       05 SSP05-O-AUTO-CANCEL-FIELDS.
+PPC470*          07 SSP05-O-DEP-ADV-DAYS            PIC 9(2).   
+PPC470*          07 SSP05-O-FNL-DUE-DAYS            PIC 9(2).   
+PPC470*          07 SSP05-O-FP-BAL-DUE-PCT          PIC V99.
+PPC470*          07 SSP05-O-DEP-DUE-SAIL-DD         PIC 9(1).   
+PPC470*          07 SSP05-O-DEP-DUE-LESS-DD-AMT     PIC 9(3).   
+PPC470*          07 SSP05-O-DEP-DUE-GREAT-DD-AMT    PIC 9(3).   
+PPC470*          07 SSP05-O-FNL-DUE-DAYS-2          PIC 9(2).   
+PPC470*          07 SSP05-O-FNL-DUE-SAIL-DD         PIC 9.  
+PPC470*          07 SSP05-O-FNL-DUE-LESS-TH-AMT     PIC 9(3).   
+PPC470*          07 SSP05-O-FNL-DUE-GREAT-TH-AMT    PIC 9(3).   
+PPC470*       05 SSP05-O-SGL-DEP-DBL-DATE           PIC 9(8) BINARY.
+PPC470*       05 SSP05-O-FNL-FIRST-REM-DAYS         PIC 9(4) BINARY.
+PPC470*       05 SSP05-O-FNL-SECOND-REM-DAYS        PIC 9(4) BINARY.
+PPC470*       05 SSP05-O-FNL-REM-LETTER-FLAG        PIC X.  
+148695*       05 FILLER                             PIC X(954). 
+PPC470*       05 SSP05-O-FNL-PMT-TXT-FST-RM-DAY     PIC 9(04) BINARY.   
+PPC470*       05 SSP05-O-FNL-PMT-TXT-SEC-RM-DAY     PIC 9(04) BINARY.   
+P71312*       05 FILLER                             PIC X(950). 
+PPC470*       05 SSP05-O-CMP-MAX-CH-OPT-HRS         PIC 9(3) BINARY.
+171289*       05 FILLER                             PIC X(948). 
+PPC470*       05 SSP05-O-AGENT-OPTION-DAYS          PIC 9(02) BINARY.   
+PPC470*       05 SSP05-O-AGENT-OPTION-HOURS         PIC 9(02) BINARY.   
+171289*       05 FILLER                             PIC X(946). 
+PPC470        05 SSP05-O-DINING-INDV-DISP-CAP       PIC S9(6)   
+PPC470                                                     USAGE BINARY.    
+PPC470        05 SSP05-O-CONN-BOOKING-CUTOFF        PIC S9(6)   
+PPC470                                                     USAGE BINARY.    
+PPC470        05 SSP05-O-CONN-CHECK-CUTOFF-DAYS     PIC S9(6)   
+PPC470                                                     USAGE BINARY.    
+PPC470        05 SSP05-O-CONN-OTH-PAY-CUTOFF        PIC S9(6)   
+PPC470                                                     USAGE BINARY.    
+PPC470        05 SSP05-O-AUTO-CANCEL-FIELDS.
+PPC470           07 SSP05-O-DEP-ADV-DAYS            PIC S9(6)   
+PPC470                                                     USAGE BINARY.
+PPC470           07 SSP05-O-FNL-DUE-DAYS            PIC S9(6)   
+PPC470                                                     USAGE BINARY.
+PPC470           07 SSP05-O-FP-BAL-DUE-PCT          PIC S9(3)V9(2)  
+PPC470                                            SIGN LEADING SEPARATE.
+PPC470           07 SSP05-O-DEP-DUE-SAIL-DD         PIC S9(6)   
+PPC470                                                     USAGE BINARY.    
+PPC470           07 SSP05-O-DEP-DUE-LESS-DD-AMT     PIC S9(6)   
+PPC470                                                     USAGE BINARY.    
+PPC470           07 SSP05-O-DEP-DUE-GREAT-DD-AMT    PIC S9(6)   
+PPC470                                                     USAGE BINARY.    
+PPC470           07 SSP05-O-FNL-DUE-DAYS-2          PIC S9(6)   
+PPC470                                                     USAGE BINARY.    
+PPC470           07 SSP05-O-FNL-DUE-SAIL-DD         PIC S9(6)   
+PPC470                                                     USAGE BINARY.    
+PPC470           07 SSP05-O-FNL-DUE-LESS-TH-AMT     PIC S9(6)   
+PPC470                                                     USAGE BINARY.    
+PPC470           07 SSP05-O-FNL-DUE-GREAT-TH-AMT    PIC S9(6)   
+PPC470                                                     USAGE BINARY.    
+PPC470        05 SSP05-O-SGL-DEP-DBL-DATE           PIC 9(08).  
+PPC470        05 FILLER                             PIC X(02).  
+PPC470        05 SSP05-O-FNL-FIRST-REM-DAYS         PIC S9(6)   
+PPC470                                                     USAGE BINARY.    
+PPC470        05 SSP05-O-FNL-SECOND-REM-DAYS        PIC S9(6)   
+PPC470                                                     USAGE BINARY.
+PPC470        05 SSP05-O-FNL-REM-LETTER-FLAG        PIC X(01).  
+PPC470        05 SSP05-O-FNL-PMT-TXT-FST-RM-DAY     PIC S9(6)   
+PPC470                                                     USAGE BINARY.    
+PPC470        05 SSP05-O-FNL-PMT-TXT-SEC-RM-DAY     PIC S9(6)   
+PPC470                                                     USAGE BINARY.    
+PPC470        05 SSP05-O-CMP-MAX-CH-OPT-HRS         PIC S9(6)   
+PPC470                                                     USAGE BINARY.    
+PPC470        05 SSP05-O-AGENT-OPTION-DAYS          PIC S9(6)   
+PPC470                                                     USAGE BINARY.    
+PPC470        05 SSP05-O-AGENT-OPTION-HOURS         PIC S9(6)   
+PPC470                                                     USAGE BINARY.
+187869        05 SSP05-O-AUTOBERTH-FIELDS.  
+PPC470*          07 SSP05-O-AUTOBERTH-START-DAYS    PIC 9(2).   
+PPC470*          07 SSP05-O-AUTOBERTH-END-DAYS      PIC 9(2).   
+PPC470           07 SSP05-O-AUTOBERTH-START-DAYS    PIC S9(6)   
+PPC470                                                     USAGE BINARY.        
+PPC470           07 SSP05-O-AUTOBERTH-END-DAYS      PIC S9(6)   
+PPC470                                                     USAGE BINARY.
+187869           07 SSP05-O-AUTOBERTH-CAT-ORDER     PIC X.  
+187869           07 SSP05-O-AUTOBERTH-DPLTN-TBL OCCURS 4 TIMES. 
+PPC470*             09 SSP05-O-AUTOBERTH-DPLTN-DAYS PIC 9(2).   
+PPC470*             09 SSP05-O-AUTOBERTH-DPLTN-NUM  PIC 9(2).   
+PPC470              09 SSP05-O-AUTOBERTH-DPLTN-DAYS PIC S9(6)   
+PPC470                                                     USAGE BINARY.
+PPC470              09 SSP05-O-AUTOBERTH-DPLTN-NUM  PIC S9(6)   
+PPC470                                                     USAGE BINARY.    
+PPC470        05 SSP05-O-VPP-GOLD-ADMIN-PCT         PIC S9(6)V9(5)  
+PPC470                                            SIGN LEADING SEPARATE.
+PPC470        05 SSP05-O-VPP-GOLD-ACH-PCT           PIC S9(6)V9(5)  
+PPC470                                            SIGN LEADING SEPARATE.
+PPC470        05 SSP05-O-VPP-STANDARD-ADMIN-PCT     PIC S9(6)V9(5)  
+PPC470                                            SIGN LEADING SEPARATE.
+PPC470        05 SSP05-O-VPP-STANDARD-ACH-PCT       PIC S9(6)V9(5)  
+PPC470                                            SIGN LEADING SEPARATE.
+PPC470        05 SSP05-O-SCHEDULED-PAYMENT-IND      PIC X(1).   
+215963        05 SSP05-O-VPP-STATE-RQRD-DATE        PIC 9(08) BINARY.   
+PPC470        05 SSP05-O-UPDATE-DATETIME            PIC X(26).  
+PPC470*       05 FILLER                             PIC X(925). 
+213512*       05 FILLER                             PIC X(917).     
+215963*       05 FILLER                             PIC X(911). 
+CALFEE*       05 FILLER                             PIC X(910). 
+CALFEE        05 SSP05-O-GOVT-FEE-INCL-IND          PIC X(01).  
+CALFEE        05 FILLER                             PIC X(909). 
+
+           03 SSP05-O-COMPANY-REFERENCE-REC.
+              05 SSP05-O-CRR-CALC-KEY.  
+                 07 SSP05-O-CRR-AGENCY-CONN-CODE     PIC X(2).  
+                 07 SSP05-O-CRR-CRUISE-LINE-CODE     PIC X(3).  
+              05 SSP05-O-CRR-COMPANY-CODE            PIC X. 
+              05 SSP05-O-CRR-PSEUDO-CITY-CODE        PIC X(5).  
+              05 FILLER                              PIC X(25). 
+           03 SSP05-O-COMPANY-THRESHOLD-REC.
+              05 SSP05-O-CTR-TSHD-TYPE               PIC X(1).  
+              05 FILLER                              PIC X(1).  
+              05 SSP05-O-CTR-TSHD-REF-ENTRY-CNT      PIC 9(3) BINARY.   
+              05 SSP05-O-CTR-TSHD-REF-TABLE OCCURS 200 TIMES.   
+PPC470*          07 SSP05-O-CTR-TSHD-REF-PRC-LEVEL PIC 9(4) BINARY. 
+PPC470*          07 SSP05-O-CTR-TSHD-REF-PCT         PIC V999 BINARY.   
+PPC470           07 SSP05-O-CTR-TSHD-REF-PRC-LEVEL PIC S9(6)    
+PPC470                                                     USAGE BINARY.
+PPC470           07 SSP05-O-CTR-TSHD-REF-PCT         PIC S9(2)V9(3) 
+PPC470                                            SIGN LEADING SEPARATE.    
+
+ END PROC   
+
+SSP05INT PROC   
+           MOVE SPACES     TO SSP05-I-AN-PARAMS.
+
+ END PROC   

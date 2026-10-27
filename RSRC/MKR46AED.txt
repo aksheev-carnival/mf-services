@@ -1,0 +1,1273 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.     MKR46AED.
+       AUTHOR.         SYSTEMS. 
+       INSTALLATION.   CARNIVAL CRUISE LINES.   
+       DATE-WRITTEN.   2000.
+       DATE-COMPILED.  APRIL 12 2011.   
+      *REMARKS. THIS PROGRAM DISPLAYS AGENCY EMAIL ADDRESS RECS.
+************************************************************************
+C92947* 13-NOV-09 - GAB - REPLACE MKT-COMMENT-CODE LOOK UP AREA.       *
+************************************************************************
+C98889* 15-JAN-10     DK0     TCS LTD.               CQ98889           *
+C98889* RESTRICT USERS AS PER ROLES FOR NON-DIRECT AGENT EMAIL UPDATE. *
+************************************************************************
+C97054* 12-APR-2011 - GAB - Change bit 6 from dormant to indicate COOP.*
+************************************************************************
+119419* 21-JUN-11     9MR     TCS LTD.               CQ119419          *
+119419* RESTRICT USERS AS PER THE ROLES FOR AGENT-EMAIL-UPDATE.        *
+************************************************************************
+127146* 29-AUG-11     RJ2     TCS LTD.               CQ127146          *
+127146* ADD BD/BD/ANY FOR UPDATE ACCESS TO NON-DIRECT AGENT EMAIL.     *
+************************************************************************
+123050* 12-OCT-12     N3P                            CQ 123050         *
+123050* Add new Security Roles for Reservations Departments restucture *
+************************************************************************
+CCL-UK* 10-MAY-12     7JJ     TCS LTD.               CCL-UK            *
+CCL-UK* CCL-UK PROJECT AGENCY COMMISSION RELATED CHANGES.              *
+************************************************************************
+150010* 24-JAN-13     NY0     TCS LTD.               CQ150010          *
+150010* ADD SECURITY ROLE RM-PO-7 FOR UPDATE ACCESS                    *
+************************************************************************
+154125* 09-SEP-12     9RG     TCS LTD.               CQ154125          *
+154125* INCREASED DSA SIZE FOR AGENT RECORD                            *
+************************************************************************
+161375* 25-NOV-13     RGM     TCS LTD.               CQ161375          *
+161375* STOP TIP PRINT IN CASE PHONE NUMBER ENTERED DOES NOT EXIST.    *
+************************************************************************
+150339* 14-FEB-14     GG4     TCS LTD.               CQ150339          *
+150339* INTRODUCE NEW COMMUNICATION CONTROLS                           *
+************************************************************************
+153834* 19-SEP-14     PY0     TCS LTD.               CQ153834          *
+153834* ADDED LOGIC FOR AGENCY 3055999876 NOT TO ADD,DEL,MOD EMAILS    *
+************************************************************************
+164663* 01-DEC-14     GG4     TCS LTD.               CQ164663          *
+164663* ADDING ATOL/TRUE/BLN/SOT ATTRIUTE AT AGENCY LEVEL              *
+************************************************************************
+188688* 08-FEB-16     RV3     TCS LTD.               CQ188688          *
+188688* CONVERT EXISTING BATCH AND TRANSACTION PROGRAMS TO USE         *
+188688* EXPLICIT THREAD CONTROL                                        *
+************************************************************************
+204888* 24-JUL-17     BK4     TCS LTD.               CQ204888          *
+204888* PBS SYSTEMATIC LETTER TEMPLATES MINOR CHANGES.                 *
+************************************************************************
+209226* 30-NOV-17     PY0     TCS LTD.                  CQ209226       *
+209226* MADE CHANGES TO STOP CHANGES FOR AGENCY 3055992600             *
+************************************************************************
+213779* 04-JAN-19     WEA     TCS LTD                CQ213779          *
+213779* CHANGES FOR ACCT AND RES CODE DISPLAY ON ALL SCREENS WHEN      *
+213779* THE CODE IS ADDED                                              *
+************************************************************************
+214948* 23-APR-19     SG8     TCS LTD.               CQ214948          *
+214948* CHANGES DONE TO INCORPORATE ALPHANUMERIC AGENCY CUSTOMER NUM.  *
+************************************************************************
+CCLAUS* 09-DEC-19     HYS     TCS LTD.               CCLAUS            *
+CCLAUS* CARNIVAL AUSTRALIA PROJECT CHANGES FOR APR RECORD.             *
+************************************************************************
+PPC470* 06-OCT-16     0SA     TCS LTD.               PPC470            *
+PPC470* PPC PROJECT SAIL1 AREA CHANGES.                                *
+************************************************************************
+190530* 07-AUG-24     QJZ      TCS LTD.               ADO1905306       *
+190530* LIMITED ACCESS FOR AGENCY AND ROLES.                           *
+************************************************************************
+186084* 09-AUG-24     P7K     TCS LTD.               ADO1860847        *
+186084* CHANGES DONE FOR TRADE SALES PROJECT                           *
+************************************************************************
+224798* 10-FEB-26     ZZD     TCS LTD.               ADO2247989        *
+224798* PROFILE RESTRICTON                                             *
+************************************************************************
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER. UNIVAC-2200.
+       OBJECT-COMPUTER. UNIVAC-2200.
+       SPECIAL-NAMES.   
+           PRINTER IS PRINTER   
+           CONSOLE IS CONSOLE.  
+       DATA DIVISION.   
+       SUBSCHEMA SECTION.   
+       INVOKE SUBSCHEMA PST100UCOBSU
+              IN FILE SUBSCHEMAS OF SCHEMA PST100SCHEMA 
+CCL-UK        COPYING RECORDS    INTO COMMON
+CCL-UK        COPYING DATA-NAMES INTO COMMON
+              SAVE DATA INCLUDES DEFERRED-UPDATES   
+              OVERLAY PAX-REC WITH PAX-CXF-REC  
+169014*                            PAX-FUT-REC  
+                                   PAX-VI-REC   
+CCL-UK        DMCA  COMMON  
+144449        ERROR RECOVERY IS 9100-DATABASE-ERROR 
+144449        ROLLBACK       IS 9100-DATABASE-ERROR.
+
+       WORKING-STORAGE SECTION. 
+144449 01  WS-PROG-ID            PIC X(8) VALUE 'MKR46AED'. 
+       01  MCFLAG                       PIC 9(10) COMP VALUE ZEROS. 
+CCL-UK 01  WS-PSCRAT-LENGTH             PIC 9(05) USAGE BINARY. 
+CCL-UK 01  WS-CHK-REM                   PIC V9(02) VALUE ZEROES.
+CCL-UK 01  REC-LEN                      PIC 9(03)  VALUE ZEROES.
+       01  PSUB                         PIC 99 VALUE ZERO.  
+       01  MSUB                         PIC 99 VALUE ZERO.  
+150339 01  WS-SUB                       PIC 99 VALUE ZERO.  
+       01  LSUB                         PIC 99 VALUE ZEROS. 
+C98889 01  WS-USER-AUTH-TO-UPD          PIC X(01) VALUE SPACES. 
+       01  WS-LAST-BKG. 
+           03 WS-LAST-BKG-MM            PIC 99. 
+           03 FILLER                    PIC X VALUE '/'.
+           03 WS-LAST-BKG-DD            PIC 99. 
+           03 FILLER                    PIC X VALUE '/'.
+           03 WS-LAST-BKG-YY            PIC 99. 
+       01  WS-LAST-NONE                 PIC X(8)   VALUE ' (NONE) '.
+       01  WS-ALPHA.
+190530     03  WS-UPD-ACCESS-FOR-TA     PIC X(01).  
+           03 WS-COMPANY-CODE           PIC X(01).  
+           03 WS-HOLD-IND               PIC X(01).  
+           03 WS-HOLD-COMMENT           PIC X(20).  
+           03 WS-CITY-ST-ZIP-D          PIC X(30).  
+186084*01  WS-COMMISSION                PIC V99 USAGE COMP. 
+186084*01  WS-COMM                      REDEFINES   
+186084*    WS-COMMISSION                PIC 99 USAGE COMP.  
+
+186084 01  WS-AG-II-COMM-PCT            PIC V99 USAGE COMP. 
+186084 01  WS-AG-II-COMM-PCT-REF        REDEFINES   
+186084                                  WS-AG-II-COMM-PCT   
+186084                                  PIC 99 USAGE COMP.  
+186084  
+186084 01  WS-AG-IG-COMM-PCT            PIC V99 USAGE COMP. 
+186084 01  WS-AG-IG-COMM-PCT-REF        REDEFINES   
+186084                                  WS-AG-IG-COMM-PCT   
+186084                                  PIC 99 USAGE COMP.  
+186084  
+186084 01  WS-AG-EI-COMM-PCT            PIC V99 USAGE COMP. 
+186084 01  WS-AG-EI-COMM-PCT-REF        REDEFINES   
+186084                                  WS-AG-EI-COMM-PCT   
+186084                                  PIC 99 USAGE COMP.  
+186084  
+186084 01  WS-AG-EG-COMM-PCT            PIC V99 USAGE COMP. 
+186084 01  WS-AG-EG-COMM-PCT-REF        REDEFINES   
+186084                                  WS-AG-EG-COMM-PCT   
+186084                                  PIC 99 USAGE COMP.  
+
+       01  WS-NUMERIC.  
+           03 SUBF                      PIC 99. 
+           03 WS-DIGIT-CTR              PIC 99 VALUE ZEROES.
+           03 WS-AGENT-PHONE            PIC X(10).  
+           03 WS-INPUT                  PIC X(70).  
+           03 WS-AGENT-PHONE-RDF        REDEFINES    WS-INPUT.  
+              05 WS-AGENT-PHONE1        PIC 9(10).  
+              05 FILLER                 PIC X(60).  
+           03 WS-AGENT-PHONE-R          REDEFINES WS-INPUT. 
+214948*       05 WS-CUSTOMER-NUM        PIC 9(07).  
+214948        05 WS-CUSTOMER-NUM        PIC X(07).  
+              05 WS-CUST-FILL           PIC X(03).  
+              05 FILLER                 PIC X(60).  
+           03 WS-AGENT-PHONE-B          REDEFINES WS-INPUT. 
+              05 WS-BOOK-NUM            PIC X(06).  
+              05 WS-BOOK-FILL           PIC X(04).  
+              05 FILLER                 PIC X(60).  
+214948*    03 WS-CUSTOMER-NUM-IN        PIC 9(07).  
+214948*    03 WS-CUSTOMER-NUM-OUT       PIC 9(07).  
+214948     03 WS-CUSTOMER-NUM-IN        PIC X(07).  
+214948     03 WS-CUSTOMER-NUM-OUT       PIC X(07).  
+       01  WS-AGT-FAX-NUM.  
+           03 FILLER                    PIC X VALUE '('.
+           03 WS-FAX-AREA-CODE          PIC 9(3).   
+           03 FILLER                    PIC X VALUE ')'.
+           03 WS-FAX-PREFX              PIC 9(3).   
+           03 FILLER                    PIC X VALUE '-'.
+           03 WS-FAX-NUM                PIC 9(4).   
+       01  WS-HLD-FAX.  
+           03 WS-HLD-A-CDE              PIC 9(3).   
+           03 WS-HLD-P-CDE              PIC 9(3).   
+           03 WS-HLD-N-CDE              PIC 9(4).   
+       01  DPS-SAVE-AREA.   
+           03 DSA-TRANS-RTN             PIC 9(01).  
+           03 DSA-SECURITY-LEVEL        PIC 9(02).  
+           03 FILLER                    PIC X(02).  
+           03 DSA-WANT-MORE             PIC X(01).  
+           03 DSA-AGENT-PHONE           PIC 9(10).  
+           03 DSA-COMPANY-CODE          PIC X(01).  
+144449     03 DSA-AGENT-DBK             PIC 1(36) BINARY-1. 
+144449     03 DSA-TERMS-DBK             PIC 1(36) BINARY-1. 
+           03 DSA-PHONE-FLAG            PIC X(01).  
+154125*    03  DSA-OLD-AGT-REC          PIC X(456). 
+154125*    03  DSA-NEW-AGT-REC          PIC X(456). 
+164663*    03  DSA-OLD-AGT-REC          PIC X(492). 
+164663*    03  DSA-NEW-AGT-REC          PIC X(492). 
+164663     03  DSA-OLD-AGT-REC          PIC X(792). 
+164663     03  DSA-NEW-AGT-REC          PIC X(792). 
+CCL-UK*    03 DSA-OLD-TERMS-COMPANY-REC PIC X(160). 
+CCL-UK*    03 DSA-NEW-TERMS-COMPANY-REC PIC X(160). 
+CCL-UK     03 DSA-OLD-TERMS-COMPANY-REC PIC X(228). 
+CCL-UK     03 DSA-NEW-TERMS-COMPANY-REC PIC X(228). 
+           03 DSA-TRANS-APP             PIC X(02).  
+           03 DSA-CALC-KEY. 
+              05 DSA-KEY-TYPE           PIC X.  
+214948*       05 DSA-CUSTOMER-NUM       PIC 9(7).   
+214948        05 DSA-CUSTOMER-NUM       PIC X(7).   
+           03 DSA-ALL-IND-CNT           PIC 9(3).   
+           03 DSA-EMAIL-CNT             PIC 9(3).   
+           03 DSA-NEW-SCREEN.   
+150339*       05 DSA-NEW-TABLE          OCCURS 11 TIMES.
+150339        05 DSA-NEW-TABLE          OCCURS 09 TIMES.
+                 07 DSA-NEW-DEL         PIC X.  
+                 07 DSA-EMAIL-ADDRESS   PIC X(50).  
+                 07 DSA-EMAIL-MSG-INDS  PIC 1(36).  
+                 07 DSA-ERROR-COUNT     PIC 9(2).   
+144449           07 DSA-EMAIL-DBK       PIC 1(36) BINARY-1. 
+144449     03 DSA-NXT-EMAIL-DBK         PIC 1(36) BINARY-1. 
+           03 DSA-HISTORY-TABLE.
+              05 DSA-TABLE-ENTRIES      OCCURS 40 TIMES.
+                 07 DSA-H-ACTIVITY-CODE PIC X(03).  
+                 07 DSA-H-ACTIVITY-DESC PIC X(10).  
+                 07 DSA-H-COMMENT       PIC X(30).  
+           03 DSA-CHANGE-CNT            PIC 9(02).  
+           03 DSA-CONTACT               PIC X(10).  
+144449     03 DSA-OLD-REP-DBK           PIC 1(36) BINARY-1. 
+144449     03 DSA-OLD-TER-DBK           PIC 1(36) BINARY-1. 
+144449     03 DSA-NEW-REP-DBK           PIC 1(36) BINARY-1. 
+144449     03 DSA-NEW-TER-DBK           PIC 1(36) BINARY-1. 
+C98889     03 DSA-USER-AUTH-TO-UPD      PIC X(01).  
+C98889     03 DSA-AGENT-DIRECT-IND      PIC X(01).  
+
+144449*COPY DPP01OWS.   
+144449 COPY DPP01DTA.   
+144449 COPY DPP01DWS.   
+144449 COPY RECOVERY-CONTROL-BLOCK. 
+144449 COPY DPP01ERR.   
+144449 COPY DPP01MCB.   
+144449 COPY DPP12SCO.   
+144449 COPY DPP42ERR.   
+144449 COPY RSP00DMS.   
+144449 COPY RSP32DMS.   
+144449 COPY RSP64DMS.   
+144449 COPY RSP77GMD.   
+       COPY INFO-BUFFER.
+       COPY DPS-OPTIONS.
+       COPY REXMIT-BUFF.
+       COPY PSCRAT-INFO.
+144449 COPY DPSSTATUSCOB.   
+       COPY GETLINE.
+       COPY SENDERROR.  
+186084 COPY SCREEN-MKS46AED-725.
+186084*COPY SCREEN-MKS46AED-726.
+C92947*COPY MKP02VDW.   
+       COPY MKP50GLW.   
+       COPY MKP70STW.   
+144449*COPY RSP86INP.   
+144449 COPY RSP86GLD.   
+144449*COPY RSP86DTA.   
+       COPY MKP46AEW.   
+       COPY DPP02Y2K.   
+       COPY IRP66IBR.   
+       COPY DPP20DWS.   
+       COPY DPP01CIW.   
+       COPY DPP01SCO.   
+CCL-UK COPY MKP65ACW.   
+163032 COPY SSP18GUD.   
+PPC470 COPY TDP01SAW.   
+
+CCL-UK COMMON-STORAGE SECTION.  
+       PROCEDURE DIVISION.  
+       COPY DPP01INT.   
+PPC470 COPY TDP01INT.   
+       0000-INITIALIZE. 
+           MOVE ZEROS                   TO LSUB.
+163032*    INITIALIZE MAPPER-USER-REC   
+163032*                   NT-USER-REC.  
+
+           MOVE 101                     TO PSCRAT-OFFSET.   
+CCL-UK*    MOVE 925                     TO PSCRAT-LENGTH.   
+CCL-UK     DIVIDE FUNCTION LENGTH ( DPS-SAVE-AREA ) BY 4
+CCL-UK         GIVING WS-PSCRAT-LENGTH  
+CCL-UK                WS-CHK-REM.   
+CCL-UK  
+CCL-UK     IF  WS-CHK-REM > 0   
+CCL-UK         ADD 1                    TO WS-PSCRAT-LENGTH 
+CCL-UK     END-IF.  
+CCL-UK  
+CCL-UK     MOVE WS-PSCRAT-LENGTH        TO PSCRAT-LENGTH.   
+
+           PERFORM MKP50-INFO-BUFFER.   
+           PERFORM MKP50-GET-SCR.   
+           PERFORM MKP50-GET-MKRAD-SCRATCH. 
+           PERFORM MKP50-GETLINE THRU MKP50-CFP-EXIT.   
+           MOVE ZEROS                   TO WS-NUMERIC.  
+           MOVE SPACES                  TO WS-ALPHA.
+           UNSTRING GETLINE-TEXT DELIMITED BY ALL SPACES INTO   
+              WS-TRANS-CODE WS-INPUT WS-COMPANY-CODE.   
+           IF DSA-AGENT-PHONE NOT = WS-AGENT-PHONE1 
+              MOVE SPACES               TO DSA-WANT-MORE
+           ELSE 
+              MOVE 02010604             TO DPP01-ERROR-NUMBER   
+186084        CALL 'D$READ' USING DPS-STATUS SCREEN-MKS46AED-725
+186084*       CALL 'D$READ' USING DPS-STATUS SCREEN-MKS46AED-726
+              IF STATUS-FATAL   
+                 MOVE SPACES            TO DSA-WANT-MORE
+              END-IF
+           END-IF.  
+
+190530 COPY SSP18INT.   
+190530  
+190530     MOVE INFO-USERID               TO SSP18-I-MAPPER-UID.
+190530  
+190530     CALL 'SSC18GUD' USING DPP01-COMMON-DATA-FIELDS   
+190530                           DPP01-COMMON-INFO  
+190530                           SSP18-INPUT-PARAMS 
+190530                           SSP18-OUTPUT-PARAMS.   
+190530  
+190530     IF DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1
+190530        GO TO 9500-RETURN-SUBROUTINE-ERROR.   
+
+           IF DSA-WANT-MORE = 'Y' AND WS-TRANS-ID = 'AED'   
+              PERFORM MKP50-READ-SCREEN 
+              MOVE DSA-SECURITY-LEVEL   TO SECURITY-LEVEL   
+              MOVE WS-AGENT-PHONE1      TO DSA-AGENT-PHONE  
+              IF S725-MORE-IND NOT = 'Y'
+                 MOVE "MORE EMAIL ADDRS TO DISPLAY" TO WS-MSG   
+                 MOVE WS-AGENT-PHONE1   TO AGENT-PHONE-NUM  
+                                           DSA-AGENT-PHONE  
+                 MOVE WS-COMPANY-CODE   TO DSA-COMPANY-CODE 
+                 GO TO 3000-SEND-SCREEN.
+
+186084     IF DSA-WANT-MORE = 'N' AND INFO-SCREEN-NUMBER = 725  
+186084*    IF DSA-WANT-MORE = 'N' AND INFO-SCREEN-NUMBER = 726  
+              MOVE DSA-SECURITY-LEVEL   TO SECURITY-LEVEL   
+              MOVE "NO MORE MAIL RECORDS" TO WS-MSG 
+              MOVE WS-AGENT-PHONE1      TO AGENT-PHONE-NUM  
+                                           DSA-AGENT-PHONE  
+              MOVE WS-COMPANY-CODE      TO DSA-COMPANY-CODE 
+              PERFORM MKP50-READ-SCREEN 
+              GO TO 3000-SEND-SCREEN.   
+
+188688     PERFORM DPP12-BEGIN-THREAD THRU DPP12-BEGIN-THREAD-EXIT. 
+188688  
+188688     IF DPP01-SQL-ERROR-IND = 'Y' 
+188688     GO TO DPP12-THREAD-ERROR-EXIT.   
+PPC470     EXEC SQL USE DEFAULT SCHEMA PSTRDMS END-EXEC.
+PPC470     EXEC SQL WHENEVER SQLERROR   
+PPC470          GO TO DPP12-RDMS-ERROR  
+PPC470     END-EXEC.
+           IF DSA-WANT-MORE = 'Y'   
+              IF WS-TRANS-ID = 'AEU'
+                 IF WS-TRANS-SEQ = '1'  
+                    MOVE 'AEU'          TO WS-TRANS-ID  
+                    MOVE DSA-TRANS-APP  TO WS-TRANS-APP 
+                    GO TO 0100-IMPART   
+                 ELSE   
+                    MOVE SPACES         TO DSA-WANT-MORE
+              ELSE  
+                 IF WS-TRANS-ID = 'AMD' 
+                    GO TO 0100-IMPART.  
+           PERFORM 0570-CLEAR THRU 0570-EXIT.   
+           IF INFO-PASSOFF NOT = 'Y'
+              MOVE ZEROES               TO MKP50-MKRAD-DSA  
+              PERFORM MKP50-PUT-MKRAD-SCRATCH.  
+           MOVE WS-TRANS-APP            TO DSA-TRANS-APP.   
+           IF WS-TRANS-ID = 'AED'   
+              MOVE 'AEU'                TO MKP50-TRANS-ID   
+              MOVE WS-TRANS-APP         TO MKP50-TRANS-APP. 
+           PERFORM MKP50-CHECK-SECURITY THRU MKP50-CS-EXIT. 
+
+       0100-IMPART. 
+           MOVE 01010104                TO DPP01-ERROR-NUMBER.  
+           IMPART.  
+           PERFORM IRP66-OPEN-IBR-RETRIEVAL THRU
+                   IRP66-OPEN-IBR-AREAS-EXIT.   
+           OPEN AGENT                   USAGE-MODE IS RETRIEVAL 
+                AGENT-IDX               USAGE-MODE IS RETRIEVAL 
+                AGENT-PHONE             USAGE-MODE IS RETRIEVAL 
+                AGNT-PHO-IDX            USAGE-MODE IS RETRIEVAL 
+                FARE                    USAGE-MODE IS RETRIEVAL 
+                AGENT-COMP              USAGE-MODE IS RETRIEVAL 
+                AGENT-TERMS             USAGE-MODE IS RETRIEVAL 
+                AGENCY-ASSOC            USAGE-MODE IS RETRIEVAL 
+                AGENCY-RATE             USAGE-MODE IS RETRIEVAL 
+                AGENT-EMAIL             USAGE-MODE IS RETRIEVAL 
+                SALES-REP               USAGE-MODE IS RETRIEVAL 
+                SREP-IDX                USAGE-MODE IS RETRIEVAL 
+PPC470*         SAIL1                   USAGE-MODE IS RETRIEVAL 
+PPC470*         SAIL1-IDX               USAGE-MODE IS RETRIEVAL 
+                TERR-REGION             USAGE-MODE IS RETRIEVAL 
+                TERR-REG-IDX            USAGE-MODE IS RETRIEVAL 
+                TERRITORY               USAGE-MODE IS RETRIEVAL 
+                TERR-IDX                USAGE-MODE IS RETRIEVAL 
+                INDV-FEE                USAGE-MODE IS RETRIEVAL 
+                GRP1-BOOK               USAGE-MODE IS RETRIEVAL 
+                GRP1BKEXT3              USAGE-MODE IS RETRIEVAL 
+144449*         COUNTRY                 USAGE-MODE IS RETRIEVAL 
+144449*         LOCALITY                USAGE-MODE IS RETRIEVAL 
+                ERROR-DESC              USAGE-MODE IS RETRIEVAL.
+
+C98889     MOVE 14950102                TO DPP01-ERROR-NUMBER.  
+163032*    OPEN SECUSER                 USAGE-MODE IS RETRIEVAL.
+190530*COPY SSP18INT.   
+190530* 
+190530*    MOVE INFO-USERID               TO SSP18-I-MAPPER-UID.
+190530* 
+190530*    CALL 'SSC18GUD' USING DPP01-COMMON-DATA-FIELDS   
+190530*                          DPP01-COMMON-INFO  
+190530*                          SSP18-INPUT-PARAMS 
+190530*                          SSP18-OUTPUT-PARAMS.   
+190530* 
+190530*    IF DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1
+190530*       GO TO 9500-RETURN-SUBROUTINE-ERROR.   
+
+           MOVE 'ERROR-DESC'            TO ERROR-DESC-CALCAREA. 
+           MOVE SPACES                  TO WS-MESSAGE.  
+           MOVE WS-AGENT-PHONE1         TO WS-AGENT-PHONE.  
+           IF DSA-WANT-MORE = 'Y'   
+144449*       FETCH DSA-AGENT-DBK   
+144449        MOVE DSA-AGENT-DBK        TO GENERIC-DBK  
+144449        FETCH GENERIC-DBK 
+
+144449*       FETCH DSA-TERMS-DBK   
+144449        MOVE DSA-TERMS-DBK        TO GENERIC-DBK  
+144449        FETCH GENERIC-DBK 
+
+144449*       FETCH DSA-NXT-EMAIL-DBK   
+144449        MOVE DSA-NXT-EMAIL-DBK    TO GENERIC-DBK  
+144449        FETCH GENERIC-DBK 
+              PERFORM 0570-CLEAR THRU 0570-EXIT 
+              GO TO 0230-CONT.  
+           IF WS-COMPANY-CODE = SPACES OR LOW-VALUES
+              MOVE 'C'                  TO WS-COMPANY-CODE. 
+           IF WS-COMPANY-CODE = 'C' OR 'F'  
+               NEXT SENTENCE
+           ELSE 
+               MOVE 2                   TO DPP01-MESSAGE-SW 
+               MOVE 'INVALID COMPANY CODE' TO WS-MSG
+               MOVE WS-MESSAGE          TO DPP01-USER-MESSAGE   
+               MOVE S725-COMPANY-CODE-XCO TO ERROR-X
+               MOVE S725-COMPANY-CODE-YCO TO ERROR-Y
+               GO TO 9000-END-OF-JOB.   
+           IF WS-CUST-FILL = SPACES 
+              MOVE WS-CUSTOMER-NUM      TO WS-CUSTOMER-NUM-IN   
+              INSPECT WS-CUSTOMER-NUM-IN TALLYING WS-DIGIT-CTR FOR  
+                 ALL SPACES 
+              ADD 1                     TO WS-DIGIT-CTR 
+214948*       MOVE ZEROS                TO WS-CUSTOMER-NUM-OUT  
+214948        MOVE SPACES               TO WS-CUSTOMER-NUM-OUT  
+              STRING WS-CUSTOMER-NUM-IN DELIMITED BY SPACE INTO 
+                 WS-CUSTOMER-NUM-OUT WITH POINTER WS-DIGIT-CTR  
+           ELSE 
+              GO TO 0200-CHECK-FOR-BOOKING. 
+
+       0200-CHECK-FOR-CUSTOMER. 
+           MOVE SPACES                  TO AAR-CUSTOMER-KEY.
+           MOVE WS-CUSTOMER-NUM-OUT     TO AAR-CUSTOMER-NUM.
+           MOVE 'CM'                    TO AAR-CUSTOMER-TYPE.   
+           MOVE 12111001                TO DPP01-ERROR-NUMBER.  
+           FETCH AGENCY-ASSOCIATION-REC RECORD  
+              ON ERROR GO TO 0200-CHECK-FOR-BOOKING.
+           MOVE 12112302                TO DPP01-ERROR-NUMBER.  
+           FETCH OWNER RECORD WITHIN AGENCY-ASSOCIATION-SET SET 
+              ON ERROR GO TO 9100-DATABASE-ERROR.   
+           MOVE AGENT-PHONE-NUM         TO WS-AGENT-PHONE   
+                                           S725-PHONE-NUM-IN.   
+           GO TO 0200-AGENT-INFO.   
+
+       0200-CHECK-FOR-BOOKING.  
+           IF WS-BOOK-FILL = SPACES 
+              PERFORM 5000-FETCH-BOOKING THRU 5000-EXIT.
+           IF WS-AGENT-PHONE NOT NUMERIC
+              MOVE WS-INPUT             TO AER-EMAIL-ADDRESS
+              MOVE 93101202             TO DPP01-ERROR-NUMBER   
+              FETCH AGENT-EMAIL-REC RECORD  
+                 ON ERROR GO TO 0195-CHECK-LOWER-CASE   
+              MOVE 12511008             TO DPP01-ERROR-NUMBER   
+              FETCH OWNER RECORD WITHIN AGENT-EMAIL-SET SET 
+                 ON ERROR GO TO 9100-DATABASE-ERROR 
+              MOVE ATCR-PHONE-NUM       TO WS-AGENT-PHONE   
+                                           S725-PHONE-NUM-IN.   
+           GO TO 0200-AGENT-INFO.   
+
+       0200-ERROR-MESSAGE.  
+           MOVE 2                       TO DPP01-MESSAGE-SW.
+           MOVE 'PLEASE ENTER PHONE, EMAIL,BKG OR CUSTOMER NUMBER'  
+                                        TO DPP01-USER-MESSAGE.  
+           MOVE S725-PHONE-NUM-IN-XCO TO ERROR-X.   
+           MOVE S725-PHONE-NUM-IN-YCO TO ERROR-Y.   
+           GO TO 9000-END-OF-JOB.   
+
+       0200-AGENT-INFO. 
+           MOVE WS-AGENT-PHONE          TO APR-PHONE-NUM.   
+CCLAUS     MOVE 001                     TO APR-COUNTRY-NUM. 
+           MOVE 12011016                TO DPP01-ERROR-NUMBER.  
+           FETCH AGENT-PHONE-REC RECORD 
+161375        ON ERROR GO TO 9000-AGENT-ERROR.  
+161375*       ON ERROR GO TO 9100-DATABASE-ERROR.   
+           MOVE 12012317                TO DPP01-ERROR-NUMBER.  
+
+           FETCH OWNER RECORD WITHIN AGENT-PHONE-SET SET
+161375        ON ERROR GO TO 9000-AGENT-ERROR.  
+161375*       ON ERROR GO TO 9100-DATABASE-ERROR.   
+           IF AGENT-REC = DSA-OLD-AGT-REC   
+              IF DSA-WANT-MORE = 'Y'
+                 PERFORM MKP50-READ-SCREEN  
+                 IF S725-MORE-IND = 'Y' AND WS-TRANS-ID = 'AED' 
+                    IF DSA-NXT-EMAIL-DBK > ZEROES   
+144449*                FETCH DSA-NXT-EMAIL-DBK  
+144449                 MOVE DSA-NXT-EMAIL-DBK    TO GENERIC-DBK 
+144449                 FETCH GENERIC-DBK
+                       PERFORM 0570-CLEAR THRU 0570-EXIT
+                       GO TO 0510-FETCH-NEXT.   
+           MOVE SPACES                  TO DPS-SAVE-AREA.   
+           MOVE WS-TRANS-APP            TO DSA-TRANS-APP.   
+           MOVE DPS-FIELD-LEVEL         TO DSA-SECURITY-LEVEL.  
+144449*    MOVE STATUS FOR RUN-UNIT     TO DSA-AGENT-DBK.   
+144449     MOVE CURRENT-DBKEY           TO DSA-AGENT-DBK.   
+C98889     MOVE AGENT-DIRECT-IND        TO DSA-AGENT-DIRECT-IND.
+           MOVE WS-COMPANY-CODE         TO DSA-COMPANY-CODE 
+                                           ATCR-COMPANY-CODE.   
+           MOVE AGENT-PHONE-NUM         TO ATCR-PHONE-NUM WS-AGENT-PHONE
+                                           DSA-AGENT-PHONE. 
+           FETCH AGENT-TERMS-COMPANY-REC RECORD 
+              ON ERROR GO TO 0199-COMPANY-ERROR.
+           PERFORM DPP20-UNLOAD-ATCR-DATES THRU DPP20-EXIT. 
+144449*    MOVE STATUS FOR RUN-UNIT     TO DSA-TERMS-DBK.   
+144449     MOVE CURRENT-DBKEY           TO DSA-TERMS-DBK.   
+           MOVE WS-TRANS-CODE           TO S725-TRANS-CODE. 
+
+C97054*    IF SECURITY-LEVEL < 1
+C97054     IF  DSA-AGENT-DIRECT-IND NOT = 'Y' AND   
+C97054        (DSA-USER-AUTH-TO-UPD = 'N' OR SPACES OR LOW-VALUES)  
+              MOVE S725-PHONE-NUM-IN-XCO TO ERROR-X 
+              MOVE S725-PHONE-NUM-IN-YCO TO ERROR-Y.
+164663     MOVE SPACES                  TO DSA-OLD-AGT-REC  
+164663                                     DSA-NEW-AGT-REC. 
+           MOVE AGENT-REC               TO DSA-OLD-AGT-REC  
+                                           DSA-NEW-AGT-REC. 
+           MOVE AGENT-TERMS-COMPANY-REC TO DSA-OLD-TERMS-COMPANY-REC
+                                           DSA-NEW-TERMS-COMPANY-REC.   
+
+       0230-CONT.   
+           IF INFO-CONVERSATION = 'Y'   
+              PERFORM MKP50-CLEAR-CONV. 
+           PERFORM MKP50-OPEN-SCREEN.   
+           IF DSA-WANT-MORE = 'Y'   
+              MOVE DSA-COMPANY-CODE     TO WS-COMPANY-CODE  
+              MOVE DSA-AGENT-PHONE      TO WS-AGENT-PHONE   
+              MOVE DSA-TRANS-APP        TO WS-TRANS-APP.
+
+           IF WS-COMPANY-CODE = 'C' 
+              MOVE 'CCL'                TO S725-COMPANY-D.  
+           MOVE WS-COMPANY-CODE         TO S725-COMPANY-CODE.   
+           MOVE AGENT-PHONE-NUM         TO S725-PHONE-NUM-IN.   
+           MOVE WS-TRANS-CODE           TO S725-TRANS-CODE. 
+           MOVE AGENT-SALES-REP-CODE    TO SRR-SALES-REP-CODE   
+                                           TR-SALES-REP-CODE
+                                           S725-SALES-REP-CODE-D.   
+           MOVE AGENT-REGION-CODE       TO RR-REGION-CODE   
+                                           SRR-REGION-CODE  
+                                           TR-REGION-CODE   
+                                           S725-REGION-CODE-D.  
+           MOVE AGENT-TERRITORY-CODE    TO TR-TERRITORY-CODE
+                                           S725-TERRITORY-CODE-D.   
+           MOVE 'C'                     TO SRR-COMPANY-CODE 
+                                           RR-COMPANY-CODE  
+                                           TR-COMPANY-CODE. 
+           MOVE AGENT-FAX-NUM           TO WS-HLD-FAX.  
+           MOVE WS-HLD-A-CDE            TO WS-FAX-AREA-CODE.
+           MOVE WS-HLD-P-CDE            TO WS-FAX-PREFX.
+           MOVE WS-HLD-N-CDE            TO WS-FAX-NUM.  
+           MOVE WS-AGT-FAX-NUM          TO S725-FAX-NUMBER. 
+           MOVE AGENT-FAX-IND           TO S725-FAX-IND.
+           MOVE AGENT-CCL-ADVERTISING-IND TO S725-FAX-PROMO-IND.
+           MOVE 52011000                TO DPP01-ERROR-NUMBER.  
+           MOVE 00                      TO SRR-REP-EXPAND.  
+           FETCH SALES-REP-REC RECORD   
+              ON ERROR GO TO 0200-SALES-REP-ERROR.  
+           PERFORM DPP20-UNLOAD-SRR-DATES THRU DPP20-EXIT.  
+           MOVE SRR-NAME                TO S725-SALES-REP-NAME-D.   
+           GO TO 0210-CONT. 
+
+       0195-CHECK-LOWER-CASE.   
+           MOVE FUNCTION LOWER-CASE ( AER-EMAIL-ADDRESS )   
+                                        TO AER-EMAIL-ADDRESS.   
+           MOVE 93101202                TO DPP01-ERROR-NUMBER.  
+           FETCH AGENT-EMAIL-REC RECORD 
+              ON ERROR GO TO 0200-ERROR-MESSAGE.
+           MOVE 12511009                TO DPP01-ERROR-NUMBER.  
+           FETCH OWNER RECORD WITHIN AGENT-EMAIL-SET SET
+              ON ERROR GO TO 9100-DATABASE-ERROR.   
+           MOVE ATCR-PHONE-NUM          TO WS-AGENT-PHONE   
+                                           S725-PHONE-NUM-IN.   
+           GO TO 0200-AGENT-INFO.   
+
+       0199-COMPANY-ERROR.  
+           IF ERROR-CODE = 06 OR 07 OR 13   
+              NEXT SENTENCE 
+           ELSE 
+              GO TO 9100-DATABASE-ERROR.
+           MOVE AGENT-PHONE-NUM         TO MKP70-PHONE-NUM. 
+           MOVE AGENT-STATE             TO MKP70-STATE. 
+           MOVE WS-COMPANY-CODE         TO MKP70-COMPANY-CODE.  
+CCL-UK     COPY RSP86INT.   
+           PERFORM MKP70-BUILD-TERMS THRU MKP70-BT-EXIT.
+           MOVE 'ATR'                   TO WS-TRANS-ID. 
+           MOVE SPACE                   TO WS-TRANS-SEQ.
+           PERFORM MKP50-PUT-SCR.   
+           PERFORM MKP50-PASSOFF.   
+144449*    GO TO DPP12-END-OF-JOB.  
+144449     GO TO 9000-END-OF-JOB.   
+
+       0200-SALES-REP-ERROR.
+           MOVE 'NO REP FOUND'          TO S725-SALES-REP-NAME-D.   
+
+       0210-CONT.   
+           FETCH REGION-REC RECORD  
+              ON ERROR GO TO 0215-REGION-ERROR. 
+           MOVE RR-REGION-DESC          TO S725-REGION-DESC-D.  
+           GO TO 0220-CONT. 
+
+       0215-REGION-ERROR.   
+           MOVE 'NO REG FOUND'          TO S725-REGION-DESC-D.  
+
+       0220-CONT.   
+           MOVE AGENT-TERRITORY-CODE    TO TR-TERRITORY-CODE
+           FETCH TERRITORY-REC RECORD   
+              ON ERROR GO TO 0250-E.
+           MOVE TR-TERRITORY-DESC       TO S725-TERRITORY-DESC-D.   
+           GO TO 0300-B.
+
+       0250-E.  
+           MOVE 'NO TER FOUND'          TO S725-TERRITORY-DESC-D.   
+
+       0300-B.  
+           MOVE AGENT-NAME              TO S725-AGENT-NAME-D.   
+           MOVE AGENT-ADDRESS1          TO S725-ADDRESS-1-D.
+           MOVE AGENT-ADDRESS2          TO S725-ADDRESS-2-D.
+           STRING AGENT-CITY  DELIMITED BY '  ' 
+                        ', '  DELIMITED BY SIZE 
+                 AGENT-STATE  DELIMITED BY SIZE 
+                       SPACE  DELIMITED BY SIZE 
+              AGENT-ZIP-CODE  DELIMITED BY '  ' 
+                         INTO WS-CITY-ST-ZIP-D. 
+           IF AGENT-ADDRESS2 = SPACES OR LOW-VALUES 
+              MOVE WS-CITY-ST-ZIP-D     TO S725-ADDRESS-2-D 
+           ELSE 
+              MOVE WS-CITY-ST-ZIP-D     TO S725-CITY-ST-ZIP-D.  
+           MOVE AGENT-COMMENT TO S725-AGENT-COMMENT-D.  
+
+186084     IF AGENT-MASTER-CONTRACT-NUM > ZEROES
+186084        MOVE AGENT-MASTER-CONTRACT-NUM   TO S725-MSTR-CON-NUM-D.  
+186084*    IF AGENT-CONTRACT-NUM > SPACES   
+186084*       PERFORM 6000-FIND-CONTRACT THRU 6000-EXIT.
+
+213779*    IF AGENT-ACCT-COMMENT-CODE NOT > SPACES  
+213779     IF AGENT-ACCT-COMMENT-CODE = SPACES OR LOW-VALUES
+213779        NEXT SENTENCE 
+213779     ELSE 
+              MOVE AGENT-ACCT-COMMENT-CODE TO WS-HOLD-IND   
+                                              S725-AGENT-ACCT-COMM  
+              PERFORM 7000-SPECIAL-COMMENT THRU 7000-EXIT   
+              MOVE WS-HOLD-COMMENT         TO S725-ACCT-COMMENT-D.  
+
+213779*    IF AGENT-RES-COMMENT-CODE NOT > SPACES   
+213779     IF AGENT-RES-COMMENT-CODE  = SPACES OR LOW-VALUES
+213779        NEXT SENTENCE 
+213779     ELSE 
+              MOVE AGENT-RES-COMMENT-CODE TO WS-HOLD-IND
+                                             S725-AGENT-RES-COMM
+              PERFORM 7000-SPECIAL-COMMENT THRU 7000-EXIT   
+              MOVE WS-HOLD-COMMENT        TO S725-RES-COMMENT-D.
+
+C92947*    IF AGENT-MKT-COMMENT-CODE = SPACES OR LOW-VALUES 
+C92947*       NEXT SENTENCE 
+C92947*    ELSE 
+C92947*       SEARCH ALL MKP01-AGENT-TABLE  
+C92947*          AT END 
+C92947*            MOVE 'UNKNOWN CODE ENTERED' TO S725-MKT-COMMENT-D
+C92947*            WHEN MKP01-AGENT-CD (AGT-NDX) =  
+C92947*                 AGENT-MKT-COMMENT-CODE  
+C92947*            MOVE MKP01-AGENT-NAME (AGT-NDX) TO   
+C92947*                 S725-MKT-COMMENT-D. 
+C92947     IF AGENT-MKT-COMMENT-CODE NOT > SPACES   
+C92947        GO TO 0300-C. 
+C92947     MOVE AGENT-MKT-COMMENT-CODE  TO S725-AGENT-MKT-COMM. 
+C92947     FETCH VALID-CODES-REC2 RECORD.   
+C92947     PERFORM VARYING SUBF FROM 1 BY 1 UNTIL   
+C92947        SUBF > VCR2-MKT-COMMENT-ENTRY-CTR 
+C92947        IF VCR2-MKT-EDIT-CODE (SUBF) = S725-AGENT-MKT-COMM
+C92947           MOVE VCR2-MKT-COMMENT-DESC (SUBF)  
+C92947                                  TO S725-MKT-COMMENT-D   
+C92947           MOVE 40                TO SUBF 
+C92947        END-IF
+C92947     END-PERFORM. 
+C92947     IF SUBF NOT > 39 
+C92947        MOVE 'UNKNOWN CODE ENTERED' TO S725-MKT-COMMENT-D.
+
+C92947 0300-C.  
+           MOVE 1 TO MSUB.  
+
+       0300-FILL-MESSAGE-DESC.  
+150339     EVALUATE MSUB
+150339         WHEN 1  MOVE 4 TO WS-SUB 
+150339         WHEN 2  MOVE 1 TO WS-SUB 
+150339         WHEN 3  MOVE 2 TO WS-SUB 
+150339         WHEN 4  MOVE 5 TO WS-SUB 
+150339         WHEN 5  MOVE 3 TO WS-SUB 
+150339         WHEN 6  MOVE 6 TO WS-SUB 
+204888         WHEN 7  MOVE 7 TO WS-SUB 
+150339     END-EVALUATE.
+150339     MOVE MKP46-ABBR-MSG-DESC (MSUB) TO S725-MESSAGE-DESC(WS-SUB).
+150339*    MOVE MKP46-ABBR-MSG-DESC (MSUB) TO S725-MESSAGE-DESC (MSUB). 
+
+           ADD 1                        TO MSUB.
+C97054*    IF MSUB < 6  
+C97054     IF MSUB NOT > MKP46-NUM-ENTRIES  
+              GO TO 0300-FILL-MESSAGE-DESC. 
+
+CCL-UK     MOVE 'I'                     TO MKP65-CONNECTION-TYPE.   
+CCL-UK     PERFORM MKP65-FETCH-ATCR-COMMISSION THRU 
+CCL-UK           MKP65-FETCH-ATCR-COMM-EXIT.
+
+186084     MOVE MKP65-INDV-CRUO-PCT     TO WS-AG-II-COMM-PCT.   
+186084     MOVE MKP65-GRP-CRUO-PCT      TO WS-AG-IG-COMM-PCT.   
+
+
+186084     MOVE 'E'                     TO MKP65-CONNECTION-TYPE.   
+186084     PERFORM MKP65-FETCH-ATCR-COMMISSION THRU 
+186084             MKP65-FETCH-ATCR-COMM-EXIT.  
+186084     MOVE MKP65-INDV-CRUO-PCT     TO WS-AG-EI-COMM-PCT.   
+186084     MOVE MKP65-GRP-CRUO-PCT      TO WS-AG-EG-COMM-PCT.   
+
+186084*    MOVE ATCR-INDV-CRUO-COMM     TO WS-COMMISSION.   
+186084*    MOVE MKP65-INDV-CRUO-PCT     TO WS-COMMISSION.   
+186084*    MOVE WS-COMM                 TO S725-CRUO-I-PCT-D.   
+186084*    MOVE ATCR-INDV-FLYA-COMM     TO WS-COMMISSION.   
+186084*    MOVE MKP65-INDV-CRUO-PCT     TO WS-COMMISSION.   
+186084*    MOVE WS-COMM                 TO S725-FLYA-I-PCT-D.   
+186084*    MOVE ATCR-INDV-ADDON-COMM    TO WS-COMMISSION.   
+186084*    MOVE MKP65-INDV-ADDON-PCT    TO WS-COMMISSION.   
+186084*    MOVE WS-COMM                 TO S725-ADDON-I-PCT-D.  
+186084*    MOVE ATCR-INDV-TOUR-COMM     TO WS-COMMISSION.   
+186084*    MOVE MKP65-INDV-PKG-PCT      TO WS-COMMISSION.   
+186084*    MOVE WS-COMM                 TO S725-TOUR-I-PCT-D.   
+186084*    MOVE ATCR-INDV-INS-COMM      TO WS-COMMISSION.   
+186084*    MOVE MKP65-INDV-INS-PCT      TO WS-COMMISSION.   
+186084*    MOVE WS-COMM                 TO S725-INS-I-PCT-D.
+186084*    MOVE ATCR-GRP-CRUO-COMM      TO WS-COMMISSION.   
+186084*    MOVE MKP65-GRP-CRUO-PCT      TO WS-COMMISSION.   
+186084*    MOVE WS-COMM                 TO S725-CRUO-G-PCT-D.   
+186084*    MOVE ATCR-GRP-FLYA-COMM      TO WS-COMMISSION.   
+186084*    MOVE MKP65-GRP-CRUO-PCT      TO WS-COMMISSION.   
+186084*    MOVE WS-COMM                 TO S725-FLYA-G-PCT-D.   
+186084*    MOVE ATCR-GRP-ADDON-COMM     TO WS-COMMISSION.   
+186084*    MOVE MKP65-GRP-ADDON-PCT     TO WS-COMMISSION.   
+186084*    MOVE WS-COMM                 TO S725-ADDON-G-PCT-D.  
+186084*    MOVE ATCR-GRP-TOUR-COMM      TO WS-COMMISSION.   
+186084*    MOVE MKP65-GRP-PKG-PCT       TO WS-COMMISSION.   
+186084*    MOVE WS-COMM                 TO S725-TOUR-G-PCT-D.   
+186084*    MOVE ATCR-GRP-INS-COMM       TO WS-COMMISSION.   
+186084*    MOVE MKP65-GRP-INS-PCT       TO WS-COMMISSION.   
+186084*    MOVE WS-COMM                 TO S725-INS-G-PCT-D.
+186084     MOVE AGENT-MASTER-CONTRACT-NUM   TO S725-MSTR-CON-NUM-D. 
+186084     MOVE WS-AG-II-COMM-PCT-REF   TO S725-II-CRS-COMM-PCT.
+186084     MOVE WS-AG-IG-COMM-PCT-REF   TO S725-IG-CRS-COMM-PCT.
+186084     MOVE WS-AG-EI-COMM-PCT-REF   TO S725-EI-CRS-COMM-PCT.
+186084     MOVE WS-AG-EG-COMM-PCT-REF   TO S725-EG-CRS-COMM-PCT.
+
+
+           IF DPP20-ATCR-DATE-LAST-BOOKING = ZEROES 
+              MOVE WS-LAST-NONE         TO S725-LAST-BKG-D  
+           ELSE 
+              MOVE DPP20-ATCR-DATE-LAST-BOOKING TO DPP02-YYYYMMDD-DATE  
+              MOVE DPP02-YYYYMMDD-YY    TO WS-LAST-BKG-YY   
+              MOVE DPP02-YYYYMMDD-DD    TO WS-LAST-BKG-DD   
+              MOVE DPP02-YYYYMMDD-MM    TO WS-LAST-BKG-MM   
+              MOVE WS-LAST-BKG          TO S725-LAST-BKG-D. 
+           MOVE AGENT-CUSTOMER-NUM      TO S725-CUSTOMER-D  
+                                           DSA-CUSTOMER-NUM.
+           MOVE 'A'                     TO DSA-KEY-TYPE.
+           MOVE 1                       TO PSUB.
+C97054*    MOVE 'U'                     TO S725-MORE-IND-DYN.   
+           MOVE 'MORE PGS Y/N '         TO S725-MORE-MESSAGE.   
+           IF DSA-WANT-MORE = 'Y'   
+              GO TO 0510-FETCH-NEXT.
+
+       0500-COUNT-EMAILS.   
+144449*    FIND DSA-TERMS-DBK.  
+144449     MOVE DSA-TERMS-DBK           TO GENERIC-DBK. 
+144449     FIND GENERIC-DBK.
+           MOVE ZEROES                  TO DSA-EMAIL-CNT
+                                           DSA-ALL-IND-CNT. 
+           MOVE 93101001                TO DPP01-ERROR-NUMBER.  
+           IF AGENT-EMAIL-SET SET EMPTY 
+              GO TO 0500-MOVE-EMAILS.   
+
+       0500-FETCH-EMAILS.   
+           MOVE 93101202                TO DPP01-ERROR-NUMBER.  
+           FETCH NEXT AGENT-EMAIL-REC WITHIN AGENT-EMAIL-SET SET
+              AT END GO TO 0500-MOVE-EMAILS 
+              ON ERROR GO TO 0500-MOVE-EMAILS.  
+           MOVE AER-MESSAGE-IND         TO MKP46-EMAIL-INDICATORS.  
+           IF MKP46-EMAIL-IND (1) = 1   
+              ADD 1                     TO DSA-ALL-IND-CNT. 
+           ADD 1                        TO DSA-EMAIL-CNT.   
+           GO TO 0500-FETCH-EMAILS. 
+
+       0500-MOVE-EMAILS.
+144449*    FIND DSA-TERMS-DBK.  
+144449     MOVE DSA-TERMS-DBK           TO GENERIC-DBK. 
+144449     FIND GENERIC-DBK.
+           MOVE AGENT-CUSTOMER-NUM      TO DSA-CUSTOMER-NUM.
+           MOVE 'A'                     TO DSA-KEY-TYPE.
+           MOVE 93101001                TO DPP01-ERROR-NUMBER.  
+           IF AGENT-EMAIL-SET SET EMPTY 
+              GO TO 0505-EMPTY-SCREEN.  
+           GO TO 0510-FETCH-NEXT.   
+
+       0505-EMPTY-SCREEN.   
+           MOVE LOW-VALUES              TO DSA-NEW-SCREEN.  
+150339*    MOVE 11                      TO PSUB.
+150339     MOVE 09                      TO PSUB.
+           GO TO 3000-SEND-SCREEN.  
+
+       0510-FETCH-NEXT. 
+           MOVE 93101202                TO DPP01-ERROR-NUMBER.  
+           FETCH NEXT AGENT-EMAIL-REC WITHIN AGENT-EMAIL-SET SET
+                AT END GO TO 0560-ERROR 
+              ON ERROR GO TO 0560-ERROR.
+
+       0511-FILL-SCREEN.
+144449*    MOVE STATUS FOR RUN-UNIT     TO DSA-EMAIL-DBK (PSUB).
+144449     MOVE CURRENT-DBKEY           TO DSA-EMAIL-DBK (PSUB).
+           MOVE AER-EMAIL-ADDRESS       TO S725-EMAIL-ADDRESS (PSUB)
+                                          DSA-EMAIL-ADDRESS (PSUB). 
+150339*    MOVE AER-DELIVERY-ERROR-COUNT TO S725-ERROR-COUNT (PSUB) 
+150339*                                     DSA-ERROR-COUNT  (PSUB).
+150339     MOVE ZERO                    TO DSA-ERROR-COUNT  (PSUB). 
+           MOVE AER-MESSAGE-IND         TO MKP46-EMAIL-INDICATORS   
+                                           DSA-EMAIL-MSG-INDS (PSUB).   
+           MOVE 1                       TO MSUB.
+
+       0512-LOOP-THRU-MSGS. 
+150339     EVALUATE MSUB
+150339         WHEN 1  MOVE 4 TO WS-SUB 
+150339         WHEN 2  MOVE 1 TO WS-SUB 
+150339         WHEN 3  MOVE 2 TO WS-SUB 
+150339         WHEN 4  MOVE 5 TO WS-SUB 
+150339         WHEN 5  MOVE 3 TO WS-SUB 
+150339         WHEN 6  MOVE 6 TO WS-SUB 
+204888         WHEN 7  MOVE 7 TO WS-SUB 
+150339     END-EVALUATE.
+
+           IF MKP46-EMAIL-IND (MSUB) = 1
+150339        MOVE 'Y'             TO S725-EMAIL-MSG-IND (PSUB, WS-SUB) 
+150339*       MOVE 'Y'               TO S725-EMAIL-MSG-IND (PSUB, MSUB) 
+           ELSE 
+150339        MOVE 'N'             TO S725-EMAIL-MSG-IND (PSUB, WS-SUB).
+150339*       MOVE 'N'               TO S725-EMAIL-MSG-IND (PSUB, MSUB).
+           IF MSUB < MKP46-NUM-ENTRIES  
+              ADD 1                     TO MSUB 
+              GO TO 0512-LOOP-THRU-MSGS.
+150339*    IF PSUB < 11 
+150339     IF PSUB < 09 
+             ADD 1                      TO PSUB 
+             GO TO 0510-FETCH-NEXT. 
+           MOVE DSA-EMAIL-DBK (PSUB)    TO DSA-NXT-EMAIL-DBK.   
+           MOVE 'NO MORE MAIL RECORDS'  TO WS-MSG.  
+           MOVE 'D'                     TO S725-MORE-IND-DYN.   
+           MOVE 'N'                     TO DSA-WANT-MORE.   
+           MOVE 93101202                TO DPP01-ERROR-NUMBER.  
+           FETCH NEXT AGENT-EMAIL-REC WITHIN AGENT-EMAIL-SET SET
+                AT END GO TO 3000-SEND-SCREEN   
+              ON ERROR GO TO 3000-SEND-SCREEN.  
+           MOVE 'U'                     TO S725-MORE-IND-DYN.   
+           MOVE 'MORE PGS Y/N '         TO S725-MORE-MESSAGE.   
+           MOVE 'MORE EMAIL ADDRS TO DISPLAY' TO WS-MSG.
+           IF WS-TRANS-ID = 'AED'   
+              MOVE 'Y'                  TO DSA-WANT-MORE.   
+
+       3000-SEND-SCREEN.
+150339*    IF PSUB < 11 
+150339     IF PSUB < 09 
+              ADD 1                     TO PSUB 
+              GO TO 3000-SEND-SCREEN.   
+           STRING WS-TRANS-CODE  DELIMITED BY SIZE  
+                          SPACE  DELIMITED BY SIZE  
+                AGENT-PHONE-NUM  DELIMITED BY SIZE  
+                          SPACE  DELIMITED BY SIZE  
+                WS-COMPANY-CODE  DELIMITED BY SIZE  
+                            INTO MKP50-GETLINE-TEXT.
+           PERFORM MKP50-PP-SCR.
+
+           MOVE 101                     TO PSCRAT-OFFSET.   
+CCL-UK*    MOVE 925                     TO PSCRAT-LENGTH.   
+CCL-UK     COMPUTE WS-PSCRAT-LENGTH =   
+CCL-UK        FUNCTION LENGTH (DPS-SAVE-AREA) / 4 + 1 . 
+CCL-UK     MOVE WS-PSCRAT-LENGTH TO PSCRAT-LENGTH.  
+CCL-UK*    DIVIDE FUNCTION LENGTH (DPS-SAVE-AREA) BY 4  
+CCL-UK*        GIVING WS-CHK-REM
+CCL-UK*               WS-PSCRAT-LENGTH. 
+CCL-UK* 
+CCL-UK*    IF  WS-CHK-REM > 0   
+CCL-UK*        ADD 1 TO WS-PSCRAT-LENGTH
+CCL-UK*    END-IF.  
+CCL-UK* 
+CCL-UK*    MOVE WS-PSCRAT-LENGTH        TO PSCRAT-LENGTH.   
+           MOVE S725-PHONE-NUM-IN-XCO   TO ERROR-X. 
+           MOVE S725-PHONE-NUM-IN-YCO   TO ERROR-Y. 
+186084     INSPECT SCREEN-MKS46AED-725-FCA REPLACING ALL 'U' BY 'D'.
+186084*    INSPECT SCREEN-MKS46AED-726-FCA REPLACING ALL 'U' BY 'D'.
+           MOVE 'U'                     TO S725-TRANS-CODE-DYN  
+                                           s725-PHONE-NUM-IN-DYN
+                                           S725-COMPANY-CODE-DYN
+C97054*                                    S725-MORE-IND-DYN
+                                           S725-XMIT-FIELD-DYN. 
+163032     IF ((SSP18-O-NTUR-DEPT-CODE = 'IR' OR 'GR') AND  
+163032         (SSP18-O-NTUR-LEVEL > 5))
+163032     OR ((SSP18-O-NTUR-DEPT-CODE = 'CS') AND  
+163032         (SSP18-O-NTUR-FUNCTION = 'DB')  AND  
+163032         (SSP18-O-NTUR-LEVEL > 1))
+163032     OR ((SSP18-O-NTUR-DEPT-CODE = 'CS') AND  
+163032         (SSP18-O-NTUR-FUNCTION = 'PB')  AND  
+163032         (SSP18-O-NTUR-LEVEL > 3))
+163032     OR ((SSP18-O-NTUR-DEPT-CODE = 'CS')        AND   
+163032         (SSP18-O-NTUR-FUNCTION = 'SA' OR 'IS') AND   
+163032         (SSP18-O-NTUR-LEVEL > 6))
+163032     OR ((SSP18-O-NTUR-DEPT-CODE = 'CS') AND  
+163032         (SSP18-O-NTUR-FUNCTION = 'SO'))  
+163032     OR ((SSP18-O-NTUR-DEPT-CODE = 'FP') AND  
+163032         (SSP18-O-NTUR-FUNCTION = 'AU')  AND  
+163032         (SSP18-O-NTUR-LEVEL > 1))
+163032     OR ((SSP18-O-NTUR-DEPT-CODE = 'FP')                 AND  
+163032         (SSP18-O-NTUR-FUNCTION = 'OR' OR 'SY' OR 'WP')  AND  
+163032         (SSP18-O-NTUR-LEVEL > 5))
+163032     OR ((SSP18-O-NTUR-DEPT-CODE = 'FP') AND  
+163032         (SSP18-O-NTUR-FUNCTION = 'CC')  AND  
+163032         (SSP18-O-NTUR-LEVEL > 6))
+163032     OR ((SSP18-O-NTUR-DEPT-CODE = 'GV') AND  
+163032         (SSP18-O-NTUR-FUNCTION = 'GA'))  
+163032     OR ((SSP18-O-NTUR-DEPT-CODE = 'GV') AND  
+163032         (SSP18-O-NTUR-FUNCTION = 'CT')  AND  
+163032         (SSP18-O-NTUR-LEVEL > 1))
+163032     OR ((SSP18-O-NTUR-DEPT-CODE = 'GV')                AND   
+163032         (SSP18-O-NTUR-FUNCTION = 'CE' OR 'EP' OR 'SO' OR 'SS')   
+163032         AND (SSP18-O-NTUR-LEVEL > 3))
+163032     OR ((SSP18-O-NTUR-DEPT-CODE = 'GV') AND  
+163032         (SSP18-O-NTUR-FUNCTION = 'TD')  AND  
+163032         (SSP18-O-NTUR-LEVEL > 2))
+163032     OR ((SSP18-O-NTUR-DEPT-CODE = 'GV')                 AND  
+163032         (SSP18-O-NTUR-FUNCTION = 'GX' OR 'OM' OR 'QA')  AND  
+163032         (SSP18-O-NTUR-LEVEL > 5))
+163032     OR ((SSP18-O-NTUR-DEPT-CODE = 'GV')                AND   
+163032         (SSP18-O-NTUR-FUNCTION = 'SR' OR 'ES' OR 'FS') AND   
+163032         (SSP18-O-NTUR-LEVEL > 6))
+163032     OR ((SSP18-O-NTUR-DEPT-CODE = 'GV') AND  
+163032         (SSP18-O-NTUR-FUNCTION = 'EX')  AND  
+163032         (SSP18-O-NTUR-LEVEL > 7))
+163032     OR ((SSP18-O-NTUR-DEPT-CODE = 'TC') AND  
+163032         (SSP18-O-NTUR-FUNCTION = 'EX')  AND  
+163032         (SSP18-O-NTUR-LEVEL > 7))
+163032     OR ((SSP18-O-NTUR-DEPT-CODE = 'TS') AND  
+163032         (SSP18-O-NTUR-FUNCTION = 'SS')  AND  
+163032         (SSP18-O-NTUR-LEVEL > 3))
+163032     OR ((SSP18-O-NTUR-DEPT-CODE = 'TS') AND  
+163032         (SSP18-O-NTUR-FUNCTION = 'TA')  AND  
+163032         (SSP18-O-NTUR-LEVEL > 5))
+163032     OR ((SSP18-O-NTUR-DEPT-CODE = 'MK') AND  
+163032         (SSP18-O-NTUR-FUNCTION = 'MK')  AND  
+163032         (SSP18-O-NTUR-LEVEL > 5))
+163032     OR ((SSP18-O-NTUR-DEPT-CODE = 'RM') AND  
+163032        (SSP18-O-NTUR-FUNCTION = 'PO')  AND   
+163032        (SSP18-O-NTUR-LEVEL > 6)) 
+163032     OR ((SSP18-O-NTUR-DEPT-CODE = 'FP') AND  
+163032         (SSP18-O-NTUR-FUNCTION = 'FP')  AND  
+163032         (SSP18-O-NTUR-LEVEL > 1))
+163032     OR  (SSP18-O-NTUR-DEPT-CODE = 'BD' AND   
+163032          SSP18-O-NTUR-FUNCTION = 'BD')   
+C98889          MOVE 'Y' TO WS-USER-AUTH-TO-UPD 
+C98889     ELSE 
+C98889          MOVE 'N' TO WS-USER-AUTH-TO-UPD 
+C98889     END-IF.  
+
+190530     IF DSA-CUSTOMER-NUM = '0063350' OR '0515375' OR  
+190530                              '5710410' OR '1494410' OR   
+224798                              '4588403' OR 'B029WJ0' OR   
+224798                              '0004623' OR 'B0G6MV9' OR   
+224798                              '7069603' OR 'B0DHT94'  
+190530        IF ((SSP18-O-NTUR-DEPT-CODE = 'MK' ) OR   
+190530           (SSP18-O-NTUR-DEPT-CODE = 'FP' AND 
+190530             SSP18-O-NTUR-FUNCTION = 'SY'      )) 
+190530            MOVE 'Y'                   TO WS-USER-AUTH-TO-UPD 
+190530        ELSE  
+190530             MOVE 'N'                   TO WS-USER-AUTH-TO-UPD
+190530        END-IF
+190530     ELSE 
+190530        MOVE 'Y'                   TO WS-USER-AUTH-TO-UPD 
+190530     END-IF.  
+
+163032     IF (SSP18-O-NTUR-DEPT-CODE <= SPACES OR LOW-VALUES) AND  
+163032        (SSP18-O-NTUR-FUNCTION <= SPACES OR LOW-VALUES)   
+C98889         CONTINUE 
+C98889     ELSE 
+C98889         MOVE WS-USER-AUTH-TO-UPD TO DSA-USER-AUTH-TO-UPD 
+C98889     END-IF.  
+
+           IF WS-TRANS-ID = 'AED'   
+              MOVE SPACES               TO WS-TRANS-SEQ 
+              MOVE 'TSR'                TO WS-TRANS-ID  
+C97054*       IF SECURITY-LEVEL > 0 
+C97054        IF DSA-AGENT-DIRECT-IND = 'Y' OR  
+C97054           DSA-USER-AUTH-TO-UPD = 'Y' 
+                 IF MKP50-MKRAD-SRR > 0 
+                    MOVE MKP50-OPT-UPD-RAD TO WS-FUN-KEY
+                    GO TO 3000-CONT 
+                 ELSE   
+                    MOVE MKP50-OPT-UPD  TO WS-FUN-KEY   
+                    GO TO 3000-CONT 
+              ELSE  
+                 IF MKP50-MKRAD-SRR > 0 
+                    MOVE MKP50-OPT-DISP-RAD TO WS-FUN-KEY   
+                    GO TO 3000-CONT 
+                 ELSE   
+                    MOVE MKP50-OPT-DISP TO WS-FUN-KEY   
+                    GO TO 3000-CONT.
+           MOVE S725-PHONE-NUM-IN-XCO   TO ERROR-X. 
+           MOVE S725-PHONE-NUM-IN-YCO   TO ERROR-Y. 
+           IF MKP50-MKRAD-SRR > 0   
+              MOVE MKP50-OPT-DISP-RAD   TO WS-FUN-KEY   
+           ELSE 
+              MOVE MKP50-OPT-DISP       TO WS-FUN-KEY.  
+
+      ***** CHECK FOR RES SUPR/MGMT, GROUPS, INTLSLS OR MKT ADMIN   
+C97054*    IF DSA-SECURITY-LEVEL = 11 OR 12 OR 32 OR 33 OR 34   
+209226*    IF AGENT-PHONE-NUM    = 3055999876 OR
+209226*       AGENT-CUSTOMER-NUM = 4588403  
+209226*       GO TO 3000-CONT   
+209226*    END-IF.  
+214948*     IF AGENT-CUSTOMER-NUM = 4588403 OR 0063350  
+214948     IF AGENT-CUSTOMER-NUM = '4588403' OR '0063350'   
+209226        GO TO 3000-CONT   
+209226     END-IF.  
+C97054     IF DSA-AGENT-DIRECT-IND = 'Y' OR DSA-USER-AUTH-TO-UPD = 'Y'  
+              MOVE S725-EMAIL-DELETE-XCO (1) TO ERROR-X 
+              MOVE S725-EMAIL-DELETE-YCO (1) TO ERROR-Y 
+              MOVE '1'                  TO WS-TRANS-SEQ 
+              MOVE WS-TRANS-CODE        TO S725-TRANS-CODE  
+              MOVE 1                    TO LSUB 
+C97054        MOVE 'Contact:'           TO S725-CONTACT-MSG 
+              PERFORM 0550-U-ALL THRU 0550-U-EXIT   
+              MOVE 'U'                  TO S725-CONTACT-DYN 
+                                           S725-XMIT-FIELD2-DYN 
+           ELSE 
+              MOVE 'TSR'                TO WS-TRANS-ID  
+              MOVE SPACES               TO WS-TRANS-SEQ.
+
+       3000-CONT.   
+           MOVE WS-MESSAGE              TO DPP01-USER-MESSAGE.  
+           MOVE SPACES                  TO WS-MSG.  
+           MOVE 2                       TO DPP01-MESSAGE-SW.
+
+           PERFORM MKP50-PUT-SCR.   
+           PERFORM MKP50-SEND-SCREEN.   
+           PERFORM MKP50-SET-TRX.   
+           GO TO 9000-END-OF-JOB.   
+
+       0550-U-ALL.  
+150339*    IF LSUB = 12 
+150339     IF LSUB = 10 
+              MOVE 'U'                  TO S725-MORE-IND-DYN
+              MOVE ZEROS                TO LSUB 
+              GO TO 0550-U-EXIT.
+           MOVE 'U' TO S725-EMAIL-DELETE-DYN  (LSUB)
+150339                 S725-EMAIL-ADDRESS-DYN (LSUB).   
+150339*                S725-EMAIL-ADDRESS-DYN (LSUB)
+150339*                S725-ERROR-COUNT-DYN   (LSUB).   
+
+190530     IF (WS-USER-AUTH-TO-UPD NOT = 'Y')   
+190530         MOVE 'D' TO S725-EMAIL-DELETE-DYN  (LSUB)
+190530                     S725-EMAIL-ADDRESS-DYN (LSUB)
+190530     END-IF.  
+190530     MOVE 1                       TO MSUB.
+
+C98889     IF  DSA-AGENT-DIRECT-IND NOT = 'Y' AND   
+C98889        (DSA-USER-AUTH-TO-UPD = 'N' OR SPACES OR LOW-VALUES)  
+C98889         MOVE 'D' TO S725-EMAIL-DELETE-DYN  (LSUB)
+C98889                     S725-EMAIL-ADDRESS-DYN (LSUB)
+150339*                    S725-ERROR-COUNT-DYN   (LSUB)
+C98889     END-IF.  
+           MOVE 1                       TO MSUB.
+
+       0550-U-MSG.  
+           MOVE 'U' TO S725-EMAIL-MSG-IND-DYN (LSUB, MSUB). 
+
+C98889     IF  DSA-AGENT-DIRECT-IND NOT = 'Y' AND   
+C98889        (DSA-USER-AUTH-TO-UPD = 'N' OR SPACES OR LOW-VALUES)  
+C98889         MOVE 'D' TO S725-EMAIL-MSG-IND-DYN (LSUB, MSUB)  
+C98889     END-IF.  
+
+           IF MSUB < MKP46-NUM-ENTRIES  
+              ADD 1                     TO MSUB 
+              GO TO 0550-U-MSG. 
+           ADD 1                        TO LSUB.
+           GO TO 0550-U-ALL.
+
+       0550-U-EXIT. 
+           EXIT.
+
+       0560-ERROR.  
+           IF ERROR-CODE NOT = 06 AND 07 AND 13 
+              GO TO 9100-DATABASE-ERROR.
+150339*    IF PSUB < 12 
+150339     IF PSUB < 10 
+              MOVE ZEROS TO DSA-EMAIL-DBK (PSUB)
+              ADD 1                     TO PSUB 
+              GO TO 0560-ERROR. 
+           MOVE 'NO MORE MAIL RECORDS'  TO WS-MSG.  
+           IF WS-TRANS-ID = 'AED'   
+              MOVE SPACES               TO S725-MORE-MESSAGE
+                                           DSA-WANT-MORE
+             MOVE 'D'                   TO S725-MORE-IND-DYN.   
+           MOVE 'N'                     TO DSA-WANT-MORE.   
+           GO TO 3000-SEND-SCREEN.  
+       0570-CLEAR.  
+           ADD 1                        TO LSUB.
+           MOVE ZEROES                  TO DSA-EMAIL-DBK (LSUB) 
+                                           DSA-EMAIL-MSG-INDS (LSUB).   
+           MOVE SPACES                  TO DSA-EMAIL-ADDRESS (LSUB).
+150339*    IF LSUB = 11 
+150339     IF LSUB = 09 
+              MOVE 1                    TO LSUB 
+              MOVE ZEROS                TO DSA-CHANGE-CNT   
+              GO TO 0570-EXIT.  
+           GO TO 0570-CLEAR.
+       0570-EXIT.   
+           EXIT.
+       5000-FETCH-BOOKING.  
+           MOVE WS-BOOK-NUM             TO IBR-BOOK-NUM.
+           MOVE 'I'                     TO IBR-BOOK-TYPE.   
+           PERFORM IRP66-FETCH-IBR THRU IRP66-FETCH-IBR-EXIT.   
+
+           IF IRP66-ERROR-NUM > 0   
+              MOVE 2                    TO DPP01-MESSAGE-SW 
+              MOVE IRP66-ERROR-MESSAGE (IRP66-ERROR-NUM)
+                                        TO DPP01-USER-MESSAGE   
+              GO TO 5000-FETCH-GROUP.   
+           MOVE IBR-COMPANY-CODE        TO WS-COMPANY-CODE. 
+           MOVE SPACES                  TO AAR-CUSTOMER-KEY.
+           MOVE IBR-CUSTOMER-NUM        TO AAR-CUSTOMER-NUM.
+           MOVE 'CM'                    TO AAR-CUSTOMER-TYPE.   
+           MOVE 12111001                TO DPP01-ERROR-NUMBER.  
+           FETCH AGENCY-ASSOCIATION-REC RECORD  
+              ON ERROR GO TO 5000-FETCH-GROUP.  
+           MOVE 12112302                TO DPP01-ERROR-NUMBER.  
+           FETCH OWNER RECORD WITHIN AGENCY-ASSOCIATION-SET SET 
+              ON ERROR GO TO 9100-DATABASE-ERROR.   
+           MOVE AGENT-PHONE-NUM         TO WS-AGENT-PHONE   
+                                           S725-PHONE-NUM-IN.   
+           GO TO 5000-EXIT. 
+       5000-FETCH-GROUP.
+           MOVE WS-BOOK-NUM             TO GBR1-BOOK-NUM.   
+           MOVE 33011001                TO DPP01-ERROR-NUMBER.  
+           FETCH GRP1-BOOKING-REC RECORD
+              ON ERROR GO TO 5000-EXIT. 
+
+           MOVE SPACES                  TO AAR-CUSTOMER-KEY.
+           MOVE GBR1-CUSTOMER-NUM       TO AAR-CUSTOMER-NUM.
+           MOVE 'CM'                    TO AAR-CUSTOMER-TYPE.   
+           MOVE 12111001                TO DPP01-ERROR-NUMBER.  
+           FETCH AGENCY-ASSOCIATION-REC RECORD. 
+           MOVE 12112302                TO DPP01-ERROR-NUMBER.  
+           FETCH OWNER RECORD WITHIN AGENCY-ASSOCIATION-SET SET.
+           MOVE AGENT-PHONE-NUM         TO WS-AGENT-PHONE   
+                                           S725-PHONE-NUM-IN.   
+           MOVE GBR1-COMPANY-CODE       TO WS-COMPANY-CODE. 
+           GO TO 5000-EXIT. 
+       5000-EXIT.   
+           EXIT.
+186084*6000-FIND-CONTRACT.  
+186084*    MOVE AGENT-CONTRACT-NUM      TO ACR-CONTRACT-NUM.
+186084*    MOVE 13011022                TO DPP01-ERROR-NUMBER.  
+186084*    FETCH AGENT-CONTRACT-REC RECORD  
+186084*       ON ERROR GO TO 6000-EXIT. 
+186084*    PERFORM DPP20-UNLOAD-ACR-DATES THRU DPP20-EXIT.  
+186084*    MOVE ACR-CONTRACT-NUM        TO S725-CONTRACT-NUM-D. 
+186084*6000-EXIT.   
+           EXIT.
+       7000-SPECIAL-COMMENT.
+           MOVE 'FARE'                  TO VALID-CODES-AREA-NAME.   
+           MOVE 1 TO RECORD-NUM IN VALID-CODES-AREA-KEY 
+                     PAGE-NUM   IN VALID-CODES-AREA-KEY.
+           MOVE 28051023                TO DPP01-ERROR-NUMBER.  
+           FETCH VALID-CODES-REC RECORD 
+              ON ERROR GO TO 9100-DATABASE-ERROR.   
+           MOVE 1                       TO SUBF.
+       7000-CONT.   
+           IF VCR-AGENT-COMMENT-CODE (SUBF) = WS-HOLD-IND   
+              MOVE VCR-AGENT-COMMENT-DESC (SUBF) TO WS-HOLD-COMMENT 
+              GO TO 7000-EXIT.  
+           IF SUBF < 26 
+              ADD 1                     TO SUBF 
+              GO TO 7000-CONT.  
+       7000-EXIT.   
+           EXIT.
+
+161375 9000-AGENT-ERROR.
+161375     IF  ERROR-NUM = '0007' OR '0013' 
+161375         MOVE 2             TO DPP01-MESSAGE-SW   
+161375         MOVE 'AGENT PHONE NUMBER DOES NOT EXIST' 
+161375                            TO DPP01-USER-MESSAGE 
+161375         GO TO 9000-END-OF-JOB
+161375     ELSE 
+161375         GO TO 9100-DATABASE-ERROR
+161375     END-IF.  
+
+
+       9000-END-OF-JOB. 
+144449     MOVE ZERO TO DPP42-HOLD-MSG-STATUS.  
+           GO TO DPP12-END-OF-JOB.  
+       9100-DATABASE-ERROR. 
+144449     IF DPP01-USER-MESSAGE > SPACES   
+144449        MOVE DPP01-USER-MESSAGE            TO DPP42-HOLD-MSG-DESC 
+144449     ELSE 
+144449        MOVE 'AGENT-PHONE-REC NOT FOUND'   TO DPP42-HOLD-MSG-DESC 
+144449     END-IF.  
+
+           GO TO DPP12-DATABASE-ERROR.  
+
+PPC470 9150-RDMS-ERROR. 
+PPC470     GO TO DPP12-RDMS-ERROR.  
+
+188688 9200-DPS-ERROR.  
+188688     GO TO DPP12-DPS-ERROR.   
+188688 9200-EDIT-ERROR-MSG. 
+188688     PERFORM DPP12-EDIT-ERROR-MSG 
+188688        THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+188688  
+188688     GO TO DPP12-END-OF-JOB.  
+188688  
+188688 9210-EDIT-CONTINUE-MSG.  
+188688     PERFORM DPP12-EDIT-ERROR-MSG 
+188688        THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+188688  
+188688 9300-SEVERE-ERROR-MSG.   
+188688     GO TO DPP12-SEVERE-ERROR-MSG.
+188688  
+188688 9400-INFO-MSG.   
+188688     PERFORM DPP12-INFO-MSG   
+188688        THRU DPP12-INFO-MSG-EXIT. 
+188688  
+188688 9600-SAVE-SUBROUTINE-ERRORS. 
+188688     PERFORM DPP12-SAVE-SUBROUTINE-MSGS   
+188688        THRU DPP12-SAVE-SUBROUTINE-MSGS-X.
+
+163032 9500-RETURN-SUBROUTINE-ERROR.
+163032     GO TO DPP12-RETURN-SUBROUTINE-ERROR. 
+
+144449 COPY DPP12DPS.   
+144449 COPY DPP12ERR.   
+144449 COPY DPP12WDB.   
+144449 COPY DPP12DTM.   
+       COPY MKP70STP.   
+       COPY MKP50GLP REPLACING SCREEN-MKS00TMP-000 BY   
+186084                        SCREEN-MKS46AED-725.  
+186084*                       SCREEN-MKS46AED-726.  
+       COPY DPP10Y2K.   
+       COPY IRP66OIB.   
+       COPY IRP66RIB.   
+       COPY DPP20Y2K.   
+C98889 COPY DPP79SSL.   
+163032*COPY DPP79SEC.   
+CCL-UK COPY MKP65ACC.   
+PPC470 COPY TDP01SAP.   

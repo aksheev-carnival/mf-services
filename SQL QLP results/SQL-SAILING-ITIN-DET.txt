@@ -1,0 +1,307 @@
+
+SELECT SA.SHIP_CODE,
+       SA.SAIL_ID,
+       SA.SAIL_DATE,
+       SA.ITINERARY_CODE,
+       ID.SORT_KEY,
+       ID.DAY_NUMBER,
+       ID.PORT_CODE,
+       ID.PORT_TYPE,
+       P.NAME,
+       P.COUNTRY_CODE
+FROM SAILING SA
+JOIN ITINERARY_DETAILS ID
+       ON ID.EMBARK_PORT_CODE = SA.EMBARK_PORT_CODE
+      AND ID.DURATION_DAYS = SA.DURATION_DAYS
+      AND ID.ITINERARY_CODE = SA.ITINERARY_CODE
+LEFT JOIN PORT P
+       ON P.PORT_CODE = ID.PORT_CODE
+WHERE SA.SAIL_ID IN (25195,25196,22843,22844,22845,22846,
+22675,22676,24747,24748,24749,24750,24751,24752,24753,
+25212,25213,24886,24887,25744,27090,26075,26076,27088,
+27089)
+ORDER BY SA.SAIL_DATE, SA.SAIL_ID, ID.SORT_KEY;
+
+LM        25195 2026-10-23 XX0       1       0 SIN P SINGAPORE                      SG  
+LM        25195 2026-10-23 XX0       2       1 DDK E DRY DOCK                           
+LM        25195 2026-10-23 XX0       3       2 DDK E DRY DOCK                           
+LM        25195 2026-10-23 XX0       4       3 DDK E DRY DOCK                           
+LM        25195 2026-10-23 XX0       5       4 DDK E DRY DOCK                           
+LM        25195 2026-10-23 XX0       6       5 DDK E DRY DOCK                           
+LM        25195 2026-10-23 XX0       7       6 DDK E DRY DOCK                           
+LM        25195 2026-10-23 XX0       8       7 DDK E DRY DOCK                           
+LM        25195 2026-10-23 XX0       9       8 DDK E DRY DOCK                           
+LM        25195 2026-10-23 XX0      10       9 DDK E DRY DOCK                           
+LM        25195 2026-10-23 XX0      11      10 DDK E DRY DOCK                           
+LM        25195 2026-10-23 XX0      12      11 DDK E DRY DOCK                           
+LM        25195 2026-10-23 XX0      13      12 DDK E DRY DOCK                           
+LM        25195 2026-10-23 XX0      14      13 DDK E DRY DOCK                           
+LM        25195 2026-10-23 XX0      15      14 DDK E DRY DOCK                           
+LM        25195 2026-10-23 XX0      16      15 DDK E DRY DOCK                           
+LM        25195 2026-10-23 XX0      17      16 DDK E DRY DOCK                           
+LM        25195 2026-10-23 XX0      18      17 DDK E DRY DOCK                           
+LM        25195 2026-10-23 XX0      19      18 DDK E DRY DOCK                           
+LM        25195 2026-10-23 XX0      20      19 DDK E DRY DOCK                           
+LM        25195 2026-10-23 XX0      21      20 DDK E DRY DOCK                           
+LM        25195 2026-10-23 XX0      22      21 SIN P SINGAPORE                      SG  
+LM        25196 2026-11-13 AS0       1       0 SIN P SINGAPORE                      SG  
+LM        25196 2026-11-13 AS0       2       1 FS1 F FUN DAY AT SEA                     
+LM        25196 2026-11-13 AS0       3       2 FS1 F FUN DAY AT SEA                     
+LM        25196 2026-11-13 AS0       4       3 NHA P NHA TRANG, VIETNAM             VN  
+LM        25196 2026-11-13 AS0       5       4 FS1 F FUN DAY AT SEA                     
+LM        25196 2026-11-13 AS0       6       5 FS1 F FUN DAY AT SEA                     
+LM        25196 2026-11-13 AS0       7       6 HKG P HONG KONG                      HK  
+LM        25196 2026-11-13 AS0       8       7 HKG P HONG KONG                      HK  
+LM        25196 2026-11-13 AS0       9       8 FS1 F FUN DAY AT SEA                     
+LM        25196 2026-11-13 AS0      10       9 FS1 F FUN DAY AT SEA                     
+LM        25196 2026-11-13 AS0      11      10 PHM P PHU MY (HO CHI MINH), VIETNAM  VN  
+LM        25196 2026-11-13 AS0      12      11 FS1 F FUN DAY AT SEA                     
+LM        25196 2026-11-13 AS0      13      12 SIH P SIHANOUKVILLE, CAMBODIA        KH  
+LM        25196 2026-11-13 AS0      14      13 FS1 F FUN DAY AT SEA                     
+LM        25196 2026-11-13 AS0      15      14 LCH P LAEM CHABANG (BANGKOK), TH     TH  
+LM        25196 2026-11-13 AS0      16      15 USM P KOH SAMUI, THAILAND            TH  
+LM        25196 2026-11-13 AS0      17      16 FS1 F FUN DAY AT SEA                     
+LM        25196 2026-11-13 AS0      18      17 SIN P SINGAPORE                      SG  
+LM        22843 2026-11-30 JN4       1       0 SIN P SINGAPORE                      SG  
+LM        22843 2026-11-30 JN4       2       1 ESC E CROSSING THE EQUATOR               
+LM        22843 2026-11-30 JN4       3       2 FS1 F FUN DAY AT SEA                     
+LM        22843 2026-11-30 JN4       4       3 LOM P LEMBAR, LOMBOK, INDONESIA      ID  
+LM        22843 2026-11-30 JN4       5       4 BEO P BENOA (DENPASAR), BALI         ID  
+LM        22843 2026-11-30 JN4       6       5 FS1 F FUN DAY AT SEA                     
+LM        22843 2026-11-30 JN4       7       6 FS1 F FUN DAY AT SEA                     
+LM        22843 2026-11-30 JN4       8       7 FS1 F FUN DAY AT SEA                     
+LM        22843 2026-11-30 JN4       9       8 FS1 F FUN DAY AT SEA                     
+LM        22843 2026-11-30 JN4      10       9 FS1 F FUN DAY AT SEA                     
+LM        22843 2026-11-30 JN4      11      10 CAS P CAIRNS, AUSTRALIA              AU  
+LM        22843 2026-11-30 JN4      12      11 FS1 F FUN DAY AT SEA                     
+LM        22843 2026-11-30 JN4      13      12 WSY P AIRLIE BEACH, AUSTRALIA        AU  
+LM        22843 2026-11-30 JN4      14      13 FS1 F FUN DAY AT SEA                     
+LM        22843 2026-11-30 JN4      15      14 BNE P BRISBANE, AUSTRALIA            AU  
+AQ        22844 2027-02-10 XX0       1       0 SIN P SINGAPORE                      SG  
+AQ        22844 2027-02-10 XX0       2       1 DDK E DRY DOCK                           
+AQ        22844 2027-02-10 XX0       3       2 DDK E DRY DOCK                           
+AQ        22844 2027-02-10 XX0       4       3 DDK E DRY DOCK                           
+AQ        22844 2027-02-10 XX0       5       4 DDK E DRY DOCK                           
+AQ        22844 2027-02-10 XX0       6       5 DDK E DRY DOCK                           
+AQ        22844 2027-02-10 XX0       7       6 DDK E DRY DOCK                           
+AQ        22844 2027-02-10 XX0       8       7 DDK E DRY DOCK                           
+AQ        22844 2027-02-10 XX0       9       8 DDK E DRY DOCK                           
+AQ        22844 2027-02-10 XX0      10       9 DDK E DRY DOCK                           
+AQ        22844 2027-02-10 XX0      11      10 DDK E DRY DOCK                           
+AQ        22844 2027-02-10 XX0      12      11 DDK E DRY DOCK                           
+AQ        22844 2027-02-10 XX0      13      12 DDK E DRY DOCK                           
+AQ        22844 2027-02-10 XX0      14      13 DDK E DRY DOCK                           
+AQ        22844 2027-02-10 XX0      15      14 DDK E DRY DOCK                           
+AQ        22844 2027-02-10 XX0      16      15 DDK E DRY DOCK                           
+AQ        22844 2027-02-10 XX0      17      16 DDK E DRY DOCK                           
+AQ        22844 2027-02-10 XX0      18      17 SIN P SINGAPORE                      SG  
+AQ        22845 2027-02-27 JX1       1       0 SIN P SINGAPORE                      SG  
+AQ        22845 2027-02-27 JX1       2       1 FS1 F FUN DAY AT SEA                     
+AQ        22845 2027-02-27 JX1       3       2 USM P KOH SAMUI, THAILAND            TH  
+AQ        22845 2027-02-27 JX1       4       3 LCH P LAEM CHABANG (BANGKOK), TH     TH  
+AQ        22845 2027-02-27 JX1       5       4 SIH P SIHANOUKVILLE, CAMBODIA        KH  
+AQ        22845 2027-02-27 JX1       6       5 FS1 F FUN DAY AT SEA                     
+AQ        22845 2027-02-27 JX1       7       6 PHM P PHU MY (HO CHI MINH), VIETNAM  VN  
+AQ        22845 2027-02-27 JX1       8       7 FS1 F FUN DAY AT SEA                     
+AQ        22845 2027-02-27 JX1       9       8 FS1 F FUN DAY AT SEA                     
+AQ        22845 2027-02-27 JX1      10       9 SIN P SINGAPORE                      SG  
+AQ        22846 2027-03-08 JN5       1       0 SIN P SINGAPORE                      SG  
+AQ        22846 2027-03-08 JN5       2       1 PKG P PORT KLANG (KUALA LUMPUR), MY  MY  
+AQ        22846 2027-03-08 JN5       3       2 LGK P LANGKAWI, MALAYSIA             MY  
+AQ        22846 2027-03-08 JN5       4       3 FS1 F FUN DAY AT SEA                     
+AQ        22846 2027-03-08 JN5       5       4 ESC E CROSSING THE EQUATOR               
+AQ        22846 2027-03-08 JN5       6       5 FS1 F FUN DAY AT SEA                     
+AQ        22846 2027-03-08 JN5       7       6 BEO P BENOA (DENPASAR), BALI         ID  
+AQ        22846 2027-03-08 JN5       8       7 FS1 F FUN DAY AT SEA                     
+AQ        22846 2027-03-08 JN5       9       8 FS1 F FUN DAY AT SEA                     
+AQ        22846 2027-03-08 JN5      10       9 FS1 F FUN DAY AT SEA                     
+AQ        22846 2027-03-08 JN5      11      10 FRE P FREMANTLE (PERTH), AUSTRALIA   AU  
+AQ        22846 2027-03-08 JN5      12      11 FS1 F FUN DAY AT SEA                     
+AQ        22846 2027-03-08 JN5      13      12 ALH P ALBANY, AUSTRALIA              AU  
+AQ        22846 2027-03-08 JN5      14      13 FS1 F FUN DAY AT SEA                     
+AQ        22846 2027-03-08 JN5      15      14 FS1 F FUN DAY AT SEA                     
+AQ        22846 2027-03-08 JN5      16      15 FS1 F FUN DAY AT SEA                     
+AQ        22846 2027-03-08 JN5      17      16 MEL P MELBOURNE, AUSTRALIA           AU  
+AQ        22675 2027-05-25 PA0       1       0 AKL P AUCKLAND, NEW ZEALAND          NZ  
+AQ        22675 2027-05-25 PA0       2       1 FS1 F FUN DAY AT SEA                     
+AQ        22675 2027-05-25 PA0       3       2 FS1 F FUN DAY AT SEA                     
+AQ        22675 2027-05-25 PA0       4       3 SUV P SUVA, FIJI                     FJ  
+AQ        22675 2027-05-25 PA0       5       4 LTK P LAUTOKA, FIJI                  FJ  
+AQ        22675 2027-05-25 PA0       6       5 DRA P DRAVUNI ISLAND, FIJI           FJ  
+AQ        22675 2027-05-25 PA0       7       6 FS1 F FUN DAY AT SEA                     
+AQ        22675 2027-05-25 PA0       8       7 FS1 F FUN DAY AT SEA                     
+AQ        22675 2027-05-25 PA0       9       8 FS1 F FUN DAY AT SEA                     
+AQ        22675 2027-05-25 PA0      10       9 AKL P AUCKLAND, NEW ZEALAND          NZ  
+AQ        22676 2027-06-03 AU1       1       0 AKL P AUCKLAND, NEW ZEALAND          NZ  
+AQ        22676 2027-06-03 AU1       2       1 FS1 F FUN DAY AT SEA                     
+AQ        22676 2027-06-03 AU1       3       2 NLK P NORFOLK ISLAND, AUSTRALIA      AU  
+AQ        22676 2027-06-03 AU1       4       3 FS1 F FUN DAY AT SEA                     
+AQ        22676 2027-06-03 AU1       5       4 AKL P AUCKLAND, NEW ZEALAND          NZ  
+AQ        24747 2027-06-07 PA1       1       0 AKL P AUCKLAND, NEW ZEALAND          NZ  
+AQ        24747 2027-06-07 PA1       2       1 FS1 F FUN DAY AT SEA                     
+AQ        24747 2027-06-07 PA1       3       2 FS1 F FUN DAY AT SEA                     
+AQ        24747 2027-06-07 PA1       4       3 MYS P MYSTERY ISLAND, VANUATU        VU  
+AQ        24747 2027-06-07 PA1       5       4 VLI P VILA, VANUATU                  VU  
+AQ        24747 2027-06-07 PA1       6       5 LIF P LIFOU, NEW CALEDONIA           NC  
+AQ        24747 2027-06-07 PA1       7       6 NOU P NOUMEA, NEW CALEDONIA          NC  
+AQ        24747 2027-06-07 PA1       8       7 FS1 F FUN DAY AT SEA                     
+AQ        24747 2027-06-07 PA1       9       8 NLK P NORFOLK ISLAND, AUSTRALIA      AU  
+AQ        24747 2027-06-07 PA1      10       9 FS1 F FUN DAY AT SEA                     
+AQ        24747 2027-06-07 PA1      11      10 AKL P AUCKLAND, NEW ZEALAND          NZ  
+AQ        24748 2027-06-17 PA0       1       0 AKL P AUCKLAND, NEW ZEALAND          NZ  
+AQ        24748 2027-06-17 PA0       2       1 FS1 F FUN DAY AT SEA                     
+AQ        24748 2027-06-17 PA0       3       2 FS1 F FUN DAY AT SEA                     
+AQ        24748 2027-06-17 PA0       4       3 SUV P SUVA, FIJI                     FJ  
+AQ        24748 2027-06-17 PA0       5       4 LTK P LAUTOKA, FIJI                  FJ  
+AQ        24748 2027-06-17 PA0       6       5 DRA P DRAVUNI ISLAND, FIJI           FJ  
+AQ        24748 2027-06-17 PA0       7       6 FS1 F FUN DAY AT SEA                     
+AQ        24748 2027-06-17 PA0       8       7 FS1 F FUN DAY AT SEA                     
+AQ        24748 2027-06-17 PA0       9       8 FS1 F FUN DAY AT SEA                     
+AQ        24748 2027-06-17 PA0      10       9 AKL P AUCKLAND, NEW ZEALAND          NZ  
+AQ        24749 2027-06-26 PA0       1       0 AKL P AUCKLAND, NEW ZEALAND          NZ  
+AQ        24749 2027-06-26 PA0       2       1 FS1 F FUN DAY AT SEA                     
+AQ        24749 2027-06-26 PA0       3       2 FS1 F FUN DAY AT SEA                     
+AQ        24749 2027-06-26 PA0       4       3 LIF P LIFOU, NEW CALEDONIA           NC  
+AQ        24749 2027-06-26 PA0       5       4 VLI P VILA, VANUATU                  VU  
+AQ        24749 2027-06-26 PA0       6       5 MYS P MYSTERY ISLAND, VANUATU        VU  
+AQ        24749 2027-06-26 PA0       7       6 NOU P NOUMEA, NEW CALEDONIA          NC  
+AQ        24749 2027-06-26 PA0       8       7 FS1 F FUN DAY AT SEA                     
+AQ        24749 2027-06-26 PA0       9       8 NLK P NORFOLK ISLAND, AUSTRALIA      AU  
+AQ        24749 2027-06-26 PA0      10       9 FS1 F FUN DAY AT SEA                     
+AQ        24749 2027-06-26 PA0      11      10 AKL P AUCKLAND, NEW ZEALAND          NZ  
+AQ        24750 2027-07-06 PA0       1       0 AKL P AUCKLAND, NEW ZEALAND          NZ  
+AQ        24750 2027-07-06 PA0       2       1 FS1 F FUN DAY AT SEA                     
+AQ        24750 2027-07-06 PA0       3       2 FS1 F FUN DAY AT SEA                     
+AQ        24750 2027-07-06 PA0       4       3 SUV P SUVA, FIJI                     FJ  
+AQ        24750 2027-07-06 PA0       5       4 LTK P LAUTOKA, FIJI                  FJ  
+AQ        24750 2027-07-06 PA0       6       5 DRA P DRAVUNI ISLAND, FIJI           FJ  
+AQ        24750 2027-07-06 PA0       7       6 FS1 F FUN DAY AT SEA                     
+AQ        24750 2027-07-06 PA0       8       7 FS1 F FUN DAY AT SEA                     
+AQ        24750 2027-07-06 PA0       9       8 FS1 F FUN DAY AT SEA                     
+AQ        24750 2027-07-06 PA0      10       9 AKL P AUCKLAND, NEW ZEALAND          NZ  
+AQ        24751 2027-07-15 AU1       1       0 AKL P AUCKLAND, NEW ZEALAND          NZ  
+AQ        24751 2027-07-15 AU1       2       1 FS1 F FUN DAY AT SEA                     
+AQ        24751 2027-07-15 AU1       3       2 NLK P NORFOLK ISLAND, AUSTRALIA      AU  
+AQ        24751 2027-07-15 AU1       4       3 FS1 F FUN DAY AT SEA                     
+AQ        24751 2027-07-15 AU1       5       4 AKL P AUCKLAND, NEW ZEALAND          NZ  
+AQ        24752 2027-07-19 PA1       1       0 AKL P AUCKLAND, NEW ZEALAND          NZ  
+AQ        24752 2027-07-19 PA1       2       1 FS1 F FUN DAY AT SEA                     
+AQ        24752 2027-07-19 PA1       3       2 FS1 F FUN DAY AT SEA                     
+AQ        24752 2027-07-19 PA1       4       3 MYS P MYSTERY ISLAND, VANUATU        VU  
+AQ        24752 2027-07-19 PA1       5       4 VLI P VILA, VANUATU                  VU  
+AQ        24752 2027-07-19 PA1       6       5 LIF P LIFOU, NEW CALEDONIA           NC  
+AQ        24752 2027-07-19 PA1       7       6 NOU P NOUMEA, NEW CALEDONIA          NC  
+AQ        24752 2027-07-19 PA1       8       7 FS1 F FUN DAY AT SEA                     
+AQ        24752 2027-07-19 PA1       9       8 NLK P NORFOLK ISLAND, AUSTRALIA      AU  
+AQ        24752 2027-07-19 PA1      10       9 FS1 F FUN DAY AT SEA                     
+AQ        24752 2027-07-19 PA1      11      10 AKL P AUCKLAND, NEW ZEALAND          NZ  
+AQ        24753 2027-07-29 AU0       1       0 AKL P AUCKLAND, NEW ZEALAND          NZ  
+AQ        24753 2027-07-29 AU0       2       1 FS1 F FUN DAY AT SEA                     
+AQ        24753 2027-07-29 AU0       3       2 FS1 F FUN DAY AT SEA                     
+AQ        24753 2027-07-29 AU0       4       3 FS1 F FUN DAY AT SEA                     
+AQ        24753 2027-07-29 AU0       5       4 SYD P SYDNEY, AUSTRALIA              AU  
+SL        25212 2027-08-15 AS1       1       0 SIN P SINGAPORE                      SG  
+SL        25212 2027-08-15 AS1       2       1 FS1 F FUN DAY AT SEA                     
+SL        25212 2027-08-15 AS1       3       2 USM P KOH SAMUI, THAILAND            TH  
+SL        25212 2027-08-15 AS1       4       3 LCH P LAEM CHABANG (BANGKOK), TH     TH  
+SL        25212 2027-08-15 AS1       5       4 LCH P LAEM CHABANG (BANGKOK), TH     TH  
+SL        25212 2027-08-15 AS1       6       5 SIH P SIHANOUKVILLE, CAMBODIA        KH  
+SL        25212 2027-08-15 AS1       7       6 FS1 F FUN DAY AT SEA                     
+SL        25212 2027-08-15 AS1       8       7 PHM P PHU MY (HO CHI MINH), VIETNAM  VN  
+SL        25212 2027-08-15 AS1       9       8 FS1 F FUN DAY AT SEA                     
+SL        25212 2027-08-15 AS1      10       9 CMY P CHAN MAY (HUE/DANANG), VIETNAM VN  
+SL        25212 2027-08-15 AS1      11      10 FS1 F FUN DAY AT SEA                     
+SL        25212 2027-08-15 AS1      12      11 HLB P HALONG BAY, VIETNAM            VN  
+SL        25212 2027-08-15 AS1      13      12 HLB P HALONG BAY, VIETNAM            VN  
+SL        25212 2027-08-15 AS1      14      13 FS1 F FUN DAY AT SEA                     
+SL        25212 2027-08-15 AS1      15      14 HKG P HONG KONG                      HK  
+SL        25213 2027-08-29 AS0       1       0 HKG P HONG KONG                      HK  
+SL        25213 2027-08-29 AS0       2       1 FS1 F FUN DAY AT SEA                     
+SL        25213 2027-08-29 AS0       3       2 MNL P MANILA, PHILIPPINES            PH  
+SL        25213 2027-08-29 AS0       4       3 FS1 F FUN DAY AT SEA                     
+SL        25213 2027-08-29 AS0       5       4 PPS P PUERTO PRINCESA, PHILIPPINES   PH  
+SL        25213 2027-08-29 AS0       6       5 FS1 F FUN DAY AT SEA                     
+SL        25213 2027-08-29 AS0       7       6 ESC E CROSSING THE EQUATOR               
+SL        25213 2027-08-29 AS0       8       7 FS1 F FUN DAY AT SEA                     
+SL        25213 2027-08-29 AS0       9       8 BEO P BENOA (DENPASAR), BALI         ID  
+SL        25213 2027-08-29 AS0      10       9 FS1 F FUN DAY AT SEA                     
+SL        25213 2027-08-29 AS0      11      10 FS1 F FUN DAY AT SEA                     
+SL        25213 2027-08-29 AS0      12      11 DRW P DARWIN, AUSTRALIA              AU  
+SL        25213 2027-08-29 AS0      13      12 FS1 F FUN DAY AT SEA                     
+SL        25213 2027-08-29 AS0      14      13 FS1 F FUN DAY AT SEA                     
+SL        25213 2027-08-29 AS0      15      14 FS1 F FUN DAY AT SEA                     
+SL        25213 2027-08-29 AS0      16      15 WSY P AIRLIE BEACH, AUSTRALIA        AU  
+SL        25213 2027-08-29 AS0      17      16 FS1 F FUN DAY AT SEA                     
+SL        25213 2027-08-29 AS0      18      17 XM0 P MORETON ISLAND, AUSTRALIA      AU  
+SL        25213 2027-08-29 AS0      19      18 FS1 F FUN DAY AT SEA                     
+SL        25213 2027-08-29 AS0      20      19 SYD P SYDNEY, AUSTRALIA              AU  
+LM        24886 2027-10-18 JX2       1       0 TYO P TOKYO, JAPAN                   JP  
+LM        24886 2027-10-18 JX2       2       1 FS1 F FUN DAY AT SEA                     
+LM        24886 2027-10-18 JX2       3       2 UKB P KOBE (KYOTO), JAPAN            JP  
+LM        24886 2027-10-18 JX2       4       3 FS1 F FUN DAY AT SEA                     
+LM        24886 2027-10-18 JX2       5       4 FUK P FUKUOKA (HAKATA), JAPAN        JP  
+LM        24886 2027-10-18 JX2       6       5 PUS P BUSAN, SOUTH KOREA             KR  
+LM        24886 2027-10-18 JX2       7       6 SPO P SEOGWIPO (JEJU), SOUTH KOREA   KR  
+LM        24886 2027-10-18 JX2       8       7 FS1 F FUN DAY AT SEA                     
+LM        24886 2027-10-18 JX2       9       8 KEL P KEELUNG (TAIPEI), TAIWAN       TW  
+LM        24886 2027-10-18 JX2      10       9 FS1 F FUN DAY AT SEA                     
+LM        24886 2027-10-18 JX2      11      10 HKG P HONG KONG                      HK  
+LM        24887 2027-10-28 JN1       1       0 HKG P HONG KONG                      HK  
+LM        24887 2027-10-28 JN1       2       1 FS1 F FUN DAY AT SEA                     
+LM        24887 2027-10-28 JN1       3       2 FS1 F FUN DAY AT SEA                     
+LM        24887 2027-10-28 JN1       4       3 PHM P PHU MY (HO CHI MINH), VIETNAM  VN  
+LM        24887 2027-10-28 JN1       5       4 FS1 F FUN DAY AT SEA                     
+LM        24887 2027-10-28 JN1       6       5 ESC E CROSSING THE EQUATOR               
+LM        24887 2027-10-28 JN1       7       6 FS1 F FUN DAY AT SEA                     
+LM        24887 2027-10-28 JN1       8       7 BEO P BENOA (DENPASAR), BALI         ID  
+LM        24887 2027-10-28 JN1       9       8 FS1 F FUN DAY AT SEA                     
+LM        24887 2027-10-28 JN1      10       9 FS1 F FUN DAY AT SEA                     
+LM        24887 2027-10-28 JN1      11      10 DRW P DARWIN, AUSTRALIA              AU  
+LM        24887 2027-10-28 JN1      12      11 FS1 F FUN DAY AT SEA                     
+LM        24887 2027-10-28 JN1      13      12 FS1 F FUN DAY AT SEA                     
+LM        24887 2027-10-28 JN1      14      13 FS1 F FUN DAY AT SEA                     
+LM        24887 2027-10-28 JN1      15      14 WSY P AIRLIE BEACH, AUSTRALIA        AU  
+LM        24887 2027-10-28 JN1      16      15 FS1 F FUN DAY AT SEA                     
+LM        24887 2027-10-28 JN1      17      16 BNE P BRISBANE, AUSTRALIA            AU  
+AQ        25744 2028-04-08 JP1       1       0 YOK P YOKOHAMA (TOKYO), JAPAN        JP  
+AQ        25744 2028-04-08 JP1       2       1 FS1 F FUN DAY AT SEA                     
+AQ        25744 2028-04-08 JP1       3       2 UKB P KOBE (KYOTO), JAPAN            JP  
+AQ        25744 2028-04-08 JP1       4       3 KMS E CRUISE KANMON STRAIT           JP  
+AQ        25744 2028-04-08 JP1       5       4 PUS P BUSAN, SOUTH KOREA             KR  
+AQ        25744 2028-04-08 JP1       6       5 SSB P SASEBO, JAPAN                  JP  
+AQ        25744 2028-04-08 JP1       7       6 FS1 F FUN DAY AT SEA                     
+AQ        25744 2028-04-08 JP1       8       7 SMZ P SHIMIZU (MOUNT FUJI), JAPAN    JP  
+AQ        25744 2028-04-08 JP1       9       8 YOK P YOKOHAMA (TOKYO), JAPAN        JP  
+SL        26075 2028-08-15 XX0       1       0 SIN P SINGAPORE                      SG  
+SL        26075 2028-08-15 XX0       2       1 DDK E DRY DOCK                           
+SL        26075 2028-08-15 XX0       3       2 DDK E DRY DOCK                           
+SL        26075 2028-08-15 XX0       4       3 DDK E DRY DOCK                           
+SL        26075 2028-08-15 XX0       5       4 DDK E DRY DOCK                           
+SL        26075 2028-08-15 XX0       6       5 DDK E DRY DOCK                           
+SL        26075 2028-08-15 XX0       7       6 DDK E DRY DOCK                           
+SL        26075 2028-08-15 XX0       8       7 DDK E DRY DOCK                           
+SL        26075 2028-08-15 XX0       9       8 DDK E DRY DOCK                           
+SL        26075 2028-08-15 XX0      10       9 DDK E DRY DOCK                           
+SL        26075 2028-08-15 XX0      11      10 DDK E DRY DOCK                           
+SL        26075 2028-08-15 XX0      12      11 DDK E DRY DOCK                           
+SL        26075 2028-08-15 XX0      13      12 DDK E DRY DOCK                           
+SL        26075 2028-08-15 XX0      14      13 DDK E DRY DOCK                           
+SL        26075 2028-08-15 XX0      15      14 DDK E DRY DOCK                           
+SL        26075 2028-08-15 XX0      16      15 DDK E DRY DOCK                           
+SL        26075 2028-08-15 XX0      17      16 DDK E DRY DOCK                           
+SL        26075 2028-08-15 XX0      18      17 SIN P SINGAPORE                      SG  
+SL        26076 2028-09-01 JN5       1       0 SIN P SINGAPORE                      SG  
+SL        26076 2028-09-01 JN5       2       1 ESC E CROSSING THE EQUATOR               
+SL        26076 2028-09-01 JN5       3       2 FS1 F FUN DAY AT SEA                     
+SL        26076 2028-09-01 JN5       4       3 BEO P BENOA (DENPASAR), BALI         ID  
+SL        26076 2028-09-01 JN5       5       4 FS1 F FUN DAY AT SEA                     
+SL        26076 2028-09-01 JN5       6       5 FS1 F FUN DAY AT SEA                     
+SL        26076 2028-09-01 JN5       7       6 DRW P DARWIN, AUSTRALIA              AU  
+SL        26076 2028-09-01 JN5       8       7 FS1 F FUN DAY AT SEA                     
+SL        26076 2028-09-01 JN5       9       8 FS1 F FUN DAY AT SEA                     
+SL        26076 2028-09-01 JN5      10       9 FS1 F FUN DAY AT SEA                     
+SL        26076 2028-09-01 JN5      11      10 CAS P CAIRNS, AUSTRALIA              AU  
+SL        26076 2028-09-01 JN5      12      11 WSY P AIRLIE BEACH, AUSTRALIA        AU  
+SL        26076 2028-09-01 JN5      13      12 FS1 F FUN DAY AT SEA                     
+SL        26076 2028-09-01 JN5      14      13 FS1 F FUN DAY AT SEA                     
+SL        26076 2028-09-01 JN5      15      14 SYD P SYDNEY, AUSTRALIA              AU  

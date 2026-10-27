@@ -1,0 +1,154 @@
+CCP21ITI PROC   
+    
+      * This proc will access the Itinerary Records to include all  
+      * special processing, including code to handle invalid itinerary  
+      * records and the named days of the week to a relative numeric
+      * value for processing.   
+
+       CCP04-PROCESS-ITINERARY. 
+
+           MOVE 0                    TO CCP04-O-ERROR-FLAG. 
+           MOVE 0                    TO CCP04-SUB1. 
+           MOVE SPACES               TO CCP04-O-ERROR-TEXT  
+                                        CCP04-O-ITIN-DESC.  
+           INITIALIZE CCP04-0-ITIN-DATA-TABLE.  
+
+PPC470*    MOVE SAIL1-DURATION-DAYS  TO ITR-DURATION-DAYS.  
+PPC470*    MOVE SAIL1-PORT-CODE      TO ITR-PORT-CODE.  
+PPC470*    MOVE SAIL1-ITINERARY-CODE TO ITR-ITINERARY-CODE. 
+PPC470*    MOVE SAIL1-SAIL-DATE      TO CCP04-PORT-DATE.
+PPC470     MOVE TDP01-DURATION-DAYS  TO ITR-DURATION-DAYS.  
+PPC470     MOVE TDP01-EMBARK-PORT-CODE      
+PPC470                               TO ITR-PORT-CODE.      
+PPC470     MOVE TDP01-ITINERARY-CODE TO ITR-ITINERARY-CODE. 
+PPC470     MOVE TDP01-SAIL-DATE-YYYYMMDD    
+PPC470                               TO CCP04-PORT-DATE.    
+
+           MOVE 00411001             TO DPP01-ERROR-NUMBER. 
+           FETCH ITINERARY-REC RECORD ON ERROR  
+              GO TO CCP04-ITINERARY-NOT-FOUND.  
+
+           MOVE ITR-NBK-DESC         TO CCP04-O-ITIN-DESC.  
+           MOVE 1                    TO CCP04-SUB.  
+
+           PERFORM CCP04-LOAD-ITINERARY THRU
+                   CCP04-LOAD-ITINERARY-EXIT
+                     VARYING CCP04-SUB FROM 1 BY 1  
+C57897                 UNTIL CCP04-SUB > ITR-ENTRY-CTR. 
+    
+           GO TO CCP04-EXIT.
+
+       CCP04-ITINERARY-NOT-FOUND.   
+           MOVE 2 TO CCP04-O-ERROR-FLAG 
+           MOVE SPACES TO CCP04-O-ERROR-TEXT
+           STRING 'ITINERARY NOT FOUND FOR ' CCP04-O-ITIN-DESC  
+              DELIMITED BY SIZE INTO CCP04-O-ERROR-TEXT.
+
+       CCP04-EXIT.  
+           EXIT.
+
+    
+       CCP04-LOAD-ITINERARY.
+
+C57897*    IF ITR-PORT-NAME (CCP04-SUB) > SPACES
+C57897     IF ITR-ITIN-PORT-CODE (CCP04-SUB) > SPACES   
+               PERFORM CCP04-MOVE-FIELDS THRU   
+                       CCP04-MOVE-FIELDS-EXIT.  
+
+           IF  ( CCP04-O-PORT-CODE (CCP04-SUB) NOT = 'XXX' ) AND
+               ( CCP04-O-PORT-CODE (CCP04-SUB) NOT = SPACES )   
+C57897*        MOVE CCP04-O-PORT-CODE (CCP04-SUB) TO PORT-CODE  
+C57897*        FETCH PORT-NAME-REC RECORD   
+               MOVE PORT-COUNTRY-CODE TO
+                               CCP04-O-PORT-COUNTRY-CODE (CCP04-SUB)
+           END-IF.  
+
+       CCP04-LOAD-ITINERARY-EXIT.   
+           EXIT.
+
+       CCP04-MOVE-FIELDS.   
+
+C57897     PERFORM CCP04-FETCH-PORT-NAME
+C57897        THRU CCP04-PORT-NAME-EXIT.
+    
+           MOVE  ITR-ITIN-PORT-CODE (CCP04-SUB) 
+                                       TO CCP04-O-PORT-CODE (CCP04-SUB).
+
+           IF ITR-ARRIVE-TIME (CCP04-SUB) NOT > SPACES  
+             AND ITR-DEPART-TIME (CCP04-SUB) NOT > SPACES   
+               MOVE 'XXX' TO CCP04-O-PORT-CODE (CCP04-SUB)  
+               MOVE '11'  TO CCP04-O-PORT-ARR-CODE (CCP04-SUB). 
+
+           IF ITR-ARRIVE-TIME (CCP04-SUB) > SPACES  
+             OR ITR-DEPART-TIME (CCP04-SUB) > SPACES
+               IF ITR-TENDER-IND (CCP04-SUB) = 'Y'  
+                 OR 'A' OR 'B' OR 'C' OR 'D' OR 'E' 
+                   MOVE 'TENDER' TO CCP04-O-TENDER-IND (CCP04-SUB)  
+               ELSE 
+                   MOVE 'DOCK' TO  CCP04-O-TENDER-IND (CCP04-SUB).  
+
+           IF ITR-ARRIVE-TIME (CCP04-SUB) > SPACES  
+               MOVE  ITR-ARRIVE-TIME (CCP04-SUB)
+                                   TO CCP04-O-PORT-ARR-TIME (CCP04-SUB) 
+               MOVE '2' TO CCP04-O-PORT-ARR-CODE (CCP04-SUB)
+               IF CCP04-O-PORT-ARR-TIME (CCP04-SUB) (1:1)   
+                 < '0' OR > '2' 
+                    MOVE '0' TO CCP04-O-PORT-ARR-TIME (CCP04-SUB) (1:1).
+    
+           IF ITR-DEPART-TIME (CCP04-SUB) > SPACES  
+               MOVE  ITR-DEPART-TIME (CCP04-SUB) TO 
+                                      CCP04-O-PORT-DPT-TIME (CCP04-SUB) 
+               MOVE '5' TO  CCP04-O-PORT-DPT-CODE (CCP04-SUB)   
+               IF CCP04-O-PORT-DPT-TIME (CCP04-SUB) (1:1)   
+                 < '0' OR > '2' 
+                    MOVE '0' TO CCP04-O-PORT-DPT-TIME (CCP04-SUB) (1:1).
+
+           MOVE CCP04-PORT-DATE   TO DPP02-SAIL-DATE.   
+
+    
+C57897     MOVE ITR-DAY-NUM (CCP04-SUB) TO DPP02-NUMBER-DAYS.   
+           PERFORM DPP10-DETERMINE-RETURN-DATE. 
+
+           MOVE DPP02-RETURN-DATE TO CCP04-O-PORT-DATE (CCP04-SUB). 
+
+      * Logic to determine the first & last ports.  
+
+           IF CCP04-SUB = 1 
+               MOVE 'F'           TO CCP04-O-PORT-POSITION (CCP04-SUB)  
+           END-IF.  
+
+C57897     IF CCP04-SUB = ITR-ENTRY-CTR 
+               MOVE 'L'           TO CCP04-O-PORT-POSITION (CCP04-SUB)  
+           END-IF.  
+
+C57897     MOVE ITR-ENTRY-TYPE            (CCP04-SUB) TO
+C57897          CCP04-O-ENTRY-TYPE        (CCP04-SUB).  
+C57897     MOVE ITR-PRESALES-DAY-TYPE     (CCP04-SUB) TO
+C57897          CCP04-O-PRESALES-DAY-TYPE (CCP04-SUB).  
+C57897     MOVE ITR-DISPLAY-IND           (CCP04-SUB) TO
+C57897          CCP04-O-DISPLAY-IND       (CCP04-SUB).  
+
+       CCP04-MOVE-FIELDS-EXIT.  
+           EXIT.
+
+C57897 CCP04-FETCH-PORT-NAME.   
+C57897     MOVE ITR-ITIN-PORT-CODE (CCP04-SUB) TO PORT-CODE.
+C57897     MOVE 42511002 TO DPP01-ERROR-NUMBER. 
+C57897     FETCH PORT-NAME-REC RECORD   
+C57897           ON ERROR GO TO CCP04-NO-PORT-NAME. 
+
+C57897     MOVE PORT-PORT-NAME TO CCP04-O-PORT-NAME (CCP04-SUB).
+C57897     GO TO CCP04-PORT-NAME-EXIT.  
+
+C57897 CCP04-NO-PORT-NAME.  
+C57897     MOVE 3      TO CCP04-O-ERROR-FLAG.   
+C57897     MOVE SPACES TO CCP04-O-ERROR-TEXT.   
+C57897     STRING 'PORT NAME RECORD INVALID FOR - ' 
+C57897             ITR-ITIN-PORT-CODE (CCP04-SUB)   
+C57897             DELIMITED BY SIZE INTO CCP04-O-ERROR-TEXT.   
+C57897     GO TO CCP04-EXIT.
+
+C57897 CCP04-PORT-NAME-EXIT.
+C57897     EXIT.
+    
+ END PROC   

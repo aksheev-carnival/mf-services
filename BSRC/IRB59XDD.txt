@@ -1,0 +1,1695 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.    IRB59XDD. 
+       AUTHOR.        TATA CONSULTANCY SERVICES LTD.
+       DATE-WRITTEN.  OCTOBER 01, 2020. 
+
+************************************************************************
+      * 01-OCT-20     BK4     TCS LTD.               CQ219485          *
+      ******************************************************************
+      *REMARKS.                                                        *
+      *    NAVIGATOR TO XDINING DELTA FEED - PAX & GROUP.              *
+      *    INPUT FILES WILL BE BUILT BY PRE JOB IRB59PXD.              *
+************************************************************************
+106106* 13-AUG-21     PNK     TCS LTD.               ADO1061060        *
+106106* CHANGES DONE TO STOP GBR1 COMMENTS                             *
+************************************************************************
+194702* 02-SEP-24     QG5     TCS LTD.               ADO1947023        *
+194702* CHANGES DONE TO SEND CANCELLED PAX OF ACTIVE BOOKINGS.         *
+************************************************************************
+231468* 07-APR-26     BK4     TCS LTD.               ADO2314687        *
+231468* CHANGES DONE TO UPDATE PAX WHEELCHAIR IND FOR PAX COMMENT CODE *
+231468* '2' AS WELL IN ADDITON TO CURRENT PAX COMMENT CODE 'W'.        *
+************************************************************************
+LOYLTY* 25-FEB-26     8XF     TCS LTD.               LOYLTY            *
+LOYLTY* ADDED MMISC-AMT AND MMISC-AMTX AS PART OF LOYLTY PROGRAM       *
+************************************************************************
+236433* 11-JUN-26     P9X     TCS LTD.               ADO2364330        *
+236433* CHANGES THE FLOW OF SENDING CANCELLED PAX OF ACTIVE BOOKINGS.  *
+************************************************************************
+242881* 01-SEP-26     I7J     TCD-LTD.             ADO2428816          *
+242881* TIER-CODE CHANGE                                               *
+************************************************************************
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER. UNISYS. 
+       OBJECT-COMPUTER. UNISYS  MEMORY SIZE 3 MODULES.  
+       SPECIAL-NAMES.   
+           PRINTER IS PRT   
+           PRINTER IS PRINTER   
+           CONSOLE IS CONSOLE.  
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT IRBITR-FILE     ASSIGN TO DISC IRBXDD01D. 
+           SELECT IRBGTR-FILE     ASSIGN TO DISC IRBXDD02D. 
+           SELECT INP-TYPE-FILE   ASSIGN TO DISC IRBXDD01C. 
+           SELECT PAX-DATA-FILE   ASSIGN TO DISC IRBXDD03D. 
+           SELECT GROUP-DATA-FILE ASSIGN TO DISC IRBXDD04D. 
+
+       DATA DIVISION.   
+       SUBSCHEMA SECTION.   
+       INVOKE SUBSCHEMA PRD100UCOBSU
+              IN FILE SUBSCHEMAS OF SCHEMA PRD100SCHEMA 
+              COPYING RECORDS    INTO COMMON
+              COPYING DATA-NAMES INTO COMMON
+              OVERLAY PAX-REC WITH PAX-CXF-REC  
+                                   PAX-VI-REC   
+              SAVE DATA INCLUDES DEFERRED-UPDATES   
+              DMCA  COMMON  
+              ERROR RECOVERY IS 9100-DATABASE-ERROR 
+              ROLLBACK       IS 9100-DATABASE-ERROR.
+
+       FILE SECTION.
+       FD  IRBITR-FILE  
+           LABEL RECORDS ARE STANDARD.  
+       01  IRBITR-REC.  
+           03 IRBITR-BOOK-NUM           PIC X(06).  
+           03 FILLER                    PIC X(01).  
+           03 IRBITR-BOOK-TYPE          PIC X(01).  
+
+       FD  IRBGTR-FILE  
+           LABEL RECORDS ARE STANDARD.  
+       01  IRBGTR-REC.  
+           03 IRBGTR-BOOK-NUM           PIC X(06).  
+
+       FD  INP-TYPE-FILE
+           LABEL RECORDS ARE STANDARD.  
+       01  INP-TYPE-REC.
+           03 INP-TYPE                  PIC X(10).  
+
+       FD  PAX-DATA-FILE
+           LABEL RECORDS ARE STANDARD.  
+       01  PAX-DATA-REC.
+           03 PX-BOOK-NUM               PIC X(06).  
+           03 PX-FILLER-1               PIC X(01).  
+           03 PX-SEQ-NUM                PIC 9(05).  
+           03 PX-FILLER-2               PIC X(01).  
+           03 PX-BIRTH-DATE             PIC 9(08).  
+           03 PX-FILLER-3               PIC X(01).  
+           03 PX-BOOK-DATE              PIC 9(08).  
+           03 PX-FILLER-4               PIC X(01).  
+           03 PX-CABIN-NUM              PIC X(05).  
+           03 PX-FILLER-5               PIC X(01).  
+           03 PX-SAIL-DATE              PIC 9(08).  
+           03 PX-FILLER-6               PIC X(01).  
+           03 PX-SAIL-END-DATE          PIC 9(08).  
+           03 PX-FILLER-7               PIC X(01).  
+           03 PX-FIRST-NAME             PIC X(10).  
+           03 PX-FILLER-8               PIC X(01).  
+           03 PX-LAST-NAME              PIC X(15).  
+           03 PX-FILLER-9               PIC X(01).  
+           03 PX-SEX                    PIC X(01).  
+           03 PX-FILLER-10              PIC X(01).  
+           03 PX-LANGUAGE-CODE          PIC X(01).  
+           03 PX-FILLER-11              PIC X(01).  
+           03 PX-NATIONALITY-CODE       PIC X(02).  
+           03 PX-FILLER-12              PIC X(01).  
+           03 PX-TITLE                  PIC X(04).  
+           03 PX-FILLER-13              PIC X(01).  
+           03 PX-RATE-TIER-CODE         PIC X(02).  
+           03 PX-FILLER-14              PIC X(01).  
+           03 PX-SUITE-IND              PIC X(01).  
+           03 PX-FILLER-15              PIC X(01).  
+           03 PX-PRIMARY-CONTACT-IND    PIC X(01).  
+           03 PX-FILLER-16              PIC X(01).  
+           03 PX-VIP-IND                PIC X(01).  
+           03 PX-FILLER-17              PIC X(01).  
+           03 PX-WHEELCHAIR-IND         PIC X(01).  
+           03 PX-FILLER-18              PIC X(01).  
+           03 PX-DINING-PREF            PIC X(01).  
+           03 PX-FILLER-19              PIC X(01).  
+           03 PX-DINING-CNF             PIC X(01).  
+           03 PX-FILLER-20              PIC X(01).  
+           03 PX-VOYAGE                 PIC X(13).  
+           03 PX-FILLER-21              PIC X(01).  
+           03 PX-TRVL-WITH-NUM          PIC 9(06).  
+           03 PX-FILLER-22              PIC X(01).  
+           03 PX-IBR-GROUP-BOOK-NUM     PIC X(06).  
+           03 PX-FILLER-23              PIC X(01).  
+           03 PX-TYPE-1                 PIC X(10).  
+           03 PX-FILLER-24              PIC X(01).  
+           03 PX-COMMENT-1              PIC X(60).  
+           03 PX-FILLER-25              PIC X(01).  
+           03 PX-REQUEST-DATE-1         PIC 9(08).  
+           03 PX-FILLER-26              PIC X(01).  
+           03 PX-TYPE-2                 PIC X(10).  
+           03 PX-FILLER-27              PIC X(01).  
+           03 PX-COMMENT-2              PIC X(60).  
+           03 PX-FILLER-28              PIC X(01).  
+           03 PX-REQUEST-DATE-2         PIC 9(08).  
+           03 PX-FILLER-29              PIC X(01).  
+           03 PX-TYPE-3                 PIC X(10).  
+           03 PX-FILLER-30              PIC X(01).  
+           03 PX-COMMENT-3              PIC X(60).  
+           03 PX-FILLER-31              PIC X(01).  
+           03 PX-REQUEST-DATE-3         PIC 9(08).  
+           03 PX-FILLER-32              PIC X(01).  
+           03 PX-TYPE-4                 PIC X(10).  
+           03 PX-FILLER-33              PIC X(01).  
+           03 PX-COMMENT-4              PIC X(60).  
+           03 PX-FILLER-34              PIC X(01).  
+           03 PX-REQUEST-DATE-4         PIC 9(08).  
+           03 PX-FILLER-35              PIC X(01).  
+           03 PX-TYPE-5                 PIC X(10).  
+           03 PX-FILLER-36              PIC X(01).  
+           03 PX-COMMENT-5              PIC X(60).  
+           03 PX-FILLER-37              PIC X(01).  
+           03 PX-REQUEST-DATE-5         PIC 9(08).  
+           03 PX-FILLER-38              PIC X(01).  
+           03 PX-TYPE-6                 PIC X(10).  
+           03 PX-FILLER-39              PIC X(01).  
+           03 PX-COMMENT-6              PIC X(60).  
+           03 PX-FILLER-40              PIC X(01).  
+           03 PX-REQUEST-DATE-6         PIC 9(08).  
+           03 PX-FILLER-41              PIC X(01).  
+           03 PX-TYPE-7                 PIC X(10).  
+           03 PX-FILLER-42              PIC X(01).  
+           03 PX-COMMENT-7              PIC X(60).  
+           03 PX-FILLER-43              PIC X(01).  
+           03 PX-REQUEST-DATE-7         PIC 9(08).  
+           03 PX-FILLER-44              PIC X(01).  
+           03 PX-TYPE-8                 PIC X(10).  
+           03 PX-FILLER-45              PIC X(01).  
+           03 PX-COMMENT-8              PIC X(60).  
+           03 PX-FILLER-46              PIC X(01).  
+           03 PX-REQUEST-DATE-8         PIC 9(08).  
+           03 PX-FILLER-47              PIC X(01).  
+           03 PX-TYPE-9                 PIC X(10).  
+           03 PX-FILLER-48              PIC X(01).  
+           03 PX-COMMENT-9              PIC X(60).  
+           03 PX-FILLER-49              PIC X(01).  
+           03 PX-REQUEST-DATE-9         PIC 9(08).  
+           03 PX-FILLER-50              PIC X(01).  
+           03 PX-TYPE-10                PIC X(10).  
+           03 PX-FILLER-51              PIC X(01).  
+           03 PX-COMMENT-10             PIC X(60).  
+           03 PX-FILLER-52              PIC X(01).  
+           03 PX-REQUEST-DATE-10        PIC 9(08).  
+           03 PX-FILLER-53              PIC X(01).  
+           03 PX-STATUS-CODE            PIC X(01).  
+           03 PX-FILLER-54              PIC X(01).  
+
+       FD  GROUP-DATA-FILE  
+           LABEL RECORDS ARE STANDARD.  
+       01  GROUP-DATA-REC.  
+           03 GP-BOOK-NUM               PIC X(06).  
+           03 GP-FILLER-1               PIC X(01).  
+           03 GP-VOYAGE                 PIC X(13).  
+           03 GP-FILLER-2               PIC X(01).  
+           03 GP-GROUP-NAME             PIC X(30).  
+           03 GP-FILLER-3               PIC X(01).  
+           03 GP-POLICY-TYPE            PIC X(04).  
+           03 GP-FILLER-4               PIC X(01).  
+           03 GP-COMMENTS               PIC X(100). 
+           03 GP-FILLER-5               PIC X(01).  
+           03 GP-REQ-CNT                PIC 9(05).  
+           03 GP-FILLER-6               PIC X(01).  
+           03 GP-BLK-BOOKING-CNT        PIC 9(05).  
+           03 GP-FILLER-7               PIC X(01).  
+           03 GP-DINING-CNT-1           PIC X(11).  
+           03 GP-FILLER-8               PIC X(01).  
+           03 GP-DINING-CNT-2           PIC X(11).  
+           03 GP-FILLER-9               PIC X(01).  
+           03 GP-DINING-CNT-3           PIC X(11).  
+           03 GP-FILLER-10              PIC X(01).  
+           03 GP-DINING-CNT-4           PIC X(11).  
+           03 GP-FILLER-11              PIC X(01).  
+           03 GP-DINING-CNT-5           PIC X(11).  
+           03 GP-FILLER-12              PIC X(01).  
+           03 GP-DINING-CNT-6           PIC X(11).  
+           03 GP-FILLER-13              PIC X(01).  
+           03 GP-STATUS-CODE            PIC X(01).  
+           03 GP-FILLER-14              PIC X(01).  
+           03 GP-BTH-CNT                PIC 9(05).  
+           03 GP-FILLER-15              PIC X(01).  
+
+       WORKING-STORAGE SECTION. 
+       01  WS-PROG-ID                   PIC X(08) VALUE 'IRB59XDD'. 
+       01  MCFLAG                       PIC 9(10) BINARY.   
+
+       01  WS-MAX-CONSTANTS.
+           03 WS-MAX-INP-DATA-CNT       PIC 9(02) VALUE 50. 
+
+       01  WS-INP-DATA-ENTRY.   
+           03 WS-INP-TYPE-CNT           PIC 9(02).  
+           03 WS-INP-TYPE-TABLE         OCCURS 1 TO 50 TIMES
+                                        DEPENDING ON WS-INP-TYPE-CNT.   
+              05 WS-INP-TYPE            PIC X(10).  
+
+       01  WS-MISC-NUMERIC. 
+           03 WS-GBR1-DURATION-DAYS     PIC 9(03).  
+           03 WS-GP-REQ-CNT             PIC S9(05). 
+           03 WS-GP-BLK-BOOKING-CNT     PIC S9(05). 
+           03 WS-GP-BTH-CNT             PIC S9(05). 
+           03 WS-GBR1-GTEE-DINING-SEAT-CNT  
+                                        PIC 9(05).  
+           03 WS-GBR1-DINING-BTH-PAX-CNT
+                                        PIC 9(05).  
+           03 WS-TOTAL-FIT-BOOKINGS     PIC 9(06).  
+           03 WS-TOTAL-GRP-BOOKINGS     PIC 9(06).  
+           03 WS-TOTAL-PAX              PIC 9(06).  
+           03 WS-GBR1-SAIL-DATE         PIC 9(08).  
+           03 RSUB                      PIC 9(02) BINARY.   
+           03 CSUB                      PIC 9(02) BINARY.   
+           03 WS-LEN                    PIC 9(05) BINARY.   
+           03 WS-SUB                    PIC 9(05) BINARY.   
+           03 WS-PAX-SUB                PIC 9(05) BINARY.   
+194702     03 WS-CXP-SUB                PIC 9(05) BINARY.   
+236433*    03 WS-PSUB                   PIC 9(05) BINARY.   
+
+       01  WS-MISC-ALPHA.   
+           03 WS-TYPE-FOUND             PIC X(01).  
+           03 WS-GBR1-SHIP-CODE         PIC X(02).  
+
+       COPY DPP01CIW.   
+       COPY DPP01DTA.   
+       COPY DPP01ERR.   
+       COPY DPP01MCB.   
+       COPY DPP01SCO.   
+       COPY DPP12SCO.   
+       COPY DPP42ERR.   
+       COPY RSP00DMS.   
+       COPY RSP32DMS.   
+       COPY RSP64DMS.   
+       COPY RSP77GMD.   
+       COPY DPP02Y2K.   
+       COPY IRP66IBR.   
+       COPY RSP23RGC.   
+       COPY RSP06GCI.   
+       COPY RSP15INP.   
+       COPY RSP15OUT.   
+       COPY RSP90OVW.   
+       COPY DPP03PWS.   
+
+       COMMON-STORAGE SECTION.  
+
+       PROCEDURE DIVISION.  
+       0000-MAIN-LINE.  
+           COPY DPP01INT.   
+
+           PERFORM DPP12-BEGIN-THREAD THRU DPP12-BEGIN-THREAD-EXIT. 
+
+           IF  DPP01-SQL-ERROR-IND = 'Y'
+               GO TO DPP12-THREAD-ERROR-EXIT
+           END-IF.  
+
+           EXEC SQL USE DEFAULT SCHEMA PRDRDMS END-EXEC.
+
+       0100-INIT-DATABASE.  
+
+           OPEN INPUT  IRBITR-FILE  
+                       IRBGTR-FILE  
+                       INP-TYPE-FILE.   
+           OPEN OUTPUT PAX-DATA-FILE
+                       GROUP-DATA-FILE. 
+
+           MOVE ZEROES                  TO WS-MISC-NUMERIC  
+                                           WS-INP-TYPE-CNT. 
+           MOVE SPACES                  TO WS-MISC-ALPHA.   
+
+       0200-OPEN-DATABASE.  
+
+           IMPART.  
+
+PPC470*    OPEN SAIL1   
+PPC470*         SAIL1-IDX   
+PPC470*         GRP1-CAT
+PPC470     OPEN GRP1-CAT
+                GRP1-BOOK   
+PPC470*         MISC-RATE   
+PPC470*         MISC-RATEIDX
+PPC470*         PRICING 
+                AGENT   
+                AGENT-IDX   
+                AGENCY-ASSOC
+                CABIN   
+                CABIN-IDX   
+LOYLTY          MMISC-AMT   
+LOYLTY          MMISC-AMTX. 
+
+242881     OPEN CIF0
+242881          CIF1
+242881          CIF2
+242881          CIF3
+242881          CIF4
+242881          CIF5
+242881          CIF6
+242881          CIF7
+242881          CIF8
+242881          CIF9.   
+
+           PERFORM IRP66-OPEN-IBR-RETRIEVAL 
+              THRU IRP66-OPEN-IBR-AREAS-EXIT.   
+
+           PERFORM DPP11-OPEN-PAX-RETRIEVAL 
+              THRU DPP11-EXIT.  
+
+           PERFORM GRP01-OPEN-RATE-RETRIEVAL
+              THRU GRP01-OPEN-EXIT. 
+
+       0300-READ-INP-TYPE-FILE. 
+
+           READ INP-TYPE-FILE   
+                AT END GO TO 0400-READ-IRBITR-FILE. 
+
+           ADD 1                        TO WS-INP-TYPE-CNT. 
+
+           IF  WS-INP-TYPE-CNT > WS-MAX-INP-DATA-CNT
+               DISPLAY 'THE INPUT TYPE COUNT HAS EXCEEDED ITS MAXIMUM LI
+      -                'MIT.'                     UPON PRINTER  
+               GO TO 9000-END-OF-JOB
+           END-IF.  
+
+           MOVE FUNCTION UPPER-CASE (INP-TYPE)  
+                                        TO WS-INP-TYPE  
+                                                      (WS-INP-TYPE-CNT).
+
+           GO TO 0300-READ-INP-TYPE-FILE.   
+
+       0400-READ-IRBITR-FILE.   
+
+           READ IRBITR-FILE 
+                AT END GO TO 0700-READ-IRBGTR-FILE. 
+
+       0500-PROCESS-IBR.
+
+           COPY RSP06INT.   
+           COPY RSP23INT.   
+           INITIALIZE RSP06-GUEST-CABIN-INFO.   
+           MOVE ZERO                    TO DPP01-SUB-MSG-CTR.   
+
+           MOVE 'Y'                     TO RSP23-I-READ-PAX-IND 
+                                           RSP23-I-READ-IBR-IND 
+                                           RSP23-I-READ-CXP-GUEST-IND   
+                                           RSP23-I-READ-PSNR-IND.   
+           MOVE IRBITR-BOOK-NUM         TO RSP23-I-INDV-BOOK-NUM.   
+           MOVE 'A'                     TO RSP23-I-BOOK-TYPE.   
+
+           CALL 'RSO23RGC' USING DPP01-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 RSP23-RGC-INPUT
+                                 RSP06-GUEST-CABIN-INFO.
+
+           IF  DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1   
+               DISPLAY 'ERROR FROM RSO23RGC : ' RSP23-I-INDV-BOOK-NUM   
+                                                  UPON PRINTER  
+               DISPLAY 'DPP01-SUB-MSG-STATUS: ' DPP01-SUB-MSG-STATUS (1)
+                      '/DPP01-SUB-MSG-SOURCE: ' DPP01-SUB-MSG-SOURCE (1)
+                      '/DPP01-SUB-MSG-INDEX: '  DPP01-SUB-MSG-INDEX  (1)
+                                                  UPON PRINTER  
+               GO TO DPP12-RETURN-SUBROUTINE-ERROR  
+           END-IF.  
+
+           ADD 1                        TO WS-TOTAL-FIT-BOOKINGS.   
+
+236433*    IF  RSP06-CXP-PAX-CNT > 0
+236433*        PERFORM VARYING WS-CXP-SUB FROM 1 BY 1   
+236433*                UNTIL WS-CXP-SUB > RSP06-CXP-PAX-CNT 
+236433*           PERFORM 0900-PROCESS-CXP  
+236433*              THRU 0900-PROCESS-CXP-EXIT 
+236433*        END-PERFORM  
+236433*    END-IF.  
+
+           PERFORM VARYING WS-PAX-SUB FROM 1 BY 1   
+                   UNTIL WS-PAX-SUB > RSP06-PAX-CNT 
+              PERFORM 0600-MOVE-TO-PAX  
+                 THRU 0600-MOVE-TO-PAX-EXIT 
+           END-PERFORM. 
+
+236433     IF  RSP06-CXP-PAX-CNT > 0
+236433         PERFORM VARYING WS-CXP-SUB FROM 1 BY 1   
+236433                 UNTIL WS-CXP-SUB > RSP06-CXP-PAX-CNT 
+236433            PERFORM 0900-PROCESS-CXP  
+236433               THRU 0900-PROCESS-CXP-EXIT 
+236433            PERFORM 0600-MOVE-TO-PAX  
+236433               THRU 0600-MOVE-TO-PAX-EXIT 
+236433         END-PERFORM  
+236433     END-IF.  
+
+           GO TO 0400-READ-IRBITR-FILE. 
+
+       0600-MOVE-TO-PAX.
+
+           MOVE '|'                     TO PX-FILLER-1  
+                                           PX-FILLER-2  
+                                           PX-FILLER-3  
+                                           PX-FILLER-4  
+                                           PX-FILLER-5  
+                                           PX-FILLER-6  
+                                           PX-FILLER-7  
+                                           PX-FILLER-8  
+                                           PX-FILLER-9  
+                                           PX-FILLER-10 
+                                           PX-FILLER-11 
+                                           PX-FILLER-12 
+                                           PX-FILLER-13 
+                                           PX-FILLER-14 
+                                           PX-FILLER-15 
+                                           PX-FILLER-16 
+                                           PX-FILLER-17 
+                                           PX-FILLER-18 
+                                           PX-FILLER-19 
+                                           PX-FILLER-20 
+                                           PX-FILLER-21 
+                                           PX-FILLER-22 
+                                           PX-FILLER-23 
+                                           PX-FILLER-53 
+                                           PX-FILLER-54.
+           MOVE '?'                     TO PX-FILLER-24 
+                                           PX-FILLER-25 
+                                           PX-FILLER-27 
+                                           PX-FILLER-28 
+                                           PX-FILLER-30 
+                                           PX-FILLER-31 
+                                           PX-FILLER-33 
+                                           PX-FILLER-34 
+                                           PX-FILLER-36 
+                                           PX-FILLER-37 
+                                           PX-FILLER-39 
+                                           PX-FILLER-40 
+                                           PX-FILLER-42 
+                                           PX-FILLER-43 
+                                           PX-FILLER-45 
+                                           PX-FILLER-46 
+                                           PX-FILLER-48 
+                                           PX-FILLER-49 
+                                           PX-FILLER-51 
+                                           PX-FILLER-52.
+           MOVE '^'                     TO PX-FILLER-26 
+                                           PX-FILLER-29 
+                                           PX-FILLER-32 
+                                           PX-FILLER-35 
+                                           PX-FILLER-38 
+                                           PX-FILLER-41 
+                                           PX-FILLER-44 
+                                           PX-FILLER-47 
+                                           PX-FILLER-50.
+
+           MOVE SPACES                  TO PX-BOOK-NUM  
+                                           PX-CABIN-NUM 
+                                           PX-FIRST-NAME
+                                           PX-LAST-NAME 
+                                           PX-SEX   
+                                           PX-LANGUAGE-CODE 
+                                           PX-NATIONALITY-CODE  
+                                           PX-TITLE 
+                                           PX-RATE-TIER-CODE
+                                           PX-SUITE-IND 
+                                           PX-PRIMARY-CONTACT-IND   
+                                           PX-VIP-IND   
+                                           PX-WHEELCHAIR-IND
+                                           PX-DINING-PREF   
+                                           PX-DINING-CNF
+                                           PX-VOYAGE
+                                           PX-IBR-GROUP-BOOK-NUM
+                                           PX-TYPE-1
+                                           PX-TYPE-2
+                                           PX-TYPE-3
+                                           PX-TYPE-4
+                                           PX-TYPE-5
+                                           PX-TYPE-6
+                                           PX-TYPE-7
+                                           PX-TYPE-8
+                                           PX-TYPE-9
+                                           PX-TYPE-10   
+                                           PX-COMMENT-1 
+                                           PX-COMMENT-2 
+                                           PX-COMMENT-3 
+                                           PX-COMMENT-4 
+                                           PX-COMMENT-5 
+                                           PX-COMMENT-6 
+                                           PX-COMMENT-7 
+                                           PX-COMMENT-8 
+                                           PX-COMMENT-9 
+                                           PX-COMMENT-10
+                                           PX-STATUS-CODE.  
+
+           MOVE ZEROES                  TO PX-SEQ-NUM   
+                                           PX-BIRTH-DATE
+                                           PX-BOOK-DATE 
+                                           PX-SAIL-DATE 
+                                           PX-SAIL-END-DATE 
+                                           PX-TRVL-WITH-NUM 
+                                           PX-REQUEST-DATE-1
+                                           PX-REQUEST-DATE-2
+                                           PX-REQUEST-DATE-3
+                                           PX-REQUEST-DATE-4
+                                           PX-REQUEST-DATE-5
+                                           PX-REQUEST-DATE-6
+                                           PX-REQUEST-DATE-7
+                                           PX-REQUEST-DATE-8
+                                           PX-REQUEST-DATE-9
+                                           PX-REQUEST-DATE-10.  
+
+           ADD 1                        TO WS-TOTAL-PAX.
+
+           MOVE RSP06-PAX-BOOK-NUM (WS-PAX-SUB) 
+                                        TO PX-BOOK-NUM. 
+           MOVE RSP06-PAX-CABIN-NUM (WS-PAX-SUB)
+                                        TO PX-CABIN-NUM.
+           MOVE RSP06-PAX-FIRST-NAME (WS-PAX-SUB)   
+                                        TO PX-FIRST-NAME.   
+           MOVE RSP06-PAX-LAST-NAME (WS-PAX-SUB)
+                                        TO PX-LAST-NAME.
+           MOVE RSP06-PAX-SEX (WS-PAX-SUB)  
+                                        TO PX-SEX.  
+           MOVE RSP06-IBR-LANGUAGE-CODE TO PX-LANGUAGE-CODE.
+           MOVE RSP06-PAX-NATIONALITY-CODE (WS-PAX-SUB) 
+                                        TO PX-NATIONALITY-CODE. 
+           MOVE RSP06-PAX-TITLE (WS-PAX-SUB)
+                                        TO PX-TITLE.
+242881     IF RSP06-PAX-PAST-GUEST-NUM (WS-PAX-SUB) > SPACES
+   |          CONTINUE  
+   |       ELSE 
+   |          GO TO 0610-SOME-ERROR 
+242881     END-IF.  
+
+242881     MOVE 'CIF'                  TO CIF-CALCAREA. 
+   |       MOVE RSP06-PAX-PAST-GUEST-NUM (WS-PAX-SUB) (10:1)
+   |                                   TO CIF-CALCAREA (4:1).   
+   |       MOVE RSP06-PAX-PAST-GUEST-NUM (WS-PAX-SUB)   
+   |                                   TO CIF-CUSTOMER-ID.  
+   |       FETCH CIF-REC RECORD 
+   |           ON ERROR GO TO 0610-SOME-ERROR.  
+   |       MOVE CIF-TIER-CODE          TO PX-RATE-TIER-CODE.
+242881     GO TO 0620-CONT. 
+
+       0610-SOME-ERROR. 
+242881*    MOVE RSP06-PAX-RATE-TIER-CODE (WS-PAX-SUB)   
+242881     MOVE SPACES                 TO PX-RATE-TIER-CODE.
+242881 0620-CONT.   
+
+           IF  RSP06-PAX-CABIN-NUM (WS-PAX-SUB) (1:1) = 'T' OR 'W'  
+               MOVE 'N'                 TO PX-SUITE-IND 
+           ELSE 
+               MOVE RSP06-PAX-SHIP-CODE (WS-PAX-SUB)
+                                        TO CABIN-SHIP-CODE  
+               MOVE RSP06-PAX-CABIN-NUM (WS-PAX-SUB)
+                                        TO CABIN-CABIN-NUM  
+               FETCH CABIN-DESC-REC RECORD  
+                     ON ERROR GO TO 9100-DATABASE-ERROR 
+               IF  CABIN-SUBCATEGORY (1:2) = 'SU'   
+                   MOVE 'Y'             TO PX-SUITE-IND 
+               ELSE 
+                   MOVE 'N'             TO PX-SUITE-IND 
+               END-IF   
+           END-IF.  
+
+           MOVE RSP06-PAX-PRIMARY-CONTACT-IND (WS-PAX-SUB)  
+                                        TO PX-PRIMARY-CONTACT-IND.  
+           IF  RSP06-PAX-VIP-IND (WS-PAX-SUB) > SPACES  
+               MOVE RSP06-PAX-VIP-IND (WS-PAX-SUB)  
+                                        TO PX-VIP-IND   
+           ELSE 
+               MOVE 'N'                 TO PX-VIP-IND   
+           END-IF.  
+
+           MOVE 'N'                     TO PX-WHEELCHAIR-IND.   
+           IF  RSP06-PAX-COMMENT-TABLE (WS-PAX-SUB) NOT = SPACES
+               PERFORM VARYING WS-SUB FROM 1 BY 1 UNTIL WS-SUB > 5  
+                  IF  RSP06-PAX-COMMENT-CODE (WS-PAX-SUB WS-SUB) = 'W'  
+231468                                                          OR '2'  
+                      MOVE 'Y'          TO PX-WHEELCHAIR-IND
+                  END-IF
+               END-PERFORM  
+           END-IF.  
+
+           MOVE RSP06-PAX-DINING-PREF (WS-PAX-SUB)  
+                                        TO PX-DINING-PREF.  
+           MOVE RSP06-PAX-DINING-CNF (WS-PAX-SUB)   
+                                        TO PX-DINING-CNF.   
+
+           STRING RSP06-PAX-SHIP-CODE (WS-PAX-SUB)  
+                  RSP06-PAX-SAIL-DATE (WS-PAX-SUB)  
+                  RSP06-PAX-DURATION-DAYS (WS-PAX-SUB)  
+                  DELIMITED BY SIZE INTO PX-VOYAGE. 
+
+           IF  RSP06-IBR-BOOK-TYPE = 'G'
+               MOVE RSP06-IBR-GROUP-BOOK-NUM
+                                        TO PX-IBR-GROUP-BOOK-NUM
+           END-IF.  
+
+           MOVE RSP06-PAX-SEQ-NUM (WS-PAX-SUB)  
+                                        TO PX-SEQ-NUM.  
+           MOVE RSP06-PAX-BIRTH-DATE (WS-PAX-SUB)   
+                                        TO PX-BIRTH-DATE.   
+           MOVE RSP06-PAX-BOOK-DATE (WS-PAX-SUB)
+                                        TO PX-BOOK-DATE.
+           MOVE RSP06-PAX-SAIL-DATE (WS-PAX-SUB)
+                                        TO PX-SAIL-DATE.
+
+           MOVE RSP06-PAX-SAIL-DATE (WS-PAX-SUB)
+                                        TO DPP02-YYYYMMDD-DATE. 
+           MOVE RSP06-PAX-DURATION-DAYS (WS-PAX-SUB)
+                                        TO DPP02-NUMBER-DAYS.   
+           PERFORM DPP10-ADVANCE-YYYYMMDD-DATE. 
+           MOVE DPP02-YYYYMMDD-DATE     TO PX-SAIL-END-DATE.
+
+           MOVE RSP06-IBR-TRVL-WITH-NUM TO PX-TRVL-WITH-NUM.
+
+           IF  RSP06-PAX-OCCASION-CODE (WS-PAX-SUB 1) > SPACES  
+               EVALUATE RSP06-PAX-OCCASION-CODE (WS-PAX-SUB 1)  
+                   WHEN 'E' 
+                        MOVE 'Occasion' TO PX-TYPE-1
+                        MOVE 'Happy Birthday'   
+                                        TO PX-COMMENT-1 
+                        MOVE RSP06-PAX-OCCASION-DATE (WS-PAX-SUB 1) 
+                                        TO PX-REQUEST-DATE-1
+                   WHEN 'F' 
+                        MOVE 'Occasion' TO PX-TYPE-1
+                        MOVE 'Happy Anniversary'
+                                        TO PX-COMMENT-1 
+                        MOVE RSP06-PAX-OCCASION-DATE (WS-PAX-SUB 1) 
+                                        TO PX-REQUEST-DATE-1
+                   WHEN 'H' 
+                        MOVE 'Occasion' TO PX-TYPE-1
+                        MOVE 'Happy Honeymoon'  
+                                        TO PX-COMMENT-1 
+                        MOVE RSP06-PAX-OCCASION-DATE (WS-PAX-SUB 1) 
+                                        TO PX-REQUEST-DATE-1
+               END-EVALUATE 
+               IF  PX-REQUEST-DATE-1 > ZEROES OR SPACES 
+                   MOVE PX-REQUEST-DATE-1   
+                                        TO DPP02-YYYYMMDD-DATE  
+                   PERFORM DPP10-VALIDATE-YYYYMMDD-DATE 
+                   IF  DPP02-IS-DATE-VALID = 'Y'
+                       CONTINUE 
+                   ELSE 
+                       MOVE PX-REQUEST-DATE-1   
+                                        TO DPP02-MMDDYYYY-DATE  
+                       PERFORM DPP10-MMDDYYYY-TO-YYYYMMDD   
+                   END-IF   
+                   MOVE DPP02-YYYYMMDD-DATE 
+                                        TO PX-REQUEST-DATE-1
+               END-IF   
+           END-IF.  
+
+           IF  RSP06-PAX-OCCASION-CODE (WS-PAX-SUB 2) > SPACES  
+               EVALUATE RSP06-PAX-OCCASION-CODE (WS-PAX-SUB 2)  
+                   WHEN 'E' 
+                        MOVE 'Occasion' TO PX-TYPE-2
+                        MOVE 'Happy Birthday'   
+                                        TO PX-COMMENT-2 
+                        MOVE RSP06-PAX-OCCASION-DATE (WS-PAX-SUB 2) 
+                                        TO PX-REQUEST-DATE-2
+                   WHEN 'F' 
+                        MOVE 'Occasion' TO PX-TYPE-2
+                        MOVE 'Happy Anniversary'
+                                        TO PX-COMMENT-2 
+                        MOVE RSP06-PAX-OCCASION-DATE (WS-PAX-SUB 2) 
+                                        TO PX-REQUEST-DATE-2
+                   WHEN 'H' 
+                        MOVE 'Occasion' TO PX-TYPE-2
+                        MOVE 'Happy Honeymoon'  
+                                        TO PX-COMMENT-2 
+                        MOVE RSP06-PAX-OCCASION-DATE (WS-PAX-SUB 2) 
+                                        TO PX-REQUEST-DATE-2
+               END-EVALUATE 
+               IF  PX-REQUEST-DATE-2 > ZEROES OR SPACES 
+                   MOVE PX-REQUEST-DATE-2   
+                                        TO DPP02-YYYYMMDD-DATE  
+                   PERFORM DPP10-VALIDATE-YYYYMMDD-DATE 
+                   IF  DPP02-IS-DATE-VALID = 'Y'
+                       CONTINUE 
+                   ELSE 
+                       MOVE PX-REQUEST-DATE-2   
+                                        TO DPP02-MMDDYYYY-DATE  
+                       PERFORM DPP10-MMDDYYYY-TO-YYYYMMDD   
+                   END-IF   
+                   MOVE DPP02-YYYYMMDD-DATE 
+                                        TO PX-REQUEST-DATE-2
+               END-IF   
+           END-IF.  
+
+           IF  RSP06-PAX-COMMENT-TABLE (WS-PAX-SUB) NOT = SPACES
+               PERFORM VARYING WS-SUB FROM 1 BY 1 UNTIL WS-SUB > 5  
+                  IF  RSP06-PAX-COMMENT-CODE (WS-PAX-SUB WS-SUB) > SPACE
+                      EVALUATE RSP06-PAX-COMMENT-CODE   
+                                             (WS-PAX-SUB WS-SUB)
+                          WHEN 'A'  
+                               IF  WS-SUB = 1   
+                                   MOVE 'Diet'  
+                                        TO PX-TYPE-3
+                                   MOVE 'Gluten Free Diet'  
+                                        TO PX-COMMENT-3 
+                               END-IF   
+                               IF  WS-SUB = 2   
+                                   MOVE 'Diet'  
+                                        TO PX-TYPE-4
+                                   MOVE 'Gluten Free Diet'  
+                                        TO PX-COMMENT-4 
+                               END-IF   
+                               IF  WS-SUB = 3   
+                                   MOVE 'Diet'  
+                                        TO PX-TYPE-5
+                                   MOVE 'Gluten Free Diet'  
+                                        TO PX-COMMENT-5 
+                               END-IF   
+                               IF  WS-SUB = 4   
+                                   MOVE 'Diet'  
+                                        TO PX-TYPE-6
+                                   MOVE 'Gluten Free Diet'  
+                                        TO PX-COMMENT-6 
+                               END-IF   
+                               IF  WS-SUB = 5   
+                                   MOVE 'Diet'  
+                                        TO PX-TYPE-7
+                                   MOVE 'Gluten Free Diet'  
+                                        TO PX-COMMENT-7 
+                               END-IF   
+                          WHEN 'B'  
+                               IF  WS-SUB = 1   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-3
+                                   MOVE 'Autism'
+                                        TO PX-COMMENT-3 
+                               END-IF   
+                               IF  WS-SUB = 2   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-4
+                                   MOVE 'Autism'
+                                        TO PX-COMMENT-4 
+                               END-IF   
+                               IF  WS-SUB = 3   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-5
+                                   MOVE 'Autism'
+                                        TO PX-COMMENT-5 
+                               END-IF   
+                               IF  WS-SUB = 4   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-6
+                                   MOVE 'Autism'
+                                        TO PX-COMMENT-6 
+                               END-IF   
+                               IF  WS-SUB = 5   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-7
+                                   MOVE 'Autism'
+                                        TO PX-COMMENT-7 
+                               END-IF   
+                          WHEN 'D'  
+                               IF  WS-SUB = 1   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-3
+                                   MOVE 'Diabetic'  
+                                        TO PX-COMMENT-3 
+                               END-IF   
+                               IF  WS-SUB = 2   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-4
+                                   MOVE 'Diabetic'  
+                                        TO PX-COMMENT-4 
+                               END-IF   
+                               IF  WS-SUB = 3   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-5
+                                   MOVE 'Diabetic'  
+                                        TO PX-COMMENT-5 
+                               END-IF   
+                               IF  WS-SUB = 4   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-6
+                                   MOVE 'Diabetic'  
+                                        TO PX-COMMENT-6 
+                               END-IF   
+                               IF  WS-SUB = 5   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-7
+                                   MOVE 'Diabetic'  
+                                        TO PX-COMMENT-7 
+                               END-IF   
+                          WHEN 'I'  
+                               IF  WS-SUB = 1   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-3
+                                   MOVE 'Blind' 
+                                        TO PX-COMMENT-3 
+                               END-IF   
+                               IF  WS-SUB = 2   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-4
+                                   MOVE 'Blind' 
+                                        TO PX-COMMENT-4 
+                               END-IF   
+                               IF  WS-SUB = 3   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-5
+                                   MOVE 'Blind' 
+                                        TO PX-COMMENT-5 
+                               END-IF   
+                               IF  WS-SUB = 4   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-6
+                                   MOVE 'Blind' 
+                                        TO PX-COMMENT-6 
+                               END-IF   
+                               IF  WS-SUB = 5   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-7
+                                   MOVE 'Blind' 
+                                        TO PX-COMMENT-7 
+                               END-IF   
+                          WHEN 'J'  
+                               IF  WS-SUB = 1   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-3
+                                   MOVE 'Deaf'  
+                                        TO PX-COMMENT-3 
+                               END-IF   
+                               IF  WS-SUB = 2   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-4
+                                   MOVE 'Deaf'  
+                                        TO PX-COMMENT-4 
+                               END-IF   
+                               IF  WS-SUB = 3   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-5
+                                   MOVE 'Deaf'  
+                                        TO PX-COMMENT-5 
+                               END-IF   
+                               IF  WS-SUB = 4   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-6
+                                   MOVE 'Deaf'  
+                                        TO PX-COMMENT-6 
+                               END-IF   
+                               IF  WS-SUB = 5   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-7
+                                   MOVE 'Deaf'  
+                                        TO PX-COMMENT-7 
+                               END-IF   
+                          WHEN 'O'  
+                               IF  WS-SUB = 1   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-3
+                                   MOVE 'Allergies' 
+                                        TO PX-COMMENT-3 
+                               END-IF   
+                               IF  WS-SUB = 2   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-4
+                                   MOVE 'Allergies' 
+                                        TO PX-COMMENT-4 
+                               END-IF   
+                               IF  WS-SUB = 3   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-5
+                                   MOVE 'Allergies' 
+                                        TO PX-COMMENT-5 
+                               END-IF   
+                               IF  WS-SUB = 4   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-6
+                                   MOVE 'Allergies' 
+                                        TO PX-COMMENT-6 
+                               END-IF   
+                               IF  WS-SUB = 5   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-7
+                                   MOVE 'Allergies' 
+                                        TO PX-COMMENT-7 
+                               END-IF   
+                          WHEN 'Q'  
+                               IF  WS-SUB = 1   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-3
+                                   MOVE 'Pregnant'  
+                                        TO PX-COMMENT-3 
+                               END-IF   
+                               IF  WS-SUB = 2   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-4
+                                   MOVE 'Pregnant'  
+                                        TO PX-COMMENT-4 
+                               END-IF   
+                               IF  WS-SUB = 3   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-5
+                                   MOVE 'Pregnant'  
+                                        TO PX-COMMENT-5 
+                               END-IF   
+                               IF  WS-SUB = 4   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-6
+                                   MOVE 'Pregnant'  
+                                        TO PX-COMMENT-6 
+                               END-IF   
+                               IF  WS-SUB = 5   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-7
+                                   MOVE 'Pregnant'  
+                                        TO PX-COMMENT-7 
+                               END-IF   
+                          WHEN 'U'  
+                               IF  WS-SUB = 1   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-3
+                                   MOVE 'Other Medical Conditions'  
+                                        TO PX-COMMENT-3 
+                               END-IF   
+                               IF  WS-SUB = 2   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-4
+                                   MOVE 'Other Medical Conditions'  
+                                        TO PX-COMMENT-4 
+                               END-IF   
+                               IF  WS-SUB = 3   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-5
+                                   MOVE 'Other Medical Conditions'  
+                                        TO PX-COMMENT-5 
+                               END-IF   
+                               IF  WS-SUB = 4   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-6
+                                   MOVE 'Other Medical Conditions'  
+                                        TO PX-COMMENT-6 
+                               END-IF   
+                               IF  WS-SUB = 5   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-7
+                                   MOVE 'Other Medical Conditions'  
+                                        TO PX-COMMENT-7 
+                               END-IF   
+                          WHEN 'W'  
+                               IF  WS-SUB = 1   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-3
+                                   MOVE 'Wheelchair'
+                                        TO PX-COMMENT-3 
+                               END-IF   
+                               IF  WS-SUB = 2   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-4
+                                   MOVE 'Wheelchair'
+                                        TO PX-COMMENT-4 
+                               END-IF   
+                               IF  WS-SUB = 3   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-5
+                                   MOVE 'Wheelchair'
+                                        TO PX-COMMENT-5 
+                               END-IF   
+                               IF  WS-SUB = 4   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-6
+                                   MOVE 'Wheelchair'
+                                        TO PX-COMMENT-6 
+                               END-IF   
+                               IF  WS-SUB = 5   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-7
+                                   MOVE 'Wheelchair'
+                                        TO PX-COMMENT-7 
+                               END-IF   
+                          WHEN 'Y'  
+                               IF  WS-SUB = 1   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-3
+                                   MOVE 'Highchair Required'
+                                        TO PX-COMMENT-3 
+                               END-IF   
+                               IF  WS-SUB = 2   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-4
+                                   MOVE 'Highchair Required'
+                                        TO PX-COMMENT-4 
+                               END-IF   
+                               IF  WS-SUB = 3   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-5
+                                   MOVE 'Highchair Required'
+                                        TO PX-COMMENT-5 
+                               END-IF   
+                               IF  WS-SUB = 4   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-6
+                                   MOVE 'Highchair Required'
+                                        TO PX-COMMENT-6 
+                               END-IF   
+                               IF  WS-SUB = 5   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-7
+                                   MOVE 'Highchair Required'
+                                        TO PX-COMMENT-7 
+                               END-IF   
+                          WHEN 'Z'  
+                               IF  WS-SUB = 1   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-3
+                                   MOVE 'Oxygen Required'   
+                                        TO PX-COMMENT-3 
+                               END-IF   
+                               IF  WS-SUB = 2   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-4
+                                   MOVE 'Oxygen Required'   
+                                        TO PX-COMMENT-4 
+                               END-IF   
+                               IF  WS-SUB = 3   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-5
+                                   MOVE 'Oxygen Required'   
+                                        TO PX-COMMENT-5 
+                               END-IF   
+                               IF  WS-SUB = 4   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-6
+                                   MOVE 'Oxygen Required'   
+                                        TO PX-COMMENT-6 
+                               END-IF   
+                               IF  WS-SUB = 5   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-7
+                                   MOVE 'Oxygen Required'   
+                                        TO PX-COMMENT-7 
+                               END-IF   
+                          WHEN '2'  
+                               IF  WS-SUB = 1   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-3
+                                   MOVE 'Wheelchair Assistance Required'
+                                        TO PX-COMMENT-3 
+                               END-IF   
+                               IF  WS-SUB = 2   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-4
+                                   MOVE 'Wheelchair Assistance Required'
+                                        TO PX-COMMENT-4 
+                               END-IF   
+                               IF  WS-SUB = 3   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-5
+                                   MOVE 'Wheelchair Assistance Required'
+                                        TO PX-COMMENT-5 
+                               END-IF   
+                               IF  WS-SUB = 4   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-6
+                                   MOVE 'Wheelchair Assistance Required'
+                                        TO PX-COMMENT-6 
+                               END-IF   
+                               IF  WS-SUB = 5   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-7
+                                   MOVE 'Wheelchair Assistance Required'
+                                        TO PX-COMMENT-7 
+                               END-IF   
+                          WHEN '3'  
+                               IF  WS-SUB = 1   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-3
+                                   MOVE 'Cognitive Disabilities'
+                                        TO PX-COMMENT-3 
+                               END-IF   
+                               IF  WS-SUB = 2   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-4
+                                   MOVE 'Cognitive Disabilities'
+                                        TO PX-COMMENT-4 
+                               END-IF   
+                               IF  WS-SUB = 3   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-5
+                                   MOVE 'Cognitive Disabilities'
+                                        TO PX-COMMENT-5 
+                               END-IF   
+                               IF  WS-SUB = 4   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-6
+                                   MOVE 'Cognitive Disabilities'
+                                        TO PX-COMMENT-6 
+                               END-IF   
+                               IF  WS-SUB = 5   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-7
+                                   MOVE 'Cognitive Disabilities'
+                                        TO PX-COMMENT-7 
+                               END-IF   
+                          WHEN '4'  
+                               IF  WS-SUB = 1   
+                                   MOVE 'Diet'  
+                                        TO PX-TYPE-3
+                                   MOVE 'Indian Meals'  
+                                        TO PX-COMMENT-3 
+                               END-IF   
+                               IF  WS-SUB = 2   
+                                   MOVE 'Diet'  
+                                        TO PX-TYPE-4
+                                   MOVE 'Indian Meals'  
+                                        TO PX-COMMENT-4 
+                               END-IF   
+                               IF  WS-SUB = 3   
+                                   MOVE 'Diet'  
+                                        TO PX-TYPE-5
+                                   MOVE 'Indian Meals'  
+                                        TO PX-COMMENT-5 
+                               END-IF   
+                               IF  WS-SUB = 4   
+                                   MOVE 'Diet'  
+                                        TO PX-TYPE-6
+                                   MOVE 'Indian Meals'  
+                                        TO PX-COMMENT-6 
+                               END-IF   
+                               IF  WS-SUB = 5   
+                                   MOVE 'Diet'  
+                                        TO PX-TYPE-7
+                                   MOVE 'Indian Meals'  
+                                        TO PX-COMMENT-7 
+                               END-IF   
+                          WHEN '5'  
+                               IF  WS-SUB = 1   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-3
+                                   MOVE 'Service Dog Required'  
+                                        TO PX-COMMENT-3 
+                               END-IF   
+                               IF  WS-SUB = 2   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-4
+                                   MOVE 'Service Dog Required'  
+                                        TO PX-COMMENT-4 
+                               END-IF   
+                               IF  WS-SUB = 3   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-5
+                                   MOVE 'Service Dog Required'  
+                                        TO PX-COMMENT-5 
+                               END-IF   
+                               IF  WS-SUB = 4   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-6
+                                   MOVE 'Service Dog Required'  
+                                        TO PX-COMMENT-6 
+                               END-IF   
+                               IF  WS-SUB = 5   
+                                   MOVE 'Special'   
+                                        TO PX-TYPE-7
+                                   MOVE 'Service Dog Required'  
+                                        TO PX-COMMENT-7 
+                               END-IF   
+                          WHEN '6'  
+                               IF  WS-SUB = 1   
+                                   MOVE 'Diet'  
+                                        TO PX-TYPE-3
+                                   MOVE 'Kosher Meals'  
+                                        TO PX-COMMENT-3 
+                               END-IF   
+                               IF  WS-SUB = 2   
+                                   MOVE 'Diet'  
+                                        TO PX-TYPE-4
+                                   MOVE 'Kosher Meals'  
+                                        TO PX-COMMENT-4 
+                               END-IF   
+                               IF  WS-SUB = 3   
+                                   MOVE 'Diet'  
+                                        TO PX-TYPE-5
+                                   MOVE 'Kosher Meals'  
+                                        TO PX-COMMENT-5 
+                               END-IF   
+                               IF  WS-SUB = 4   
+                                   MOVE 'Diet'  
+                                        TO PX-TYPE-6
+                                   MOVE 'Kosher Meals'  
+                                        TO PX-COMMENT-6 
+                               END-IF   
+                               IF  WS-SUB = 5   
+                                   MOVE 'Diet'  
+                                        TO PX-TYPE-7
+                                   MOVE 'Kosher Meals'  
+                                        TO PX-COMMENT-7 
+                               END-IF   
+                      END-EVALUATE  
+                  END-IF
+               END-PERFORM  
+           END-IF.  
+
+           IF  RSP06-PSNR-DESC (WS-PAX-SUB) > SPACES
+               MOVE ZEROES              TO WS-LEN   
+               MOVE 'N'                 TO WS-TYPE-FOUND
+               INSPECT RSP06-PSNR-DESC (WS-PAX-SUB) TALLYING
+                       WS-LEN FOR CHARACTERS BEFORE ':' 
+               IF  WS-LEN < 60  
+                   PERFORM VARYING WS-SUB FROM 1 BY 1   
+                           UNTIL WS-SUB > WS-INP-TYPE-CNT   
+                      IF  RSP06-PSNR-DESC (WS-PAX-SUB) (1:WS-LEN) = 
+                          WS-INP-TYPE (WS-SUB)  
+                          MOVE 'Y'      TO WS-TYPE-FOUND
+                          MOVE WS-INP-TYPE-CNT  
+                                        TO WS-SUB   
+                      END-IF
+                   END-PERFORM  
+                   IF  WS-TYPE-FOUND = 'Y'  
+                       MOVE RSP06-PSNR-DESC 
+                                      (WS-PAX-SUB) (1:(WS-LEN + 1)) 
+                                        TO PX-TYPE-8
+                       MOVE RSP06-PSNR-DESC (WS-PAX-SUB)
+                                      ((WS-LEN + 2):(60 - (WS-LEN + 1)))
+                                        TO PX-COMMENT-8 
+                   ELSE 
+                       MOVE 'GENERAL:'  TO PX-TYPE-8
+                       MOVE RSP06-PSNR-DESC (WS-PAX-SUB)
+                                        TO PX-COMMENT-8 
+                   END-IF   
+               ELSE 
+                   MOVE 'GENERAL:'      TO PX-TYPE-8
+                   MOVE RSP06-PSNR-DESC (WS-PAX-SUB)
+                                        TO PX-COMMENT-8 
+               END-IF   
+           END-IF.  
+
+           IF  RSP06-PSNR-ITEMS1 (WS-PAX-SUB) > SPACES  
+               MOVE ZEROES              TO WS-LEN   
+               MOVE 'N'                 TO WS-TYPE-FOUND
+               INSPECT RSP06-PSNR-ITEMS1 (WS-PAX-SUB) TALLYING  
+                       WS-LEN FOR CHARACTERS BEFORE ':' 
+               IF  WS-LEN < 60  
+                   PERFORM VARYING WS-SUB FROM 1 BY 1   
+                           UNTIL WS-SUB > WS-INP-TYPE-CNT   
+                      IF  RSP06-PSNR-ITEMS1 (WS-PAX-SUB) (1:WS-LEN) =   
+                          WS-INP-TYPE (WS-SUB)  
+                          MOVE 'Y'      TO WS-TYPE-FOUND
+                          MOVE WS-INP-TYPE-CNT  
+                                        TO WS-SUB   
+                      END-IF
+                   END-PERFORM  
+                   IF  WS-TYPE-FOUND = 'Y'  
+                       MOVE RSP06-PSNR-ITEMS1   
+                                      (WS-PAX-SUB) (1:(WS-LEN + 1)) 
+                                        TO PX-TYPE-9
+                       MOVE RSP06-PSNR-ITEMS1 (WS-PAX-SUB)  
+                                      ((WS-LEN + 2):(60 - (WS-LEN + 1)))
+                                        TO PX-COMMENT-9 
+                   ELSE 
+                       MOVE 'GENERAL:'  TO PX-TYPE-9
+                       MOVE RSP06-PSNR-ITEMS1 (WS-PAX-SUB)  
+                                        TO PX-COMMENT-9 
+                   END-IF   
+               ELSE 
+                   MOVE 'GENERAL:'      TO PX-TYPE-9
+                   MOVE RSP06-PSNR-ITEMS1 (WS-PAX-SUB)  
+                                        TO PX-COMMENT-9 
+               END-IF   
+           END-IF.  
+
+           IF  RSP06-PSNR-ITEMS2 (WS-PAX-SUB) > SPACES  
+               MOVE ZEROES              TO WS-LEN   
+               MOVE 'N'                 TO WS-TYPE-FOUND
+               INSPECT RSP06-PSNR-ITEMS2 (WS-PAX-SUB) TALLYING  
+                       WS-LEN FOR CHARACTERS BEFORE ':' 
+               IF  WS-LEN < 60  
+                   PERFORM VARYING WS-SUB FROM 1 BY 1   
+                           UNTIL WS-SUB > WS-INP-TYPE-CNT   
+                      IF  RSP06-PSNR-ITEMS2 (WS-PAX-SUB) (1:WS-LEN) =   
+                          WS-INP-TYPE (WS-SUB)  
+                          MOVE 'Y'      TO WS-TYPE-FOUND
+                          MOVE WS-INP-TYPE-CNT  
+                                        TO WS-SUB   
+                      END-IF
+                   END-PERFORM  
+                   IF  WS-TYPE-FOUND = 'Y'  
+                       MOVE RSP06-PSNR-ITEMS2   
+                                      (WS-PAX-SUB)(1:(WS-LEN + 1))  
+                                        TO PX-TYPE-10   
+                       MOVE RSP06-PSNR-ITEMS2 (WS-PAX-SUB)  
+                                      ((WS-LEN + 2):(60 - (WS-LEN + 1)))
+                                        TO PX-COMMENT-10
+                   ELSE 
+                       MOVE 'GENERAL:'  TO PX-TYPE-10   
+                       MOVE RSP06-PSNR-ITEMS2 (WS-PAX-SUB)  
+                                        TO PX-COMMENT-10
+                   END-IF   
+               ELSE 
+                   MOVE 'GENERAL:'      TO PX-TYPE-10   
+                   MOVE RSP06-PSNR-ITEMS2 (WS-PAX-SUB)  
+                                        TO PX-COMMENT-10
+               END-IF   
+           END-IF.  
+
+           IF  RSP06-PAX-CANCEL-DATE (WS-PAX-SUB) > ZEROES  
+               MOVE 'C'                 TO PX-STATUS-CODE   
+           ELSE 
+               MOVE 'E'                 TO PX-STATUS-CODE   
+           END-IF.  
+
+           WRITE PAX-DATA-REC.  
+
+       0600-MOVE-TO-PAX-EXIT.   
+           EXIT.
+
+       0700-READ-IRBGTR-FILE.   
+
+           READ IRBGTR-FILE 
+                AT END GO TO 9000-END-OF-JOB.   
+
+       0800-PROCESS-GRP.
+
+           MOVE '|'                     TO GP-FILLER-1  
+                                           GP-FILLER-2  
+                                           GP-FILLER-3  
+                                           GP-FILLER-4  
+                                           GP-FILLER-5  
+                                           GP-FILLER-6  
+                                           GP-FILLER-7  
+                                           GP-FILLER-8  
+                                           GP-FILLER-9  
+                                           GP-FILLER-10 
+                                           GP-FILLER-11 
+                                           GP-FILLER-12 
+                                           GP-FILLER-13 
+                                           GP-FILLER-14 
+                                           GP-FILLER-15.
+
+           MOVE SPACES                  TO GP-BOOK-NUM  
+                                           GP-VOYAGE
+                                           GP-GROUP-NAME
+                                           GP-POLICY-TYPE   
+                                           GP-COMMENTS  
+                                           GP-DINING-CNT-1  
+                                           GP-DINING-CNT-2  
+                                           GP-DINING-CNT-3  
+                                           GP-DINING-CNT-4  
+                                           GP-DINING-CNT-5  
+                                           GP-DINING-CNT-6  
+                                           GP-STATUS-CODE.  
+
+           MOVE ZEROES                  TO GP-REQ-CNT   
+                                           GP-BLK-BOOKING-CNT   
+                                           GP-BTH-CNT   
+                                           WS-GP-REQ-CNT
+                                           WS-GP-BLK-BOOKING-CNT
+                                           WS-GP-BTH-CNT
+                                           WS-GBR1-GTEE-DINING-SEAT-CNT 
+                                           WS-GBR1-DINING-BTH-PAX-CNT.  
+
+           COPY RSP15INT.   
+           COPY RSP90INT.   
+
+           MOVE IRBGTR-BOOK-NUM         TO RSP15-I-GRP-BOOK-NUM.
+
+           CALL 'RSO15BCR' USING DPP01-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 RSP15-CABIN-COUNTS-INPUT   
+                                 RSP15-CABIN-COUNTS-OUTPUT  
+                                 RSP90-OVERRIDE-FLAGS-INFO. 
+
+           IF  DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1   
+               DISPLAY 'ERROR FROM RSO15BCR : ' RSP15-I-GRP-BOOK-NUM
+                                                  UPON PRINTER  
+               DISPLAY 'DPP01-SUB-MSG-STATUS: ' DPP01-SUB-MSG-STATUS (1)
+                      '/DPP01-SUB-MSG-SOURCE: ' DPP01-SUB-MSG-SOURCE (1)
+                      '/DPP01-SUB-MSG-INDEX: '  DPP01-SUB-MSG-INDEX  (1)
+                                                  UPON PRINTER  
+               GO TO DPP12-RETURN-SUBROUTINE-ERROR  
+           END-IF.  
+
+           ADD 1                        TO WS-TOTAL-GRP-BOOKINGS.   
+
+           MOVE GBR1-BOOK-NUM           TO GP-BOOK-NUM. 
+
+           MOVE GBR1-SAIL-DATE          TO WS-GBR1-SAIL-DATE.   
+           MOVE GBR1-SHIP-CODE          TO WS-GBR1-SHIP-CODE.   
+           MOVE GBR1-DURATION-DAYS      TO WS-GBR1-DURATION-DAYS.   
+           STRING WS-GBR1-SHIP-CODE 
+                  WS-GBR1-SAIL-DATE 
+                  WS-GBR1-DURATION-DAYS 
+                  DELIMITED BY SIZE INTO GP-VOYAGE. 
+
+           MOVE GBR1-GROUP-NAME         TO GP-GROUP-NAME.   
+           MOVE GBR1-POLICY-TYPE        TO GP-POLICY-TYPE.  
+106106*    MOVE GBR1-COMMENTS           TO GP-COMMENTS. 
+           MOVE GBR1-STATUS-CODE        TO GP-STATUS-CODE.  
+
+           PERFORM VARYING RSUB FROM 1 BY 1 UNTIL   
+                   RSUB > RSP15-O-RATE-CODE-CNT 
+              PERFORM VARYING CSUB FROM 1 BY 1 UNTIL
+                      CSUB > RSP15-O-PRICE-POINT-CNT (RSUB) 
+                      COMPUTE WS-GP-REQ-CNT = WS-GP-REQ-CNT 
+                              + RSP15-O-REQ-CNT (RSUB CSUB 1)   
+                              + RSP15-O-REQ-CNT (RSUB CSUB 2)   
+                              + RSP15-O-REQ-CNT (RSUB CSUB 3)   
+                              + RSP15-O-REQ-CNT (RSUB CSUB 4)   
+                              + RSP15-O-REQ-CNT (RSUB CSUB 5)   
+                      MOVE WS-GP-REQ-CNT
+                                        TO GP-REQ-CNT   
+                      COMPUTE WS-GP-BLK-BOOKING-CNT =   
+                              WS-GP-BLK-BOOKING-CNT 
+                              + RSP15-O-BLK-BOOKING-CNT (RSUB CSUB 1)   
+                              + RSP15-O-BLK-BOOKING-CNT (RSUB CSUB 2)   
+                              + RSP15-O-BLK-BOOKING-CNT (RSUB CSUB 3)   
+                              + RSP15-O-BLK-BOOKING-CNT (RSUB CSUB 4)   
+                              + RSP15-O-BLK-BOOKING-CNT (RSUB CSUB 5)   
+                      MOVE WS-GP-BLK-BOOKING-CNT
+                                        TO GP-BLK-BOOKING-CNT   
+                      COMPUTE WS-GP-BTH-CNT = WS-GP-BTH-CNT 
+                              + RSP15-O-BTH-CNT (RSUB CSUB 1)   
+                              + RSP15-O-BTH-CNT (RSUB CSUB 2)   
+                              + RSP15-O-BTH-CNT (RSUB CSUB 3)   
+                              + RSP15-O-BTH-CNT (RSUB CSUB 4)   
+                              + RSP15-O-BTH-CNT (RSUB CSUB 5)   
+                      MOVE WS-GP-BTH-CNT
+                                        TO GP-BTH-CNT   
+              END-PERFORM   
+           END-PERFORM. 
+
+           PERFORM VARYING WS-SUB FROM 1 BY 1 UNTIL WS-SUB > 6  
+              MOVE GBR1-GTEE-DINING-SEAT-CNT (WS-SUB)   
+                                        TO WS-GBR1-GTEE-DINING-SEAT-CNT 
+              MOVE GBR1-DINING-BTH-PAX-CNT (WS-SUB) 
+                                        TO WS-GBR1-DINING-BTH-PAX-CNT   
+              EVALUATE GBR1-DINING-TIME-CODE (WS-SUB)   
+                  WHEN '1'  
+                       IF  WS-SUB = 1   
+                           STRING 'E' WS-GBR1-GTEE-DINING-SEAT-CNT  
+                                  WS-GBR1-DINING-BTH-PAX-CNT
+                                  DELIMITED BY SIZE 
+                                  INTO GP-DINING-CNT-1  
+                       END-IF   
+                       IF  WS-SUB = 2   
+                           STRING 'E' WS-GBR1-GTEE-DINING-SEAT-CNT  
+                                  WS-GBR1-DINING-BTH-PAX-CNT
+                                  DELIMITED BY SIZE 
+                                  INTO GP-DINING-CNT-2  
+                       END-IF   
+                       IF  WS-SUB = 3   
+                           STRING 'E' WS-GBR1-GTEE-DINING-SEAT-CNT  
+                                  WS-GBR1-DINING-BTH-PAX-CNT
+                                  DELIMITED BY SIZE 
+                                  INTO GP-DINING-CNT-3  
+                       END-IF   
+                       IF  WS-SUB = 4   
+                           STRING 'E' WS-GBR1-GTEE-DINING-SEAT-CNT  
+                                  WS-GBR1-DINING-BTH-PAX-CNT
+                                  DELIMITED BY SIZE 
+                                  INTO GP-DINING-CNT-4  
+                       END-IF   
+                       IF  WS-SUB = 5   
+                           STRING 'E' WS-GBR1-GTEE-DINING-SEAT-CNT  
+                                  WS-GBR1-DINING-BTH-PAX-CNT
+                                  DELIMITED BY SIZE 
+                                  INTO GP-DINING-CNT-5  
+                       END-IF   
+                       IF  WS-SUB = 6   
+                           STRING 'E' WS-GBR1-GTEE-DINING-SEAT-CNT  
+                                  WS-GBR1-DINING-BTH-PAX-CNT
+                                  DELIMITED BY SIZE 
+                                  INTO GP-DINING-CNT-6  
+                       END-IF   
+                  WHEN '2'  
+                       IF  WS-SUB = 1   
+                           STRING 'L' WS-GBR1-GTEE-DINING-SEAT-CNT  
+                                  WS-GBR1-DINING-BTH-PAX-CNT
+                                  DELIMITED BY SIZE 
+                                  INTO GP-DINING-CNT-1  
+                       END-IF   
+                       IF  WS-SUB = 2   
+                           STRING 'L' WS-GBR1-GTEE-DINING-SEAT-CNT  
+                                  WS-GBR1-DINING-BTH-PAX-CNT
+                                  DELIMITED BY SIZE 
+                                  INTO GP-DINING-CNT-2  
+                       END-IF   
+                       IF  WS-SUB = 3   
+                           STRING 'L' WS-GBR1-GTEE-DINING-SEAT-CNT  
+                                  WS-GBR1-DINING-BTH-PAX-CNT
+                                  DELIMITED BY SIZE 
+                                  INTO GP-DINING-CNT-3  
+                       END-IF   
+                       IF  WS-SUB = 4   
+                           STRING 'L' WS-GBR1-GTEE-DINING-SEAT-CNT  
+                                  WS-GBR1-DINING-BTH-PAX-CNT
+                                  DELIMITED BY SIZE 
+                                  INTO GP-DINING-CNT-4  
+                       END-IF   
+                       IF  WS-SUB = 5   
+                           STRING 'L' WS-GBR1-GTEE-DINING-SEAT-CNT  
+                                  WS-GBR1-DINING-BTH-PAX-CNT
+                                  DELIMITED BY SIZE 
+                                  INTO GP-DINING-CNT-5  
+                       END-IF   
+                       IF  WS-SUB = 6   
+                           STRING 'L' WS-GBR1-GTEE-DINING-SEAT-CNT  
+                                  WS-GBR1-DINING-BTH-PAX-CNT
+                                  DELIMITED BY SIZE 
+                                  INTO GP-DINING-CNT-6  
+                       END-IF   
+                  WHEN 'O'  
+                       IF  WS-SUB = 1   
+                           STRING 'Y' WS-GBR1-GTEE-DINING-SEAT-CNT  
+                                  WS-GBR1-DINING-BTH-PAX-CNT
+                                  DELIMITED BY SIZE 
+                                  INTO GP-DINING-CNT-1  
+                       END-IF   
+                       IF  WS-SUB = 2   
+                           STRING 'Y' WS-GBR1-GTEE-DINING-SEAT-CNT  
+                                  WS-GBR1-DINING-BTH-PAX-CNT
+                                  DELIMITED BY SIZE 
+                                  INTO GP-DINING-CNT-2  
+                       END-IF   
+                       IF  WS-SUB = 3   
+                           STRING 'Y' WS-GBR1-GTEE-DINING-SEAT-CNT  
+                                  WS-GBR1-DINING-BTH-PAX-CNT
+                                  DELIMITED BY SIZE 
+                                  INTO GP-DINING-CNT-3  
+                       END-IF   
+                       IF  WS-SUB = 4   
+                           STRING 'Y' WS-GBR1-GTEE-DINING-SEAT-CNT  
+                                  WS-GBR1-DINING-BTH-PAX-CNT
+                                  DELIMITED BY SIZE 
+                                  INTO GP-DINING-CNT-4  
+                       END-IF   
+                       IF  WS-SUB = 5   
+                           STRING 'Y' WS-GBR1-GTEE-DINING-SEAT-CNT  
+                                  WS-GBR1-DINING-BTH-PAX-CNT
+                                  DELIMITED BY SIZE 
+                                  INTO GP-DINING-CNT-5  
+                       END-IF   
+                       IF  WS-SUB = 6   
+                           STRING 'Y' WS-GBR1-GTEE-DINING-SEAT-CNT  
+                                  WS-GBR1-DINING-BTH-PAX-CNT
+                                  DELIMITED BY SIZE 
+                                  INTO GP-DINING-CNT-6  
+                       END-IF   
+                  WHEN 'U'  
+                       IF  WS-SUB = 1   
+                           STRING 'U' WS-GBR1-GTEE-DINING-SEAT-CNT  
+                                  WS-GBR1-DINING-BTH-PAX-CNT
+                                  DELIMITED BY SIZE 
+                                  INTO GP-DINING-CNT-1  
+                       END-IF   
+                       IF  WS-SUB = 2   
+                           STRING 'U' WS-GBR1-GTEE-DINING-SEAT-CNT  
+                                  WS-GBR1-DINING-BTH-PAX-CNT
+                                  DELIMITED BY SIZE 
+                                  INTO GP-DINING-CNT-2  
+                       END-IF   
+                       IF  WS-SUB = 3   
+                           STRING 'U' WS-GBR1-GTEE-DINING-SEAT-CNT  
+                                  WS-GBR1-DINING-BTH-PAX-CNT
+                                  DELIMITED BY SIZE 
+                                  INTO GP-DINING-CNT-3  
+                       END-IF   
+                       IF  WS-SUB = 4   
+                           STRING 'U' WS-GBR1-GTEE-DINING-SEAT-CNT  
+                                  WS-GBR1-DINING-BTH-PAX-CNT
+                                  DELIMITED BY SIZE 
+                                  INTO GP-DINING-CNT-4  
+                       END-IF   
+                       IF  WS-SUB = 5   
+                           STRING 'U' WS-GBR1-GTEE-DINING-SEAT-CNT  
+                                  WS-GBR1-DINING-BTH-PAX-CNT
+                                  DELIMITED BY SIZE 
+                                  INTO GP-DINING-CNT-5  
+                       END-IF   
+                       IF  WS-SUB = 6   
+                           STRING 'U' WS-GBR1-GTEE-DINING-SEAT-CNT  
+                                  WS-GBR1-DINING-BTH-PAX-CNT
+                                  DELIMITED BY SIZE 
+                                  INTO GP-DINING-CNT-6  
+                       END-IF   
+              END-EVALUATE  
+           END-PERFORM. 
+
+           WRITE GROUP-DATA-REC.
+
+           GO TO 0700-READ-IRBGTR-FILE. 
+
+194702 0900-PROCESS-CXP.
+194702  
+236433     MOVE 1                       TO  WS-PAX-SUB. 
+236433*    COMPUTE WS-PSUB = RSP06-PAX-CNT + 1. 
+194702     MOVE RSP06-CXP-PAX-REC (WS-CXP-SUB)  
+236433                                  TO RSP06-PAX-REC (WS-PAX-SUB).  
+236433*                                 TO RSP06-PAX-REC (WS-PSUB). 
+236433*    ADD 1                        TO RSP06-PAX-CNT.   
+194702  
+194702 0900-PROCESS-CXP-EXIT.   
+194702     EXIT.
+
+       9000-END-OF-JOB. 
+           CLOSE IRBITR-FILE
+                 IRBGTR-FILE
+                 INP-TYPE-FILE  
+                 PAX-DATA-FILE  
+                 GROUP-DATA-FILE.   
+
+           DISPLAY '******************************************' 
+                                                  UPON PRINTER. 
+           DISPLAY '**************FINAL TOTALS****************' 
+                                                  UPON PRINTER. 
+           DISPLAY '***NUMBER OF FIT BOOKINGS PROCESSED = ' 
+             WS-TOTAL-FIT-BOOKINGS                UPON PRINTER. 
+           DISPLAY '***NUMBER OF GRP BOOKINGS PROCESSED = ' 
+             WS-TOTAL-GRP-BOOKINGS                UPON PRINTER. 
+           DISPLAY '***NUMBER OF PAX PROCESSED          = ' 
+             WS-TOTAL-PAX                         UPON PRINTER. 
+
+           GO TO DPP12-END-OF-JOB.  
+
+       9100-DATABASE-ERROR. 
+           DISPLAY 'ERROR-REC:    ' ERROR-RECORD  UPON PRINTER. 
+           DISPLAY 'ERROR-SET:    ' ERROR-SET     UPON PRINTER. 
+           DISPLAY 'ERROR-AREA:   ' ERROR-AREA    UPON PRINTER. 
+           DISPLAY 'ERROR-STATUS: ' ERROR-STATUS  UPON PRINTER. 
+           DISPLAY 'ERROR-NUM:    ' ERROR-NUM     UPON PRINTER. 
+
+           GO TO DPP12-DATABASE-ERROR.  
+
+PPC470 9150-RDMS-ERROR. 
+PPC470     GO TO DPP12-RDMS-ERROR.  
+
+       9200-EDIT-ERROR-MSG. 
+           PERFORM DPP12-EDIT-ERROR-MSG 
+              THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+
+           GO TO DPP12-END-OF-JOB.  
+
+       9210-EDIT-CONTINUE-MSG.  
+           PERFORM DPP12-EDIT-ERROR-MSG 
+              THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+
+       9300-SEVERE-ERROR-MSG.   
+           GO TO DPP12-SEVERE-ERROR-MSG.
+
+       9400-INFO-MSG.   
+           PERFORM DPP12-INFO-MSG   
+              THRU DPP12-INFO-MSG-EXIT. 
+
+       9500-RETURN-SUBROUTINE-ERROR.
+           GO TO DPP12-RETURN-SUBROUTINE-ERROR. 
+
+       9600-SAVE-SUBROUTINE-ERRORS. 
+           PERFORM DPP12-SAVE-SUBROUTINE-MSGS   
+              THRU DPP12-SAVE-SUBROUTINE-MSGS-X.
+
+       COPY DPP12BER.   
+       COPY DPP12ERR.   
+       COPY DPP12WDB.   
+       COPY DPP10Y2K.   
+       COPY IRP66OIB.   
+       COPY IRP66RIB.   
+       COPY DPP11POP.   
+       COPY GRP01CAT.   

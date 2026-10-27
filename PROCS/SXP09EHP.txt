@@ -1,0 +1,305 @@
+SXP09EHP-DATA  PROC 
+************************************************************************
+162949* 30-JAN-14     SN2     TCS LTD.               CQ162949          *
+162949* PREVENT ERROR WHILE STORING DUPLICATE DATA IN RDMS TABLES      *
+************************************************************************
+195685* 04-NOV-16     DC6     TCS LTD.               CQ195685          *
+195685* ABORTS WHILE STORING DUPLICATE DATA IN RDMS EXC_DEP_HIST_TBL   *
+************************************************************************
+202908* 26-MAY-17     DC6     TCS LTD.               CQ202908          *
+202908* JOB GOES IN INFINITE LOOP IN SHORE EX HISTORY UPDATE PROC      *
+************************************************************************
+207803* 03-JAN-18     STP     TCS LTD.               CQ207803          *
+207803* ABORTS WHILE STORING DUPLICATE DATA IN TABLE                   *
+207803* EXC_SAIL_DEP_HIST_TBL                                          *
+************************************************************************
+234850* 17-JUL-26     QG5     TCS LTD.               ADO2348509        *
+234850* ABORTS WHILE STORING DUPLICATE DATA IN TABLE                   *
+234850* EXC_MASTER_HIST_TBL.                                           *
+************************************************************************
+
+       01  SXP09-STATUS-IND           PIC 9(01)   VALUE 0.  
+       01  SXP09-SUB                  PIC 9(02)   VALUE 0.  
+       01  SXP09-ACTIVITY-CODE        PIC X(03).
+       01  SXP09-USER-ID              PIC X(16).
+       01  SXP09-COMMENT              PIC X(500).   
+       01  SXP09-SQL-DATE             PIC X(10).
+       01  SXP09-SQL-TIME             PIC X(08).
+       01  SXP09-SQL-SAIL-DATE        PIC X(10).
+       01  SXP09-PNTR                 PIC 9(03).
+162949 01  SXP09-SYS-TIME             PIC 9(08).
+207803*01  SXP09-CURRENT-DUP-TIME     PIC 9(08).
+207803 01  SXP09-CURRENT-DUP-TIME     PIC X(08).
+202908 01  SXP09-SYS-TIME-DUP-HH      PIC 9(02).
+195685 01  SXP09-SYS-TIME-DUP-MM      PIC 9(02).
+195685 01  SXP09-SYS-TIME-DUP-SS      PIC 9(02).
+
+ END PROC   
+
+SXP09EHP PROC   
+************************************************************************
+      * STORE EXCURSION HISTORY RECORD                                 *
+      * STORE RECORD IN RDMS TABLE EXC_MASTER_HIST_TBL,                *
+      * EXC_DEP_HIST_TBL, EXC_SAIL_DEP_HIST_TBL.                       *
+      * INPUT PARAMETERS: SXP09-ACTIVITY-CODE,SXP09-USER-ID,           *
+      * SXP09-COMMENT                                                  *
+      * NOTE THE SYNTAX FOR USING COBOL/DMS VARIABLES,                 *
+      * RDMS SYSTEM VARIABLES AND LITERALS.                            *
+************************************************************************
+
+       SXP09-EXC-MASTER-HIST.   
+
+234850     EXEC SQL WHENEVER SQLERROR   
+234850          GO TO SXP09-EXC-MASTER-HIST-ERROR   
+234850     END-EXEC.
+
+           EXEC SQL INSERT INTO EXC_MASTER_HIST_TBL 
+               (EXCURSION_ID,ACTIVITY_DATE,ACTIVITY_TIME,   
+                ACTIVITY_CODE,USER_ID,COMMENT)  
+                   VALUES (:EMR-EXC-ID,CURRENT_DATE,CURRENT_TIME,   
+                           :SXP09-ACTIVITY-CODE,:SXP09-USER-ID, 
+                           :SXP09-COMMENT)  
+           END-EXEC.
+
+234850     EXEC SQL WHENEVER SQLERROR   
+234850          GO TO DPP12-RDMS-ERROR  
+234850     END-EXEC.
+
+234850     GO TO SXP09-EXC-MASTER-HIST-EXIT.
+
+234850 SXP09-EXC-MASTER-HIST-ERROR. 
+234850*    THIS ERROR SQLSTATE(23000) IS IN CASE OF DUPLICATE ENTRY.
+234850     IF SQLSTATE = '23000'
+234850        ACCEPT SXP09-SYS-TIME FROM TIME   
+234850        MOVE SXP09-SYS-TIME (1:2) TO SXP09-SYS-TIME-DUP-HH
+234850        MOVE SXP09-SYS-TIME (3:2) TO SXP09-SYS-TIME-DUP-MM
+234850        MOVE SXP09-SYS-TIME (5:2) TO SXP09-SYS-TIME-DUP-SS
+234850  
+234850        IF ( SXP09-SYS-TIME (5:2) = '59' )
+234850           ADD 1                  TO SXP09-SYS-TIME-DUP-MM
+234850           MOVE 00                TO SXP09-SYS-TIME-DUP-SS
+234850           IF ( SXP09-SYS-TIME-DUP-MM = '60' )
+234850              ADD 1               TO SXP09-SYS-TIME-DUP-HH
+234850              MOVE 00             TO SXP09-SYS-TIME-DUP-MM
+234850              IF ( SXP09-SYS-TIME-DUP-HH = '24' ) 
+234850                 ADD 1            TO SXP09-SYS-TIME-DUP-SS
+234850                 MOVE 00          TO SXP09-SYS-TIME-DUP-HH
+234850              END-IF  
+234850           END-IF 
+234850        ELSE  
+234850           ADD 1                  TO SXP09-SYS-TIME-DUP-SS
+234850        END-IF
+234850  
+234850        STRING SXP09-SYS-TIME-DUP-HH ':'  
+234850               SXP09-SYS-TIME-DUP-MM ':'  
+234850               SXP09-SYS-TIME-DUP-SS  
+234850               DELIMITED BY SIZE INTO SXP09-CURRENT-DUP-TIME  
+234850  
+234850        EXEC SQL INSERT INTO EXC_MASTER_HIST_TBL  
+234850            (EXCURSION_ID,ACTIVITY_DATE,ACTIVITY_TIME,
+234850             ACTIVITY_CODE,USER_ID,COMMENT)   
+234850             VALUES (:EMR-EXC-ID,CURRENT_DATE,
+234850                     :SXP09-CURRENT-DUP-TIME, 
+234850                     :SXP09-ACTIVITY-CODE,:SXP09-USER-ID, 
+234850                     :SXP09-COMMENT)  
+234850        END-EXEC  
+234850        EXEC SQL WHENEVER SQLERROR
+234850             GO TO DPP12-RDMS-ERROR   
+234850        END-EXEC  
+234850     ELSE 
+234850        GO TO DPP12-RDMS-ERROR
+234850     END-IF.  
+234850  
+234850 SXP09-EXC-MASTER-HIST-EXIT.  
+           EXIT.
+
+************************************************************************
+      * CONVERT DATE,TIME FROM DMS TO SQL FORMAT YYYY-MM-DD, HH:MM:SS. *
+      * THIS CODE IS TEMPORARY UNTIL THE FIX TO STRPTIME GETS INSTALLED*
+************************************************************************
+
+       SXP09-EXC-DEP-HIST.  
+
+           MOVE SPACES             TO SXP09-SQL-DATE SXP09-SQL-TIME.
+
+           STRING EDR-BEGIN-DATE (1:4) '-'  
+                  EDR-BEGIN-DATE (5:2) '-'  
+                  EDR-BEGIN-DATE (7:2)  
+                  DELIMITED BY SIZE INTO SXP09-SQL-DATE.
+
+162949     ACCEPT SXP09-SYS-TIME FROM TIME. 
+
+           STRING EDR-BEGIN-TIME (1:2) ':'  
+162949            EDR-BEGIN-TIME (3:2) ':'  
+162949            SXP09-SYS-TIME (5:2)  
+162949*           EDR-BEGIN-TIME (3:2) ':00'
+                  DELIMITED BY SIZE INTO SXP09-SQL-TIME.
+
+      * THE COLUMN LIST CAN BE OMITTED WHEN ALL COLUMNS ARE INSERTED
+195685     EXEC SQL WHENEVER SQLERROR   
+195685          GO TO SXP09-EXC-DEP-HIST-ERROR  
+195685     END-EXEC.
+
+           EXEC SQL INSERT INTO EXC_DEP_HIST_TBL
+               (EXCURSION_ID, EXC_DEPARTURE_DATE, EXC_DEPARTURE_TIME,   
+                ACTIVITY_DATE,ACTIVITY_TIME,
+                ACTIVITY_CODE, USER_ID, COMMENT)
+                   VALUES (:EDR-EXC-ID,:SXP09-SQL-DATE,:SXP09-SQL-TIME, 
+                           CURRENT_DATE, CURRENT_TIME,  
+                           :SXP09-ACTIVITY-CODE,:SXP09-USER-ID, 
+                           :SXP09-COMMENT)  
+           END-EXEC.
+
+202908     EXEC SQL WHENEVER SQLERROR   
+202908          GO TO DPP12-RDMS-ERROR  
+202908     END-EXEC.
+
+195685     GO TO SXP09-EXC-DEP-HIST-EXIT.   
+
+195685 SXP09-EXC-DEP-HIST-ERROR.
+      *    THIS ERROR SQLSTATE(23000) IS IN CASE OF DUPLICATE ENTRY.
+195685     IF SQLSTATE = '23000'
+202908        ACCEPT SXP09-SYS-TIME FROM TIME   
+202908        MOVE SXP09-SYS-TIME (1:2) TO SXP09-SYS-TIME-DUP-HH
+202908*       MOVE EDR-BEGIN-TIME (3:2) TO SXP09-SYS-TIME-DUP-MM
+202908        MOVE SXP09-SYS-TIME (3:2) TO SXP09-SYS-TIME-DUP-MM
+195685        MOVE SXP09-SYS-TIME (5:2) TO SXP09-SYS-TIME-DUP-SS
+
+195685        IF ( SXP09-SYS-TIME (5:2) = '59' )
+195685           ADD 1                  TO SXP09-SYS-TIME-DUP-MM
+195685           MOVE 00                TO SXP09-SYS-TIME-DUP-SS
+202908           IF ( SXP09-SYS-TIME-DUP-MM = '60' )
+202908              ADD 1               TO SXP09-SYS-TIME-DUP-HH
+202908              MOVE 00             TO SXP09-SYS-TIME-DUP-MM
+202908              IF ( SXP09-SYS-TIME-DUP-HH = '24' ) 
+202908                 ADD 1            TO SXP09-SYS-TIME-DUP-SS
+202908                 MOVE 00          TO SXP09-SYS-TIME-DUP-HH
+202908              END-IF  
+202908           END-IF 
+195685        ELSE  
+195685           ADD 1                  TO SXP09-SYS-TIME-DUP-SS
+195685        END-IF
+
+202908*       STRING EDR-BEGIN-TIME (1:2)  ':'  
+202908        STRING SXP09-SYS-TIME-DUP-HH ':'  
+195685               SXP09-SYS-TIME-DUP-MM ':'  
+195685               SXP09-SYS-TIME-DUP-SS  
+202908               DELIMITED BY SIZE INTO SXP09-CURRENT-DUP-TIME  
+202908*              DELIMITED BY SIZE INTO SXP09-SQL-TIME  
+
+195685        EXEC SQL INSERT INTO EXC_DEP_HIST_TBL 
+195685            (EXCURSION_ID, EXC_DEPARTURE_DATE, EXC_DEPARTURE_TIME,
+195685             ACTIVITY_DATE,ACTIVITY_TIME, 
+195685             ACTIVITY_CODE, USER_ID, COMMENT) 
+195685             VALUES (:EDR-EXC-ID,:SXP09-SQL-DATE,:SXP09-SQL-TIME, 
+202908*                       CURRENT_DATE, CURRENT_TIME,   
+202908                        CURRENT_DATE,:SXP09-CURRENT-DUP-TIME, 
+195685                        :SXP09-ACTIVITY-CODE,:SXP09-USER-ID,  
+195685                        :SXP09-COMMENT)   
+195685        END-EXEC  
+202908        EXEC SQL WHENEVER SQLERROR
+202908             GO TO DPP12-RDMS-ERROR   
+202908        END-EXEC  
+202908     ELSE 
+202908         GO TO DPP12-RDMS-ERROR   
+195685     END-IF.  
+
+       SXP09-EXC-DEP-HIST-EXIT. 
+           EXIT.
+
+************************************************************************
+      * CONVERT DATE,TIME FROM DMS TO SQL FORMAT. THIS CODE IS         *
+      * TEMPORARY UNTIL THE FIX TO STRPTIME FUNCTION IS INSTALLED.     *
+************************************************************************
+
+       SXP09-EXC-SAIL-DEP-HIST. 
+
+           MOVE SPACES             TO SXP09-SQL-DATE SXP09-SQL-TIME.
+
+           STRING ESDR-EXC-DATE (1:4) '-'   
+                  ESDR-EXC-DATE (5:2) '-'   
+                  ESDR-EXC-DATE (7:2)   
+                  DELIMITED BY SIZE INTO SXP09-SQL-DATE.
+
+162949     ACCEPT SXP09-SYS-TIME FROM TIME. 
+
+           STRING ESDR-EXC-TIME (1:2) ':'   
+162949            ESDR-EXC-TIME (3:2) ':'   
+162949            SXP09-SYS-TIME (5:2)  
+162949*           ESDR-EXC-TIME (3:2) ':00' 
+                  DELIMITED BY SIZE INTO SXP09-SQL-TIME.
+
+207803*    MOVE SPACES             TO SXP09-SQL-SAIL-DATE.  
+207803     MOVE SPACES             TO SXP09-SQL-SAIL-DATE   
+207803                                SXP09-CURRENT-DUP-TIME.   
+
+           STRING ESDR-SAIL-DATE (1:4) '-'  
+                  ESDR-SAIL-DATE (5:2) '-'  
+                  ESDR-SAIL-DATE (7:2)  
+                  DELIMITED BY SIZE INTO SXP09-SQL-SAIL-DATE.   
+
+207803*    EXEC SQL WHENEVER SQLERROR   
+207803*         GO TO DPP12-RDMS-ERROR  
+207803*    END-EXEC.
+207803     EXEC SQL WHENEVER SQLERROR   
+207803          GO TO SXP09-EXC-SAIL-DEP-HIST-ERROR 
+207803     END-EXEC.
+
+           EXEC SQL INSERT INTO EXC_SAIL_DEP_HIST_TBL   
+               (EXCURSION_ID, EXC_DEPARTURE_DATE, EXC_DEPARTURE_TIME,   
+                ACTIVITY_DATE,ACTIVITY_TIME,
+                SHIP_CODE, SAIL_DATE, DURATION_DAYS,
+                ACTIVITY_CODE, USER_ID, COMMENT)
+                   VALUES (:ESDR-EXC-ID,:SXP09-SQL-DATE,:SXP09-SQL-TIME,
+                           CURRENT_DATE, CURRENT_TIME,  
+                           :ESDR-SHIP-CODE,:SXP09-SQL-SAIL-DATE,
+                           :ESDR-DURATION-DAYS, 
+                           :SXP09-ACTIVITY-CODE,:SXP09-USER-ID, 
+                           :SXP09-COMMENT)  
+           END-EXEC.
+207803     GO TO SXP09-EXC-SAIL-DEP-HIST-EXIT.  
+
+207803 SXP09-EXC-SAIL-DEP-HIST-ERROR.   
+207803     IF SQLSTATE = '23000'
+207803        ACCEPT SXP09-SYS-TIME FROM TIME   
+207803        MOVE SXP09-SYS-TIME (1:2) TO SXP09-SYS-TIME-DUP-HH
+207803        MOVE SXP09-SYS-TIME (3:2) TO SXP09-SYS-TIME-DUP-MM
+207803        MOVE SXP09-SYS-TIME (5:2) TO SXP09-SYS-TIME-DUP-SS
+207803        IF ( SXP09-SYS-TIME (5:2) = '59' )
+207803           ADD 1                  TO SXP09-SYS-TIME-DUP-MM
+207803           MOVE 00                TO SXP09-SYS-TIME-DUP-SS
+207803           IF ( SXP09-SYS-TIME-DUP-MM = '60' )
+207803              ADD 1               TO SXP09-SYS-TIME-DUP-HH
+207803              MOVE 00             TO SXP09-SYS-TIME-DUP-MM
+207803              IF ( SXP09-SYS-TIME-DUP-HH = '24' ) 
+207803                 ADD 1            TO SXP09-SYS-TIME-DUP-SS
+207803                 MOVE 00          TO SXP09-SYS-TIME-DUP-HH
+207803              END-IF  
+207803           END-IF 
+207803        ELSE  
+207803           ADD 1                  TO SXP09-SYS-TIME-DUP-SS
+207803        END-IF
+207803        STRING SXP09-SYS-TIME-DUP-HH ':'  
+207803               SXP09-SYS-TIME-DUP-MM ':'  
+207803               SXP09-SYS-TIME-DUP-SS  
+207803               DELIMITED BY SIZE INTO SXP09-CURRENT-DUP-TIME  
+207803  
+207803        EXEC SQL INSERT INTO EXC_SAIL_DEP_HIST_TBL
+207803            (EXCURSION_ID, EXC_DEPARTURE_DATE, EXC_DEPARTURE_TIME,
+207803             ACTIVITY_DATE,ACTIVITY_TIME, 
+207803             SHIP_CODE, SAIL_DATE, DURATION_DAYS, 
+207803             ACTIVITY_CODE, USER_ID, COMMENT) 
+207803             VALUES (:ESDR-EXC-ID,:SXP09-SQL-DATE,:SXP09-SQL-TIME,
+207803                        CURRENT_DATE,:SXP09-CURRENT-DUP-TIME, 
+207803                        :ESDR-SHIP-CODE,:SXP09-SQL-SAIL-DATE, 
+207803                        :ESDR-DURATION-DAYS,  
+207803                        :SXP09-ACTIVITY-CODE,:SXP09-USER-ID,  
+207803                        :SXP09-COMMENT)   
+207803        END-EXEC  
+207803     ELSE 
+207803         GO TO DPP12-RDMS-ERROR   
+207803     END-IF.  
+
+       SXP09-EXC-SAIL-DEP-HIST-EXIT.
+           EXIT.
+ END PROC   

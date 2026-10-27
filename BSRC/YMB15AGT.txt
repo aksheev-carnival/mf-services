@@ -1,0 +1,3511 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID. YMB15AGT.
+       AUTHOR. RICHARD MONTGOMERY.  
+      *REMARKS. THIS IS THE AGENT DATABASE DRAIN: IT CREATES A FLAT FILE
+      *                 OF ONE AGENT RECORD OF FIXED LENGTH FOR EACH
+      *                 DATABASE AGENT RECORD   
+      * 
+GCBPRJ******************************************************************
+GCBPRJ* MAY-2005      GA5      TATA INFOTECH LTD.      GCBPRJ          *
+GCBPRJ* Modified Program for Group Cabins Breakout Project.            *
+GCBPRJ* Two fields are added to YMBAGT-REC and 0675-AGT-SUPER-CONT-NAME*
+GCBPRJ* included for populating those fields.                          *
+GCBPRJ******************************************************************
+      ******************************************************************
+C59031* 15-DEC-06     YM6     TCS LTD.               CQ59031           *
+C59031* CHANGES DONE TO POPULATE CORRECT E-MAIL ADDRESS.               *
+      ******************************************************************
+C34148* July 2007     N3P                            CQ34148           *
+C34148* CHANGES SalesForceAutomation SLX  PROJECT - OBTAIN DATA FROM DW*
+C34148* CHANGES TAGGED AS SLAPRJ                                       *
+      ******************************************************************
+C75918* CHANGE CABIN NUM SIZE TO 5 CHARACTERS.                         *
+************************************************************************
+C91829* 24-JUN-09     RFC     TCS LTD.               CQ91829           *
+C91829* OPEN AREAS OF RECORDS SALES-REP-REC AND REGION-REC.            *
+************************************************************************
+C92947* 11-JAN-2010 - GAB - CONVERT TO VCR2 FOR AGENT-MKT-COMMENT-CODE *
+************************************************************************
+112963* 12-NOV-10     GG4     TCS LTD.               CQ112963          *
+112963*  AREA FARE-IDX COMMENTED.                                      *
+************************************************************************
+114761* Sept 2011     F0H     THE FUN SHIPS          CQ114761          *
+114761*  DRAIN AGENCY CREATE AND END DATES.                            *
+************************************************************************
+104170* 12-APR-11     RFC     TCS LTD.               CQ104170          *
+104170* TO BE IN SYNC WITH AGENT-ATCR-INDICATOR FIELDS CHANGES IN      *
+104170* DATABASE.                                                      *
+************************************************************************
+CCL-UK* 11-MAY-12     DRA     CARNIVAL          CARNIVAL UK SOURCE     *
+CCL-UK*  EXTENSIVE CHANGES TO YMBAGT FOR CARNIVAL-UK PROJECT.          *
+************************************************************************
+154125* 24-JUN-13     GG4     TCS LTD.              CQ154125           *
+154125* CARNIVAL AUS 2                                                 *
+************************************************************************
+131886* 12-APR-13     GRS     CARNIVAL          CQ131886               *
+131886*  ADD SATELITTE PHONE NUMBERS FOR AGENTS.                       *
+************************************************************************
+150339* 24-FEB-14     AJS     TCS LTD.               CQ150339          *
+150339* CODE MODIFIED TO SEND NEW AGENCY FIELDS ADDED ON AGENCY PROFILE*
+************************************************************************
+164971* 08-JUL-14     5ST     TCS LTD.               CQ164971          *
+164971* CODE MODIFIED TO SEND RETAIL AGENCY INDICATORS TO YMBAGT-FILE  *
+************************************************************************
+162641* 30-JUN-16     DRA     CARNIVAL               CQ162641          *
+162641* ADDED AGENCY EMAILS DRAIN.                                     *
+************************************************************************
+190858* 30-JUN-16     DRA     CARNIVAL               CQ190858          *
+190858* ADDED AGENCY TRANSACTION HISTORY DRAIN.                        *
+************************************************************************
+198380* 12-SEP-16     DRA     CARNIVAL               CQ198380          *
+198380*   ADDED AGENT-COMMENT TO YMBAGT-FILE.                          *
+************************************************************************
+188688* 04-AUG-16     SA9     TCS LTD.                  CQ188688       *
+188688* CONVERT EXISTING BATCH AND TRANSACTION PROGRAMS TO USE         *
+188688* EXPLICIT THREAD CONTROL                                        *
+************************************************************************
+192660* 05-JUL-16     HK2     TCS LTD.               CQ192660          *
+192660* SUPPORT MULTIPLE ERF NUMBERS PER AGENCY PROFILE TO PAYOUT      *
+192660* COMMISSIONS BASED ON BOOKINGS CURRENCY                         *
+************************************************************************
+202954* 04-APR-17     DRA     CARNIVAL               CQ202954          *
+202954* REMOVED THE HISTORY DRAIN THAT WAS ADDED BY 190858.  REPLACED  *
+202954* BY A NEW METHOD WHICH SHARES NOTHING IN COMMON WITH PROCESSING *
+202954* OF OTHER AGENT RECS, SO MOVED TO NEW PROGRAM YMB16AHR.         *
+************************************************************************
+204023* 28-APR-17     HV0     TCS LTD.               CQ204023          *
+204023* REMOVE UNWANTED DISPLAY STATEMENTS FROM CODE                   *
+************************************************************************
+204888* 24-JUL-17     BK4     TCS LTD.               CQ204888          *
+204888* PBS SYSTEMATIC LETTER TEMPLATES MINOR CHANGES.                 *
+************************************************************************
+213983* 11-DEC-18     DC6     TCS LTD.               CQ213983          *
+213983* CODE CHANGES TO DRAIN THE DATA IN YMBAGC FILE.                 *
+************************************************************************
+214673* 29-JAN-19     DRA     CARNIVAL               CQ214673          *
+214673*  REMOVE CONTROL CHARACTERS FROM OUTPUT FILES.                  *
+************************************************************************
+214948* 08-AUG-19     FSK     TCS LTD.               CQ214948          *
+214948* CHANGES DONE TO INCORPORATE ALPHANUMERIC AGENCY CUSTOMER NUM.  *
+************************************************************************
+CCLAUS* 06-SEP-19     HYS     TCS LTD.               CCLAUS            *
+CCLAUS* CARNIVAL AUSTRALIA PROJECT RELATED CHANGES                     *
+************************************************************************
+218069* 31-JAN-20     PKA     TCS LTD.               CQ218069          *
+218069* CHANGES ARE MADE TO RESOLVE THE ISSUE OF INVALID FOR           *
+218069* CLOSED AGENCIES                                                *
+************************************************************************
+PPC470* 24-MAR-17     0SA     TCS LTD.               PPC470            *
+PPC470* PPC PROJECT LOCALITY MANAGEMENT CHANGES.                       *
+************************************************************************
+186084* 14-AUG-24     P7K     TCS LTD.               ADO1860847        *
+186084* CHANGES DONE FOR TRADE SALES PROJECT                           *
+************************************************************************
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER. UNIVAC-1100-60. 
+       OBJECT-COMPUTER. UNIVAC-1100 MEMORY SIZE 3 MODULES.  
+       SPECIAL-NAMES.   
+               PRINTER IS PRINTER   
+               CONSOLE IS CONSOLE.  
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT PARAM-FILE  ASSIGN TO DISC YMBAGT01S. 
+202954*    SELECT TIME-FILE   ASSIGN TO DISC YMBAGT02C. 
+202954*    SELECT NEXT-TIME-FILE ASSIGN TO DISC YMBAGT03C.  
+           SELECT YMBAGT-FILE ASSIGN TO DISC YMBAGT02D. 
+100098     SELECT YMBAGC-FILE ASSIGN TO DISC YMBAGC02D. 
+NP0104     SELECT YMBMTR-FILE ASSIGN TO DISC YMBMTR02D. 
+186084*    SELECT YMBSCH-FILE ASSIGN TO DISC YMBSCH02D. 
+186084*    SELECT YMBSCD-FILE ASSIGN TO DISC YMBSCD02D. 
+186084*    SELECT YMBCBA-FILE ASSIGN TO DISC YMBCBA02D. 
+131886     SELECT YMBPHN-FILE ASSIGN TO DISC YMBPHN02D. 
+162641     SELECT YMBAER-FILE ASSIGN TO DISC YMBAER02D. 
+202954*    SELECT YMBAHR-FILE ASSIGN TO DISC YMBAHR02D. 
+192660     SELECT YMBACUR-FILE ASSIGN TO DISC YMBACUR02D.   
+           SELECT YMBAGT-CNT-FILE ASSIGN TO DISC YMBAGT02DC.
+100098     SELECT YMBAGC-CNT-FILE ASSIGN TO DISC YMBAGC02DC.
+NP0104     SELECT YMBMTR-CNT-FILE ASSIGN TO DISC YMBMTR02DC.
+186084*    SELECT YMBSCH-CNT-FILE ASSIGN TO DISC YMBSCH02DC.
+186084*    SELECT YMBSCD-CNT-FILE ASSIGN TO DISC YMBSCD02DC.
+186084*    SELECT YMBCBA-CNT-FILE ASSIGN TO DISC YMBCBA02DC.
+131886     SELECT YMBPHN-CNT-FILE ASSIGN TO DISC YMBPHN02DC.
+192660     SELECT YMBACUR-CNT-FILE ASSIGN TO DISC YMBACUR02DC.  
+
+       DATA DIVISION.   
+       SUBSCHEMA SECTION.   
+       INVOKE SUBSCHEMA PST100UCOBSU
+           IN FILE SUBSCHEMAS OF SCHEMA PST100SCHEMA
+           COPYING RECORDS    INTO COMMON   
+           COPYING DATA-NAMES INTO COMMON   
+           RUN-UNIT-ID          IS YMBAGT   
+           OVERLAY PAX-REC WITH PAX-CXF-REC 
+                                PAX-VI-REC  
+144449     SAVE DATA INCLUDES DEFERRED-UPDATES  
+           DMCA COMMON  
+           ERROR RECOVERY IS 9100-DATABASE-ERROR
+           ROLLBACK       IS 9100-DATABASE-ERROR.   
+
+       FILE SECTION.
+       FD  PARAM-FILE   
+           LABEL RECORDS ARE STANDARD.  
+       01  PARAM-REC.   
+           05  PARAM-MTRF-PHONE-NUM        PIC 9(10).                     1-10  
+           05  PARAM-MTRF-ACTIVITY-DATE    PIC 9(06).                    11-16  
+           05  PARAM-MTRF-ACTIVITY-TIME    PIC 9(06).                    17-22  
+           05  PARAM-MTRF-OPER-INITIALS    PIC X(03).                    23-25  
+           05  PARAM-MTRF-ACTIVITY-CODE    PIC X(03).                    26-28  
+           05  PARAM-MTRF-ACTIVITY-DESC    PIC X(10).                    29-38  
+           05  PARAM-MTRF-ACTIVITY-COMMENT PIC X(30).                    39-68  
+           05  PARAM-MTRF-AGENCY-CONTACT   PIC X(10).                    69-78  
+           05  PARAM-MTRF-COMPANY-CODE     PIC X(03).                    79-81  
+           05  PARAM-MTRF-HISTORY-TYPE     PIC X(01).                    82-82  
+           05  PARAM-MTRF-HISTORY-AMT      PIC S9(8)V99 USAGE COMP.      83-86  
+NP0504     05  PARAM-MTRF-CUSTOMER-NUM. 
+214948*        10 PARAM-MTRF-CUST-NUM      PIC 9(07).                    87-93  
+214948         10 PARAM-MTRF-CUST-NUM      PIC X(07).                    87-93  
+100098     05  PARAM-AGCR                  PIC X(1).                     94 
+100098     05  FILLER                      PIC X(02).                    95-96  
+
+202954*FD  TIME-FILE
+202954*    LABEL RECORDS ARE STANDARD.  
+202954*01  TIME-REC.
+202954*    05  TIME-BEGIN-DATE        PIC 9(6). 
+202954*    05  TIME-BEGIN-TIME        PIC 9(6). 
+
+202954*FD  NEXT-TIME-FILE   
+202954*    LABEL RECORDS ARE STANDARD.  
+202954*01  NEXT-TIME-REC.   
+202954*    05  NEXT-TIME-DATE        PIC 9(6).  
+202954*    05  NEXT-TIME-TIME        PIC 9(6).  
+
+192660 FD  YMBACUR-FILE 
+192660     LABEL RECORDS ARE STANDARD.  
+192660 01  YMBACUR-REC. 
+192660     05  YMBACUR-RECORD-ID            PIC X(06).  
+192660     05  YMBACUR-DATESTAMP            PIC 9(08).  
+192660     05  YMBACUR-FILLER-1             PIC X(01).  
+214948*    05  YMBACUR-CUSTOMER-NUM         PIC 9(07).  
+214948     05  YMBACUR-CUSTOMER-NUM         PIC 9(14).  
+192660     05  YMBACUR-FILLER-2             PIC X(01).  
+192660     05  YMBACUR-CURRENCY-CODE        PIC X(03).  
+192660     05  YMBACUR-FILLER-3             PIC X(01).  
+192660     05  YMBACUR-CURRENCY-STATUS      PIC X(01).  
+192660     05  YMBACUR-FILLER-4             PIC X(01).  
+192660     05  YMBACUR-ERF-NUM              PIC X(09).  
+192660     05  YMBACUR-FILLER-5             PIC X(01).  
+       FD  YMBAGT-FILE  
+           LABEL RECORDS ARE OMITTED.   
+       01  YMBAGT-REC.  
+           03  YMBAGT-RECORD-ID            PIC X(06).                   1-6 
+           03  YMBAGT-DATESTAMP            PIC 9(8).                    7-14
+           03  YMBAGT-FILLER-1             PIC X.                       15  
+214948*    03  YMBAGT-CUSTOMER-NUM         PIC 9(7).                    16-22   
+214948     03  YMBAGT-CUSTOMER-NUM-ASCII   PIC 9(14).                   16-29   
+           03  YMBAGT-FILLER-2             PIC X.                       23  
+           03  YMBAGT-TYPE                 PIC X.                       24  
+           03  YMBAGT-FILLER-3             PIC X.                       25  
+           03  YMBAGT-NAME                 PIC X(30).                   26-55   
+           03  YMBAGT-FILLER-4             PIC X.                       56  
+           03  YMBAGT-WHOLESALE-IND        PIC X.                       57  
+           03  YMBAGT-FILLER-5             PIC X.                       58  
+           03  YMBAGT-STATE-CODE           PIC X(2).                    59-60   
+           03  YMBAGT-FILLER-6             PIC X.                       61  
+           03  YMBAGT-COUNTRY-CODE         PIC X(2).                    62-63   
+           03  YMBAGT-FILLER-7             PIC X.                       64  
+           03  YMBAGT-COUNTRY-DESC         PIC X(30).                   65-94   
+           03  YMBAGT-FILLER-8             PIC X.                       95  
+           03  YMBAGT-EMAIL-ADDRESS        PIC X(100).                  96-195  
+           03  YMBAGT-FILLER-9             PIC X.                       196 
+           03  YMBAGT-REP-CODE             PIC 9(2).                    197-198 
+           03  YMBAGT-FILLER-10            PIC X.                       199 
+           03  YMBAGT-REP-DESC             PIC X(28).                   200-227 
+           03  YMBAGT-FILLER-11            PIC X.                       228 
+           03  YMBAGT-TERRITORY-CODE       PIC 9(2).                    229-230 
+           03  YMBAGT-FILLER-12            PIC X.                       231 
+           03  YMBAGT-PHONE-NUM            PIC 9(10).                   232-241 
+           03  YMBAGT-FILLER-13            PIC X.                       242 
+           03  YMBAGT-REGION-CODE          PIC 9(2).                    243-244 
+           03  YMBAGT-FILLER-14            PIC X.                       245 
+           03  YMBAGT-REGION-DESC          PIC X(20).                   246-265 
+           03  YMBAGT-FILLER-15            PIC X.                       266 
+           03  YMBAGT-STATUS               PIC X.                       267 
+           03  YMBAGT-FILLER-16            PIC X.                       268 
+           03  YMBAGT-STATUS-DESC          PIC X(15).                   269-283 
+           03  YMBAGT-FILLER-17            PIC X.                       284 
+           03  YMBAGT-RES-COMM-CODE        PIC X.                       285 
+           03  YMBAGT-FILLER-18            PIC X.                       286 
+           03  YMBAGT-RES-COMM-DESC        PIC X(20).                   306 
+           03  YMBAGT-FILLER-19            PIC X.                       307 
+           03  YMBAGT-ACT-COMM-CODE        PIC X.                       308 
+           03  YMBAGT-FILLER-20            PIC X.                       309 
+           03  YMBAGT-ACT-COMM-DESC        PIC X(20).                   310-329 
+           03  YMBAGT-FILLER-21            PIC X.                       330 
+           03  YMBAGT-MKT-COMM-CODE        PIC X.                       331 
+           03  YMBAGT-FILLER-22            PIC X.                       332 
+           03  YMBAGT-MKT-COMM-DESC        PIC X(20).                   333-352 
+           03  YMBAGT-FILLER-23            PIC X.                       353 
+           03  YMBAGT-REP-DIRECTOR         PIC X(20).                   354-373 
+           03  YMBAGT-FILLER-24            PIC X.                       374 
+186084*    03  YMBAGT-AGT-AFF-CONT-NUM     PIC X(06).                   375-380 
+186084     03  YMBAGT-FILLER-25-1          PIC X(06).                   375-380 
+           03  YMBAGT-FILLER-25            PIC X.                       381 
+186084*    03  YMBAGT-AGT-AFF-CONT-NAME    PIC X(30).                   382-411 
+186084     03  YMBAGT-FILLER-25-2          PIC X(30).                   382-411 
+           03  YMBAGT-FILLER-26            PIC X.                       412 
+           03  YMBAGT-AGT-OWN-CONT-NUM     PIC X(06).                   413-418 
+           03  YMBAGT-FILLER-27            PIC X.                       419 
+           03  YMBAGT-AGT-OWN-CONT-NAME    PIC X(30).                   420-449 
+           03  YMBAGT-FILLER-28            PIC X.                       450 
+           03  YMBAGT-AGT-OWNER-FLAG       PIC X.                       451 
+           03  YMBAGT-FILLER-29            PIC X.                       452 
+           03  YMBAGT-AGT-AUTOMATION-IND   PIC X.                       453 
+           03  YMBAGT-FILLER-30            PIC X.                       454 
+           03  YMBAGT-AGT-DIRECT-IND       PIC X.                       455 
+           03  YMBAGT-FILLER-31            PIC X.                       456 
+           03  YMBAGT-AGT-INTL-SALES-IND   PIC X.                       457 
+           03  YMBAGT-FILLER-32            PIC X.                       458 
+           03  YMBAGT-ADDR-LINE-1          PIC X(30).                   459-488 
+           03  YMBAGT-FILLER-33            PIC X.                       489 
+           03  YMBAGT-ADDR-LINE-2          PIC X(30).                   490-519 
+           03  YMBAGT-FILLER-34            PIC X.                       520 
+           03  YMBAGT-CITY                 PIC X(20).                   521-540 
+           03  YMBAGT-FILLER-35            PIC X.                       541 
+           03  YMBAGT-ZIP-CODE             PIC X(11).                   542-552 
+           03  YMBAGT-FILLER-36            PIC X.                       553 
+C75918     03  FILLER                      PIC X(4).                    554-557 
+           03  YMBAGT-FILLER-37            PIC X.                       558 
+           03  YMBAGT-NPC-NUM              PIC X(9).                    559-567 
+           03  YMBAGT-FILLER-38            PIC X.                       568 
+NP0504     03 YMBAGT-NUMERICS.  
+NP0504        05 YMBAGT-CLIA-NUM              PIC 9(8).                 569-576 
+NP0504        05 YMBAGT-FILLER-39             PIC X.                    577 
+NP0504        05 YMBAGT-ARC-NUM               PIC 9(8).                 578-585 
+NP0504        05 YMBAGT-FILLER-40             PIC X.                    586 
+NP0504        05 YMBAGT-IATA-NUM              PIC 9(8).                 587-594 
+NP0504        05 YMBAGT-FILLER-41             PIC X.                    595 
+186084*       05 YMBAGT-CONTRACT-NUM          PIC 9(6).                 596-601 
+186084        05 YMBAGT-FILLER-41-1           PIC X(06).                596-601 
+NP0504        05 YMBAGT-FILLER-42             PIC X.                    602 
+186084*       05 YMBAGT-CONTRACT-DATE         PIC 9(8).                 603-610 
+186084        05 YMBAGT-FILLER-42-1           PIC X(08).                603-610 
+NP0504        05 YMBAGT-FILLER-43             PIC X.                    611 
+186084*       05 YMBAGT-CONTRACT-ENTRY-NUM    PIC 9(2).                 612-613 
+186084        05 YMBAGT-FILLER-43-1           PIC X(02).                612-613 
+NP0504        05 YMBAGT-FILLER-44             PIC X.                    614 
+NP0504        05 YMBAGT-FAX-NUM               PIC 9(10).                615-624 
+NP0504        05 YMBAGT-FILLER-45             PIC X.                    625 
+NP0504        05 YMBAGT-COUNTRY-NUM           PIC 9(3).                 626-628 
+NP0504        05 YMBAGT-FILLER-46             PIC X.                    629 
+NP0504        05 YMBAGT-CITY-NUM              PIC 9(3).                 630-632 
+NP0504        05 YMBAGT-FILLER-47             PIC X.                    633 
+NP0504        05 YMBAGT-MAILED-DATE           PIC 9(8).                 634-641 
+NP0504        05 YMBAGT-FILLER-48             PIC X.                    642 
+NP0504***AGENT-CONTRACT-REC DATA
+186084*    03  YMBAGT-ACR-CONTRACT-NUM        PIC 9(5) .                643-647 
+186084     03  YMBAGT-FILLER-48-1             PIC X(05).                643-647 
+NP0504     03  YMBAGT-FILLER-49               PIC X.                    648 
+186084*    03  YMBAGT-AGENCY-NAME             PIC X(30).                649-678 
+186084     03  YMBAGT-FILLER-49-1             PIC X(30).                649-678 
+NP0504     03  YMBAGT-FILLER-50               PIC X.                    679 
+186084*    03  YMBAGT-LOCATION                PIC X(30).                680-709 
+186084     03  YMBAGT-FILLER-50-1             PIC X(30).                680-709 
+NP0504     03  YMBAGT-FILLER-51               PIC X.                    710 
+186084*    03  YMBAGT-EFFECTIVE-DATE          PIC 9(8).                 711-718 
+186084     03  YMBAGT-FILLER-51-1             PIC X(08).                711-718 
+NP0504     03  YMBAGT-FILLER-52               PIC X.                    719 
+186084*    03  YMBAGT-EXPIRATION-DATE         PIC 9(8).                 720-727 
+186084     03  YMBAGT-FILLER-52-1             PIC X(08).                720-727 
+NP0504     03  YMBAGT-FILLER-53               PIC X.                    728 
+186084*    03  YMBAGT-CONTRACT-TYPE           PIC 9(2).                 729-730 
+186084     03  YMBAGT-FILLER-53-1             PIC X(02).                 729-730
+NP0504     03  YMBAGT-FILLER-54               PIC X.                    731 
+186084*    03  YMBAGT-COMMENT                 PIC X(44).                732-775 
+186084     03  YMBAGT-FILLER-54-1             PIC X(44).                732-775 
+NP0504     03  YMBAGT-FILLER-55               PIC X.                    776 
+186084*    03  YMBAGT-AFF-OWNER-IND           PIC X.                    777 
+186084     03  YMBAGT-FILLER-55-1             PIC X(01).                777 
+NP0504     03  YMBAGT-FILLER-56               PIC X.                    778 
+186084*    03  YMBAGT-IND-ACCRUAL-COMM-PCT    PIC .9999.                779-783 
+186084     03  YMBAGT-FILLER-56-1             PIC X(05).                779-783 
+NP0504     03  YMBAGT-FILLER-57               PIC X.                    784 
+186084*    03  YMBAGT-GRP-ACCRUAL-COMM-PCT    PIC .9999.                785-789 
+186084     03  YMBAGT-FILLER-57-1             PIC X(05).                785-789 
+NP0504     03  YMBAGT-FILLER-58               PIC X.                    790 
+186084*    03  YMBAGT-ACCRUAL-PMT-METHOD      PIC X.                    791 
+186084     03  YMBAGT-FILLER-58-1             PIC X(01).                791 
+NP0504     03  YMBAGT-FILLER-59               PIC X.                    792 
+186084*    03  YMBAGT-PROMOTIONS              PIC X(10).                793-802 
+186084     03  YMBAGT-FILLER-59-1             PIC X(10).                793-802 
+NP0504     03  YMBAGT-FILLER-60               PIC X.                    803 
+CCL-UK     03  YMBAGT-SPACE-FILL-1            PIC X(03).                804-806 
+           03  YMBAGT-FILLER-61               PIC X.                    807 
+CCL-UK     03  YMBAGT-SPACE-FILL-2            PIC X(03).                808-810 
+           03  YMBAGT-FILLER-62               PIC X.                    811 
+CCL-UK     03  YMBAGT-SPACE-FILL-3            PIC X(03).                812-814 
+           03  YMBAGT-FILLER-63               PIC X.                    815 
+CCL-UK     03  YMBAGT-SPACE-FILL-4            PIC X(03).                816-818 
+           03  YMBAGT-FILLER-64               PIC X.                    819 
+CCL-UK     03  YMBAGT-SPACE-FILL-5            PIC X(03).                820-822 
+           03  YMBAGT-FILLER-65               PIC X.                    823 
+CCL-UK     03  YMBAGT-SPACE-FILL-6            PIC X(03).                824-826 
+           03  YMBAGT-FILLER-66               PIC X.                    827 
+NP0504***AGENT-TERMS-COMPANY-REC DATA   
+NP0504     03 YMBAGT-ATCR-COMPANY-CODE        PIC X(01).                828 
+NP0504     03 YMBAGT-FILLER-67                PIC X.                    829 
+CCL-UK     03  YMBAGT-SPACE-FILL-7           PIC X(04).                 830-833 
+CCL-UK     03  YMBAGT-FILLER-68              PIC X.                     834 
+CCL-UK     03  YMBAGT-SPACE-FILL-8           PIC X(04).                 835-838 
+CCL-UK     03  YMBAGT-FILLER-69              PIC X.                     839 
+CCL-UK     03  YMBAGT-SPACE-FILL-9           PIC X(04).                 840-843 
+CCL-UK     03  YMBAGT-FILLER-70              PIC X.                     844 
+CCL-UK     03  YMBAGT-SPACE-FILL-10          PIC X(04).                 845-848 
+CCL-UK     03  YMBAGT-FILLER-71              PIC X.                     849 
+CCL-UK     03  YMBAGT-SPACE-FILL-11          PIC X(04).                 850-853 
+CCL-UK     03  YMBAGT-FILLER-72              PIC X. 
+CCL-UK     03  YMBAGT-SPACE-FILL-12          PIC X(04). 
+CCL-UK     03  YMBAGT-FILLER-73              PIC X. 
+CCL-UK     03  YMBAGT-SPACE-FILL-13          PIC X(04). 
+CCL-UK     03  YMBAGT-FILLER-74              PIC X. 
+CCL-UK     03  YMBAGT-SPACE-FILL-14          PIC X(04). 
+CCL-UK     03  YMBAGT-FILLER-75              PIC X. 
+CCL-UK     03  YMBAGT-SPACE-FILL-15          PIC X(04). 
+CCL-UK     03  YMBAGT-FILLER-76              PIC X. 
+CCL-UK     03  YMBAGT-SPACE-FILL-16          PIC X(04). 
+CCL-UK     03  YMBAGT-FILLER-77              PIC X. 
+CCL-UK     03  YMBAGT-SPACE-FILL-17          PIC X(04). 
+CCL-UK     03  YMBAGT-FILLER-78              PIC X. 
+CCL-UK     03  YMBAGT-SPACE-FILL-18          PIC X(04). 
+CCL-UK     03  YMBAGT-FILLER-79              PIC X. 
+CCL-UK     03  YMBAGT-SPACE-FILL-19          PIC X(04). 
+CCL-UK     03  YMBAGT-FILLER-80              PIC X. 
+CCL-UK     03  YMBAGT-SPACE-FILL-20          PIC X(04). 
+CCL-UK     03  YMBAGT-FILLER-81              PIC X. 
+CCL-UK     03  YMBAGT-SPACE-FILL-21          PIC X(04). 
+CCL-UK     03  YMBAGT-FILLER-82              PIC X. 
+CCL-UK     03  YMBAGT-SPACE-FILL-22          PIC X(04). 
+CCL-UK     03  YMBAGT-FILLER-83              PIC X. 
+CCL-UK     03  YMBAGT-SPACE-FILL-23          PIC X(04). 
+CCL-UK     03  YMBAGT-FILLER-84              PIC X. 
+CCL-UK     03  YMBAGT-SPACE-FILL-24          PIC X(04). 
+CCL-UK     03  YMBAGT-FILLER-85              PIC X. 
+CCL-UK     03  YMBAGT-SPACE-FILL-25          PIC X(04). 
+CCL-UK     03  YMBAGT-FILLER-86              PIC X. 
+CCL-UK     03  YMBAGT-SPACE-FILL-26          PIC X(04). 
+CCL-UK     03  YMBAGT-FILLER-87              PIC X. 
+104170     03  YMBAGT-ATCR-AGENCY-INDICATORS PIC X(72). 
+NP0504     03  YMBAGT-FILLER-88              PIC X. 
+GCBPRJ     03  YMBAGT-AGT-SUPER-CONT-NUM     PIC X(6).  
+GCBPRJ     03  YMBAGT-FILLER-89              PIC X. 
+GCBPRJ     03  YMBAGT-AGT-SUPER-CONT-NAME    PIC X(30). 
+GCBPRJ     03  YMBAGT-FILLER-90              PIC X. 
+SFAPRJ     03  YMBAGT-DATE-LAST-BOOKING      PIC 9(08). 
+SFAPRJ     03  YMBAGT-FILLER-91              PIC X. 
+SFAPRJ     03  YMBAGT-DATE-ADDED             PIC 9(08). 
+SFAPRJ     03  YMBAGT-FILLER-92              PIC X. 
+C75918     03  YMBAGT-CABIN-NUM              PIC X(5).  
+100098     03  YMBAGT-FILLER-93              PIC X. 
+100098     03  YMBAGT-GROUP-BKG-SAIL-MAX     PIC 9(5).  
+114761     03  YMBAGT-FILLER-94              PIC X. 
+114761     03  YMBAGT-DATE-CLOSED            PIC 9(08). 
+CCL-UK     03  YMBAGT-FILLER-95              PIC X(01). 
+CCL-UK     03  YMBAGT-AGT-TTA-NUM            PIC X(06). 
+CCL-UK     03  YMBAGT-FILLER-96              PIC X(01). 
+CCL-UK     03  YMBAGT-AGT-ABTA-NUM           PIC X(06). 
+CCL-UK     03  YMBAGT-FILLER-97              PIC X(01). 
+186084     03  YMBAGT-ACR-COMMISSIONS.  
+186084*       05 YMBAGT-IINDV-CRUO-COMM-PCT    PIC .99. 
+186084        05 YMBAGT-FILLER-97-1            PIC X(03).   
+CCL-UK        05 YMBAGT-FILLER-98              PIC X.   
+186084*       05 YMBAGT-IINDV-ADDON-COMM-PCT   PIC .99. 
+186084        05 YMBAGT-FILLER-98-1            PIC X(03).   
+CCL-UK        05 YMBAGT-FILLER-99              PIC X.   
+186084*       05 YMBAGT-IINDV-PKG-COMM-PCT     PIC .99. 
+186084        05 YMBAGT-FILLER-99-1            PIC X(03).   
+CCL-UK        05 YMBAGT-FILLER-100             PIC X.   
+186084*       05 YMBAGT-IINDV-INS-COMM-PCT     PIC .99. 
+186084        05 YMBAGT-FILLER-100-1           PIC X(03).   
+CCL-UK        05 YMBAGT-FILLER-101             PIC X.   
+186084*       05 YMBAGT-IINDV-TRANSFER-COMM-PCT PIC .99.
+186084        05 YMBAGT-FILLER-101-1           PIC X(03).   
+CCL-UK        05 YMBAGT-FILLER-102             PIC X.   
+186084*       05 YMBAGT-EINDV-CRUO-COMM-PCT    PIC .99. 
+186084        05 YMBAGT-FILLER-102-1           PIC X(03).   
+CCL-UK        05 YMBAGT-FILLER-103             PIC X.   
+186084*       05 YMBAGT-EINDV-ADDON-COMM-PCT   PIC .99. 
+186084        05 YMBAGT-FILLER-103-1           PIC X(03).   
+CCL-UK        05 YMBAGT-FILLER-104             PIC X.   
+186084*       05 YMBAGT-EINDV-PKG-COMM-PCT     PIC .99. 
+186084        05 YMBAGT-FILLER-104-1           PIC X(03).   
+CCL-UK        05 YMBAGT-FILLER-105             PIC X.   
+186084*       05 YMBAGT-EINDV-INS-COMM-PCT     PIC .99. 
+186084        05 YMBAGT-FILLER-105-1           PIC X(03).   
+CCL-UK        05 YMBAGT-FILLER-106             PIC X.   
+186084*       05 YMBAGT-EINDV-TRANSFER-COMM-PCT PIC .99.
+186084        05 YMBAGT-FILLER-106-1           PIC X(03).   
+CCL-UK        05 YMBAGT-FILLER-107             PIC X.   
+CCL-UK      03 YMBAGT-COMMISSIONS.  
+CCL-UK*****THIS SECTION IS FOR INTERNAL CHANNEL, INDV BOOK, WHOLESALE   
+186084*       05 YMBAGT-IIW-CRUO-COMM-PCT       PIC .9(03). 
+186084        05 YMBAGT-FILLER-107-1            PIC X(04).  
+CCL-UK        05 YMBAGT-FILLER-108              PIC X.  
+186084*       05 YMBAGT-IIW-ADDON-COMM-PCT      PIC .9(03). 
+186084        05 YMBAGT-FILLER-108-1            PIC X(04).  
+CCL-UK        05 YMBAGT-FILLER-109              PIC X.  
+186084*       05 YMBAGT-IIW-PKG-COMM-PCT        PIC .9(03). 
+186084        05 YMBAGT-FILLER-109-1            PIC X(04).  
+CCL-UK        05 YMBAGT-FILLER-110              PIC X.  
+186084*       05 YMBAGT-IIW-INS-COMM-PCT        PIC .9(03). 
+186084        05 YMBAGT-FILLER-110-1            PIC X(04).  
+CCL-UK        05 YMBAGT-FILLER-111              PIC X.  
+186084*       05 YMBAGT-IIW-XFER-COMM-PCT       PIC .9(03). 
+186084        05 YMBAGT-FILLER-111-1            PIC X(04).  
+CCL-UK        05 YMBAGT-FILLER-112              PIC X.  
+CCL-UK*****THIS SECTION IS FOR INTERNAL CHANNEL, INDV BOOK, RETAIL  
+CCL-UK        05 YMBAGT-IIR-CRUO-COMM-PCT       PIC .9(03). 
+CCL-UK        05 YMBAGT-FILLER-113              PIC X.  
+CCL-UK        05 YMBAGT-IIR-ADDON-COMM-PCT      PIC .9(03). 
+CCL-UK        05 YMBAGT-FILLER-114              PIC X.  
+CCL-UK        05 YMBAGT-IIR-PKG-COMM-PCT        PIC .9(03). 
+CCL-UK        05 YMBAGT-FILLER-115              PIC X.  
+CCL-UK        05 YMBAGT-IIR-INS-COMM-PCT        PIC .9(03). 
+CCL-UK        05 YMBAGT-FILLER-116              PIC X.  
+CCL-UK        05 YMBAGT-IIR-XFER-COMM-PCT       PIC .9(03). 
+CCL-UK        05 YMBAGT-FILLER-117              PIC X.  
+CCL-UK*****THIS SECTION IS FOR INTERNAL CHANNEL, GROUP BOOK, WHOLESALE  
+186084*       05 YMBAGT-IGW-CRUO-COMM-PCT       PIC .9(03). 
+186084        05 YMBAGT-FILLER-117-1            PIC X(04).  
+CCL-UK        05 YMBAGT-FILLER-118              PIC X.  
+186084*       05 YMBAGT-IGW-ADDON-COMM-PCT      PIC .9(03). 
+186084        05 YMBAGT-FILLER-118-1            PIC  X(04). 
+CCL-UK        05 YMBAGT-FILLER-119              PIC X.  
+186084*       05 YMBAGT-IGW-PKG-COMM-PCT        PIC .9(03). 
+186084        05 YMBAGT-FILLER-119-1            PIC X(04).  
+CCL-UK        05 YMBAGT-FILLER-120              PIC X.  
+186084*       05 YMBAGT-IGW-INS-COMM-PCT        PIC .9(03). 
+186084        05 YMBAGT-FILLER-120-1            PIC X(04).  
+CCL-UK        05 YMBAGT-FILLER-121              PIC X.  
+186084*       05 YMBAGT-IGW-XFER-COMM-PCT       PIC .9(03). 
+186084        05 YMBAGT-FILLER-121-1            PIC X(04).  
+CCL-UK        05 YMBAGT-FILLER-122              PIC X.  
+CCL-UK*****THIS SECTION IS FOR INTERNAL CHANNEL, GROUP BOOK, RETAIL 
+CCL-UK        05 YMBAGT-IGR-CRUO-COMM-PCT       PIC .9(03). 
+CCL-UK        05 YMBAGT-FILLER-123              PIC X.  
+CCL-UK        05 YMBAGT-IGR-ADDON-COMM-PCT      PIC .9(03). 
+CCL-UK        05 YMBAGT-FILLER-124              PIC X.  
+CCL-UK        05 YMBAGT-IGR-PKG-COMM-PCT        PIC .9(03). 
+CCL-UK        05 YMBAGT-FILLER-125              PIC X.  
+CCL-UK        05 YMBAGT-IGR-INS-COMM-PCT        PIC .9(03). 
+CCL-UK        05 YMBAGT-FILLER-126              PIC X.  
+CCL-UK        05 YMBAGT-IGR-XFER-COMM-PCT       PIC .9(03). 
+CCL-UK        05 YMBAGT-FILLER-127              PIC X.  
+CCL-UK*****THIS SECTION IS FOR EXTERNAL CHANNEL, INDV BOOK, WHOLESALE   
+186084*       05 YMBAGT-EIW-CRUO-COMM-PCT       PIC .9(03). 
+186084        05 YMBAGT-FILLER-127-1            PIC X(04).  
+CCL-UK        05 YMBAGT-FILLER-128              PIC X.  
+186084*       05 YMBAGT-EIW-ADDON-COMM-PCT      PIC .9(03). 
+186084        05 YMBAGT-FILLER-128-1            PIC X(04).  
+CCL-UK        05 YMBAGT-FILLER-129              PIC X.  
+186084*       05 YMBAGT-EIW-PKG-COMM-PCT        PIC .9(03). 
+186084        05 YMBAGT-FILLER-129-1            PIC X(04).  
+CCL-UK        05 YMBAGT-FILLER-130              PIC X.  
+186084*       05 YMBAGT-EIW-INS-COMM-PCT        PIC .9(03). 
+186084        05 YMBAGT-FILLER-130-1            PIC X(04).  
+CCL-UK        05 YMBAGT-FILLER-131              PIC X.  
+186084*       05 YMBAGT-EIW-XFER-COMM-PCT       PIC .9(03). 
+186084        05 YMBAGT-FILLER-131-1            PIC X(04).  
+CCL-UK        05 YMBAGT-FILLER-132              PIC X.  
+CCL-UK*****THIS SECTION IS FOR EXTERNAL CHANNEL, INDV BOOK, RETAIL  
+CCL-UK        05 YMBAGT-EIR-CRUO-COMM-PCT       PIC .9(03). 
+CCL-UK        05 YMBAGT-FILLER-133              PIC X.  
+CCL-UK        05 YMBAGT-EIR-ADDON-COMM-PCT      PIC .9(03). 
+CCL-UK        05 YMBAGT-FILLER-134              PIC X.  
+CCL-UK        05 YMBAGT-EIR-PKG-COMM-PCT        PIC .9(03). 
+CCL-UK        05 YMBAGT-FILLER-135              PIC X.  
+CCL-UK        05 YMBAGT-EIR-INS-COMM-PCT        PIC .9(03). 
+CCL-UK        05 YMBAGT-FILLER-136              PIC X.  
+CCL-UK        05 YMBAGT-EIR-XFER-COMM-PCT       PIC .9(03). 
+CCL-UK        05 YMBAGT-FILLER-137              PIC X.  
+CCL-UK*****THIS SECTION IS FOR EXTERNAL CHANNEL, GROUP BOOK, WHOLESALE  
+186084*       05 YMBAGT-EGW-CRUO-COMM-PCT       PIC .9(03). 
+186084        05 YMBAGT-FILLER-137-1            PIC X(04).  
+CCL-UK        05 YMBAGT-FILLER-138              PIC X.  
+186084*       05 YMBAGT-EGW-ADDON-COMM-PCT      PIC .9(03). 
+186084        05 YMBAGT-FILLER-138-1            PIC X(04).  
+CCL-UK        05 YMBAGT-FILLER-139              PIC X.  
+186084*       05 YMBAGT-EGW-PKG-COMM-PCT        PIC .9(03). 
+186084        05 YMBAGT-FILLER-139-1            PIC X(04).  
+CCL-UK        05 YMBAGT-FILLER-140              PIC X.  
+186084*       05 YMBAGT-EGW-INS-COMM-PCT        PIC .9(03). 
+186084        05 YMBAGT-FILLER-140-1            PIC X(04).  
+CCL-UK        05 YMBAGT-FILLER-141              PIC X.  
+186084*       05 YMBAGT-EGW-XFER-COMM-PCT       PIC .9(03). 
+186084        05 YMBAGT-FILLER-141-1            PIC  X(04). 
+CCL-UK        05 YMBAGT-FILLER-142              PIC X.  
+CCL-UK*****THIS SECTION IS FOR EXTERNAL CHANNEL, GROUP BOOK, RETAIL 
+CCL-UK        05 YMBAGT-EGR-CRUO-COMM-PCT       PIC .9(03). 
+CCL-UK        05 YMBAGT-FILLER-143              PIC X.  
+CCL-UK        05 YMBAGT-EGR-ADDON-COMM-PCT      PIC .9(03). 
+CCL-UK        05 YMBAGT-FILLER-144              PIC X.  
+CCL-UK        05 YMBAGT-EGR-PKG-COMM-PCT        PIC .9(03). 
+CCL-UK        05 YMBAGT-FILLER-145              PIC X.  
+CCL-UK        05 YMBAGT-EGR-INS-COMM-PCT        PIC .9(03). 
+CCL-UK        05 YMBAGT-FILLER-146              PIC X.  
+CCL-UK        05 YMBAGT-EGR-XFER-COMM-PCT       PIC .9(03). 
+CCL-UK        05 YMBAGT-FILLER-147              PIC X.  
+186084*    03  YMBAGT-MASTER-NUM                PIC 9(05).  
+186084     03  YMBAGT-FILLER-147-1              PIC X(05).  
+154125     03  YMBAGT-FILLER-148                PIC X.  
+154125     03  YMBAGT-AGT-ABN-NUMBER            PIC X(11).  
+131886     03  YMBAGT-FILLER-149                PIC X.  
+131886     03  YMBAGT-AGT-LOCAL-PHONE-NUM       PIC 9(10).  
+150339     03  YMBAGT-FILLER-150                PIC X.  
+150339     03  YMBAGT-ATCR-OPER-RESP-AGENCY     PIC X.  
+150339     03  YMBAGT-FILLER-151                PIC X.  
+150339     03  YMBAGT-ATCR-ACCT-RESP-AGENCY     PIC X.  
+150339     03  YMBAGT-FILLER-152                PIC X.  
+150339     03  YMBAGT-ATCR-ALT-OPER-IND         PIC X.  
+150339     03  YMBAGT-FILLER-153                PIC X.  
+150339     03  YMBAGT-ATCR-ALT-ACCT-IND         PIC X.  
+164971     03  YMBAGT-FILLER-154                PIC X.  
+164971     03  YMBAGT-ATCR-RETAIL-IND           PIC X.  
+164663     03  YMBAGT-FILLER-155                PIC X.  
+164663     03  YMBAGT-AGENT-ATOL-NUM            PIC X(11).  
+164663     03  YMBAGT-FILLER-156                PIC X.  
+164663     03  YMBAGT-AGENT-TRUE-NUM            PIC X(11).  
+164663     03  YMBAGT-FILLER-157                PIC X.  
+164663     03  YMBAGT-AGENT-BLN-NUM             PIC X(11).  
+164663     03  YMBAGT-FILLER-158                PIC X.  
+164663     03  YMBAGT-AGENT-SOT-NUM             PIC X(11).  
+164663     03  YMBAGT-FILLER-159                PIC X.  
+162640     03  YMBAGT-ATCR-ASSOCIATION-TYPE     PIC X(03).  
+163340     03  YMBAGT-FILLER-160                PIC X.  
+PPC470*    03  YMBAGT-ATCR-BROCHURE-TYPE        PIC X.  
+PPC470     03  YMBAGT-DELETED-FILLER            PIC X.  
+163340     03  YMBAGT-FILLER-161                PIC X.  
+163340     03  YMBAGT-ATCR-ALT-COMM-IND         PIC X.  
+163340     03  YMBAGT-FILLER-162                PIC X.  
+163340     03  YMBAGT-ATCR-MAIL-CONF-IND        PIC X.  
+163340     03  YMBAGT-FILLER-163                PIC X.  
+163340     03  YMBAGT-ATCR-FAX-CONF-IND         PIC X.  
+163340     03  YMBAGT-FILLER-164                PIC X.  
+163340     03  YMBAGT-ATCR-CURRENCY-TABLE.  
+163340         05 YMBAGT-ATCR-CURRENCY-ENTRY OCCURS 5.  
+163340            10 YMBAGT-ATCR-CURRENCY-CODE  PIC X(3).   
+163340            10 YMBAGT-FILLER-165          PIC X.  
+163340     03  YMBAGT-AGT-LANGUAGE-IND          PIC X.  
+163340     03  YMBAGT-FILLER-166                PIC X.  
+163340     03  YMBAGT-AGT-DEFAULT-NATL-CODE     PIC XX. 
+163340     03  YMBAGT-FILLER-167                PIC X.  
+163340     03  YMBAGT-AGT-OWNER-MANAGER         PIC X(20).  
+163340     03  YMBAGT-FILLER-168                PIC X.  
+163340     03  YMBAGT-AGT-OWNER-LAST-NAME       PIC X(15).  
+163340     03  YMBAGT-FILLER-169                PIC X.  
+163340     03  YMBAGT-AGT-OWNER-FIRST-NAME      PIC X(10).  
+163340     03  YMBAGT-FILLER-170                PIC X.  
+163340     03  YMBAGT-AGT-OWNER-MIDDLE-INIT     PIC X.  
+163340     03  YMBAGT-FILLER-171                PIC X.  
+163340     03  YMBAGT-AGT-CORPORATE-TAX-IND     PIC X.  
+163340     03  YMBAGT-FILLER-172                PIC X.  
+163340     03  YMBAGT-AGT-TAX-NUMBER            PIC 9(9).   
+163340     03  YMBAGT-FILLER-173                PIC X.  
+163340     03  YMBAGT-AGT-TAX-NUM-TYPE          PIC X.  
+198380     03  YMBAGT-FILLER-174                PIC X.  
+198380     03  YMBAGT-AGENT-COMMENT.
+198380         05  YMBAGT-COMMENT-CHARS OCCURS 20.  
+198380             10 YMBAGT-COMMENT-CHAR       PIC X(01).  
+204888     03  YMBAGT-FILLER-175                PIC X(01).  
+204888     03  YMBAGT-ATCR-PBS-COMM-IND         PIC X(01).  
+214948     03  YMBAGT-FILLER-176                PIc X(01).  
+214948     03  YMBAGT-CUSTOMER-NUM              PIC X(7).   
+CCLAUS     03  YMBAGT-FILLER-177                PIC X(01).  
+CCLAUS     03  YMBAGT-POLAR-AGENCY-ID           PIC X(11).  
+
+186084     03  YMBAGT-FILLER-178                PIC X(01).  
+186084     03  YMBAGT-AUS-BUSINESS-TYPE-IND     PIC X(01).  
+186084     03  YMBAGT-FILLER-179                PIC X(01).  
+186084     03  YMBAGT-CMI-BUSINESS-TYPE-IND     PIC X(01).  
+186084     03  YMBAGT-FILLER-180                PIC X(01).  
+186084     03  YMBAGT-CMI-FLAT-CRS-COMM-PCT     PIC .9(03). 
+186084     03  YMBAGT-FILLER-181                PIC X(01).  
+186084     03  YMBAGT-EXCL-TRGT-CNSLDTE-IND     PIC X(01).  
+186084     03  YMBAGT-FILLER-182                PIC X(01).  
+186084     03  YMBAGT-ALT-AGT-FLAT-COMM-PCT     PIC .9(03). 
+186084     03  YMBAGT-FILLER-183                PIC X(01).  
+186084     03  YMBAGT-MIN-COMM-EFF-DATE         PIC 9(08).  
+186084     03  YMBAGT-FILLER-184                PIC X(01).  
+186084     03  YMBAGT-MIN-COMM-EXP-DATE         PIC 9(08).  
+186084     03  YMBAGT-FILLER-185                PIC X(01).  
+186084     03  YMBAGT-MIN-II-CRUO-COMM-PCT      PIC .9(03). 
+186084     03  YMBAGT-FILLER-186                PIC X(01).  
+186084     03  YMBAGT-MIN-II-ADDON-COMM-PCT     PIC .9(03). 
+186084     03  YMBAGT-FILLER-187                PIC X(01).  
+186084     03  YMBAGT-MIN-II-PKG-COMM-PCT       PIC .9(03). 
+186084     03  YMBAGT-FILLER-188                PIC X(01).  
+186084     03  YMBAGT-MIN-II-INS-COMM-PCT       PIC .9(03). 
+186084     03  YMBAGT-FILLER-189                PIC X(01).  
+186084     03  YMBAGT-MIN-II-XFER-COMM-PCT      PIC .9(03). 
+186084     03  YMBAGT-FILLER-190                PIC X(01).  
+186084     03  YMBAGT-MIN-IG-CRUO-COMM-PCT      PIC .9(03). 
+186084     03  YMBAGT-FILLER-191                PIC X(01).  
+186084     03  YMBAGT-MIN-IG-ADDON-COMM-PCT     PIC .9(03). 
+186084     03  YMBAGT-FILLER-192                PIC X(01).  
+186084     03  YMBAGT-MIN-IG-PKG-COMM-PCT       PIC .9(03). 
+186084     03  YMBAGT-FILLER-193                PIC X(01).  
+186084     03  YMBAGT-MIN-IG-INS-COMM-PCT       PIC .9(03). 
+186084     03  YMBAGT-FILLER-194                PIC X(01).  
+186084     03  YMBAGT-MIN-IG-XFER-COMM-PCT      PIC .9(03). 
+186084     03  YMBAGT-FILLER-195                PIC X(01).  
+186084     03  YMBAGT-MIN-EI-CRUO-COMM-PCT      PIC .9(03). 
+186084     03  YMBAGT-FILLER-196                PIC X(01).  
+186084     03  YMBAGT-MIN-EI-ADDON-COMM-PCT     PIC .9(03). 
+186084     03  YMBAGT-FILLER-197                PIC X(01).  
+186084     03  YMBAGT-MIN-EI-PKG-COMM-PCT       PIC .9(03). 
+186084     03  YMBAGT-FILLER-198                PIC X(01).  
+186084     03  YMBAGT-MIN-EI-INS-COMM-PCT       PIC .9(03). 
+186084     03  YMBAGT-FILLER-199                PIC X(01).  
+186084     03  YMBAGT-MIN-EI-XFER-COMM-PCT      PIC .9(03). 
+186084     03  YMBAGT-FILLER-200                PIC X(01).  
+186084     03  YMBAGT-MIN-EG-CRUO-COMM-PCT      PIC .9(03). 
+186084     03  YMBAGT-FILLER-201                PIC X(01).  
+186084     03  YMBAGT-MIN-EG-ADDON-COMM-PCT     PIC .9(03). 
+186084     03  YMBAGT-FILLER-202                PIC X(01).  
+186084     03  YMBAGT-MIN-EG-PKG-COMM-PCT       PIC .9(03). 
+186084     03  YMBAGT-FILLER-203                PIC X(01).  
+186084     03  YMBAGT-MIN-EG-INS-COMM-PCT       PIC .9(03). 
+186084     03  YMBAGT-FILLER-204                PIC X(01).  
+186084     03  YMBAGT-MIN-EG-XFER-COMM-PCT      PIC .9(03). 
+186084     03  YMBAGT-FILLER-205                PIC X(01).  
+186084     03  YMBAGT-CMI-APPL-FLT-COMM-IND     PIC X(01).  
+
+
+NP0404 FD  YMBMTR-FILE  
+NP0404     LABEL RECORDS ARE STANDARD.  
+NP0404 01  YMBMTR-REC.  
+NP0104     05  YMBMTR-RECORD-ID                  PIC X(06). 
+NP0104     05  YMBMTR-DATESTAMP                  PIC 9(8).  
+NP0104     05  YMBMTR-FILLER-1                   PIC X(1).  
+NP0404     05  YMBMTR-PHONE-NUM                  PIC 9(10). 
+NP0404     05  YMBMTR-FILLER-2                   PIC X(1).  
+NP0404     05  YMBMTR-ACTIVITY-DATE              PIC 9(08). 
+NP0404     05  YMBMTR-FILLER-3                   PIC X(1).  
+NP0404     05  YMBMTR-ACTIVITY-TIME              PIC 9(06). 
+NP0404     05  YMBMTR-FILLER-4                   PIC X(1).  
+NP0404     05  YMBMTR-OPER-INITIALS              PIC X(03). 
+NP0404     05  YMBMTR-FILLER-5                   PIC X(1).  
+NP0404     05  YMBMTR-ACTIVITY-CODE              PIC X(03). 
+NP0404     05  YMBMTR-FILLER-6                   PIC X(1).  
+NP0404     05  YMBMTR-ACTIVITY-DESC              PIC X(10). 
+NP0404     05  YMBMTR-FILLER-7                   PIC X(1).  
+NP0404     05  YMBMTR-ACTIVITY-COMMENT           PIC X(30). 
+NP0404     05  YMBMTR-FILLER-8                   PIC X(1).  
+NP0404     05  YMBMTR-AGENCY-CONTACT             PIC X(10). 
+NP0404     05  YMBMTR-FILLER-9                   PIC X(1).  
+NP0404     05  YMBMTR-COMPANY-CODE               PIC X(03). 
+NP0404     05  YMBMTR-FILLER-10                  PIC X(1).  
+NP0404     05  YMBMTR-HISTORY-TYPE               PIC X(01). 
+NP0404     05  YMBMTR-FILLER-11                  PIC X(1).  
+NP0404     05  YMBMTR-HISTORY-AMT                PIC -9(9)V99.  
+NP0404     05  YMBMTR-FILLER-12                  PIC X(1).  
+214948*    05  YMBMTR-CUSTOMER-NUM               PIC X(07). 
+214948     05  YMBMTR-CUSTOMER-NUM-ASCII         PIC 9(14). 
+NP0404     05  YMBMTR-FILLER-13                  PIC X(1).  
+
+SFAPRJ***  COOP HEADER REC from CCAR Drain File ****
+186084*FD  YMBSCH-FILE  
+186084*    LABEL RECORDS ARE STANDARD.  
+186084* 01 YMBSCH-REC.  
+186084*    03  YMBSCH-RECORD-ID              PIC X(06). 
+186084*    03  YMBSCH-DATESTAMP              PIC 9(08). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCH-CALC-KEY. 
+186084*        05  YMBSCH-YEAR               PIC 9(04). 
+186084*        05  YMBSCH-CONTRACT-NUM       PIC X(6).  
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCH-COMPANY-CODE           PIC X(03). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCH-REGION-CODE            PIC 9(02). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCH-REP-CODE               PIC 9(02). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCH-AGENT-CUSTOMER-NUM     PIC 9(07). 
+186084*    03  YMBSCH-AGENT-CUST-NUM-ASCII   PIC 9(14). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCH-CUSTOMER-NUM           PIC 9(10). 
+186084*    03  YMBSCH-CUSTOMER-NUM           PIC X(10). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCH-STATUS                 PIC X(01). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCH-COMMENT1               PIC X(50). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCH-CHECK-NUM              PIC X(06). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCH-AGENCY-CONTACT         PIC X(12). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCH-POST-DATE              PIC X(10). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCH-PMT-DATE               PIC X(10). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCH-STATUS-DESC            PIC X(30). 
+
+SFAPRJ***  COOP DETAIL REC from CCAR Drain File ****
+186084*FD  YMBSCD-FILE  
+186084*    LABEL RECORDS ARE STANDARD.  
+186084* 01  YMBSCD-REC. 
+186084*    03  YMBSCD-RECORD-ID              PIC X(06). 
+186084*    03  YMBSCD-DATESTAMP              PIC 9(08). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCD-REGION-CODE            PIC 9(02). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCD-REP-CODE               PIC 9(02). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCD-COMPANY-CODE           PIC X(03). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCD-CALC-KEY. 
+186084*        05  YMBSCD-YEAR               PIC 9(04). 
+186084*        05  YMBSCD-CONTRACT-NUM       PIC X(6).  
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCD-AGENT-CUSTOMER-NUM     PIC 9(07). 
+186084*    03  YMBSCD-AGENT-CUST-NUM-ASCII   PIC 9(14). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCD-DESC                   PIC X(30). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCD-ADVERT-TYPE            PIC X(01). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCD-ADVERT-DESC            PIC X(30). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCD-ADVERT-START-MTH       PIC X(02). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCD-ADVERT-END-MTH         PIC X(02). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCD-BUDGET-TYPE            PIC X(01). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCD-BUDGET-DESC            PIC X(30). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCD-ADVERT-AMT             PIC 9(08).99.  
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCD-ENTRY-CNT              PIC 9(01). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBSCD-REIMBURSE-PCT          PIC X(3).  
+
+SFAPRJ***  COOP AGENT BUDGET from ASTR Drain File ****  
+186084*FD  YMBCBA-FILE  
+186084*    LABEL RECORDS ARE STANDARD.  
+186084* 01   YMBCBA-REC.
+186084*    03  YMBCBA-RECORD-ID              PIC X(06). 
+186084*    03  YMBCBA-DATESTAMP              PIC 9(08). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBCBA-AGENT-CUSTOMER-NUM     PIC 9(07). 
+186084*    03  YMBCBA-AGENT-CUST-NUM-ASCII   PIC 9(14). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBCBA-REGION-CODE            PIC 9(02). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBCBA-REP-CODE               PIC 9(02). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBCBA-COMPANY-CODE           PIC X(03). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBCBA-BUDGET-YEAR            PIC 9(04). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBCBA-COOP-BUDGET-SF         PIC 9(08).99.  
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBCBA-COOP-BUDGET-NF         PIC 9(08).99.  
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBCBA-COOP-BUDGET-PF         PIC 9(08).99.  
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBCBA-COOP-USED-SF           PIC 9(08).99.  
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBCBA-COOP-USED-NF           PIC 9(08).99.  
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBCBA-COOP-USED-PF           PIC 9(08).99.  
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBCBA-COOP-USED              PIC 9(08).99.  
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBCBA-COOP-COMMITED          PIC 9(08).99.  
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBCBA-COOP-PROD-GOAL         PIC 9(05). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBCBA-COOP-MEDIA-DESC        PIC X(15). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBCBA-FULFIL-NUM-ORDERS      PIC 9(05). 
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBCBA-FULFIL-MKT-VALUE       PIC 9(08).99.  
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBCBA-FULFIL-TAX-VALUE       PIC 9(08).99.  
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBCBA-FULFIL-POSTAGE-COST    PIC 9(08).99.  
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBCBA-FULFIL-HANDLING-COST   PIC 9(08).99.  
+186084*    03  FILLER                        PIC X. 
+186084*    03  YMBCBA-AGENT-PHONE-NUM        PIC 9(10). 
+
+131886 FD  YMBPHN-FILE  
+131886     LABEL RECORDS ARE STANDARD.  
+131886 01  YMBPHN-REC.  
+131886     05  YMBPHN-RECORD-ID                  PIC X(06). 
+131886     05  YMBPHN-DATESTAMP                  PIC 9(8).  
+131886     05  YMBPHN-FILLER-1                   PIC X(1).  
+214948*    05  YMBPHN-CUSTOMER-NUM               PIC 9(07). 
+214948     05  YMBPHN-CUSTOMER-NUM-ASCII         PIC 9(14). 
+131886     05  YMBPHN-FILLER-2                   PIC X(1).  
+131886     05  YMBPHN-PHONE-NUM                  PIC 9(10). 
+131886  
+162641 FD  YMBAER-FILE  
+162641     LABEL RECORDS ARE STANDARD.  
+162641 01  YMBAER-REC.  
+162641     05  YMBAER-RECORD-ID                  PIC X(06). 
+162641     05  YMBAER-DATESTAMP                  PIC 9(8).  
+162641     05  YMBAER-FILLER                     PIC X(01). 
+214948*    05  YMBAER-CUSTOMER-NUM               PIC 9(07). 
+214948     05  YMBAER-CUSTOMER-NUM-ASCII         PIC 9(14). 
+162641     05  YMBAER-FILLER                     PIC X(01). 
+162641     05  YMBAER-PHONE-NUM                  PIC 9(10). 
+162641     05  YMBAER-FILLER                     PIC X(01). 
+162641     05  YMBAER-EMAIL-ADDRESS              PIC X(100).
+162641     05  YMBAER-FILLER                     PIC X(01). 
+162641     05  YMBAER-ALL-IND                    PIC X(01). 
+162641     05  YMBAER-FILLER                     PIC X(01). 
+162641     05  YMBAER-IBK-IND                    PIC X(01). 
+162641     05  YMBAER-FILLER                     PIC X(01). 
+162641     05  YMBAER-GBK-IND                    PIC X(01). 
+162641     05  YMBAER-FILLER                     PIC X(01). 
+162641     05  YMBAER-PRO-IND                    PIC X(01). 
+162641     05  YMBAER-FILLER                     PIC X(01). 
+162641     05  YMBAER-ACC-IND                    PIC X(01). 
+162641     05  YMBAER-FILLER                     PIC X(01). 
+162641     05  YMBAER-COP-IND                    PIC X(01). 
+162641     05  YMBAER-FILLER                     PIC X(01). 
+162641     05  YMBAER-EMAIL-INACTIVE-IND         PIC X(01). 
+162641     05  YMBAER-FILLER                     PIC X(01). 
+162641     05  YMBAER-ALL-PRIORITY-IND           PIC X(01). 
+162641     05  YMBAER-FILLER                     PIC X(01). 
+162641     05  YMBAER-IBK-PRIORITY-IND           PIC X(01). 
+162641     05  YMBAER-FILLER                     PIC X(01). 
+162641     05  YMBAER-GBK-PRIORITY-IND           PIC X(01). 
+162641     05  YMBAER-FILLER                     PIC X(01). 
+162641     05  YMBAER-PRO-PRIORITY-IND           PIC X(01). 
+162641     05  YMBAER-FILLER                     PIC X(01). 
+162641     05  YMBAER-ACC-PRIORITY-IND           PIC X(01). 
+162641     05  YMBAER-FILLER                     PIC X(01). 
+162641     05  YMBAER-COP-PRIORITY-IND           PIC X(01). 
+204888     05  YMBAER-FILLER                     PIC X(01). 
+204888     05  YMBAER-PBS-IND                    PIC X(01). 
+204888     05  YMBAER-FILLER                     PIC X(01). 
+204888     05  YMBAER-PBS-PRIORITY-IND           PIC X(01). 
+
+202954*FD  YMBAHR-FILE  
+202954*    LABEL RECORDS ARE STANDARD.  
+202954*01  YMBAHR-REC.  
+202954*    05  YMBAHR-RECORD-ID                  PIC X(06). 
+202954*    05  YMBAHR-DATESTAMP                  PIC 9(8).  
+202954*    05  YMBAHR-FILLER                     PIC X(01). 
+202954*    05  YMBAHR-CUSTOMER-NUM               PIC 9(07). 
+202954*    05  YMBAHR-FILLER                     PIC X(01). 
+202954*    05  YMBAHR-ENTRY-NUM                  PIC 9(2).  
+202954*    05  YMBAHR-FILLER                     PIC X(01). 
+202954*    05  YMBAHR-RECORD-SEQ-NUM             PIC 9(5).  
+202954*    05  YMBAHR-FILLER                     PIC X(01). 
+202954*    05  YMBAHR-DATE                       PIC 9(6).  
+202954*    05  YMBAHR-FILLER                     PIC X(01). 
+202954*    05  YMBAHR-TIME                       PIC 9(6).  
+202954*    05  YMBAHR-FILLER                     PIC X(01). 
+202954*    05  YMBAHR-OPER-INITIALS              PIC X(3).  
+202954*    05  YMBAHR-FILLER                     PIC X(01). 
+202954*    05  YMBAHR-ACTIVITY-CODE              PIC X(3).  
+202954*    05  YMBAHR-FILLER                     PIC X(01). 
+202954*    05  YMBAHR-ACTIVITY-DESC              PIC X(10). 
+202954*    05  YMBAHR-FILLER                     PIC X(01). 
+202954*    05  YMBAHR-COMMENT.  
+202954*        10  YMBAHR-COMMENT-CHARS OCCURS 30.  
+202954*             15 YMBAHR-COMMENT-CHAR       PIC X(01). 
+202954*    05  YMBAHR-FILLER                     PIC X(01). 
+202954*    05  YMBAHR-AGENCY-CONTACT             PIC X(10). 
+202954*    05  YMBAHR-FILLER                     PIC X(01). 
+202954*    05  YMBAHR-COMPANY-CODE               PIC X(3).  
+202954*    05  YMBAHR-FILLER                     PIC X(01). 
+202954*    05  YMBAHR-HISTORY-TYPE               PIC X(1).  
+202954*    05  YMBAHR-FILLER                     PIC X(01). 
+202954*    05  YMBAHR-HISTORY-AMT.  
+202954*        10  YMBAHR-HISTORY-AMT-SIGN       PIC X. 
+202954*        10  YMBAHR-HISTORY-AMT-NUM        PIC 9(8)V99.   
+NP0802 FD  YMBAGT-CNT-FILE  
+NP0802     LABEL RECORDS ARE STANDARD.  
+NP0802 01  YMBAGT-CNT-REC.  
+NP0802     05  YMBAGT-CNT-RECORD-ID              PIC X(06). 
+NP0802     05  YMBAGT-CNT-DATESTAMP              PIC 9(8).  
+NP0802     05  YMBAGT-CNT-FILLER-1               PIC X(08). 
+NP0802     05  YMBAGT-CNT-REC-CNT                PIC 9(10). 
+NP0404  
+NP0404 FD  YMBMTR-CNT-FILE  
+NP0404     LABEL RECORDS ARE STANDARD.  
+NP0404 01  YMBMTR-CNT-REC.  
+NP0404     05  YMBMTR-CNT-RECORD-ID              PIC X(06). 
+NP0404     05  YMBMTR-CNT-DATESTAMP              PIC 9(8).  
+NP0404     05  YMBMTR-CNT-FILLER-1               PIC X(08). 
+NP0404     05  YMBMTR-CNT-REC-CNT                PIC 9(10). 
+NP0404  
+186084*FD  YMBSCH-CNT-FILE  
+186084*    LABEL RECORDS ARE STANDARD.  
+186084*01  YMBSCH-CNT-REC.  
+186084*    05  YMBSCH-CNT-RECORD-ID              PIC X(06). 
+186084*    05  YMBSCH-CNT-DATESTAMP              PIC 9(8).  
+186084*    05  YMBSCH-CNT-FILLER-1               PIC X(08). 
+186084*    05  YMBSCH-CNT-REC-CNT                PIC 9(10). 
+SFAPRJ* 
+186084*    FD  YMBSCD-CNT-FILE  
+186084*    LABEL RECORDS ARE STANDARD.  
+186084*01  YMBSCD-CNT-REC.  
+186084*    05  YMBSCD-CNT-RECORD-ID              PIC X(06). 
+186084*    05  YMBSCD-CNT-DATESTAMP              PIC 9(8).  
+186084*    05  YMBSCD-CNT-FILLER-1               PIC X(08). 
+186084*    05  YMBSCD-CNT-REC-CNT                PIC 9(10). 
+SFAPRJ  
+186084*FD  YMBCBA-CNT-FILE  
+186084*    LABEL RECORDS ARE STANDARD.  
+186084*01  YMBCBA-CNT-REC.  
+186084*    05  YMBCBA-CNT-RECORD-ID              PIC X(06). 
+186084*    05  YMBCBA-CNT-DATESTAMP              PIC 9(8).  
+186084*    05  YMBCBA-CNT-FILLER-1               PIC X(08). 
+186084*    05  YMBCBA-CNT-REC-CNT                PIC 9(10). 
+SFAPRJ  
+131886 FD  YMBPHN-CNT-FILE  
+131886     LABEL RECORDS ARE STANDARD.  
+131886 01  YMBPHN-CNT-REC.  
+131886     05  YMBPHN-CNT-RECORD-ID              PIC X(06). 
+131886     05  YMBPHN-CNT-DATESTAMP              PIC 9(8).  
+131886     05  YMBPHN-CNT-FILLER-1               PIC X(08). 
+131886     05  YMBPHN-CNT-REC-CNT                PIC 9(10). 
+
+192660 FD  YMBACUR-CNT-FILE 
+192660     LABEL RECORDS ARE STANDARD.  
+192660 01  YMBACUR-CNT-REC. 
+192660     05  YMBACUR-CNT-RECORD-ID             PIC X(06). 
+192660     05  YMBACUR-CNT-DATESTAMP             PIC 9(8).  
+192660     05  YMBACUR-CNT-FILLER-1              PIC X(08). 
+192660     05  YMBACUR-CNT-REC-CNT               PIC 9(10). 
+100098 FD  YMBAGC-FILE  
+100098     LABEL RECORDS ARE OMITTED.   
+100098 01  YMBAGC-REC.  
+100098     03  YMBAGC-RECORD-ID            PIC X(06).   
+100098     03  YMBAGC-DATESTAMP            PIC 9(8).
+100098     03  YMBAGC-FILLER-1             PIC X.   
+214948*    03  YMBAGC-CUSTOMER-NUM         PIC 9(7).
+214948     03  YMBAGC-CUSTOMER-NUM-ASCII   PIC 9(14).   
+100098     03  YMBAGC-FILLER-2             PIC X.   
+100098     03  YMBAGC-COMPANY-CODE         PIC X.   
+100098     03  YMBAGC-FILLER-3             PIC X.   
+100098     03  YMBAGC-YEAR                 PIC 9(4).
+100098     03  YMBAGC-FILLER-4             PIC X.   
+100098     03  YMBAGC-SOFT-MAX             PIC 9(5).
+100098     03  YMBAGC-FILLER-5             PIC X.   
+100098     03  YMBAGC-HARD-MAX             PIC 9(5).
+100098     03  YMBAGC-FILLER-6             PIC X.   
+163338     03  YMBAGC-BKGS-SOLD-CNT        PIC 9(5).
+163338     03  YMBAGC-FILLER-7             PIC X.   
+100098  
+100098 FD  YMBAGC-CNT-FILE  
+100098     LABEL RECORDS ARE STANDARD.  
+100098 01  YMBAGC-CNT-REC.  
+100098     05  YMBAGC-CNT-RECORD-ID              PIC X(06). 
+100098     05  YMBAGC-CNT-DATESTAMP              PIC 9(8).  
+100098     05  YMBAGC-CNT-FILLER-1               PIC X(08). 
+100098     05  YMBAGC-CNT-REC-CNT                PIC 9(10). 
+100098  
+       WORKING-STORAGE SECTION. 
+144449 01  WS-PROG-ID            PIC X(8) VALUE 'YMB15AGT'. 
+       01  MCFLAG                        PIC 9(10) USAGE BINARY.
+       01  WS-DATESTAMP                  PIC 9(8).  
+       01  WS-ACR-LOCATION. 
+           05  WS-ACR-OWNER-PHONE-NUM    PIC X(10). 
+           05  WS-ACR-FILLER             PIC X(20). 
+192660 01  WS-SUB                        PIC 9(05) BINARY.  
+       01  TEST-PHONE-NUMBER             PIC X(10). 
+       01  AGT-SUB                       PIC 9(05) USAGE BINARY.
+131886 01  EOF-IND                       PIC 9(02) VALUE ZERO.  
+162641 01  WS-FIRST-EMAIL-IND            PIC X(01). 
+       01  WS-CUSTOMER-NUM               PIC X(07). 
+144449*01  WS-AREA-KEY                  USAGE IS AREA-KEY.  
+144449 01  WS-AREA-NAME                 PIC X(12).  
+SFAPRJ 01  WS-ATSR-YEAR-X.  
+SFAPRJ     05  WS-ATSR-YEAR              PIC 9(04). 
+164663 01  WS-CNT                        PIC 9(05) USAGE BINARY.
+       01  WS-DATE-TIME.
+           05 WS-DATE                    PIC 9(8).  
+           05 WS-TIME.  
+              10 WS-HH                   PIC 99.
+              10 WS-MM                   PIC 99.
+              10 WS-SS                   PIC 9999.  
+202954*01  WS-HIST-BEGIN-DATE-TIME. 
+202954*    05  WS-HIST-BEGIN-DATE        PIC 9(6).  
+202954*    05  WS-HIST-BEGIN-TIME        PIC 9(6).  
+202954*01  WS-HIST-NEXT-DATE-TIME.  
+202954*    05  WS-HIST-NEXT-DATE         PIC 9(6).  
+202954*    05  WS-HIST-NEXT-DATE-REDEF REDEFINES
+202954*                                WS-HIST-NEXT-DATE.   
+202954*        10 WS-HIST-NEXT-YY        PIC 9(2).  
+202954*        10 WS-HIST-NEXT-MM        PIC 9(2).  
+202954*        10 WS-HIST-NEXT-DD        PIC 9(2).  
+202954*    05  WS-HIST-NEXT-TIME         PIC 9(6).  
+       01  WS-HOLD-DATA.
+           05  WHD-BOOK-NUM              PIC X(6) VALUE SPACES. 
+           05  WHD-SHIP-CODE             PIC XX VALUE SPACES.   
+           05  WHD-SAIL-DATE             PIC 9(8) VALUE ZEROES. 
+           05  WHD-DURATION-DAYS         PIC 9(6) VALUE ZEROES. 
+       01  WS-PARAM-ERROR-IND            PIC X VALUE 'N'.   
+       01  WS-IBR-CABIN-NUM.
+           05 WS-IBR-CABIN-3             PIC X(3).  
+           05 FILLER                     PIC XX.
+
+       01  WS-IBHR-COMMENT. 
+           05  WS-IBHR-COM-3             PIC X(3).  
+           05  WS-IBHR-COM-21            PIC X(21). 
+       01  WS-AGENT-CNT                  PIC 9(6) COMP VALUE ZERO.  
+
+       01  WS-AGT-REC.  
+           05  WS-AGT-RECORD-ID            PIC X(06)  VALUE 'CCLAGT'.   
+           05  WS-AGT-DATESTAMP            PIC 9(8)  VALUE ZEROS.   
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+214948*    05  WS-AGT-CUSTOMER-NUM         PIC 9(7)  VALUE ZEROS.   
+214948     05  WS-AGT-CUSTOMER-NUM         PIC 9(14) VALUE ZEROES.  
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-TYPE                 PIC X  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-NAME                 PIC X(30)  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-WHOLESALE-IND        PIC X  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-STATE-CODE           PIC X(2)  VALUE SPACES.  
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-COUNTRY-CODE         PIC X(2)  VALUE SPACES.  
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-COUNTRY-DESC         PIC X(30)  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-EMAIL-ADDRESS        PIC X(100)  VALUE SPACES.
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-REP-CODE             PIC 9(2)  VALUE ZEROS.   
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-REP-DESC             PIC X(28)  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-TERRITORY-CODE       PIC 9(2)  VALUE ZEROS.   
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-PHONE-NUM            PIC 9(10)  VALUE ZEROS.  
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-SALES-REP-CODE       PIC 9(2)  VALUE ZEROS.   
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-SALES-REP-DESC       PIC X(20)  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-STATUS               PIC X  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-STATUS-DESC          PIC X(15)  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-RES-COMM-CODE        PIC X  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-RES-COMM-DESC        PIC X(20)  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-ACT-COMM-CODE        PIC X  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-ACT-COMM-DESC        PIC X(20)  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-MKT-COMM-CODE        PIC X  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-MKT-COMM-DESC        PIC X(20)  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-REP-DIRECTOR         PIC X(20)  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+186084*    05  WS-AGT-AGT-AFF-CONT-NUM     PIC X(06)  VALUE SPACES. 
+186084     05  WS-AGT-AGT-AFF-CONT-FILL    PIC X(06)  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+186084*    05  WS-AGT-AGT-AFF-CONT-NAME    PIC X(30)  VALUE SPACES. 
+186084     05  WS-AGT-AGT-AFF-CONT-FILL1   PIC X(30)  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-AGT-OWN-CONT-NUM     PIC X(06)  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-AGT-OWN-CONT-NAME    PIC X(30)  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-AGT-OWNER-FLAG       PIC X  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-AGT-AUTOMATION-IND   PIC X  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-AGT-DIRECT-IND       PIC X  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-AGT-INTL-SALES-IND   PIC X  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-ADDR-LINE-1          PIC X(30)  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-ADDR-LINE-2          PIC X(30)  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-CITY                 PIC X(20)  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-ZIP-CODE             PIC X(11)  VALUE SPACES. 
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+C75918*    05  WS-AGT-CABIN-NUM            PIC X(4)  VALUE SPACES.  
+C75918     05  FILLER                      PIC X(4)  VALUE SPACES.  
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+           05  WS-AGT-NPC-NUM              PIC X(9) VALUE ZEROES.   
+           05  WS-AGT-FILLER               PIC X  VALUE '|'.
+NP0504     05 WS-AGT-NUMERICS.  
+NP0504        10 WS-AGT-CLIA-NUM              PIC 9(8) VALUE ZEROES.
+NP0504        10 WS-AGT-FILLER                PIC X VALUE '|'.  
+NP0504        10 WS-AGT-ARC-NUM               PIC 9(8) VALUE ZEROES.
+NP0504        10 WS-AGT-FILLER                PIC X VALUE '|'.  
+NP0504        10 WS-AGT-IATA-NUM              PIC 9(8) VALUE ZEROES.
+NP0504        10 WS-AGT-FILLER                PIC X VALUE '|'.  
+186084*       10 WS-AGT-CONTRACT-NUM          PIC 9(6) VALUE ZEROES.
+186084        10 WS-AGT-CONTRACT-NUL-FILL     PIC X(6) VALUE SPACES.
+NP0504        10 WS-AGT-FILLER                PIC X VALUE '|'.  
+186084*       10 WS-AGT-CONTRACT-DATE         PIC 9(8) VALUE ZEROES.
+186084        10 WS-AGT-CONTRACT-DATE-FILL    PIC X(8) VALUE SPACES.
+NP0504        10 WS-AGT-FILLER                PIC X VALUE '|'.  
+186084*       10 WS-AGT-CONTRACT-ENTRY-NUM    PIC 9(2) VALUE ZEROES.
+186084        10 WS-AGT-CONTRACT-ENTRY-FILL   PIC X(2) VALUE SPACES.
+NP0504        10 WS-AGT-FILLER                PIC X VALUE '|'.  
+NP0504        10 WS-AGT-FAX-NUM               PIC 9(10) VALUE ZEROES.   
+NP0504        10 WS-AGT-FILLER                PIC X VALUE '|'.  
+NP0504        10 WS-AGT-COUNTRY-NUM           PIC 9(3) VALUE ZEROES.
+NP0504        10 WS-AGT-FILLER                PIC X VALUE '|'.  
+NP0504        10 WS-AGT-CITY-NUM              PIC 9(3) VALUE ZEROES.
+NP0504        10 WS-AGT-FILLER                PIC X VALUE '|'.  
+NP0504        10 WS-AGT-MAILED-DATE           PIC 9(8) VALUE ZEROES.
+NP0504        10 WS-AGT-FILLER                PIC X VALUE '|'.  
+NP0504***AGENT-CONTRACT-REC DATA
+186084*    05  WS-AGT-ACR-CONTRACT-NUM        PIC 9(5)  VALUE ZEROES.   
+186084     05  WS-AGT-ACR-CONTRACT-NUM-FILL   PIC X(5)  VALUE SPACES.   
+NP0504     05  WS-AGT-FILLER                  PIC X VALUE '|'.  
+186084*    05  WS-AGT-AGENCY-NAME             PIC X(30) VALUE SPACES.   
+186084     05  WS-AGT-AGENCY-NAME-FILL        PIC X(30) VALUE SPACES.   
+NP0504     05  WS-AGT-FILLER                  PIC X VALUE '|'.  
+186084*    05  WS-AGT-LOCATION                PIC X(30) VALUE SPACES.   
+186084     05  WS-AGT-LOCATION-FILL           PIC X(30) VALUE SPACES.   
+NP0504     05  WS-AGT-FILLER                  PIC X VALUE '|'.  
+186084*    05  WS-AGT-EFFECTIVE-DATE          PIC 9(8) VALUE ZEROES.
+186084     05  WS-AGT-EFFECTIVE-DATE-FILL     PIC X(8) VALUE SPACES.
+NP0504     05  WS-AGT-FILLER                  PIC X VALUE '|'.  
+186084*    05  WS-AGT-EXPIRATION-DATE         PIC 9(8) VALUE ZEROES.
+186084     05  WS-AGT-EXPIRATION-DATE-FILL    PIC X(8) VALUE SPACES.
+NP0504     05  WS-AGT-FILLER                  PIC X VALUE '|'.  
+186084*    05  WS-AGT-CONTRACT-TYPE           PIC 9(2) VALUE ZEROES.
+186084     05  WS-AGT-CONTRACT-TYPE-FILL      PIC X(2) VALUE SPACES.
+NP0504     05  WS-AGT-FILLER                  PIC X VALUE '|'.  
+186084*    05  WS-AGT-COMMENT                 PIC X(44) VALUE SPACES.   
+186084     05  WS-AGT-COMMENT-FILL            PIC X(44) VALUE SPACES.   
+NP0504     05  WS-AGT-FILLER                  PIC X VALUE '|'.  
+186084*    05  WS-AGT-AFF-OWNER-IND           PIC X VALUE SPACES.   
+186084     05  WS-AGT-AFF-OWNER-IND-FILL      PIC X VALUE SPACES.   
+NP0504     05  WS-AGT-FILLER                  PIC X VALUE '|'.  
+186084*    05  WS-AGT-IND-ACCRUAL-COMM-PCT    PIC .9999 VALUE ZEROES.   
+186084     05  WS-AGT-IND-ACCRUAL-COMM-PCT-FI PIC X(05) VALUE SPACES.   
+NP0504     05  WS-AGT-FILLER                  PIC X VALUE '|'.  
+186084*    05  WS-AGT-GRP-ACCRUAL-COMM-PCT    PIC .9999 VALUE ZEROES.   
+186084     05  WS-AGT-GRP-ACCRUAL-COMM-PCT-FI PIC X(05) VALUE ZEROES.   
+NP0504     05  WS-AGT-FILLER                  PIC X VALUE '|'.  
+186084*    05  WS-AGT-ACCRUAL-PMT-METHOD      PIC X VALUE SPACES.   
+186084     05  WS-AGT-ACCRUAL-PMT-METHOD-FILL PIC X VALUE SPACES.   
+NP0504     05  WS-AGT-FILLER                  PIC X VALUE '|'.  
+186084*    05  WS-AGT-PROMOTIONS              PIC X(10) VALUE SPACES.   
+186084     05  WS-AGT-PROMOTIONS-FILL         PIC X(10) VALUE SPACES.   
+NP0504     05  WS-AGT-FILLER                  PIC X VALUE '|'.  
+CCL-UK*    05  WS-AGT-INDV-CRUO-PCT           PIC .99 VALUE ZEROES. 
+CCL-UK*    05  WS-AGT-FILLER                  PIC X VALUE '|'.  
+CCL-UK*    05  WS-AGT-INDV-FLYA-PCT           PIC .99 VALUE ZEROES. 
+CCL-UK*    05  WS-AGT-FILLER                  PIC X VALUE '|'.  
+CCL-UK*    05  WS-AGT-INDV-TOUR-PCT           PIC .99 VALUE ZEROES. 
+CCL-UK*NP0504     05  WS-AGT-FILLER                  PIC X VALUE '|'.   
+CCL-UK*NP0504     05  WS-AGT-GROUP-CRUO-PCT          PIC .99 VALUE ZEROES.  
+CCL-UK*NP0504     05  WS-AGT-FILLER                  PIC X VALUE '|'.   
+CCL-UK*NP0504     05  WS-AGT-GROUP-FLYA-PCT          PIC .99 VALUE ZEROES.  
+CCL-UK*NP0504     05  WS-AGT-FILLER                  PIC X VALUE '|'.   
+CCL-UK*NP0504     05  WS-AGT-GROUP-TOUR-PCT          PIC .99 VALUE ZEROES.  
+CCL-UK     05  WS-AGT-SPACE-FILL-1            PIC X(03) VALUE SPACES.   
+CCL-UK     05  WS-AGT-FILLER                  PIC X VALUE '|'.  
+CCL-UK     05  WS-AGT-SPACE-FILL-2            PIC X(03) VALUE SPACES.   
+CCL-UK     05  WS-AGT-FILLER                  PIC X VALUE '|'.  
+CCL-UK     05  WS-AGT-SPACE-FILL-3            PIC X(03) VALUE SPACES.   
+CCL-UK     05  WS-AGT-FILLER                  PIC X VALUE '|'.  
+CCL-UK     05  WS-AGT-SPACE-FILL-4            PIC X(03) VALUE SPACES.   
+CCL-UK     05  WS-AGT-FILLER                  PIC X VALUE '|'.  
+CCL-UK     05  WS-AGT-SPACE-FILL-5            PIC X(03) VALUE SPACES.   
+CCL-UK     05  WS-AGT-FILLER                  PIC X VALUE '|'.  
+CCL-UK     05  WS-AGT-SPACE-FILL-6            PIC X(03) VALUE SPACES.   
+NP0504     05  WS-AGT-FILLER                  PIC X VALUE '|'.  
+NP0504***AGENT-TERMS-COMPANY-REC DATA   
+NP0504     05  WS-AGT-ATCR-COMPANY-CODE        PIC X(01) VALUE SPACES.  
+NP0504     05  WS-AGT-FILLER                   PIC X VALUE '|'. 
+CCL-UK*    05 WS-AGT-COMMISSIONS.   
+CCL-UK*       10 WS-AGT-INDV-RETAIL-COMM.   
+CCL-UK*          15 WS-AGT-INDV-CRUO-COMM    PIC .9(03) VALUE ZEROES.   
+CCL-UK*          15 WS-AGT-FILLER            PIC X VALUE '|'.   
+CCL-UK*          15 WS-AGT-INDV-FLYA-COMM    PIC .9(03) VALUE ZEROES.   
+CCL-UK*          15 WS-AGT-FILLER            PIC X VALUE '|'.   
+CCL-UK*          15 WS-AGT-INDV-ADDON-COMM   PIC .9(03) VALUE ZEROES.   
+CCL-UK*          15 WS-AGT-FILLER            PIC X VALUE '|'.   
+CCL-UK*          15 WS-AGT-INDV-TOUR-COMM    PIC .9(03) VALUE ZEROES.   
+CCL-UK*          15 WS-AGT-FILLER            PIC X VALUE '|'.   
+CCL-UK*          15 WS-AGT-INDV-INS-COMM     PIC .9(03) VALUE ZEROES.   
+CCL-UK*          15 WS-AGT-FILLER            PIC X VALUE '|'.   
+CCL-UK*       10 WS-AGT-INDV-WHOLESALE-COMM.
+CCL-UK*          15 WS-AGT-INDV-W-CRUO-COMM  PIC .9(03) VALUE ZEROES.   
+CCL-UK*          15 WS-AGT-FILLER            PIC X VALUE '|'.   
+CCL-UK*          15 WS-AGT-INDV-W-FLYA-COMM  PIC .9(03) VALUE ZEROES.   
+CCL-UK*          15 WS-AGT-FILLER            PIC X VALUE '|'.   
+CCL-UK*          15 WS-AGT-INDV-W-ADDON-COMM PIC .9(03) VALUE ZEROES.   
+CCL-UK*          15 WS-AGT-FILLER            PIC X VALUE '|'.   
+CCL-UK*          15 WS-AGT-INDV-W-TOUR-COMM  PIC .9(03) VALUE ZEROES.   
+CCL-UK*          15 WS-AGT-FILLER            PIC X VALUE '|'.   
+CCL-UK*          15 WS-AGT-INDV-W-INS-COMM   PIC .9(03) VALUE ZEROES.   
+CCL-UK*          15 WS-AGT-FILLER            PIC X VALUE '|'.   
+CCL-UK*       10 WS-AGT-GRP-RETAIL-COMM.
+CCL-UK*          15 WS-AGT-GRP-CRUO-COMM     PIC .9(03) VALUE ZEROES.   
+CCL-UK*          15 WS-AGT-FILLER            PIC X VALUE '|'.   
+CCL-UK*          15 WS-AGT-GRP-FLYA-COMM     PIC .9(03) VALUE ZEROES.   
+CCL-UK*          15 WS-AGT-FILLER            PIC X VALUE '|'.   
+CCL-UK*          15 WS-AGT-GRP-ADDON-COMM    PIC .9(03) VALUE ZEROES.   
+CCL-UK*          15 WS-AGT-FILLER            PIC X VALUE '|'.   
+CCL-UK*          15 WS-AGT-GRP-TOUR-COMM     PIC .9(03) VALUE ZEROES.   
+CCL-UK*          15 WS-AGT-FILLER            PIC X VALUE '|'.   
+CCL-UK*          15 WS-AGT-GRP-INS-COMM      PIC .9(03) VALUE ZEROES.   
+CCL-UK*          15 WS-AGT-FILLER            PIC X VALUE '|'.   
+CCL-UK*       10 WS-AGT-GRP-WHOLESALE-COMM. 
+CCL-UK*          15 WS-AGT-GRP-W-CRUO-COMM   PIC .9(03) VALUE ZEROES.   
+CCL-UK*          15 WS-AGT-FILLER            PIC X VALUE '|'.   
+CCL-UK*          15 WS-AGT-GRP-W-FLYA-COMM   PIC .9(03) VALUE ZEROES.   
+CCL-UK*          15 WS-AGT-FILLER            PIC X VALUE '|'.   
+CCL-UK*          15 WS-AGT-GRP-W-ADDON-COMM  PIC .9(03) VALUE ZEROES.   
+CCL-UK*          15 WS-AGT-FILLER            PIC X VALUE '|'.   
+CCL-UK*          15 WS-AGT-GRP-W-TOUR-COMM   PIC .9(03) VALUE ZEROES.   
+CCL-UK*          15 WS-AGT-FILLER            PIC X VALUE '|'.   
+CCL-UK*          15 WS-AGT-GRP-W-INS-COMM    PIC .9(03) VALUE ZEROES.   
+CCL-UK*    05  WS-AGT-FILLER                 PIC X VALUE '|'.   
+CCL-UK     05  WS-AGT-SPACE-FILL-7           PIC X(04) VALUE SPACES.
+CCL-UK     05  WS-AGT-FILLER                 PIC X VALUE '|'.   
+CCL-UK     05  WS-AGT-SPACE-FILL-8           PIC X(04) VALUE SPACES.
+CCL-UK     05  WS-AGT-FILLER                 PIC X VALUE '|'.   
+CCL-UK     05  WS-AGT-SPACE-FILL-9           PIC X(04) VALUE SPACES.
+CCL-UK     05  WS-AGT-FILLER                 PIC X VALUE '|'.   
+CCL-UK     05  WS-AGT-SPACE-FILL-10          PIC X(04) VALUE SPACES.
+CCL-UK     05  WS-AGT-FILLER                 PIC X VALUE '|'.   
+CCL-UK     05  WS-AGT-SPACE-FILL-11          PIC X(04) VALUE SPACES.
+CCL-UK     05  WS-AGT-FILLER                 PIC X VALUE '|'.   
+CCL-UK     05  WS-AGT-SPACE-FILL-12          PIC X(04) VALUE SPACES.
+CCL-UK     05  WS-AGT-FILLER                 PIC X VALUE '|'.   
+CCL-UK     05  WS-AGT-SPACE-FILL-13          PIC X(04) VALUE SPACES.
+CCL-UK     05  WS-AGT-FILLER                 PIC X VALUE '|'.   
+CCL-UK     05  WS-AGT-SPACE-FILL-14          PIC X(04) VALUE SPACES.
+CCL-UK     05  WS-AGT-FILLER                 PIC X VALUE '|'.   
+CCL-UK     05  WS-AGT-SPACE-FILL-15          PIC X(04) VALUE SPACES.
+CCL-UK     05  WS-AGT-FILLER                 PIC X VALUE '|'.   
+CCL-UK     05  WS-AGT-SPACE-FILL-16          PIC X(04) VALUE SPACES.
+CCL-UK     05  WS-AGT-FILLER                 PIC X VALUE '|'.   
+CCL-UK     05  WS-AGT-SPACE-FILL-17          PIC X(04) VALUE SPACES.
+CCL-UK     05  WS-AGT-FILLER                 PIC X VALUE '|'.   
+CCL-UK     05  WS-AGT-SPACE-FILL-18          PIC X(04) VALUE SPACES.
+CCL-UK     05  WS-AGT-FILLER                 PIC X VALUE '|'.   
+CCL-UK     05  WS-AGT-SPACE-FILL-19          PIC X(04) VALUE SPACES.
+CCL-UK     05  WS-AGT-FILLER                 PIC X VALUE '|'.   
+CCL-UK     05  WS-AGT-SPACE-FILL-20          PIC X(04) VALUE SPACES.
+CCL-UK     05  WS-AGT-FILLER                 PIC X VALUE '|'.   
+CCL-UK     05  WS-AGT-SPACE-FILL-21          PIC X(04) VALUE SPACES.
+CCL-UK     05  WS-AGT-FILLER                 PIC X VALUE '|'.   
+CCL-UK     05  WS-AGT-SPACE-FILL-22          PIC X(04) VALUE SPACES.
+CCL-UK     05  WS-AGT-FILLER                 PIC X VALUE '|'.   
+CCL-UK     05  WS-AGT-SPACE-FILL-23          PIC X(04) VALUE SPACES.
+CCL-UK     05  WS-AGT-FILLER                 PIC X VALUE '|'.   
+CCL-UK     05  WS-AGT-SPACE-FILL-24          PIC X(04) VALUE SPACES.
+CCL-UK     05  WS-AGT-FILLER                 PIC X VALUE '|'.   
+CCL-UK     05  WS-AGT-SPACE-FILL-25          PIC X(04) VALUE SPACES.
+CCL-UK     05  WS-AGT-FILLER                 PIC X VALUE '|'.   
+CCL-UK     05  WS-AGT-SPACE-FILL-26          PIC X(04) VALUE SPACES.
+CCL-UK     05  WS-AGT-FILLER                 PIC X VALUE '|'.   
+104170*    05  WS-AGT-ATCR-AGENCY-INDICATORS pic x(36) value spaces.
+104170     05  WS-AGT-ATCR-AGENCY-INDICATORS PIC X(72) VALUE SPACES.
+NP0504     05  WS-AGT-FILLER                 PIC X VALUE '|'.   
+GCBPRJ     05  WS-AGT-SUPER-CONT-NUM         PIC X(6)  VALUE SPACES.
+GCBPRJ     05  WS-AGT-FILLER                 PIC X VALUE '|'.   
+GCBPRJ     05  WS-AGT-SUPER-CONT-NAME        PIC X(30) VALUE SPACES.
+GCBPRJ     05  WS-AGT-FILLER                 PIC X VALUE '|'.   
+SFAPRJ     05  WS-AGT-DATE-LAST-BOOKING      PIC 9(08) VALUE ZEROES.
+SFAPRJ     05  WS-AGT-FILLER-91              PIC X VALUE '|'.   
+SFAPRJ     05  WS-AGT-DATE-ADDED             PIC 9(08) VALUE ZEROES.
+SFAPRJ     05  WS-AGT-FILLER-92              PIC X VALUE '|'.   
+C75918     05  WS-AGT-CABIN-NUM              PIC X(5)  VALUE SPACES.
+100098     05  WS-AGT-FILLER-93              PIC X VALUE '|'.   
+100098     05  WS-AGT-GROUP-BKG-SAIL-MAX     PIC 9(5) VALUE ZEROES. 
+114761     05  WS-AGT-FILLER-94              PIC X VALUE '|'.   
+114761     05  WS-AGT-DATE-CLOSED            PIC 9(08) VALUE ZEROES.
+CCL-UK     05  WS-AGT-FILLER-95              PIC X(01) VALUE '|'.   
+CCL-UK     05  WS-AGT-AGT-TTA-NUM            PIC X(06) VALUE SPACES.
+CCL-UK     05  WS-AGT-FILLER-96              PIC X(01) VALUE '|'.   
+CCL-UK     05  WS-AGT-AGT-ABTA-NUM           PIC X(06) VALUE SPACES.
+CCL-UK     05  WS-AGT-FILLER-97              PIC X(01) VALUE '|'.   
+CCL-UK     05  WS-AGT-ACR-COMMISSIONS.  
+186084*       10 WS-AGT-IINDV-CRUO-COMM-PCT    PIC .99 VALUE ZEROES.
+186084        10 WS-AGT-IINDV-CRUO-COMM-FILL   PIC X(03) VALUE SPACES.  
+CCL-UK        10 WS-AGT-FILLER-98              PIC X VALUE '|'. 
+186084*       10 WS-AGT-IINDV-ADDON-COMM-PCT   PIC .99 VALUE ZEROES.
+186084        10 WS-AGT-IINDV-ADDON-COMM-FILL  PIC X(03) VALUE SPACES.  
+CCL-UK        10 WS-AGT-FILLER-99              PIC X VALUE '|'. 
+186084*       10 WS-AGT-IINDV-PKG-COMM-PCT     PIC .99 VALUE ZEROES.
+186084        10 WS-AGT-IINDV-PKG-COMM-FILL    PIC X(03) VALUE SPACES.  
+CCL-UK        10 WS-AGT-FILLER-100             PIC X VALUE '|'. 
+186084*       10 WS-AGT-IINDV-INS-COMM-PCT     PIC .99 VALUE ZEROES.
+186084        10 WS-AGT-IINDV-INS-COMM-FILL    PIC X(03) VALUE SPACES.  
+CCL-UK        10 WS-AGT-FILLER-101             PIC X VALUE '|'. 
+186084*       10 WS-AGT-IINDV-TRANSFER-COMM-PCT PIC .99 VALUE ZEROES.   
+186084        10 WS-AGT-IINDV-TRANSFER-COMM-FI  PIC X(03) VALUE SPACES. 
+CCL-UK        10 WS-AGT-FILLER-102             PIC X VALUE '|'. 
+186084*       10 WS-AGT-EINDV-CRUO-COMM-PCT    PIC .99 VALUE ZEROES.
+186084        10 WS-AGT-EINDV-CRUO-COMM-FILL   PIC X(03) VALUE SPACES.  
+CCL-UK        10 WS-AGT-FILLER-103             PIC X VALUE '|'. 
+186084*       10 WS-AGT-EINDV-ADDON-COMM-PCT   PIC .99 VALUE ZEROES.
+186084        10 WS-AGT-EINDV-ADDON-COMM-FILL  PIC X(03) VALUE SPACES.  
+CCL-UK        10 WS-AGT-FILLER-104             PIC X VALUE '|'. 
+186084*       10 WS-AGT-EINDV-PKG-COMM-PCT     PIC .99 VALUE ZEROES.
+186084        10 WS-AGT-EINDV-PKG-COMM-PCT-FI  PIC X(03) VALUE SPACES.  
+CCL-UK        10 WS-AGT-FILLER-105             PIC X VALUE '|'. 
+186084*       10 WS-AGT-EINDV-INS-COMM-PCT     PIC .99 VALUE ZEROES.
+186084        10 WS-AGT-EINDV-INS-COMM-FILL    PIC X(03) VALUE SPACES.  
+CCL-UK        10 WS-AGT-FILLER-106             PIC X VALUE '|'. 
+186084*       10 WS-AGT-EINDV-TRANSFER-COMM-PCT PIC .99 VALUE ZEROES.   
+186084        10 WS-AGT-EINDV-TRANSFER-COMM-FIL PIC X(03) VALUE SPACES. 
+CCL-UK        10 WS-AGT-FILLER-107             PIC X VALUE '|'. 
+CCL-UK      05  WS-AGT-COMMISSIONS. 
+CCL-UK*****THIS SECTION IS FOR INTERNAL CHANNEL, INDV BOOK, WHOLESALE   
+186084*           10 WS-AGT-IIW-CRUO-COMM-PCT   PIC .9(03) VALUE ZEROES.
+186084            10 WS-AGT-IIW-CRUO-COMM-FILL  PIC X(04) VALUE SPACES. 
+CCL-UK            10 WS-AGT-FILLER-108          PIC X VALUE '|'.
+186084*           10 WS-AGT-IIW-ADDON-COMM-PCT  PIC .9(03) VALUE ZEROES.
+186084            10 WS-AGT-IIW-ADDON-COMM-FILL PIC X(04) VALUE SPACES. 
+CCL-UK            10 WS-AGT-FILLER-109          PIC X VALUE '|'.
+186084*           10 WS-AGT-IIW-PKG-COMM-PCT    PIC .9(03) VALUE ZEROES.
+186084            10 WS-AGT-IIW-PKG-COMM-FILL   PIC X(04) VALUE SPACES. 
+CCL-UK            10 WS-AGT-FILLER-110          PIC X VALUE '|'.
+186084*           10 WS-AGT-IIW-INS-COMM-PCT    PIC .9(03) VALUE ZEROES.
+186084            10 WS-AGT-IIW-INS-COMM-FILL   PIC X(04) VALUE SPACES. 
+CCL-UK            10 WS-AGT-FILLER-111          PIC X VALUE '|'.
+186084*           10 WS-AGT-IIW-XFER-COMM-PCT   PIC .9(03) VALUE ZEROES.
+186084            10 WS-AGT-IIW-XFER-COMM-FILL  PIC X(04) VALUE SPACES. 
+CCL-UK            10 WS-AGT-FILLER-112          PIC X VALUE '|'.
+CCL-UK*****THIS SECTION IS FOR INTERNAL CHANNEL, INDV BOOK, RETAIL  
+CCL-UK            10 WS-AGT-IIR-CRUO-COMM-PCT   PIC .9(03) VALUE ZEROES.
+CCL-UK            10 WS-AGT-FILLER-113          PIC X VALUE '|'.
+CCL-UK            10 WS-AGT-IIR-ADDON-COMM-PCT  PIC .9(03) VALUE ZEROES.
+CCL-UK            10 WS-AGT-FILLER-114          PIC X VALUE '|'.
+CCL-UK            10 WS-AGT-IIR-PKG-COMM-PCT    PIC .9(03) VALUE ZEROES.
+CCL-UK            10 WS-AGT-FILLER-115          PIC X VALUE '|'.
+CCL-UK            10 WS-AGT-IIR-INS-COMM-PCT    PIC .9(03) VALUE ZEROES.
+CCL-UK            10 WS-AGT-FILLER-116          PIC X VALUE '|'.
+CCL-UK            10 WS-AGT-IIR-XFER-COMM-PCT   PIC .9(03) VALUE ZEROES.
+CCL-UK            10 WS-AGT-FILLER-117          PIC X VALUE '|'.
+CCL-UK*****THIS SECTION IS FOR INTERNAL CHANNEL, GROUP BOOK, WHOLESALE  
+186084*           10 WS-AGT-IGW-CRUO-COMM-PCT   PIC .9(03) VALUE ZEROES.
+186084            10 WS-AGT-IGW-CRUO-COMM-FILL  PIC X(04) VALUE SPACES. 
+CCL-UK            10 WS-AGT-FILLER-118          PIC X VALUE '|'.
+186084*           10 WS-AGT-IGW-ADDON-COMM-PCT  PIC .9(03) VALUE ZEROES.
+186084            10 WS-AGT-IGW-ADDON-COMM-FILL PIC X(04) VALUE SPACES. 
+CCL-UK            10 WS-AGT-FILLER-119          PIC X VALUE '|'.
+186084*           10 WS-AGT-IGW-PKG-COMM-PCT    PIC .9(03) VALUE ZEROES.
+186084            10 WS-AGT-IGW-PKG-COMM-FILL   PIC X(04) VALUE SPACES. 
+CCL-UK            10 WS-AGT-FILLER-120          PIC X VALUE '|'.
+186084*           10 WS-AGT-IGW-INS-COMM-PCT    PIC .9(03) VALUE ZEROES.
+186084            10 WS-AGT-IGW-INS-COMM-FILL   PIC X(04) VALUE SPACES. 
+CCL-UK            10 WS-AGT-FILLER-121          PIC X VALUE '|'.
+186084*           10 WS-AGT-IGW-XFER-COMM-PCT   PIC .9(03) VALUE ZEROES.
+186084            10 WS-AGT-IGW-XFER-COMM-FILL  PIC X(04) VALUE SPACES. 
+CCL-UK            10 WS-AGT-FILLER-122          PIC X VALUE '|'.
+CCL-UK*****THIS SECTION IS FOR INTERNAL CHANNEL, GROUP BOOK, RETAIL 
+CCL-UK            10 WS-AGT-IGR-CRUO-COMM-PCT   PIC .9(03) VALUE ZEROES.
+CCL-UK            10 WS-AGT-FILLER-123          PIC X VALUE '|'.
+CCL-UK            10 WS-AGT-IGR-ADDON-COMM-PCT  PIC .9(03) VALUE ZEROES.
+CCL-UK            10 WS-AGT-FILLER-124          PIC X VALUE '|'.
+CCL-UK            10 WS-AGT-IGR-PKG-COMM-PCT    PIC .9(03) VALUE ZEROES.
+CCL-UK            10 WS-AGT-FILLER-125          PIC X VALUE '|'.
+CCL-UK            10 WS-AGT-IGR-INS-COMM-PCT    PIC .9(03) VALUE ZEROES.
+CCL-UK            10 WS-AGT-FILLER-126          PIC X VALUE '|'.
+CCL-UK            10 WS-AGT-IGR-XFER-COMM-PCT   PIC .9(03) VALUE ZEROES.
+CCL-UK            10 WS-AGT-FILLER-127          PIC X VALUE '|'.
+CCL-UK*****THIS SECTION IS FOR EXTERNAL CHANNEL, INDV BOOK, WHOLESALE   
+186084*           10 WS-AGT-EIW-CRUO-COMM-PCT   PIC .9(03) VALUE ZEROES.
+186084            10 WS-AGT-EIW-CRUO-COMM-FILL  PIC X(04) VALUE SPACES. 
+CCL-UK            10 WS-AGT-FILLER-128          PIC X VALUE '|'.
+186084*           10 WS-AGT-EIW-ADDON-COMM-PCT  PIC .9(03) VALUE ZEROES.
+186084            10 WS-AGT-EIW-ADDON-COMM-FILL PIC X(04) VALUE SPACES. 
+CCL-UK            10 WS-AGT-FILLER-129          PIC X VALUE '|'.
+186084*           10 WS-AGT-EIW-PKG-COMM-PCT    PIC .9(03) VALUE ZEROES.
+186084            10 WS-AGT-EIW-PKG-COMM-FILL   PIC X(04) VALUE SPACES. 
+CCL-UK            10 WS-AGT-FILLER-130          PIC X VALUE '|'.
+186084*           10 WS-AGT-EIW-INS-COMM-PCT    PIC .9(03) VALUE ZEROES.
+186084            10 WS-AGT-EIW-INS-COMM-FILL   PIC X(04) VALUE SPACES. 
+CCL-UK            10 WS-AGT-FILLER-131          PIC X VALUE '|'.
+186084*           10 WS-AGT-EIW-XFER-COMM-PCT   PIC .9(03) VALUE ZEROES.
+186084            10 WS-AGT-EIW-XFER-COMM-FILL  PIC X(04) VALUE SPACES. 
+CCL-UK            10 WS-AGT-FILLER-132          PIC X VALUE '|'.
+CCL-UK*****THIS SECTION IS FOR EXTERNAL CHANNEL, INDV BOOK, RETAIL  
+CCL-UK            10 WS-AGT-EIR-CRUO-COMM-PCT   PIC .9(03) VALUE ZEROES.
+CCL-UK            10 WS-AGT-FILLER-133          PIC X VALUE '|'.
+CCL-UK            10 WS-AGT-EIR-ADDON-COMM-PCT  PIC .9(03) VALUE ZEROES.
+CCL-UK            10 WS-AGT-FILLER-134          PIC X VALUE '|'.
+CCL-UK            10 WS-AGT-EIR-PKG-COMM-PCT    PIC .9(03) VALUE ZEROES.
+CCL-UK            10 WS-AGT-FILLER-135          PIC X VALUE '|'.
+CCL-UK            10 WS-AGT-EIR-INS-COMM-PCT    PIC .9(03) VALUE ZEROES.
+CCL-UK            10 WS-AGT-FILLER-136          PIC X VALUE '|'.
+CCL-UK            10 WS-AGT-EIR-XFER-COMM-PCT   PIC .9(03) VALUE ZEROES.
+CCL-UK            10 WS-AGT-FILLER-137          PIC X VALUE '|'.
+CCL-UK*****THIS SECTION IS FOR EXTERNAL CHANNEL, GROUP BOOK, WHOLESALE  
+186084*           10 WS-AGT-EGW-CRUO-COMM-PCT   PIC .9(03) VALUE ZEROES.
+186084            10 WS-AGT-EGW-CRUO-COMM-FILL  PIC X(04) VALUE SPACES. 
+CCL-UK            10 WS-AGT-FILLER-138          PIC X VALUE '|'.
+186084*           10 WS-AGT-EGW-ADDON-COMM-PCT  PIC .9(03) VALUE ZEROES.
+186084            10 WS-AGT-EGW-ADDON-COMM-FILL PIC X(04) VALUE SPACES. 
+CCL-UK            10 WS-AGT-FILLER-139          PIC X VALUE '|'.
+186084*           10 WS-AGT-EGW-PKG-COMM-PCT    PIC .9(03) VALUE ZEROES.
+186084            10 WS-AGT-EGW-PKG-COMM-FILL   PIC X(04) VALUE SPACES. 
+CCL-UK            10 WS-AGT-FILLER-140          PIC X VALUE '|'.
+186084*           10 WS-AGT-EGW-INS-COMM-PCT    PIC .9(03) VALUE ZEROES.
+186084            10 WS-AGT-EGW-INS-COMM-FILL   PIC X(04) VALUE SPACES. 
+CCL-UK            10 WS-AGT-FILLER-141          PIC X VALUE '|'.
+186084*           10 WS-AGT-EGW-XFER-COMM-PCT   PIC .9(03) VALUE ZEROES.
+186084            10 WS-AGT-EGW-XFER-COMM-FILL  PIC X(04) VALUE SPACES. 
+CCL-UK            10 WS-AGT-FILLER-142          PIC X VALUE '|'.
+CCL-UK*****THIS SECTION IS FOR EXTERNAL CHANNEL, GROUP BOOK, RETAIL 
+CCL-UK            10 WS-AGT-EGR-CRUO-COMM-PCT   PIC .9(03) VALUE ZEROES.
+CCL-UK            10 WS-AGT-FILLER-143          PIC X VALUE '|'.
+CCL-UK            10 WS-AGT-EGR-ADDON-COMM-PCT  PIC .9(03) VALUE ZEROES.
+CCL-UK            10 WS-AGT-FILLER-144          PIC X VALUE '|'.
+CCL-UK            10 WS-AGT-EGR-PKG-COMM-PCT    PIC .9(03) VALUE ZEROES.
+CCL-UK            10 WS-AGT-FILLER-145          PIC X VALUE '|'.
+CCL-UK            10 WS-AGT-EGR-INS-COMM-PCT    PIC .9(03) VALUE ZEROES.
+CCL-UK            10 WS-AGT-FILLER-146          PIC X VALUE '|'.
+CCL-UK            10 WS-AGT-EGR-XFER-COMM-PCT   PIC .9(03) VALUE ZEROES.
+CCL-UK            10 WS-AGT-FILLER-147          PIC X VALUE '|'.
+186084*    05  WS-AGT-MASTER-NUM                PIC 9(05).              1334-133
+186084     05  WS-AGT-MASTER-NUM-FILL           PIC X(05) VALUE SPACES. 1334-133
+154125     05  WS-AGT-FILLER-148                PIC X VALUE '|'.        1339
+154125     05  WS-AGT-AGT-ABN-NUMBER            PIC X(11) VALUE SPACES. 1340-135
+131886     05  WS-AGT-FILLER-149                PIC X VALUE '|'.        1351
+131886     05  WS-AGT-LOCAL-PHONE-NUM           PIC 9(10) VALUE ZEROES. 1352-135
+150339     05  WS-AGT-FILLER-150                PIC X VALUE '|'.
+150339     05  WS-AGT-ATCR-OPER-RESP-AGENCY     PIC X.  
+150339     05  WS-AGT-FILLER-151                PIC X VALUE '|'.
+150339     05  WS-AGT-ATCR-ACCT-RESP-AGENCY     PIC X.  
+150339     05  WS-AGT-FILLER-152                PIC X VALUE '|'.
+150339     05  WS-AGT-ATCR-ALT-OPER-IND         PIC X.  
+150339     05  WS-AGT-FILLER-153                PIC X VALUE '|'.
+150339     05  WS-AGT-ATCR-ALT-ACCT-IND         PIC X.  
+164971     05  WS-AGT-FILLER-154                PIC X VALUE '|'.
+164971     05  WS-AGT-ATCR-RETAIL-IND           PIC X.  
+164663     05  WS-AGT-FILLER-155                PIC X VALUE '|'.
+164663     05  WS-AGT-AGENT-ATOL-NUM            PIC X(11).  
+164663     05  WS-AGT-FILLER-156                PIC X VALUE '|'.
+164663     05  WS-AGT-AGENT-TRUE-NUM            PIC X(11).  
+164663     05  WS-AGT-FILLER-157                PIC X VALUE '|'.
+164663     05  WS-AGT-AGENT-BLN-NUM             PIC X(11).  
+164663     05  WS-AGT-FILLER-158                PIC X VALUE '|'.
+164663     05  WS-AGT-AGENT-SOT-NUM             PIC X(11).  
+164663     05  WS-AGT-FILLER-159                PIC X VALUE '|'.
+162640     05  WS-AGT-ATCR-ASSOCIATION-TYPE     PIC X(03).  
+163340     05  WS-AGT-FILLER-160                PIC X VALUE '|'.
+PPC470*    05  WS-AGT-ATCR-BROCHURE-TYPE        PIC X.  
+PPC470     05  WS-FILLER                        PIC X.  
+163340     05  WS-AGT-FILLER-161                PIC X VALUE '|'.
+163340     05  WS-AGT-ATCR-ALT-COMM-IND         PIC X.  
+163340     05  WS-AGT-FILLER-162                PIC X VALUE '|'.
+163340     05  WS-AGT-ATCR-MAIL-CONF-IND        PIC X.  
+163340     05  WS-AGT-FILLER-163                PIC X VALUE '|'.
+163340     05  WS-AGT-ATCR-FAX-CONF-IND         PIC X.  
+163340     05  WS-AGT-FILLER-164                PIC X VALUE '|'.
+163340     05  WS-AGT-ATCR-CURRENCY-TABLE.  
+163340         10 WS-AGT-ATCR-CURRENCY-ENTRY OCCURS 5.  
+163340            15 WS-AGT-ATCR-CURRENCY-CODE  PIC X(3).   
+163340            15  WS-AGT-FILLER-165         PIC X VALUE '|'.
+163340     05  WS-AGT-AGT-LANGUAGE-IND          PIC X.  
+163340     05  WS-AGT-FILLER-166                PIC X VALUE '|'.
+163340     05  WS-AGT-AGT-DEFAULT-NATL-CODE     PIC XX. 
+163340     05  WS-AGT-FILLER-167                PIC X VALUE '|'.
+163340     05  WS-AGT-AGT-OWNER-MANAGER         PIC X(20).  
+163340     05  WS-AGT-FILLER-168                PIC X VALUE '|'.
+163340     05  WS-AGT-AGT-OWNER-LAST-NAME       PIC X(15).  
+163340     05  WS-AGT-FILLER-169                PIC X VALUE '|'.
+163340     05  WS-AGT-AGT-OWNER-FIRST-NAME      PIC X(10).  
+163340     05  WS-AGT-FILLER-170                PIC X VALUE '|'.
+163340     05  WS-AGT-AGT-OWNER-MIDDLE-INIT     PIC X.  
+163340     05  WS-AGT-FILLER-171                PIC X VALUE '|'.
+163340     05  WS-AGT-AGT-CORPORATE-TAX-IND     PIC X.  
+163340     05  WS-AGT-FILLER-172                PIC X VALUE '|'.
+163340     05  WS-AGT-AGT-TAX-NUMBER            PIC 9(9).   
+163340     05  WS-AGT-FILLER-173                PIC X VALUE '|'.
+163340     05  WS-AGT-AGT-TAX-NUM-TYPE          PIC X.  
+198380     05  WS-AGT-FILLER-174                PIC X VALUE '|'.
+198380     05  WS-AGT-AGENT-COMMENT             PIC X(20).  
+204888     05  WS-AGT-FILLER-175                PIC X VALUE '|'.
+204888     05  WS-AGT-ATCR-PBS-COMM-IND         PIC X(01).  
+214948     05  WS-AGT-FILLER-176                PIc X VALUE '|'.
+214948     05  WS-AGT-CUSTOMER-NUM              PIC X(7).   
+CCLAUS     05  WS-AGT-FILLER-177                PIC X VALUE '|'.
+CCLAUS     05  WS-AGT-POLAR-AGENCY-ID           PIC X(11).  
+
+186084     05  WS-AGT-FILLER-178                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-AUS-BUSINESS-TYPE-IND     PIC X(01).  
+186084     05  WS-AGT-FILLER-179                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-CMI-BUSINESS-TYPE-IND     PIC X(01).  
+186084     05  WS-AGT-FILLER-180                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-CMI-FLAT-CRS-COMM-PCT     PIC .9(03). 
+186084     05  WS-AGT-FILLER-181                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-EXCL-TRGT-CNSLDTE-IND     PIC X(01).  
+186084     05  WS-AGT-FILLER-182                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-ALT-AGT-FLAT-COMM-PCT     PIC .9(03). 
+186084     05  WS-AGT-FILLER-183                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-MIN-COMM-EFF-DATE         PIC 9(08).  
+186084     05  WS-AGT-FILLER-184                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-MIN-COMM-EXP-DATE         PIC 9(08).  
+186084     05  WS-AGT-FILLER-185                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-MIN-II-CRUO-COMM-PCT      PIC .9(03). 
+186084     05  WS-AGT-FILLER-186                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-MIN-II-ADDON-COMM-PCT     PIC .9(03). 
+186084     05  WS-AGT-FILLER-187                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-MIN-II-PKG-COMM-PCT       PIC .9(03). 
+186084     05  WS-AGT-FILLER-188                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-MIN-II-INS-COMM-PCT       PIC .9(03). 
+186084     05  WS-AGT-FILLER-189                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-MIN-II-XFER-COMM-PCT      PIC .9(03). 
+186084     05  WS-AGT-FILLER-190                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-MIN-IG-CRUO-COMM-PCT      PIC .9(03). 
+186084     05  WS-AGT-FILLER-191                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-MIN-IG-ADDON-COMM-PCT     PIC .9(03). 
+186084     05  WS-AGT-FILLER-192                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-MIN-IG-PKG-COMM-PCT       PIC .9(03). 
+186084     05  WS-AGT-FILLER-193                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-MIN-IG-INS-COMM-PCT       PIC .9(03). 
+186084     05  WS-AGT-FILLER-194                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-MIN-IG-XFER-COMM-PCT      PIC .9(03). 
+186084     05  WS-AGT-FILLER-195                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-MIN-EI-CRUO-COMM-PCT      PIC .9(03). 
+186084     05  WS-AGT-FILLER-196                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-MIN-EI-ADDON-COMM-PCT     PIC .9(03). 
+186084     05  WS-AGT-FILLER-197                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-MIN-EI-PKG-COMM-PCT       PIC .9(03). 
+186084     05  WS-AGT-FILLER-198                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-MIN-EI-INS-COMM-PCT       PIC .9(03). 
+186084     05  WS-AGT-FILLER-199                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-MIN-EI-XFER-COMM-PCT      PIC .9(03). 
+186084     05  WS-AGT-FILLER-200                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-MIN-EG-CRUO-COMM-PCT      PIC .9(03). 
+186084     05  WS-AGT-FILLER-201                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-MIN-EG-ADDON-COMM-PCT     PIC .9(03). 
+186084     05  WS-AGT-FILLER-202                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-MIN-EG-PKG-COMM-PCT       PIC .9(03). 
+186084     05  WS-AGT-FILLER-203                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-MIN-EG-INS-COMM-PCT       PIC .9(03). 
+186084     05  WS-AGT-FILLER-204                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-MIN-EG-XFER-COMM-PCT      PIC .9(03). 
+186084     05  WS-AGT-FILLER-205                PIC X(01) VALUE '|'.
+186084     05  WS-AGT-CMI-APPL-FLT-COMM-IND     PIC X(01).  
+
+131886 01  WS-PHN-REC.  
+131886     05  WS-PHN-RECORD-ID              PIC X(06) VALUE 'CCLPHN'.  
+131886     05  WS-PHN-DATESTAMP              PIC 9(08) VALUE ZEROES.
+131886     05  WS-PHN-FILLER-1               PIC X(01) VALUE '|'.   
+214948*    05  WS-PHN-CUSTOMER-NUM           PIC 9(07) VALUE ZEROES.
+214948     05  WS-PHN-CUSTOMER-NUM           PIC 9(14) VALUE ZEROES.
+131886     05  WS-PHN-FILLER-2               PIC X(01) VALUE '|'.   
+131886     05  WS-PHN-PHONE-NUM              PIC 9(10) VALUE ZEROES.
+
+NP0404 01  WS-MTRF-REC. 
+NP0104     05  WS-MTRF-RECORD-ID             PIC X(06) VALUE 'CCLMTR'.  
+NP0104     05  WS-MTRF-DATESTAMP             PIC 9(8) VALUE ZEROES. 
+NP0104     05  WS-MTRF-FILLER-1              PIC X(1) VALUE '|'.
+NP0404     05  WS-MTRF-PHONE-NUM             PIC 9(10) VALUE ZEROES.
+NP0404     05  WS-MTRF-FILLER-2              PIC X(1) VALUE '|'.
+NP0404     05  WS-MTRF-ACTIVITY-DATE         PIC 9(08) VALUE ZEROES.
+NP0404     05  WS-MTRF-FILLER-3              PIC X(1) VALUE '|'.
+NP0404     05  WS-MTRF-ACTIVITY-TIME         PIC 9(06) VALUE ZEROES.
+NP0404     05  WS-MTRF-FILLER-4              PIC X(1) VALUE '|'.
+NP0404     05  WS-MTRF-OPER-INITIALS         PIC X(03) VALUE SPACES.
+NP0404     05  WS-MTRF-FILLER-5              PIC X(1) VALUE '|'.
+NP0404     05  WS-MTRF-ACTIVITY-CODE         PIC X(03) VALUE SPACES.
+NP0404     05  WS-MTRF-FILLER-6              PIC X(1) VALUE '|'.
+NP0404     05  WS-MTRF-ACTIVITY-DESC         PIC X(10) VALUE SPACES.
+NP0404     05  WS-MTRF-FILLER-7              PIC X(1) VALUE '|'.
+NP0404     05  WS-MTRF-ACTIVITY-COMMENT      PIC X(30) VALUE SPACES.
+NP0404     05  WS-MTRF-FILLER-8              PIC X(1) VALUE '|'.
+NP0404     05  WS-MTRF-AGENCY-CONTACT        PIC X(10) VALUE SPACES.
+NP0404     05  WS-MTRF-FILLER-9              PIC X(1) VALUE '|'.
+NP0404     05  WS-MTRF-COMPANY-CODE          PIC X(03) VALUE SPACES.
+NP0404     05  WS-MTRF-FILLER-10             PIC X(1) VALUE '|'.
+NP0404     05  WS-MTRF-HISTORY-TYPE          PIC X(01) VALUE SPACES.
+NP0404     05  WS-MTRF-FILLER-11             PIC X(1) VALUE '|'.
+NP0404     05  WS-MTRF-HISTORY-AMT           PIC -9(9)V99 VALUE ZEROES. 
+NP0404     05  WS-MTRF-FILLER-12             PIC X(1) VALUE '|'.
+NP0404     05  WS-MTRF-CUSTOMER-NUM          PIC X(07) VALUE SPACES.
+NP0404     05  WS-MTRF-FILLER-13             PIC X(1) VALUE '|'.
+
+163338 01  WS-AGC-REC.  
+163338     05  WS-AGC-RECORD-ID            PIC X(06).   
+163338     05  WS-AGC-DATESTAMP            PIC 9(8).
+163338     05  WS-AGC-FILLER-1             PIC X VALUE '|'. 
+214948*    05  WS-AGC-CUSTOMER-NUM         PIC 9(7).
+214948     05  WS-AGC-CUSTOMER-NUM         PIC 9(14).   
+163338     05  WS-AGC-FILLER-2             PIC X VALUE '|'. 
+163338     05  WS-AGC-COMPANY-CODE         PIC X.   
+163338     05  WS-AGC-FILLER-3             PIC X VALUE '|'. 
+163338     05  WS-AGC-YEAR                 PIC 9(4).
+163338     05  WS-AGC-FILLER-4             PIC X VALUE '|'. 
+163338     05  WS-AGC-SOFT-MAX             PIC 9(5).
+163338     05  WS-AGC-FILLER-5             PIC X VALUE '|'. 
+163338     05  WS-AGC-HARD-MAX             PIC 9(5).
+163338     05  WS-AGC-FILLER-6             PIC X VALUE '|'. 
+163338     05  WS-AGC-BKGS-SOLD-CNT        PIC 9(5).
+163338     05  WS-AGC-FILLER-7             PIC X VALUE '|'. 
+
+162641 01  WS-AER-REC.  
+162641     05  WS-AER-RECORD-ID                PIC X(06)
+162641                                             VALUE 'YMBAER'.  
+162641     05  WS-AER-DATESTAMP                PIC 9(8).
+162641     05  WS-AER-FILLER                   PIC X(01) VALUE '|'. 
+214948*    05  WS-AER-CUSTOMER-NUM             PIC 9(07) VALUE ZEROES.  
+214948     05  WS-AER-CUSTOMER-NUM             PIC 9(14) VALUE ZEROES.  
+162641     05  WS-AER-FILLER                   PIC X(01) VALUE '|'. 
+162641     05  WS-AER-PHONE-NUM                PIC 9(10) VALUE ZEROES.  
+162641     05  WS-AER-FILLER                   PIC X(01) VALUE '|'. 
+162641     05  WS-AER-EMAIL-ADDRESS            PIC X(100) VALUE SPACES. 
+162641     05  WS-AER-FILLER                   PIC X(01) VALUE '|'. 
+162641     05  WS-AER-ALL-IND                  PIC X(01) VALUE SPACES.  
+162641     05  WS-AER-FILLER                   PIC X(01) VALUE '|'. 
+162641     05  WS-AER-IBK-IND                  PIC X(01) VALUE SPACES.  
+162641     05  WS-AER-FILLER                   PIC X(01) VALUE '|'. 
+162641     05  WS-AER-GBK-IND                  PIC X(01) VALUE SPACES.  
+162641     05  WS-AER-FILLER                   PIC X(01) VALUE '|'. 
+162641     05  WS-AER-PRO-IND                  PIC X(01) VALUE SPACES.  
+162641     05  WS-AER-FILLER                   PIC X(01) VALUE '|'. 
+162641     05  WS-AER-ACC-IND                  PIC X(01) VALUE SPACES.  
+162641     05  WS-AER-FILLER                   PIC X(01) VALUE '|'. 
+162641     05  WS-AER-COP-IND                  PIC X(01) VALUE SPACES.  
+162641     05  WS-AER-FILLER                   PIC X(01) VALUE '|'. 
+162641     05  WS-AER-EMAIL-INACTIVE-IND       PIC X(01) VALUE SPACES.  
+162641     05  WS-AER-FILLER                   PIC X(01) VALUE '|'. 
+162641     05  WS-AER-ALL-PRIORITY-IND         PIC X(01) VALUE SPACES.  
+162641     05  WS-AER-FILLER                   PIC X(01) VALUE '|'. 
+162641     05  WS-AER-IBK-PRIORITY-IND         PIC X(01) VALUE SPACES.  
+162641     05  WS-AER-FILLER                   PIC X(01) VALUE '|'. 
+162641     05  WS-AER-GBK-PRIORITY-IND         PIC X(01) VALUE SPACES.  
+162641     05  WS-AER-FILLER                   PIC X(01) VALUE '|'. 
+162641     05  WS-AER-PRO-PRIORITY-IND         PIC X(01) VALUE SPACES.  
+162641     05  WS-AER-FILLER                   PIC X(01) VALUE '|'. 
+162641     05  WS-AER-ACC-PRIORITY-IND         PIC X(01) VALUE SPACES.  
+162641     05  WS-AER-FILLER                   PIC X(01) VALUE '|'. 
+162641     05  WS-AER-COP-PRIORITY-IND         PIC X(01) VALUE SPACES.  
+204888     05  WS-AER-FILLER                   PIC X(01) VALUE '|'. 
+204888     05  WS-AER-PBS-IND                  PIC X(01) VALUE SPACES.  
+204888     05  WS-AER-FILLER                   PIC X(01) VALUE '|'. 
+204888     05  WS-AER-PBS-PRIORITY-IND         PIC X(01) VALUE SPACES.  
+202954*01  WS-AHR-REC.  
+202954*    05  WS-AHR-RECORD-ID                  PIC X(06)  
+202954*                                              VALUE 'YMBAHR'.
+202954*    05  WS-AHR-DATESTAMP                  PIC 9(8).  
+202954*    05  WS-AHR-FILLER                     PIC X(01) VALUE '|'.   
+202954*    05  WS-AHR-CUSTOMER-NUM               PIC 9(07). 
+202954*    05  WS-AHR-FILLER                     PIC X(01) VALUE '|'.   
+202954*    05  WS-AHR-ENTRY-NUM                  PIC 9(2).  
+202954*    05  WS-AHR-FILLER                     PIC X(01) VALUE '|'.   
+202954*    05  WS-AHR-RECORD-SEQ-NUM             PIC 9(5).  
+202954*    05  WS-AHR-FILLER                     PIC X(01) VALUE '|'.   
+202954*    05  WS-AHR-DATE                       PIC 9(6).  
+202954*    05  WS-AHR-FILLER                     PIC X(01) VALUE '|'.   
+202954*    05  WS-AHR-TIME                       PIC 9(6).  
+202954*    05  WS-AHR-FILLER                     PIC X(01) VALUE '|'.   
+202954*    05  WS-AHR-OPER-INITIALS              PIC X(3).  
+202954*    05  WS-AHR-FILLER                     PIC X(01) VALUE '|'.   
+202954*    05  WS-AHR-ACTIVITY-CODE              PIC X(3).  
+202954*    05  WS-AHR-FILLER                     PIC X(01) VALUE '|'.   
+202954*    05  WS-AHR-ACTIVITY-DESC              PIC X(10). 
+202954*    05  WS-AHR-FILLER                     PIC X(01) VALUE '|'.   
+202954*    05  WS-AHR-COMMENT                    PIC X(30). 
+202954*    05  WS-AHR-FILLER                     PIC X(01) VALUE '|'.   
+202954*    05  WS-AHR-AGENCY-CONTACT             PIC X(10). 
+202954*    05  WS-AHR-FILLER                     PIC X(01) VALUE '|'.   
+202954*    05  WS-AHR-COMPANY-CODE               PIC X(3).  
+202954*    05  WS-AHR-FILLER                     PIC X(01) VALUE '|'.   
+202954*    05  WS-AHR-HISTORY-TYPE               PIC X(1).  
+202954*    05  WS-AHR-FILLER                     PIC X(01) VALUE '|'.   
+202954*    05  WS-AHR-HISTORY-AMT.  
+202954*        10  WS-AHR-HISTORY-AMT-SIGN       PIC X. 
+202954*        10  WS-AHR-HISTORY-AMT-NUM        PIC 9(8)V99.   
+SFAPRJ***  COOP HEADER REC from CCAR Drain File ****
+186084*  01 WS-SCH-REC. 
+186084*     03  WS-SCH-RECORD-ID              PIC X(06) VALUE 'CCLSCH'. 
+186084*     03  WS-SCH-DATESTAMP              PIC 9(08) VALUE ZEROES.   
+186084*     03  FILLER                        PIC X VALUE '|'.  
+186084*     03  WS-SCH-CALC-KEY.
+186084*         05  WS-SCH-YEAR               PIC 9(04) VALUE ZEROES.   
+186084*         05  WS-SCH-CONTRACT-NUM       PIC X(6) VALUE SPACES.
+186084*     03  FILLER                        PIC X VALUE '|'.  
+186084*     03  WS-SCH-COMPANY-CODE           PIC X(03) VALUE SPACES.   
+186084*     03  FILLER                        PIC X VALUE '|'.  
+186084*     03  WS-SCH-REGION-CODE            PIC 9(02) VALUE ZEROES.   
+186084*     03  FILLER                        PIC X VALUE '|'.  
+186084*     03  WS-SCH-REP-CODE               PIC 9(02) VALUE ZEROES.   
+186084*     03  FILLER                        PIC X VALUE '|'.  
+186084**    03  WS-SCH-AGENT-CUSTOMER-NUM     PIC 9(07) VALUE ZEROES.   
+186084*     03  WS-SCH-AGENT-CUSTOMER-NUM     PIC 9(14) VALUE ZEROES.   
+186084*     03  FILLER                        PIC X VALUE '|'.  
+186084**    03  WS-SCH-CUSTOMER-NUM           PIC 9(10) VALUE ZEROES.   
+186084*     03  WS-SCH-CUSTOMER-NUM           PIC X(10) VALUE SPACES.   
+186084*     03  FILLER                        PIC X VALUE '|'.  
+186084*     03  WS-SCH-STATUS                 PIC X(01) VALUE SPACES.   
+186084*     03  FILLER                        PIC X VALUE '|'.  
+186084*     03  WS-SCH-COMMENT1               PIC X(50) VALUE SPACES.   
+186084*     03  FILLER                        PIC X VALUE '|'.  
+186084*     03  WS-SCH-CHECK-NUM              PIC X(06) VALUE SPACES.   
+186084*     03  FILLER                        PIC X VALUE '|'.  
+186084*     03  WS-SCH-AGENCY-CONTACT         PIC X(12) VALUE SPACES.   
+186084*     03  FILLER                        PIC X VALUE '|'.  
+186084*     03  WS-SCH-POST-DATE              PIC X(10) VALUE SPACES.   
+186084*     03  FILLER                        PIC X VALUE '|'.  
+186084*     03  WS-SCH-PMT-DATE               PIC X(10) VALUE SPACES.   
+186084*     03  FILLER                        PIC X VALUE '|'.  
+186084*     03  WS-SCH-STATUS-DESC            PIC X(10) VALUE SPACES.   
+
+SFAPRJ***  COOP DETAIL REC from CCAR Drain File ****
+186084* 01  WS-SCD-REC. 
+186084*    03  WS-SCD-RECORD-ID              PIC X(06) VALUE 'CCLSCD'.  
+186084*    03  WS-SCD-DATESTAMP              PIC 9(08) VALUE ZEROES.
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-SCD-REGION-CODE            PIC 9(02) VALUE ZEROES.
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-SCD-REP-CODE               PIC 9(02) VALUE ZEROES.
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-SCD-COMPANY-CODE           PIC X(03) VALUE SPACES.
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-SCD-CALC-KEY. 
+186084*        05  WS-SCD-YEAR               PIC 9(04) VALUE ZEROES.
+186084*        05  WS-SCD-CONTRACT-NUM       PIC X(6) VALUE SPACES. 
+186084*    03  FILLER                        PIC X VALUE '|'.   
+214948*    03  WS-SCD-AGENT-CUSTOMER-NUM     PIC 9(07) VALUE ZEROES.
+186084*    03  WS-SCD-AGENT-CUSTOMER-NUM     PIC 9(14) VALUE ZEROES.
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-SCD-DESC                   PIC X(30) VALUE SPACES.
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-SCD-ADVERT-TYPE            PIC X(01) VALUE SPACES.
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-SCD-ADVERT-DESC            PIC X(30) VALUE SPACES.
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-SCD-ADVERT-START-MTH       PIC X(02) VALUE SPACES.
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-SCD-ADVERT-END-MTH         PIC X(02) VALUE SPACES.
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-SCD-BUDGET-TYPE            PIC X(01) VALUE SPACES.
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-SCD-BUDGET-DESC            PIC X(30) VALUE SPACES.
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-SCD-ADVERT-AMT             PIC 9(08).99  VALUE ZEROES.
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-SCD-ENTRY-CNT              PIC 9(01) VALUE ZEROES.
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-SCD-REIMBURSE-PCT          PIC X(3) VALUE SPACES. 
+
+SFAPRJ***  COOP AGENT BUDGET from ASTR Drain File ****  
+186084* 01   WS-CBA-REC.
+186084*    03  WS-CBA-RECORD-ID              PIC X(06) VALUE 'CCLCBA'.  
+186084*    03  WS-CBA-DATESTAMP              PIC 9(08) VALUE ZEROES.
+186084*    03  FILLER                        PIC X VALUE '|'.   
+214948*    03  WS-CBA-AGENT-CUSTOMER-NUM     PIC 9(07)    VALUE ZEROES. 
+186084*    03  WS-CBA-AGENT-CUSTOMER-NUM     PIC 9(14)    VALUE ZEROES. 
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-CBA-REGION-CODE            PIC 9(02)    VALUE ZEROES. 
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-CBA-REP-CODE               PIC 9(02)    VALUE ZEROES. 
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-CBA-COMPANY-CODE           PIC X(03)    VALUE SPACES. 
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-CBA-BUDGET-YEAR            PIC 9(04)    VALUE ZEROES. 
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-CBA-COOP-BUDGET-SF         PIC 9(08).99 VALUE ZEROES. 
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-CBA-COOP-BUDGET-NF         PIC 9(08).99 VALUE ZEROES. 
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-CBA-COOP-BUDGET-PF         PIC 9(08).99 VALUE ZEROES. 
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-CBA-COOP-USED-SF           PIC 9(08).99 VALUE ZEROES. 
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-CBA-COOP-USED-NF           PIC 9(08).99 VALUE ZEROES. 
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-CBA-COOP-USED-PF           PIC 9(08).99 VALUE ZEROES. 
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-CBA-COOP-USED              PIC 9(08).99 VALUE ZEROES. 
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-CBA-COOP-COMMITED          PIC 9(08).99 VALUE ZEROES. 
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-CBA-COOP-PROD-GOAL         PIC 9(05)    VALUE ZEROES. 
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-CBA-COOP-MEDIA-DESC        PIC X(15)    VALUE SPACES. 
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-CBA-FULFIL-NUM-ORDERS      PIC 9(05)    VALUE ZEROES. 
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-CBA-FULFIL-MKT-VALUE       PIC 9(08).99 VALUE ZEROES. 
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-CBA-FULFIL-TAX-VALUE       PIC 9(08).99 VALUE ZEROES. 
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-CBA-FULFIL-POSTAGE-COST    PIC 9(08).99 VALUE ZEROES. 
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-CBA-FULFIL-HANDLING-COST   PIC 9(08).99 VALUE ZEROES. 
+186084*    03  FILLER                        PIC X VALUE '|'.   
+186084*    03  WS-CBA-AGENT-PHONE-NUM        PIC 9(10)    VALUE ZEROES. 
+
+192660 01  WS-CUR-REC.  
+192660     03  WS-CUR-RECORD-ID              PIC X(06). 
+192660     03  WS-CUR-DATESTAMP              PIC 9(08). 
+192660     03  WS-CUR-FILLER-1               PIC X(01) VALUE '|'.   
+214948*    03  WS-CUR-CUSTOMER-NUM           PIC 9(07) VALUE ZEROES.
+214948     03  WS-CUR-CUSTOMER-NUM           PIC 9(14) VALUE ZEROES.
+192660     03  WS-CUR-FILLER-2               PIC X(01) VALUE '|'.   
+192660     03  WS-CUR-CURRENCY-CODE          PIC X(03) VALUE ZEROES.
+192660     03  WS-CUR-FILLER-3               PIC X(01) VALUE '|'.   
+192660     03  WS-CUR-CURRENCY-STATUS        PIC X(01) VALUE ZEROES.
+192660     03  WS-CUR-FILLER-4               PIC X(01) VALUE '|'.   
+192660     03  WS-CUR-ERF-NUM                PIC X(09). 
+192660     03  WS-CUR-FILLER-5               PIC X(01) VALUE '|'.   
+       01  WS-HIST-SUB                   PIC 99 VALUE ZERO. 
+FSSPRJ 01  C-SUB                         PIC 99 BINARY VALUE ZEROES.
+FSSPRJ 01  CH-SUB                        PIC 99 BINARY VALUE ZEROES.
+NP0104 01  WS-INDICATORS.   
+104170*    05  WS-INDICATOR OCCURS 36 TIMES PIC 1.  
+104170     05  WS-INDICATOR OCCURS 72 TIMES PIC 1.  
+
+214673***** Storage for editing out control characters from output. 
+214673 01  WS-CC-IDX                         PIC 9(03) BINARY.  
+214673 01  WS-CONTROL-CHARS.
+214673     03  WS-CHAR. 
+214673         05 WS-ASCII           PIC X(01). 
+214673         05 WS-BIN  REDEFINES WS-ASCII PIC 9(02) BINARY.  
+214673 01  WS-MISC-LENGTH-VAR.  
+214673     03 WS-YMBAGT-LEN                       PIC 9(10) BINARY. 
+214673     03 WS-YMBAGC-LEN                       PIC 9(10) BINARY. 
+214673     03 WS-YMBMTR-LEN                       PIC 9(10) BINARY. 
+186084*    03 WS-YMBSCH-LEN                       PIC 9(10) BINARY. 
+186084*    03 WS-YMBSCD-LEN                       PIC 9(10) BINARY. 
+186084*    03 WS-YMBCBA-LEN                       PIC 9(10) BINARY. 
+214673     03 WS-YMBPHN-LEN                       PIC 9(10) BINARY. 
+214673     03 WS-YMBAER-LEN                       PIC 9(10) BINARY. 
+214673     03 WS-YMBACUR-LEN                      PIC 9(10) BINARY. 
+100098 01  WS-MISC. 
+100098     03 WS-AGCR-ACTIVITY           PIC 9. 
+100098     03 WS-FIRST                   PIC 9. 
+100098     03 WS-LOOP-CNT                PIC 9. 
+100098     03 WS-YEAR                    PIC 9(4).  
+CCL-UK     03 WS-CON-SUB                 PIC 9. 
+CCL-UK     03 WS-COM-SUB                 PIC 9. 
+162641     03 WS-AER-REC-CNT             PIC 9(8).  
+202954*    03 WS-AHR-REC-CNT             PIC 9(8).  
+162641     03 WS-GOT-ALL-PRIORITY-IND    PIC X(01). 
+162641     03 WS-GOT-IBK-PRIORITY-IND    PIC X(01). 
+162641     03 WS-GOT-GBK-PRIORITY-IND    PIC X(01). 
+162641     03 WS-GOT-PRO-PRIORITY-IND    PIC X(01). 
+162641     03 WS-GOT-ACC-PRIORITY-IND    PIC X(01). 
+162641     03 WS-GOT-COP-PRIORITY-IND    PIC X(01). 
+204888     03 WS-GOT-PBS-PRIORITY-IND    PIC X(01). 
+
+144449*    COPY DPP01BWS.   
+144449 COPY DPP01DTA.   
+144449 COPY DPP01ERR.   
+144449 COPY DPP01MCB.   
+144449 COPY DPP12SCO.   
+144449 COPY DPP42ERR.   
+144449 COPY RSP00DMS.   
+144449 COPY RSP32DMS.   
+144449 COPY RSP64DMS.   
+144449 COPY RSP77GMD.   
+           COPY DPP01CIW.   
+           COPY DPP01SCO.   
+           COPY DPP02Y2K.   
+           COPY DPP20DWS .  
+NP0504     COPY MKP01VDW.   
+162641     COPY MKP46AEW.   
+NP0902     COPY YMP01DLW.   
+214948 COPY YMP01AAW.   
+
+       COMMON-STORAGE SECTION.  
+       PROCEDURE DIVISION.  
+       0000-INITIALIZE. 
+144449 COPY DPP01INT.   
+188688     PERFORM DPP12-BEGIN-THREAD THRU DPP12-BEGIN-THREAD-EXIT. 
+188688  
+188688     IF DPP01-SQL-ERROR-IND = 'Y' 
+188688        GO TO DPP12-THREAD-ERROR-EXIT.
+           OPEN INPUT        PARAM-FILE 
+202954*                      TIME-FILE  
+                OUTPUT       YMBAGT-FILE
+100098                       YMBAGC-FILE
+NP0404                       YMBMTR-FILE
+186084*                      YMBSCH-FILE
+186084*                      YMBSCD-FILE
+186084*                      YMBCBA-FILE
+131886                       YMBPHN-FILE
+162641                       YMBAER-FILE
+202954*                      YMBAHR-FILE
+202954*                      NEXT-TIME-FILE 
+192660                       YMBACUR-FILE   
+NP0802                       YMBAGT-CNT-FILE
+100098                       YMBAGC-CNT-FILE
+NP0404                       YMBMTR-CNT-FILE
+186084*                      YMBSCH-CNT-FILE
+186084*                      YMBSCD-CNT-FILE
+186084*                      YMBCBA-CNT-FILE
+131886                       YMBPHN-CNT-FILE
+192660                       YMBACUR-CNT-FILE.  
+
+214673     MOVE FUNCTION LENGTH (YMBAGT-REC)   TO WS-YMBAGT-LEN.
+214673     MOVE FUNCTION LENGTH (YMBAGC-REC)   TO WS-YMBAGC-LEN.
+214673     MOVE FUNCTION LENGTH (YMBMTR-REC)   TO WS-YMBMTR-LEN.
+186084*    MOVE FUNCTION LENGTH (YMBSCH-REC)   TO WS-YMBSCH-LEN.
+186084*    MOVE FUNCTION LENGTH (YMBSCD-REC)   TO WS-YMBSCD-LEN.
+186084*    MOVE FUNCTION LENGTH (YMBCBA-REC)   TO WS-YMBCBA-LEN.
+214673     MOVE FUNCTION LENGTH (YMBPHN-REC)   TO WS-YMBPHN-LEN.
+214673     MOVE FUNCTION LENGTH (YMBAER-REC)   TO WS-YMBAER-LEN.
+214673     MOVE FUNCTION LENGTH (YMBACUR-REC)   TO WS-YMBACUR-LEN.  
+NP0902     MOVE ZEROES TO YMBAGT-CNT-REC-CNT.   
+162641     MOVE ZEROES TO WS-AER-REC-CNT.   
+202954*                   WS-AHR-REC-CNT.   
+           MOVE SPACES TO  YMBAGT-REC WS-IBHR-COMMENT.  
+           MOVE ZERO   TO WS-HIST-SUB.  
+           MOVE 01010101                 TO DPP01-ERROR-NUMBER. 
+           IMPART.  
+           OPEN ERROR-DESC                USAGE-MODE IS RETRIEVAL   
+                INDV-FEE                  USAGE-MODE IS RETRIEVAL   
+PPC470*         SAIL1                     USAGE-MODE IS RETRIEVAL   
+PPC470*         SAIL1-IDX                 USAGE-MODE IS RETRIEVAL   
+163032*         SHIP                      USAGE-MODE IS RETRIEVAL   
+C59031          AGENT-EMAIL               USAGE-MODE IS RETRIEVAL   
+                AGENT                     USAGE-MODE IS RETRIEVAL   
+                AGENT-IDX                 USAGE-MODE IS RETRIEVAL   
+162640          AGENT-BUS                 USAGE-MODE IS RETRIEVAL   
+163338          AGENCY-RATE               USAGE-MODE IS RETRIEVAL   
+                AGENT-COMP                USAGE-MODE IS RETRIEVAL   
+SFAPRJ          AGENT-HIST                USAGE-MODE IS RETRIEVAL   
+                AGENT-TERMS               USAGE-MODE IS RETRIEVAL   
+                AGENCY-ASSOC              USAGE-MODE IS RETRIEVAL   
+186084*         AGENT-TOTAL               USAGE-MODE IS RETRIEVAL   
+186084*         AGENT-YEAR                USAGE-MODE IS RETRIEVAL   
+                CABIN                     USAGE-MODE IS RETRIEVAL   
+                CABIN-IDX                 USAGE-MODE IS RETRIEVAL   
+                AGNT-PHO-IDX              USAGE-MODE IS RETRIEVAL   
+131886          AGENT-PHONE               USAGE-MODE IS RETRIEVAL   
+                NATIONALITY               USAGE-MODE IS RETRIEVAL   
+                NATIONAL-IDX              USAGE-MODE IS RETRIEVAL   
+186084*         COOP-ADVERT               USAGE-MODE IS RETRIEVAL   
+C91829          SREP-IDX                  USAGE-MODE IS RETRIEVAL   
+C91829          SALES-REP                 USAGE-MODE IS RETRIEVAL   
+C91829          TERR-REG-IDX              USAGE-MODE IS RETRIEVAL   
+100098          AGENTGCAP                 USAGE-MODE IS RETRIEVAL   
+C91829          TERR-REGION               USAGE-MODE IS RETRIEVAL   
+192660          AGENT-CURR                USAGE-MODE IS RETRIEVAL   
+NP0822          FARE                      USAGE-MODE IS RETRIEVAL.  
+
+NP0822     MOVE 1            TO PAGE-NUM   OF VALID-CODES-AREA-KEY  
+NP0822                          RECORD-NUM OF VALID-CODES-AREA-KEY. 
+NP0822     MOVE 'FARE'       TO VALID-CODES-AREA-NAME.  
+NP0822     MOVE 28002006 TO DPP01-ERROR-NUMBER. 
+NP0822     FETCH VALID-CODES-REC RECORD.
+
+           MOVE SPACES TO WHD-BOOK-NUM. 
+C92947     MOVE 'FARE'                  TO WS-AREA-NAME.
+144449*    MOVE 2                       TO PAGE-NUM OF WS-AREA-KEY. 
+144449*    MOVE 1                       TO RECORD-NUM OF WS-AREA-KEY.   
+C92947     MOVE 28051006                TO DPP01-ERROR-NUMBER.  
+C92947     FETCH VALID-CODES-REC2 RECORD
+C92947        ON ERROR GO TO 9100-DATABASE-ERROR.   
+
+           MOVE ZEROES TO WS-DATESTAMP. 
+
+           MOVE FUNCTION CURRENT-DATE TO WS-DATE-TIME   
+           IF WS-HH > 18
+              MOVE WS-DATE TO WS-DATESTAMP  
+           ELSE 
+              MOVE WS-DATE TO DPP02-YYYYMMDD-DATE   
+              MOVE 1 TO DPP02-NUMBER-DAYS   
+              PERFORM DPP10-DEMINISH-YYYYMMDD-DATE  
+              MOVE DPP02-YYYYMMDD-DATE TO WS-DATESTAMP. 
+
+186084*    MOVE WS-DATESTAMP TO WS-SCH-DATESTAMP
+186084*                         WS-SCD-DATESTAMP
+186084*                         WS-CBA-DATESTAMP
+180684*                         WS-PHN-DATESTAMP
+180684     MOVE WS-DATESTAMP TO WS-PHN-DATESTAMP
+162641                          WS-AER-DATESTAMP.   
+202954*                         WS-AHR-DATESTAMP.   
+202954*    MOVE WS-DATE-TIME TO DPP02-SYSTEM-DATE-TIME. 
+202954**** BACK UP ABOUT 2 MINUTES TO CAPTURE HISTORY ENTRIES SLOW TO POST. 
+202954*****  STORE THIS TIME AS STARTING POINT OF NEXT HISTORY DRAIN.   
+202954*    PERFORM A1000-DIMINISH-NEXT-TIME.
+202954*    MOVE DPP02-SYS-HHMMSS TO WS-HIST-NEXT-TIME.  
+202954*    MOVE DPP02-SYSTEM-YY  TO WS-HIST-NEXT-YY.
+202954*    MOVE DPP02-SYSTEM-MM  TO WS-HIST-NEXT-MM.
+202954*    MOVE DPP02-SYSTEM-DD  TO WS-HIST-NEXT-DD.
+202954*    MOVE WS-HIST-NEXT-DATE TO NEXT-TIME-DATE.
+202954*    MOVE WS-HIST-NEXT-TIME TO NEXT-TIME-TIME.
+202954*    WRITE NEXT-TIME-REC. 
+202954*    CLOSE NEXT-TIME-FILE.
+202954*    READ TIME-FILE   
+202954*         AT END GO TO 0009-HIST-TIME-MISSING.
+202954*    MOVE TIME-BEGIN-DATE TO WS-HIST-BEGIN-DATE.  
+202954*    MOVE TIME-BEGIN-TIME TO WS-HIST-BEGIN-TIME.  
+186084*    MOVE WS-SCH-REC          TO YMBSCH-REC.  
+186084*    MOVE WS-SCD-REC          TO YMBSCD-REC.  
+186084*    MOVE WS-CBA-REC          TO YMBCBA-REC.  
+131886     MOVE WS-PHN-REC          TO YMBPHN-REC.  
+162641     MOVE WS-AER-REC          TO YMBAER-REC.  
+
+214948*    MOVE 9999999 TO WS-CUSTOMER-NUM DPP01-ERROR-NUMBER.  
+214948     MOVE '9999999' TO WS-CUSTOMER-NUM.   
+214948     MOVE 9999999   TO DPP01-ERROR-NUMBER.
+100098     MOVE 1 TO WS-FIRST.  
+202954*    GO TO 0100-READ. 
+
+202954*       0009-HIST-TIME-MISSING.   
+202954*           DISPLAY 'HISTORY DRAIN CUT-OFF TIME MISSING.' UPON PRINTER.   
+202954*           GO TO 9100-DATABASE-ERROR.
+       0100-READ.   
+           READ PARAM-FILE AT END   
+               GO TO 0900-EXIT. 
+
+NPTEST*     DISPLAY "PARAM-REC=" PARAM-REC  
+NPTEST*         UPON PRINTER.   
+NPTEST*     DISPLAY "PARAM-MTRF-CUSTOMER-NUM=" PARAM-MTRF-CUSTOMER-NUM  
+NPTEST*         UPON PRINTER.   
+
+NP0404*** WRITE MTRFS ***   
+NP0404     MOVE WS-MTRF-REC                 TO YMBMTR-REC.  
+           MOVE WS-DATESTAMP                TO YMBMTR-DATESTAMP.
+NP0404     MOVE PARAM-MTRF-PHONE-NUM        TO YMBMTR-PHONE-NUM.
+NP0504     IF PARAM-MTRF-ACTIVITY-DATE > 0  
+NP0504         MOVE PARAM-MTRF-ACTIVITY-DATE TO DPP20-YYMMDD-DATE   
+NP0504         PERFORM DPP20-ADD-CENTURY THRU DPP20-ADD-CENTURY-EXIT
+NP0504         MOVE DPP20-YYYYMMDD-DATE TO YMBMTR-ACTIVITY-DATE.
+NP0404     MOVE PARAM-MTRF-ACTIVITY-TIME    TO YMBMTR-ACTIVITY-TIME.
+NP0404     MOVE PARAM-MTRF-OPER-INITIALS    TO YMBMTR-OPER-INITIALS.
+NP0404     MOVE PARAM-MTRF-ACTIVITY-CODE    TO YMBMTR-ACTIVITY-CODE.
+NP0404     MOVE PARAM-MTRF-ACTIVITY-DESC    TO YMBMTR-ACTIVITY-DESC.
+NP0404     MOVE PARAM-MTRF-ACTIVITY-COMMENT TO YMBMTR-ACTIVITY-COMMENT. 
+NP0404     MOVE PARAM-MTRF-AGENCY-CONTACT   TO YMBMTR-AGENCY-CONTACT.   
+NP0404     MOVE PARAM-MTRF-COMPANY-CODE     TO YMBMTR-COMPANY-CODE. 
+NP0404     MOVE PARAM-MTRF-HISTORY-TYPE     TO YMBMTR-HISTORY-TYPE. 
+NP0404     MOVE PARAM-MTRF-HISTORY-AMT      TO YMBMTR-HISTORY-AMT.  
+214948*    MOVE PARAM-MTRF-CUSTOMER-NUM     TO YMBMTR-CUSTOMER-NUM. 
+214948     MOVE PARAM-MTRF-CUSTOMER-NUM     TO YMP01-AGENT-CUST-NUM-OLD.
+214948     PERFORM YMP01-ALPHANUMERIC-TO-ASCII. 
+214948     MOVE YMP01-AGENT-CUST-NUM-NEW TO YMBMTR-CUSTOMER-NUM-ASCII.  
+214673     PERFORM VARYING WS-CC-IDX FROM 1 BY 1
+214673                               UNTIL WS-CC-IDX > WS-YMBMTR-LEN
+214673            MOVE YMBMTR-REC (WS-CC-IDX:1) 
+214673                                      TO WS-ASCII 
+214673            IF WS-BIN < 32
+214673               MOVE SPACES TO YMBMTR-REC(WS-CC-IDX:1) 
+214673            END-IF
+214673     END-PERFORM. 
+NP0404     WRITE YMBMTR-REC.
+NP0404     ADD 1 TO YMBMTR-CNT-REC-CNT. 
+
+213983     IF PARAM-AGCR = 'Y' OR   
+213983        PARAM-MTRF-ACTIVITY-CODE = 'NGC' OR 'SMA' OR 'HMA'
+213983        MOVE 1 TO WS-AGCR-ACTIVITY
+213983     END-IF.  
+
+213983*    IF PARAM-MTRF-CUSTOMER-NUM = WS-CUSTOMER-NUM 
+213983     IF ( PARAM-MTRF-CUSTOMER-NUM = WS-CUSTOMER-NUM ) AND 
+213983       ( PARAM-MTRF-ACTIVITY-CODE NOT  = 'NGC' OR 'SMA' OR 'HMA' )
+                GO TO 0100-READ 
+100098     ELSE 
+100098        IF WS-AGCR-ACTIVITY = 1 AND WS-FIRST = 0  
+100098           PERFORM 1500-FIND-AGCR THRU 1500-EXIT  
+100098           MOVE 0 TO WS-AGCR-ACTIVITY 
+100098        END-IF
+           END-IF.  
+
+213983*    IF PARAM-AGCR = 'Y' OR   
+213983*       PARAM-MTRF-ACTIVITY-CODE = 'NGC' OR 'SMA' OR 'HMA'
+213983*       MOVE 1 TO WS-AGCR-ACTIVITY
+213983*    END-IF.  
+100098     MOVE 0 TO WS-FIRST.  
+
+204023*    IF DPP01-ERROR-NUMBER = 00051042 
+204023*            DISPLAY 'AGENCY ASSN NOT FOUND FOR ' 
+204023*                    WS-CUSTOMER-NUM  
+204023*                UPON PRINTER.
+204023*    IF DPP01-ERROR-NUMBER = 10012142 
+204023*            DISPLAY 'AGENCY OWNER NOT FOUND FOR '
+204023*                    WS-CUSTOMER-NUM  
+204023*                UPON PRINTER.
+
+NP0902 0100-FILE-CONTINUE.  
+
+           MOVE PARAM-MTRF-CUSTOMER-NUM TO AAR-CUSTOMER-NUM 
+                                           WS-CUSTOMER-NUM. 
+
+           MOVE SPACES                  TO AAR-CUSTOMER-FILL.   
+
+           MOVE 'CM'                    TO AAR-CUSTOMER-TYPE.   
+
+           MOVE 00051042          TO DPP01-ERROR-NUMBER.
+           FETCH AGENCY-ASSOCIATION-REC RECORD  
+                  ON ERROR GO TO 0100-READ. 
+
+           MOVE 10012142 TO DPP01-ERROR-NUMBER. 
+           FETCH OWNER WITHIN AGENCY-ASSOCIATION-SET SET
+                  ON ERROR GO TO 0100-READ. 
+
+NPTEST*     MOVE 02 TO RB-ERROR-CODE.   
+NPTEST*     IF DLREC-DEADLOCK-CNT < 3   
+NPTEST*         GO TO 9100-DATABASE-ERROR.  
+
+
+           MOVE 00000000 TO DPP01-ERROR-NUMBER. 
+
+       0500-CONT-AGENT-INFO.
+
+           ADD  1  TO  WS-AGENT-CNT.
+
+NPTEST*     IF   WS-AGENT-CNT  > 2  GO TO  9000-END-OF-JOB. 
+
+           MOVE WS-AGT-REC         TO   YMBAGT-REC. 
+           MOVE AGENT-CUSTOMER-NUM TO YMBAGT-CUSTOMER-NUM.  
+214948     MOVE AGENT-CUSTOMER-NUM   TO  YMP01-AGENT-CUST-NUM-OLD.  
+214948     PERFORM YMP01-ALPHANUMERIC-TO-ASCII. 
+214948     MOVE YMP01-AGENT-CUST-NUM-NEW TO YMBAGT-CUSTOMER-NUM-ASCII.  
+           MOVE AGENT-NAME         TO YMBAGT-NAME.  
+NP0803     MOVE AGENT-ADDRESS1     TO YMBAGT-ADDR-LINE-1.   
+NP0803     MOVE AGENT-ADDRESS2     TO YMBAGT-ADDR-LINE-2.   
+NP0803     MOVE AGENT-CITY         TO YMBAGT-CITY.  
+NP0803     MOVE AGENT-ZIP-CODE     TO YMBAGT-ZIP-CODE.  
+192660*    MOVE AGENT-NPC-NUM      TO YMBAGT-NPC-NUM.   
+192660     MOVE SPACES             TO YMBAGT-NPC-NUM.   
+
+164663     MOVE SPACES                 TO YMBAGT-AGENT-ATOL-NUM 
+164663                                    YMBAGT-AGENT-TRUE-NUM 
+164663                                    YMBAGT-AGENT-BLN-NUM  
+164663                                    YMBAGT-AGENT-SOT-NUM. 
+164663     PERFORM VARYING WS-CNT FROM 1 BY 1   
+164663             UNTIL WS-CNT > AGENT-BIN-TABLE-COUNT 
+164663        EVALUATE AGENT-BUS-ID-NUM-TYP(WS-CNT) 
+164663         WHEN 'ATOL'  
+164663           MOVE AGENT-BUS-ID-NUM-VAL (WS-CNT) (6:11)  
+164663                                   TO YMBAGT-AGENT-ATOL-NUM   
+164663         WHEN 'TRUE'  
+164663           MOVE AGENT-BUS-ID-NUM-VAL (WS-CNT) (6:11)  
+164663                                   TO YMBAGT-AGENT-TRUE-NUM   
+164663         WHEN 'BLN'   
+164663           MOVE AGENT-BUS-ID-NUM-VAL (WS-CNT) (6:11)  
+164663                                   TO YMBAGT-AGENT-BLN-NUM
+164663         WHEN 'SOT'   
+164663           MOVE AGENT-BUS-ID-NUM-VAL (WS-CNT) (6:11)  
+164663                                   TO YMBAGT-AGENT-SOT-NUM
+164663        END-EVALUATE  
+164663     END-PERFORM. 
+
+NP0504     MOVE AGENT-CLIA-NUM     TO YMBAGT-CLIA-NUM.  
+NP0504     MOVE AGENT-ARC-NUM      TO YMBAGT-ARC-NUM.   
+NP0504     MOVE AGENT-IATA-NUM     TO YMBAGT-IATA-NUM.  
+186084*    MOVE AGENT-CONTRACT-NUM TO YMBAGT-CONTRACT-NUM.  
+186084*    IF AGENT-CONTRACT-DATE > 0   
+186084*        MOVE AGENT-CONTRACT-DATE TO DPP20-YYMMDD-DATE
+186084*        PERFORM DPP20-ADD-CENTURY THRU DPP20-ADD-CENTURY-EXIT
+186084*        MOVE DPP20-YYYYMMDD-DATE TO YMBAGT-CONTRACT-DATE.
+
+186084*    MOVE AGENT-CONTRACT-ENTRY-NUM TO YMBAGT-CONTRACT-ENTRY-NUM.  
+NP0504     MOVE AGENT-FAX-NUM TO YMBAGT-FAX-NUM.
+NP0504     MOVE AGENT-COUNTRY-NUM TO YMBAGT-COUNTRY-NUM.
+NP0504     MOVE AGENT-CITY-NUM TO YMBAGT-CITY-NUM.  
+NP0504     IF AGENT-MAILED-DATE > 0 
+NP0504         MOVE AGENT-MAILED-DATE TO DPP20-YYMMDD-DATE  
+NP0504         PERFORM DPP20-ADD-CENTURY THRU DPP20-ADD-CENTURY-EXIT
+NP0504         MOVE DPP20-YYYYMMDD-DATE TO YMBAGT-MAILED-DATE.  
+
+C59031*    PERFORM 0800-GET-EMAIL THRU 0800-EXIT.   
+
+           IF AGENT-DIRECT-IND = 'Y'
+              MOVE 'C' TO YMBAGT-TYPE   
+           ELSE 
+              MOVE 'A' TO YMBAGT-TYPE   
+           END-IF.  
+
+           IF  AGENT-DIRECT-IND > SPACES
+               MOVE AGENT-DIRECT-IND TO YMBAGT-AGT-DIRECT-IND   
+           ELSE 
+               MOVE 'N' TO YMBAGT-AGT-DIRECT-IND
+           END-IF.  
+
+           IF  AGENT-INTL-SALES-IND > SPACES
+               MOVE AGENT-INTL-SALES-IND TO YMBAGT-AGT-INTL-SALES-IND   
+           ELSE 
+               MOVE 'N' TO YMBAGT-AGT-INTL-SALES-IND
+           END-IF.  
+           MOVE AGENT-PHONE-NUM TO TEST-PHONE-NUMBER.   
+           MOVE SPACES TO YMBAGT-AGT-AUTOMATION-IND.
+           PERFORM 0700-AGT-AUTOMATION-IND THRU 0700-EXIT   
+                   UNTIL YMBAGT-AGT-AUTOMATION-IND = 'Y' OR 'N'.
+           MOVE AGENT-STATE TO YMBAGT-STATE-CODE.   
+
+CCLAUS     MOVE AGENT-POLAR-AGENCY-ID   
+CCLAUS                             TO YMBAGT-POLAR-AGENCY-ID.   
+           MOVE AGENT-COUNTRY-CODE TO YMBAGT-COUNTRY-CODE   
+                                      NR-NATIONALITY-CODE.  
+           MOVE 43500301                 TO DPP01-ERROR-NUMBER. 
+           FETCH NATIONALITY-REC RECORD 
+               ON ERROR GO TO 0500-CONTINUE.
+
+       0500-CONTINUE.   
+
+192660     IF PARAM-MTRF-ACTIVITY-CODE = 'NAG' OR 'DCU' OR  
+192660                                   'ADD' OR 'ACU' 
+192660        MOVE AGENT-CUSTOMER-NUM  TO ACURR-CUSTOMER-NUM
+192660        FETCH AGENT-CURRENCY-REC RECORD   
+192660        PERFORM VARYING WS-SUB FROM 1 BY 1 UNTIL  
+192660                        WS-SUB > ACURR-CURRENCY-COUNT 
+192660          MOVE 'CCLACR'          TO WS-CUR-RECORD-ID  
+192660          MOVE WS-DATESTAMP      TO WS-CUR-DATESTAMP  
+192660          MOVE ACURR-CUSTOMER-NUM 
+214948*                                TO WS-CUR-CUSTOMER-NUM   
+214948                                 TO  YMP01-AGENT-CUST-NUM-OLD 
+214948          PERFORM YMP01-ALPHANUMERIC-TO-ASCII 
+214948          MOVE YMP01-AGENT-CUST-NUM-NEW TO WS-CUR-CUSTOMER-NUM
+192660          MOVE ACURR-CURRENCY-CODE    (WS-SUB)
+192660                                 TO WS-CUR-CURRENCY-CODE  
+192660          MOVE ACURR-CURRENCY-STATUS  (WS-SUB)
+192660                                 TO WS-CUR-CURRENCY-STATUS
+192660          MOVE ACURR-ERF-NUM          (WS-SUB)
+192660                                 TO WS-CUR-ERF-NUM
+192660          MOVE WS-CUR-REC        TO YMBACUR-REC   
+214673          PERFORM VARYING WS-CC-IDX FROM 1 BY 1   
+214673                               UNTIL WS-CC-IDX > WS-YMBACUR-LEN   
+214673            MOVE YMBACUR-REC (WS-CC-IDX:1)
+214673                                      TO WS-ASCII 
+214673            IF WS-BIN < 32
+214673               MOVE SPACES TO YMBACUR-REC(WS-CC-IDX:1)
+214673            END-IF
+214673          END-PERFORM 
+192660          WRITE YMBACUR-REC   
+192660          ADD 1                  TO YMBACUR-CNT-REC-CNT   
+192660        END-PERFORM   
+192660     END-IF.  
+
+           IF ERROR-NUM = '0013'
+              MOVE SPACES TO YMBAGT-COUNTRY-CODE
+                             YMBAGT-COUNTRY-DESC
+           ELSE 
+               MOVE NR-NATIONALITY-DESC TO YMBAGT-COUNTRY-DESC  
+               MOVE SPACES TO YMBAGT-EMAIL-ADDRESS  
+               MOVE AGENT-REGION-CODE TO YMBAGT-REGION-CODE 
+               MOVE AGENT-SALES-REP-CODE TO YMBAGT-REP-CODE.
+
+186084*    IF AGENT-RES-COMMENT-CODE = 'F' or 'Q'   
+186084     IF AGENT-RES-COMMENT-CODE = 'F' OR   
+186084        AGENT-ACCT-COMMENT-CODE = 'F' 
+              MOVE 'C' TO YMBAGT-STATUS 
+              MOVE 'CLOSED' TO YMBAGT-STATUS-DESC   
+           ELSE 
+              MOVE 'O' TO YMBAGT-STATUS 
+              MOVE 'OPEN' TO YMBAGT-STATUS-DESC.
+
+           MOVE AGENT-PHONE-NUM TO YMBAGT-PHONE-NUM.
+           MOVE AGENT-TERRITORY-CODE TO YMBAGT-TERRITORY-CODE.  
+CCL-UK     MOVE AGENT-TTA-NUM        TO YMBAGT-AGT-TTA-NUM. 
+CCL-UK     MOVE AGENT-ABTA-NUM       TO YMBAGT-AGT-ABTA-NUM.
+154125     MOVE AGENT-ABN-NUMBER     TO YMBAGT-AGT-ABN-NUMBER.  
+131886     MOVE AGENT-LOCAL-PHONE-NUM TO YMBAGT-AGT-LOCAL-PHONE-NUM.
+
+NP0702     MOVE 'C'               TO SRR-COMPANY-CODE   
+NP0702                                RR-COMPANY-CODE.  
+NP0702     MOVE SPACES            TO YMBAGT-WHOLESALE-IND   
+
+186084     MOVE SPACES            TO YMBAGT-AUS-BUSINESS-TYPE-IND.  
+186084     MOVE SPACES            TO YMBAGT-CMI-BUSINESS-TYPE-IND.  
+186084     MOVE SPACES            TO YMBAGT-EXCL-TRGT-CNSLDTE-IND.  
+186084     MOVE ZEROES            TO YMBAGT-MIN-COMM-EFF-DATE.  
+186084     MOVE ZEROES            TO YMBAGT-MIN-COMM-EXP-DATE.  
+
+
+NP0702  
+NP0702     MOVE 12510301 TO DPP01-ERROR-NUMBER. 
+NP0702     FETCH NEXT AGENT-TERMS-COMPANY-REC WITHIN
+NP0702         AGENT-COMPANY-SET   SET  
+NP0702            AT END GO TO 0500-CONTINUE-2  
+NP0702            ON ERROR GO TO 0500-CONTINUE-2.   
+NP0702  
+NP0702     MOVE ATCR-WHOLESALE-IND TO YMBAGT-WHOLESALE-IND. 
+
+186084     MOVE ATCR-AUS-BUSINESS-TYPE-IND  
+186084                             TO YMBAGT-AUS-BUSINESS-TYPE-IND. 
+186084     MOVE ATCR-CMI-BUSINESS-TYPE-IND  
+186084                             TO YMBAGT-CMI-BUSINESS-TYPE-IND. 
+186084     MOVE ATCR-CMI-FLAT-CRS-COMM-PCT  
+186084                             TO YMBAGT-CMI-FLAT-CRS-COMM-PCT. 
+186084     MOVE ATCR-EXCL-TARGET-CNSLDTE-IND
+186084                             TO YMBAGT-EXCL-TRGT-CNSLDTE-IND. 
+186084     MOVE ATCR-ALT-FLAT-CRS-COMM-PCT  
+186084                             TO YMBAGT-ALT-AGT-FLAT-COMM-PCT. 
+186084     MOVE ATCR-MIN-COMM-EFF-DATE  
+186084                             TO YMBAGT-MIN-COMM-EFF-DATE. 
+186084     MOVE ATCR-MIN-COMM-EXP-DATE  
+186084                             TO YMBAGT-MIN-COMM-EXP-DATE. 
+186084     MOVE ATCR-APPLY-CMI-FLAT-COMM-IND
+186084                             TO YMBAGT-CMI-APPL-FLT-COMM-IND. 
+
+NP0702     MOVE ATCR-COMPANY-CODE  TO SRR-COMPANY-CODE  
+NP0504                                YMBAGT-ATCR-COMPANY-CODE. 
+
+NP0504     MOVE ATCR-AGENCY-INDICATORS         TO WS-INDICATORS.
+104170     PERFORM VARYING AGT-SUB FROM 1 BY 1 UNTIL AGT-SUB > 72   
+NP0504         MOVE WS-INDICATOR (AGT-SUB) TO   
+NP0504                     ymbagt-ATCR-AGENCY-INDICATORS (agt-sub:1)
+NP0104     END-PERFORM. 
+CCL-UK  
+CCL-UK     PERFORM VARYING WS-CON-SUB FROM 1 BY 1   
+CCL-UK               UNTIL WS-CON-SUB > ATCR-CONNECTION-CNT 
+CCL-UK         IF ATCR-CONNECTION-TYPE (WS-CON-SUB) = 'I'   
+186084*           IF (ATCR-BOOK-TYPE (WS-CON-SUB) = 'I') AND
+186084*              (ATCR-W-R-CODE (WS-CON-SUB) = 'W') 
+186084*              MOVE ATCR-CRUO-COMM-PCT (WS-CON-SUB)   
+186084*                    TO YMBAGT-IIW-CRUO-COMM-PCT  
+186084*              MOVE ATCR-ADDON-COMM-PCT (WS-CON-SUB)  
+186084*                    TO YMBAGT-IIW-ADDON-COMM-PCT 
+186084*              MOVE ATCR-PKG-COMM-PCT (WS-CON-SUB)
+186084*                    TO YMBAGT-IIW-PKG-COMM-PCT   
+186084*              MOVE ATCR-INS-COMM-PCT (WS-CON-SUB)
+186084*                    TO YMBAGT-IIW-INS-COMM-PCT   
+186084*              MOVE ATCR-TRANSFER-COMM-PCT (WS-CON-SUB)   
+186084*                    TO YMBAGT-IIW-XFER-COMM-PCT  
+186084*           END-IF
+186084*           IF (ATCR-BOOK-TYPE (WS-CON-SUB) = 'G') AND
+186084*              (ATCR-W-R-CODE (WS-CON-SUB) = 'W') 
+186084*              MOVE ATCR-CRUO-COMM-PCT (WS-CON-SUB)   
+186084*                    TO YMBAGT-IGW-CRUO-COMM-PCT  
+186084*              MOVE ATCR-ADDON-COMM-PCT (WS-CON-SUB)  
+186084*                    TO YMBAGT-IGW-ADDON-COMM-PCT 
+186084*              MOVE ATCR-PKG-COMM-PCT (WS-CON-SUB)
+186084*                    TO YMBAGT-IGW-PKG-COMM-PCT   
+186084*              MOVE ATCR-INS-COMM-PCT (WS-CON-SUB)
+186084*                    TO YMBAGT-IGW-INS-COMM-PCT   
+186084*              MOVE ATCR-TRANSFER-COMM-PCT (WS-CON-SUB)   
+186084*                    TO YMBAGT-IGW-XFER-COMM-PCT  
+186084*           END-IF
+186084*           IF (ATCR-BOOK-TYPE (WS-CON-SUB) = 'I') AND
+186084*              (ATCR-W-R-CODE (WS-CON-SUB) = 'R') 
+186084            IF (ATCR-BOOK-TYPE (WS-CON-SUB) = 'I')
+CCL-UK               MOVE ATCR-CRUO-COMM-PCT (WS-CON-SUB)   
+CCL-UK                     TO YMBAGT-IIR-CRUO-COMM-PCT  
+CCL-UK               MOVE ATCR-ADDON-COMM-PCT (WS-CON-SUB)  
+CCL-UK                     TO YMBAGT-IIR-ADDON-COMM-PCT 
+CCL-UK               MOVE ATCR-PKG-COMM-PCT (WS-CON-SUB)
+CCL-UK                     TO YMBAGT-IIR-PKG-COMM-PCT   
+CCL-UK               MOVE ATCR-INS-COMM-PCT (WS-CON-SUB)
+CCL-UK                     TO YMBAGT-IIR-INS-COMM-PCT   
+CCL-UK               MOVE ATCR-TRANSFER-COMM-PCT (WS-CON-SUB)   
+CCL-UK                     TO YMBAGT-IIR-XFER-COMM-PCT  
+186084               MOVE ATCR-MIN-CRUO-COMM-PCT (WS-CON-SUB) TO
+186084                    YMBAGT-MIN-II-CRUO-COMM-PCT   
+186084               MOVE ATCR-MIN-ADDON-COMM-PCT (WS-CON-SUB) TO   
+186084                    YMBAGT-MIN-II-ADDON-COMM-PCT  
+186084               MOVE ATCR-MIN-PKG-COMM-PCT (WS-CON-SUB) TO 
+186084                    YMBAGT-MIN-II-PKG-COMM-PCT
+186084               MOVE ATCR-MIN-INS-COMM-PCT (WS-CON-SUB) TO 
+186084                    YMBAGT-MIN-II-INS-COMM-PCT
+186084               MOVE ATCR-MIN-TRANSFER-COMM-PCT (WS-CON-SUB) TO
+186084                    YMBAGT-MIN-II-XFER-COMM-PCT   
+CCL-UK            END-IF
+186084*           IF (ATCR-BOOK-TYPE (WS-CON-SUB) = 'G') AND
+186084*              (ATCR-W-R-CODE (WS-CON-SUB) = 'R') 
+186084            IF (ATCR-BOOK-TYPE (WS-CON-SUB) = 'G')
+CCL-UK               MOVE ATCR-CRUO-COMM-PCT (WS-CON-SUB)   
+CCL-UK                     TO YMBAGT-IGR-CRUO-COMM-PCT  
+CCL-UK               MOVE ATCR-ADDON-COMM-PCT (WS-CON-SUB)  
+CCL-UK                     TO YMBAGT-IGR-ADDON-COMM-PCT 
+CCL-UK               MOVE ATCR-PKG-COMM-PCT (WS-CON-SUB)
+CCL-UK                     TO YMBAGT-IGR-PKG-COMM-PCT   
+CCL-UK               MOVE ATCR-INS-COMM-PCT (WS-CON-SUB)
+CCL-UK                     TO YMBAGT-IGR-INS-COMM-PCT   
+CCL-UK               MOVE ATCR-TRANSFER-COMM-PCT (WS-CON-SUB)   
+CCL-UK                     TO YMBAGT-IGR-XFER-COMM-PCT  
+186084               MOVE ATCR-MIN-CRUO-COMM-PCT (WS-CON-SUB) TO
+186084                    YMBAGT-MIN-IG-CRUO-COMM-PCT   
+186084               MOVE ATCR-MIN-ADDON-COMM-PCT (WS-CON-SUB) TO   
+186084                    YMBAGT-MIN-IG-ADDON-COMM-PCT  
+186084               MOVE ATCR-MIN-PKG-COMM-PCT (WS-CON-SUB) TO 
+186084                    YMBAGT-MIN-IG-PKG-COMM-PCT
+186084               MOVE ATCR-MIN-INS-COMM-PCT (WS-CON-SUB) TO 
+186084                    YMBAGT-MIN-IG-INS-COMM-PCT
+186084               MOVE ATCR-MIN-TRANSFER-COMM-PCT (WS-CON-SUB) TO
+186084                    YMBAGT-MIN-IG-XFER-COMM-PCT   
+CCL-UK            END-IF
+CCL-UK         ELSE 
+CCL-UK          IF ATCR-CONNECTION-TYPE (WS-CON-SUB) = 'E'  
+186084*           IF (ATCR-BOOK-TYPE (WS-CON-SUB) = 'I') AND
+186084*              (ATCR-W-R-CODE (WS-CON-SUB) = 'W') 
+186084*              MOVE ATCR-CRUO-COMM-PCT (WS-CON-SUB)   
+186084*                    TO YMBAGT-EIW-CRUO-COMM-PCT  
+186084*              MOVE ATCR-ADDON-COMM-PCT (WS-CON-SUB)  
+186084*                    TO YMBAGT-EIW-ADDON-COMM-PCT 
+186084*              MOVE ATCR-PKG-COMM-PCT (WS-CON-SUB)
+186084*                    TO YMBAGT-EIW-PKG-COMM-PCT   
+186084*              MOVE ATCR-INS-COMM-PCT (WS-CON-SUB)
+186084*                    TO YMBAGT-EIW-INS-COMM-PCT   
+186084*              MOVE ATCR-TRANSFER-COMM-PCT (WS-CON-SUB)   
+186084*                    TO YMBAGT-EIW-XFER-COMM-PCT  
+186084*           END-IF
+186084*           IF (ATCR-BOOK-TYPE (WS-CON-SUB) = 'G') AND
+186084*              (ATCR-W-R-CODE (WS-CON-SUB) = 'W') 
+186084*              MOVE ATCR-CRUO-COMM-PCT (WS-CON-SUB)   
+186084*                    TO YMBAGT-EGW-CRUO-COMM-PCT  
+186084*              MOVE ATCR-ADDON-COMM-PCT (WS-CON-SUB)  
+186084*                    TO YMBAGT-EGW-ADDON-COMM-PCT 
+186084*              MOVE ATCR-PKG-COMM-PCT (WS-CON-SUB)
+186084*                    TO YMBAGT-EGW-PKG-COMM-PCT   
+186084*              MOVE ATCR-INS-COMM-PCT (WS-CON-SUB)
+186084*                    TO YMBAGT-EGW-INS-COMM-PCT   
+186084*              MOVE ATCR-TRANSFER-COMM-PCT (WS-CON-SUB)   
+186084*                    TO YMBAGT-EGW-XFER-COMM-PCT  
+186084*           END-IF
+186084*           IF (ATCR-BOOK-TYPE (WS-CON-SUB) = 'I') AND
+186084*              (ATCR-W-R-CODE (WS-CON-SUB) = 'R') 
+186084            IF (ATCR-BOOK-TYPE (WS-CON-SUB) = 'I')
+CCL-UK               MOVE ATCR-CRUO-COMM-PCT (WS-CON-SUB)   
+CCL-UK                     TO YMBAGT-EIR-CRUO-COMM-PCT  
+CCL-UK               MOVE ATCR-ADDON-COMM-PCT (WS-CON-SUB)  
+CCL-UK                     TO YMBAGT-EIR-ADDON-COMM-PCT 
+CCL-UK               MOVE ATCR-PKG-COMM-PCT (WS-CON-SUB)
+CCL-UK                     TO YMBAGT-EIR-PKG-COMM-PCT   
+CCL-UK               MOVE ATCR-INS-COMM-PCT (WS-CON-SUB)
+CCL-UK                     TO YMBAGT-EIR-INS-COMM-PCT   
+CCL-UK               MOVE ATCR-TRANSFER-COMM-PCT (WS-CON-SUB)   
+CCL-UK                     TO YMBAGT-EIR-XFER-COMM-PCT  
+186084               MOVE ATCR-MIN-CRUO-COMM-PCT (WS-CON-SUB)   
+186084                     TO YMBAGT-MIN-EI-CRUO-COMM-PCT   
+186084               MOVE ATCR-MIN-ADDON-COMM-PCT (WS-CON-SUB)  
+186084                     TO YMBAGT-MIN-EI-ADDON-COMM-PCT  
+186084               MOVE ATCR-MIN-PKG-COMM-PCT (WS-CON-SUB)
+186084                     TO YMBAGT-MIN-EI-PKG-COMM-PCT
+186084               MOVE ATCR-MIN-INS-COMM-PCT  (WS-CON-SUB)   
+186084                     TO YMBAGT-MIN-EI-INS-COMM-PCT
+186084               MOVE ATCR-MIN-TRANSFER-COMM-PCT (WS-CON-SUB)   
+186084                     TO YMBAGT-MIN-EI-XFER-COMM-PCT   
+CCL-UK            END-IF
+186084*           IF (ATCR-BOOK-TYPE (WS-CON-SUB) = 'G') AND
+186084*              (ATCR-W-R-CODE (WS-CON-SUB) = 'R') 
+186084            IF (ATCR-BOOK-TYPE (WS-CON-SUB) = 'G')
+CCL-UK               MOVE ATCR-CRUO-COMM-PCT (WS-CON-SUB)   
+CCL-UK                     TO YMBAGT-EGR-CRUO-COMM-PCT  
+CCL-UK               MOVE ATCR-ADDON-COMM-PCT (WS-CON-SUB)  
+CCL-UK                     TO YMBAGT-EGR-ADDON-COMM-PCT 
+CCL-UK               MOVE ATCR-PKG-COMM-PCT (WS-CON-SUB)
+CCL-UK                     TO YMBAGT-EGR-PKG-COMM-PCT   
+CCL-UK               MOVE ATCR-INS-COMM-PCT (WS-CON-SUB)
+CCL-UK                     TO YMBAGT-EGR-INS-COMM-PCT   
+CCL-UK               MOVE ATCR-TRANSFER-COMM-PCT (WS-CON-SUB)   
+CCL-UK                     TO YMBAGT-EGR-XFER-COMM-PCT  
+186084               MOVE ATCR-MIN-CRUO-COMM-PCT  (WS-CON-SUB)  
+186084                     TO YMBAGT-MIN-EG-CRUO-COMM-PCT   
+186084               MOVE ATCR-MIN-ADDON-COMM-PCT (WS-CON-SUB)  
+186084                     TO YMBAGT-MIN-EG-ADDON-COMM-PCT  
+186084               MOVE ATCR-MIN-PKG-COMM-PCT (WS-CON-SUB)
+186084                     TO YMBAGT-MIN-EG-PKG-COMM-PCT
+186084               MOVE ATCR-MIN-INS-COMM-PCT (WS-CON-SUB)
+186084                     TO YMBAGT-MIN-EG-INS-COMM-PCT
+186084               MOVE ATCR-MIN-TRANSFER-COMM-PCT (WS-CON-SUB)   
+186084                     TO YMBAGT-MIN-EG-XFER-COMM-PCT   
+CCL-UK            END-IF
+CCL-UK          END-IF  
+CCL-UK         END-IF   
+CCL-UK     END-PERFORM. 
+
+150339     MOVE ATCR-OPER-RESP-AGENCY  TO YMBAGT-ATCR-OPER-RESP-AGENCY. 
+150339     MOVE ATCR-ACCT-RESP-AGENCY  TO YMBAGT-ATCR-ACCT-RESP-AGENCY. 
+150339     MOVE ATCR-ALT-OPER-IND      TO YMBAGT-ATCR-ALT-OPER-IND. 
+150339     MOVE ATCR-ALT-ACCT-IND      TO YMBAGT-ATCR-ALT-ACCT-IND. 
+164971     MOVE ATCR-RETAIL-IND        TO YMBAGT-ATCR-RETAIL-IND.   
+162640     MOVE ATCR-ASSOCIATION-TYPE  TO YMBAGT-ATCR-ASSOCIATION-TYPE. 
+PPC470*    MOVE ATCR-BROCHURE-TYPE     TO YMBAGT-ATCR-BROCHURE-TYPE.
+PPC470     MOVE SPACES                 TO YMBAGT-DELETED-FILLER.
+163340     MOVE ATCR-ALT-COMM-IND      TO YMBAGT-ATCR-ALT-COMM-IND. 
+163340     MOVE ATCR-MAIL-CONF-IND     TO YMBAGT-ATCR-MAIL-CONF-IND.
+163340     MOVE ATCR-FAX-CONF-IND      TO YMBAGT-ATCR-FAX-CONF-IND. 
+163340     PERFORM VARYING WS-CON-SUB FROM 1 BY 1 UNTIL WS-CON-SUB > 5  
+
+192660*       MOVE ATCR-CURRENCY-CODE (WS-CON-SUB) TO   
+192660        MOVE SPACES               TO  
+192660               YMBAGT-ATCR-CURRENCY-CODE (WS-CON-SUB) 
+163340               YMBAGT-ATCR-CURRENCY-CODE (WS-CON-SUB) 
+163340     END-PERFORM. 
+163340     MOVE AGENT-LANGUAGE-IND      TO YMBAGT-AGT-LANGUAGE-IND. 
+163340     MOVE AGENT-DEFAULT-NATL-CODE TO YMBAGT-AGT-DEFAULT-NATL-CODE.
+163440     MOVE AGENT-OWNER-MANAGER     TO YMBAGT-AGT-OWNER-MANAGER.
+
+163440     MOVE AGENT-OWNER-LAST-NAME   TO YMBAGT-AGT-OWNER-LAST-NAME.  
+163440     MOVE AGENT-OWNER-FIRST-NAME  TO YMBAGT-AGT-OWNER-FIRST-NAME. 
+163440     MOVE AGENT-OWNER-MIDDLE-INIT TO YMBAGT-AGT-OWNER-MIDDLE-INIT.
+163440     MOVE AGENT-CORPORATE-TAX-IND TO YMBAGT-AGT-CORPORATE-TAX-IND.
+163440     MOVE AGENT-TAX-NUMBER        TO YMBAGT-AGT-TAX-NUMBER.   
+163440     MOVE AGENT-TAX-NUM-TYPE      TO YMBAGT-AGT-TAX-NUM-TYPE. 
+198380     MOVE AGENT-COMMENT           TO YMBAGT-AGENT-COMMENT.
+198380     PERFORM VARYING CH-SUB FROM 1 BY 1 UNTIL CH-SUB > 20 
+198380        IF (  (YMBAGT-COMMENT-CHAR (CH-SUB) < SPACE) OR   
+198380              (YMBAGT-COMMENT-CHAR (CH-SUB) > '~'  )  
+198380           )  
+198380           MOVE SPACE TO YMBAGT-COMMENT-CHAR (CH-SUB) 
+198380        END-IF
+198380     END-PERFORM. 
+204888     MOVE ATCR-PBS-COMMUNICATION-IND  
+204888                                  TO YMBAGT-ATCR-PBS-COMM-IND.
+
+SFAPRJ     MOVE ATCR-DATE-LAST-BOOKING      TO DPP02-YYMMDD-DATE.   
+100098     MOVE ATCR-GROUP-BKG-SAIL-MAX TO YMBAGT-GROUP-BKG-SAIL-MAX.   
+SFAPRJ     PERFORM DPP10-YYMMDD-TO-YYYYMMDD.
+SFAPRJ     MOVE DPP02-YYYYMMDD-DATE         TO YMBAGT-DATE-LAST-BOOKING.
+SFAPRJ     FIND CURRENT AGENT-REC RECORD.   
+SFAPRJ     FETCH FIRST RECORD WITHIN AGENT-HISTORY-SET SET  
+SFAPRJ            ON ERROR GO TO 0500-CONTINUE-1A.  
+SFAPRJ     GO 0500-CONTINUE-1B. 
+SFAPRJ 0500-CONTINUE-1A.
+204023*    if error-num not = '0000'
+204023*       display 'rb-error-code    ' rb-error-code    upon printer 
+204023*       display 'error-status     ' error-status     upon printer 
+204023*       display 'error-num        ' error-num        upon printer 
+204023*       display 'error-area       ' error-area       upon printer 
+204023*       display 'error-record     ' error-record     upon printer 
+204023*       display 'error-set        ' error-set        upon printer 
+204023*       display 'queue-err-status ' queue-err-status upon printer 
+204023*    end-if.  
+204023*    DISPLAY 'NO HIST: ' AGENT-PHONE-NUM UPON PRINTER.
+SFAPRJ     MOVE 891231                  TO AHR-DATE (1).
+SFAPRJ 0500-CONTINUE-1B.
+SFAPRJ     MOVE AHR-DATE (1)            TO DPP02-YYMMDD-DATE.   
+SFAPRJ     PERFORM DPP10-YYMMDD-TO-YYYYMMDD.
+SFAPRJ     MOVE DPP02-YYYYMMDD-DATE     TO YMBAGT-DATE-ADDED.   
+
+186084*    IF  AGENT-RES-COMMENT-CODE = 'F' or 'Q'  
+186084     IF  AGENT-RES-COMMENT-CODE = 'F' OR  
+186084         AGENT-ACCT-COMMENT-CODE = 'F'
+114761         CONTINUE 
+114761     ELSE 
+114761         MOVE ZEROES TO YMBAGT-DATE-CLOSED
+114761         GO TO 0500-CONTINUE-2
+114761     END-IF.  
+
+114761     FIND CURRENT AGENT-REC RECORD.   
+114761     FETCH LAST RECORD WITHIN AGENT-HISTORY-SET SET   
+114761            ON ERROR GO TO 0500-CONTINUE-1C.  
+114761     GO 0500-CONTINUE-1D. 
+114761 0500-CONTINUE-1C.
+204023*    if error-num not = '0000'
+204023*       display 'rb-error-code    ' rb-error-code    upon printer 
+204023*       display 'error-status     ' error-status     upon printer 
+204023*       display 'error-num        ' error-num        upon printer 
+204023*       display 'error-area       ' error-area       upon printer 
+204023*       display 'error-record     ' error-record     upon printer 
+204023*       display 'error-set        ' error-set        upon printer 
+204023*       display 'queue-err-status ' queue-err-status upon printer 
+204023*    end-if.  
+204023*    DISPLAY 'NO LAST HIST: ' AGENT-PHONE-NUM UPON PRINTER.   
+218069*    MOVE 999999                  TO AHR-DATE (1).
+218069     MOVE 991231                  TO AHR-DATE (1).
+114761 0500-CONTINUE-1D.
+114761     MOVE AHR-DATE (1)            TO DPP02-YYMMDD-DATE.   
+114761     PERFORM DPP10-YYMMDD-TO-YYYYMMDD.
+114761     MOVE DPP02-YYYYMMDD-DATE     TO YMBAGT-DATE-CLOSED.  
+
+NP0702  
+NP0702 0500-CONTINUE-2. 
+           IF ERROR-NUM = '0013'
+               MOVE SPACES             TO YMBAGT-WHOLESALE-IND  
+162641*C59031         MOVE SPACES             TO YMBAGT-EMAIL-ADDRESS   
+           ELSE 
+162641*C59031         MOVE SPACES             TO YMBAGT-EMAIL-ADDRESS   
+162641*C59031         PERFORM 0800-GET-EMAIL THRU 0899-EXIT 
+               MOVE ATCR-WHOLESALE-IND TO YMBAGT-WHOLESALE-IND. 
+
+162641*** DO NOT SEE THE RELEVANCE OF FAILING TO FETCH HISTORY THAT 
+162641**** WOULD IMPLY THERE ARE NO EMAILS TO DRAIN, SO MOVING EMAIL
+162641**** PROCESS OUT OF THE 'IF' TO MAKE IT UNCONDITIONAL 
+162641     MOVE SPACES             TO YMBAGT-EMAIL-ADDRESS. 
+162641     PERFORM 0800-GET-EMAIL THRU 0899-EXIT.   
+162641***   
+162641*C59031         MOVE SPACES             TO YMBAGT-EMAIL-ADDRESS   
+162641*C59031         PERFORM 0800-GET-EMAIL THRU 0899-EXIT 
+           MOVE 52010301                 TO DPP01-ERROR-NUMBER. 
+           MOVE ATCR-COMPANY-CODE TO SRR-COMPANY-CODE.  
+           MOVE ZEROES            TO SRR-REP-EXPAND.
+           MOVE AGENT-SALES-REP-CODE TO SRR-SALES-REP-CODE. 
+           MOVE SPACES            TO YMBAGT-REP-DESC.   
+           FETCH SALES-REP-REC RECORD   
+
+NP0702         ON ERROR GO TO 0500-CONTINUE-3.  
+
+           MOVE SRR-NAME    TO YMBAGT-REP-DESC. 
+
+       0500-CONTINUE-3. 
+           MOVE 67010301                 TO DPP01-ERROR-NUMBER. 
+
+NP0702     MOVE SPACES            TO YMBAGT-REGION-DESC 
+NP0702                               YMBAGT-REP-DIRECTOR.   
+
+           MOVE AGENT-REGION-CODE TO RR-REGION-CODE.
+           FETCH REGION-REC RECORD  
+NP0702         ON ERROR GO TO 500-CONTINUE-4.   
+
+NP0702     MOVE RR-REGION-DESC    TO YMBAGT-REGION-DESC.
+NP0702     MOVE RR-DIRECTOR       TO YMBAGT-REP-DIRECTOR.   
+      * 
+
+NP0702 500-CONTINUE-4.  
+           PERFORM 0600-AGT-OWNER-INFO THRU 0600-EXIT.  
+186084*    PERFORM 0650-AGT-AFF-INFO THRU 0650-EXIT.
+GCBPRJ     PERFORM 0675-AGT-SUPER-CONT-NAME THRU 0675-EXIT. 
+
+           MOVE SPACES TO YMBAGT-RES-COMM-CODE  
+                          YMBAGT-RES-COMM-DESC  
+                          YMBAGT-MKT-COMM-CODE  
+                          YMBAGT-MKT-COMM-DESC  
+                          YMBAGT-ACT-COMM-CODE  
+                          YMBAGT-ACT-COMM-DESC. 
+
+           PERFORM VARYING AGT-SUB FROM 1 BY 1  
+               UNTIL AGT-SUB > VCR-AGENT-COMMENT-ENTRY-CTR  
+
+               IF VCR-AGENT-COMMENT-CODE (AGT-SUB) =
+                                         AGENT-RES-COMMENT-CODE 
+                   MOVE VCR-AGENT-COMMENT-CODE (AGT-SUB) TO 
+                                         YMBAGT-RES-COMM-CODE   
+                   MOVE VCR-AGENT-COMMENT-DESC (AGT-SUB) TO 
+                                         YMBAGT-RES-COMM-DESC   
+               END-IF   
+               IF VCR-AGENT-COMMENT-CODE (AGT-SUB) =
+                                         AGENT-ACCT-COMMENT-CODE
+                   MOVE VCR-AGENT-COMMENT-CODE (AGT-SUB) TO 
+                                         YMBAGT-ACT-COMM-CODE   
+                   MOVE VCR-AGENT-COMMENT-DESC (AGT-SUB) TO 
+                                         YMBAGT-ACT-COMM-DESC   
+               END-IF   
+           END-PERFORM. 
+
+NP0504     IF AGENT-MKT-COMMENT-CODE > SPACES   
+C92947        MOVE AGENT-MKT-COMMENT-CODE TO YMBAGT-MKT-COMM-CODE   
+C92947        MOVE 'INVALID CODE        ' TO YMBAGT-MKT-COMM-DESC   
+C92947        PERFORM VARYING AGT-SUB FROM 1 BY 1 UNTIL AGT-SUB > 38
+C92947           IF VCR2-MKT-EDIT-CODE (AGT-SUB) =  
+C92947              AGENT-MKT-COMMENT-CODE  
+C92947              MOVE VCR2-MKT-COMMENT-DESC (AGT-SUB)
+C92947                                  TO YMBAGT-MKT-COMM-DESC 
+C92947              MOVE 40             TO AGT-SUB  
+C92947           END-IF 
+C92947        END-PERFORM   
+NP0504     END-IF.  
+
+186084*    PERFORM 1000-WRITE-COOP-AGENT-BUDGETS THRU 1000-EXIT.
+
+131886     FIND CURRENT AGENT-REC RECORD.   
+131886     PERFORM 0950-FETCH-APR-REC THRU 0950-EXIT.   
+
+202954*    FIND CURRENT AGENT-REC RECORD.   
+202954*    PERFORM 1400-GET-HISTORY THRU 1499-EXIT. 
+           MOVE WS-DATESTAMP TO YMBAGT-DATESTAMP.   
+214673     PERFORM VARYING WS-CC-IDX FROM 1 BY 1
+214673                               UNTIL WS-CC-IDX > WS-YMBAGT-LEN
+214673        MOVE YMBAGT-REC (WS-CC-IDX:1) TO WS-ASCII 
+214673        IF WS-BIN < 32
+214673           MOVE SPACES TO YMBAGT-REC(WS-CC-IDX:1) 
+214673        END-IF
+214673     END-PERFORM. 
+           WRITE YMBAGT-REC.
+           ADD  1  TO  WS-AGENT-CNT 
+NP0802                 YMBAGT-CNT-REC-CNT.  
+           IF FUNCTION MOD (WS-AGENT-CNT 25000) = ZERO  
+               DISPLAY WS-AGENT-CNT ' RECORDS PROCESSED' UPON PRINTER   
+           END-IF.  
+
+204023*    IF PARAM-MTRF-CUST-NUM NOT =  YMBAGT-CUSTOMER-NUM
+204023*       DISPLAY '*IN - ' PARAM-MTRF-PHONE-NUM ' ' 
+204023*                        PARAM-MTRF-CUSTOMER-NUM ' '  
+204023*               'OUT - ' YMBAGT-PHONE-NUM ' ' 
+204023*                        YMBAGT-CUSTOMER-NUM ' '  
+204023*                        YMBAGT-AGT-DIRECT-IND UPON PRINTER.  
+
+           GO TO 0100-READ. 
+
+       0600-AGT-OWNER-INFO. 
+           IF AGENT-OWNER-CONTRACT-NUM > ZEROS  
+               MOVE 13010301                 TO DPP01-ERROR-NUMBER  
+               MOVE AGENT-OWNER-CONTRACT-NUM TO ACR-CONTRACT-NUM
+                                                YMBAGT-AGT-OWN-CONT-NUM 
+               FETCH AGENT-CONTRACT-REC RECORD  
+                  ON ERROR GO TO 0600-AGENT-OWNER-ERROR 
+               MOVE ACR-AGENCY-NAME    TO YMBAGT-AGT-OWN-CONT-NAME  
+               MOVE ACR-LOCATION       TO WS-ACR-LOCATION   
+               IF WS-ACR-OWNER-PHONE-NUM = AGENT-PHONE-NUM  
+                   MOVE 'Y'            TO YMBAGT-AGT-OWNER-FLAG 
+               ELSE 
+                   MOVE 'N'            TO YMBAGT-AGT-OWNER-FLAG 
+           ELSE 
+               MOVE 'N'                TO YMBAGT-AGT-OWNER-FLAG 
+               MOVE ZEROS              TO YMBAGT-AGT-OWN-CONT-NUM   
+               MOVE SPACES             TO YMBAGT-AGT-OWN-CONT-NAME. 
+       0600-EXIT.   
+           EXIT.
+
+       0600-AGENT-OWNER-ERROR.  
+           MOVE 'N'                    TO YMBAGT-AGT-OWNER-FLAG.
+           MOVE ZEROS                  TO YMBAGT-AGT-OWN-CONT-NUM.  
+           MOVE SPACES                 TO YMBAGT-AGT-OWN-CONT-NAME. 
+           GO TO 0600-EXIT. 
+
+186084*0650-AGT-AFF-INFO.   
+186084*    MOVE 13010302               TO DPP01-ERROR-NUMBER.   
+186084*    MOVE AGENT-CONTRACT-NUM     TO ACR-CONTRACT-NUM  
+186084*                                   YMBAGT-AGT-AFF-CONT-NUM.  
+186084*    FETCH AGENT-CONTRACT-REC RECORD  
+186084*       ON ERROR GO TO 0650-AGT-AFF-ERROR.
+186084*    MOVE ACR-AGENCY-NAME        TO YMBAGT-AGT-AFF-CONT-NAME. 
+186084* 
+186084* 
+186084*    MOVE ACR-CONTRACT-NUM         TO YMBAGT-ACR-CONTRACT-NUM.
+186084*    MOVE ACR-AGENCY-NAME          TO YMBAGT-AGENCY-NAME. 
+186084*    MOVE ACR-LOCATION             TO YMBAGT-LOCATION.
+186084*    IF ACR-EFFECTIVE-DATE > 0
+186084*        MOVE ACR-EFFECTIVE-DATE TO DPP20-YYMMDD-DATE 
+186084*        PERFORM DPP20-ADD-CENTURY THRU DPP20-ADD-CENTURY-EXIT
+186084*        MOVE DPP20-YYYYMMDD-DATE TO YMBAGT-EFFECTIVE-DATE.   
+186084* 
+186084*    IF ACR-EXPIRATION-DATE > 0   
+186084*        MOVE ACR-EXPIRATION-DATE TO DPP20-YYMMDD-DATE
+186084*        PERFORM DPP20-ADD-CENTURY THRU DPP20-ADD-CENTURY-EXIT
+186084*        MOVE DPP20-YYYYMMDD-DATE TO YMBAGT-EXPIRATION-DATE.  
+186084* 
+186084*    MOVE ACR-CONTRACT-TYPE        TO YMBAGT-CONTRACT-TYPE.   
+186084*    MOVE ACR-COMMENT              TO YMBAGT-COMMENT. 
+186084*    MOVE ACR-CONTRACT-CODE        TO YMBAGT-AFF-OWNER-IND.   
+186084*    MOVE ACR-IND-ACCRUAL-COMM-PCT TO YMBAGT-IND-ACCRUAL-COMM-PCT.
+186084*    MOVE ACR-GRP-ACCRUAL-COMM-PCT TO YMBAGT-GRP-ACCRUAL-COMM-PCT.
+186084*    MOVE ACR-ACCRUAL-PMT-METHOD   TO YMBAGT-ACCRUAL-PMT-METHOD.  
+186084*    MOVE ACR-PROMOTIONS           TO YMBAGT-PROMOTIONS.  
+CCL-UK*    MOVE ACR-INDV-CRUO-PCT        TO YMBAGT-INDV-CRUO-PCT.   
+CCL-UK*    MOVE ACR-INDV-FLYA-PCT        TO YMBAGT-INDV-FLYA-PCT.   
+CCL-UK*    MOVE ACR-INDV-TOUR-PCT        TO YMBAGT-INDV-TOUR-PCT.   
+CCL-UK*    MOVE ACR-GROUP-CRUO-PCT       TO YMBAGT-GROUP-CRUO-PCT.  
+CCL-UK*    MOVE ACR-GROUP-FLYA-PCT       TO YMBAGT-GROUP-FLYA-PCT.  
+CCL-UK*    MOVE ACR-GROUP-TOUR-PCT       TO YMBAGT-GROUP-TOUR-PCT.  
+CCL-UK*    MOVE ACR-MASTER-NUM           TO YMBAGT-MASTER-NUM.  
+
+186084*    PERFORM VARYING WS-CON-SUB FROM 1 BY 1 UNTIL 
+186084*            WS-CON-SUB         > ACR-CONNECTION-CNT  
+186084*        IF ACR-CONNECTION-TYPE (WS-CON-SUB) = 'I'
+186084*          MOVE ACR-CRUO-COMM-PCT                     (WS-CON-SUB)
+186084*            TO YMBAGT-IINDV-CRUO-COMM-PCT
+186084*          MOVE ACR-ADDON-COMM-PCT                    (WS-CON-SUB)
+186084*            TO YMBAGT-IINDV-ADDON-COMM-PCT   
+186084*          MOVE ACR-PKG-COMM-PCT                      (WS-CON-SUB)
+186084*            TO YMBAGT-IINDV-PKG-COMM-PCT 
+186084*          MOVE ACR-INS-COMM-PCT                      (WS-CON-SUB)
+186084*            TO YMBAGT-IINDV-INS-COMM-PCT 
+186084*          MOVE ACR-TRANSFER-COMM-PCT                 (WS-CON-SUB)
+186084*            TO YMBAGT-IINDV-TRANSFER-COMM-PCT
+186084*        ELSE 
+186084*          IF ACR-CONNECTION-TYPE (WS-CON-SUB) = 'E'  
+186084*            MOVE ACR-CRUO-COMM-PCT                   (WS-CON-SUB)
+186084*              TO YMBAGT-EINDV-CRUO-COMM-PCT  
+186084*            MOVE ACR-ADDON-COMM-PCT                  (WS-CON-SUB)
+186084*              TO YMBAGT-EINDV-ADDON-COMM-PCT 
+186084*            MOVE ACR-PKG-COMM-PCT                    (WS-CON-SUB)
+186084*              TO YMBAGT-EINDV-PKG-COMM-PCT   
+186084*            MOVE ACR-INS-COMM-PCT                    (WS-CON-SUB)
+186084*              TO YMBAGT-EINDV-INS-COMM-PCT   
+186084*            MOVE ACR-TRANSFER-COMM-PCT               (WS-CON-SUB)
+186084*              TO YMBAGT-EINDV-TRANSFER-COMM-PCT  
+186084*         END-IF  
+186084*       END-IF
+186084*    END-PERFORM. 
+186084*0650-EXIT.   
+186084*    EXIT.
+
+186084*0650-AGT-AFF-ERROR.  
+186084*    MOVE SPACES                 TO YMBAGT-AGT-AFF-CONT-NAME. 
+188084*    GO TO 0650-EXIT. 
+GCBPRJ 0675-AGT-SUPER-CONT-NAME.
+GCBPRJ     MOVE 13010303                  TO DPP01-ERROR-NUMBER.
+186084*    MOVE AGENT-SUPER-CONTRACT-NUM  TO ACR-CONTRACT-NUM   
+186084*                                      YMBAGT-AGT-SUPER-CONT-NUM. 
+186084     MOVE AGENT-MASTER-CONTRACT-NUM TO ACR-CONTRACT-NUM   
+186084                                       YMBAGT-AGT-SUPER-CONT-NUM. 
+GCBPRJ     FETCH AGENT-CONTRACT-REC RECORD  
+GCBPRJ        ON ERROR GO TO 0675-EXIT. 
+GCBPRJ     MOVE ACR-AGENCY-NAME           TO YMBAGT-AGT-SUPER-CONT-NAME.
+GCBPRJ  
+GCBPRJ 0675-EXIT.   
+GCBPRJ     EXIT.
+
+       0700-AGT-AUTOMATION-IND. 
+           MOVE 12110301                 TO DPP01-ERROR-NUMBER. 
+           FETCH NEXT AGENCY-ASSOCIATION-REC
+               WITHIN AGENCY-ASSOCIATION-SET SET
+                   AT END   GO TO 0700-NOT-FOUND
+                   ON ERROR GO TO 0700-NOT-FOUND.   
+           IF  AAR-TYPE NOT = 'CM' AND 'AR' AND 'CL' AND 'IA'   
+               MOVE 'Y' TO YMBAGT-AGT-AUTOMATION-IND
+           END-IF.  
+           GO TO 0700-EXIT. 
+
+       0700-NOT-FOUND.  
+           MOVE 'N' TO YMBAGT-AGT-AUTOMATION-IND.   
+
+       0700-EXIT.   
+           EXIT.
+
+       0800-GET-EMAIL.  
+162641     FIND CURRENT AGENT-TERMS-COMPANY-REC RECORD. 
+           MOVE SPACES            TO YMBAGT-EMAIL-ADDRESS.  
+           MOVE 'Y'          TO WS-FIRST-EMAIL-IND. 
+162641     MOVE 'N'          TO WS-GOT-ALL-PRIORITY-IND 
+162641                          WS-GOT-IBK-PRIORITY-IND 
+162641                          WS-GOT-GBK-PRIORITY-IND 
+162641                          WS-GOT-PRO-PRIORITY-IND 
+162641                          WS-GOT-ACC-PRIORITY-IND 
+204888*                         WS-GOT-COP-PRIORITY-IND.
+204888                          WS-GOT-COP-PRIORITY-IND 
+204888                          WS-GOT-PBS-PRIORITY-IND.
+           FETCH FIRST AGENT-EMAIL-REC  
+               WITHIN AGENT-EMAIL-SET SET   
+                   ON ERROR  GO TO 0830-AER-ERROR.  
+162641     GO TO 0820-DRAIN-EMAIL-REC.  
+162641 0810-FETCH-EMAIL-REC.
+162641     MOVE 'N'          TO   WS-FIRST-EMAIL-IND.   
+           FETCH NEXT AGENT-EMAIL-REC   
+               WITHIN AGENT-EMAIL-SET SET   
+                   AT END    GO TO 0899-EXIT
+                   ON ERROR  GO TO 0830-AER-ERROR.  
+162641 0820-DRAIN-EMAIL-REC.
+162641     IF YMBAGT-EMAIL-ADDRESS NOT > SPACES 
+           MOVE AER-EMAIL-ADDRESS TO YMBAGT-EMAIL-ADDRESS.  
+
+162641     MOVE WS-AER-REC         TO YMBAER-REC.   
+214948*    MOVE AGENT-CUSTOMER-NUM TO YMBAER-CUSTOMER-NUM.  
+214948     MOVE AGENT-CUSTOMER-NUM TO YMP01-AGENT-CUST-NUM-OLD. 
+214948     PERFORM YMP01-ALPHANUMERIC-TO-ASCII. 
+214948     MOVE YMP01-AGENT-CUST-NUM-NEW TO YMBAER-CUSTOMER-NUM-ASCII.  
+162641     MOVE AGENT-PHONE-NUM    TO YMBAER-PHONE-NUM. 
+162641     MOVE AER-EMAIL-ADDRESS  TO YMBAER-EMAIL-ADDRESS. 
+162641****** INSERT EMAIL INDS HERE!
+162641     MOVE AER-MESSAGE-IND TO MKP46-EMAIL-INDICATORS.  
+162641     IF MKP46-EMAIL-IND (1) = 1   
+162641        MOVE 'Y' TO YMBAER-ALL-IND
+162641        IF WS-GOT-ALL-PRIORITY-IND = 'N'  
+162641           MOVE 'Y' TO YMBAER-ALL-PRIORITY-IND
+162641                       WS-GOT-ALL-PRIORITY-IND
+162641        ELSE  
+162641           MOVE 'N' TO YMBAER-ALL-PRIORITY-IND
+162641        END-IF
+162641     ELSE 
+162641       MOVE 'N' TO YMBAER-ALL-IND 
+162641                   YMBAER-ALL-PRIORITY-IND.   
+162641     IF MKP46-EMAIL-IND (2) = 1   
+162641        MOVE 'Y' TO YMBAER-IBK-IND
+162641        IF WS-GOT-IBK-PRIORITY-IND = 'N'  
+162641           MOVE 'Y' TO YMBAER-IBK-PRIORITY-IND
+162641                       WS-GOT-IBK-PRIORITY-IND
+162641        ELSE  
+162641           MOVE 'N' TO YMBAER-IBK-PRIORITY-IND
+162641        END-IF
+162641     ELSE 
+162641       MOVE 'N' TO YMBAER-IBK-IND 
+162641                   YMBAER-IBK-PRIORITY-IND.   
+162641     IF MKP46-EMAIL-IND (3) = 1   
+162641        MOVE 'Y' TO YMBAER-GBK-IND
+162641        IF WS-GOT-GBK-PRIORITY-IND = 'N'  
+162641           MOVE 'Y' TO YMBAER-GBK-PRIORITY-IND
+162641                       WS-GOT-GBK-PRIORITY-IND
+162641        ELSE  
+162641           MOVE 'N' TO YMBAER-GBK-PRIORITY-IND
+162641        END-IF
+162641     ELSE 
+162641       MOVE 'N' TO YMBAER-GBK-IND 
+162641                   YMBAER-GBK-PRIORITY-IND.   
+162641     IF MKP46-EMAIL-IND (4) = 1   
+162641        MOVE 'Y' TO YMBAER-PRO-IND
+162641        IF WS-GOT-PRO-PRIORITY-IND = 'N'  
+162641           MOVE 'Y' TO YMBAER-PRO-PRIORITY-IND
+162641                       WS-GOT-PRO-PRIORITY-IND
+162641        ELSE  
+162641           MOVE 'N' TO YMBAER-PRO-PRIORITY-IND
+162641        END-IF
+162641     ELSE 
+162641       MOVE 'N' TO YMBAER-PRO-IND 
+162641                   YMBAER-PRO-PRIORITY-IND.   
+162641     IF MKP46-EMAIL-IND (5) = 1   
+162641        MOVE 'Y' TO YMBAER-ACC-IND
+162641        IF WS-GOT-ACC-PRIORITY-IND = 'N'  
+162641           MOVE 'Y' TO YMBAER-ACC-PRIORITY-IND
+162641                       WS-GOT-ACC-PRIORITY-IND
+162641        ELSE  
+162641           MOVE 'N' TO YMBAER-ACC-PRIORITY-IND
+162641        END-IF
+162641     ELSE 
+162641       MOVE 'N' TO YMBAER-ACC-IND 
+162641                   YMBAER-ACC-PRIORITY-IND.   
+162641     IF MKP46-EMAIL-IND (6) = 1   
+162641        MOVE 'Y' TO YMBAER-COP-IND
+162641        IF WS-GOT-COP-PRIORITY-IND = 'N'  
+162641           MOVE 'Y' TO YMBAER-COP-PRIORITY-IND
+162641                       WS-GOT-COP-PRIORITY-IND
+162641        ELSE  
+162641           MOVE 'N' TO YMBAER-COP-PRIORITY-IND
+162641        END-IF
+162641     ELSE 
+162641       MOVE 'N' TO YMBAER-COP-IND 
+162641                   YMBAER-COP-PRIORITY-IND.   
+204888     IF MKP46-EMAIL-IND (7) = 1   
+204888        MOVE 'Y'                  TO YMBAER-PBS-IND   
+204888        IF WS-GOT-PBS-PRIORITY-IND = 'N'  
+204888           MOVE 'Y'               TO YMBAER-PBS-PRIORITY-IND  
+204888                                     WS-GOT-PBS-PRIORITY-IND  
+204888        ELSE  
+204888           MOVE 'N'               TO YMBAER-PBS-PRIORITY-IND  
+204888        END-IF
+204888     ELSE 
+204888        MOVE 'N'                  TO YMBAER-PBS-IND   
+204888                                     YMBAER-PBS-PRIORITY-IND  
+204888     END-IF.  
+162641     ADD 1 TO WS-AER-REC-CNT. 
+214673     PERFORM VARYING WS-CC-IDX FROM 1 BY 1
+214673                               UNTIL WS-CC-IDX > WS-YMBAER-LEN
+214673        MOVE YMBAER-REC (WS-CC-IDX:1) TO WS-ASCII 
+214673        IF WS-BIN < 32
+214673           MOVE SPACES TO YMBAER-REC(WS-CC-IDX:1) 
+214673        END-IF
+214673     END-PERFORM. 
+162641     WRITE YMBAER-REC.
+162641**** ADDED TO REPEAT FOR ALL ADDRESSES.   
+162641     GO TO 0810-FETCH-EMAIL-REC.  
+162641 0830-AER-ERROR.  
+162641     IF ERROR-NUM = '0007' OR '0013'  
+162641        IF WS-FIRST-EMAIL-IND NOT = 'Y'   
+162641           GO TO 0899-EXIT
+162641        ELSE  
+162641           GO TO 0840-SEND-EMPTY-EMAIL
+162641        END-IF
+162641     ELSE 
+162641        DISPLAY 'AER-REC ERROR: ' ERROR-STATUS '/' ERROR-NUM  
+162641           UPON PRINTER   
+162641        GO TO 9100-DATABASE-ERROR.
+162641 0840-SEND-EMPTY-EMAIL.   
+162641     MOVE WS-AER-REC         TO YMBAER-REC.   
+214948*    MOVE AGENT-CUSTOMER-NUM TO YMBAER-CUSTOMER-NUM.  
+214948     MOVE AGENT-CUSTOMER-NUM TO YMP01-AGENT-CUST-NUM-OLD. 
+214948     PERFORM YMP01-ALPHANUMERIC-TO-ASCII. 
+214948     MOVE YMP01-AGENT-CUST-NUM-NEW TO YMBAER-CUSTOMER-NUM-ASCII.  
+162641     MOVE AGENT-PHONE-NUM    TO YMBAER-PHONE-NUM. 
+162641     MOVE SPACES             TO YMBAER-EMAIL-ADDRESS. 
+162641     MOVE 'Y'                TO YMBAER-EMAIL-INACTIVE-IND.
+162641     ADD 1 TO WS-AER-REC-CNT. 
+162641     WRITE YMBAER-REC.
+162641     GO TO 0899-EXIT. 
+162641 0899-EXIT.   
+           EXIT.
+
+       0900-EXIT.   
+100098     IF WS-AGCR-ACTIVITY = 1  
+100098        PERFORM 1500-FIND-AGCR THRU 1500-EXIT 
+100098        MOVE 0 TO WS-AGCR-ACTIVITY
+100098     END-IF.  
+
+           GO TO 9000-END-OF-JOB.   
+
+131886 0950-FETCH-APR-REC.  
+131886     FETCH NEXT AGENT-PHONE-REC WITHIN AGENT-PHONE-SET SET
+131886         ON ERROR GO TO 0950-ERROR.   
+131886     IF APR-PHONE-NUM = AGENT-PHONE-NUM   
+131886        GO TO 0950-FETCH-APR-REC. 
+131886  
+214948*    MOVE AGENT-CUSTOMER-NUM TO YMBPHN-CUSTOMER-NUM.  
+214948     MOVE AGENT-CUSTOMER-NUM   TO  YMP01-AGENT-CUST-NUM-OLD.  
+214948     PERFORM YMP01-ALPHANUMERIC-TO-ASCII. 
+214948     MOVE YMP01-AGENT-CUST-NUM-NEW TO YMBPHN-CUSTOMER-NUM-ASCII.  
+131886     MOVE APR-PHONE-NUM      TO YMBPHN-PHONE-NUM. 
+131886  
+214673     PERFORM VARYING WS-CC-IDX FROM 1 BY 1
+214673                               UNTIL WS-CC-IDX > WS-YMBPHN-LEN
+214673        MOVE YMBPHN-REC (WS-CC-IDX:1) TO WS-ASCII 
+214673        IF WS-BIN < 32
+214673           MOVE SPACES TO YMBPHN-REC(WS-CC-IDX:1) 
+214673        END-IF
+214673     END-PERFORM. 
+131886     WRITE YMBPHN-REC.
+131886     ADD 1 TO YMBPHN-CNT-REC-CNT. 
+131886  
+131886        GO TO 0950-FETCH-APR-REC. 
+131886 0950-ERROR.  
+131886     IF ERROR-CODE = '07' OR '13' 
+131886        CONTINUE  
+131886     ELSE 
+131886        GO TO 9100-DATABASE-ERROR 
+131886     END-IF.  
+131886 0950-EXIT.   
+131886     EXIT.
+
+186084*1000-WRITE-COOP-AGENT-BUDGETS.   
+186084*    FIND CURRENT AGENT-REC RECORD.   
+186084*    FIND CURRENT AGENT-TERMS-COMPANY-REC RECORD. 
+nptest*    display 'ATCR-PHONE-NUM   =' ATCR-PHONE-NUM  
+nptest*            'ATCR-COMPANY-CODE=' ATCR-COMPANY-CODE   
+nptest*        upon printer.
+
+186084*    MOVE ATCR-PHONE-NUM            TO ACYR-PHONE-NUM.
+186084*    MOVE ATCR-COMPANY-CODE         TO ACYR-COMPANY-CODE. 
+186084*    MOVE SPACES                    TO ACYR-YEAR-CODE.
+
+186084*    PERFORM 1100-PROCESS-COOP-AGT-BUD THRU 1100-EXIT.
+nptest*    if error-num not = '0000'
+nptest*       display 'rb-error-code    ' rb-error-code    upon printer 
+nptest*       display 'error-status     ' error-status     upon printer 
+nptest*       display 'error-num        ' error-num        upon printer 
+nptest*       display 'error-area       ' error-area       upon printer 
+nptest*       display 'error-record     ' error-record     upon printer 
+nptest*       display 'error-set        ' error-set        upon printer 
+nptest*       display 'queue-err-status ' queue-err-status upon printer 
+nptest*    end-if.  
+186084*    PERFORM 1300-COOP-HDR-DTL         THRU 1300-EXIT.
+
+186084*1000-EXIT.   
+186084*    EXIT.
+
+186084*1100-PROCESS-COOP-AGT-BUD.   
+186084*    FETCH NEXT AGENT-COMP-YR-REC WITHIN AGENT-COMP-YR-SET SET
+186084*        AT END   GO TO 1100-EXIT 
+186084*        ON ERROR GO TO 1100-EXIT.
+nptest*    display 'ACYR-PHONE-NUM   =' 
+nptest*            'ACYR-COMPANY-CODE=' 
+nptest*            'ACYR-YEAR-CODE   =' 
+nptest*        upon printer.
+
+186084*1100-PROCESS-TOTALS-SUPPORT. 
+186084*    FETCH NEXT AGENT-TOTALS-SUPPORT-REC WITHIN   
+186084*               AGENT-TOT-SUPP-SET SET
+186084*        AT END   GO TO 1100-PROCESS-COOP-AGT-BUD 
+186084*        ON ERROR GO TO 1100-PROCESS-COOP-AGT-BUD.
+      *    IF ATSR-COOP-BUDGET-SF > 0 OR
+      *       ATSR-COOP-BUDGET-NF > 0 OR
+      *       ATSR-COOP-BUDGET-PF > 0   
+      *        CONTINUE 
+      *    ELSE 
+      *        GO TO 1100-PROCESS-TOTALS-SUPPORT.   
+
+186084*    MOVE ATSR-YEAR                 TO WS-ATSR-YEAR-X 
+186084*    MOVE WS-ATSR-YEAR              TO YMBCBA-BUDGET-YEAR.
+186084*    MOVE AGENT-REGION-CODE         TO YMBCBA-REGION-CODE.
+186084*    MOVE AGENT-SALES-REP-CODE      TO YMBCBA-REP-CODE.   
+186084*    MOVE AGENT-CUSTOMER-NUM        TO YMBCBA-AGENT-CUSTOMER-NUM. 
+186084*    MOVE AGENT-CUSTOMER-NUM        TO YMP01-AGENT-CUST-NUM-OLD.  
+186084*    PERFORM YMP01-ALPHANUMERIC-TO-ASCII. 
+186084*    MOVE YMP01-AGENT-CUST-NUM-NEW TO YMBCBA-AGENT-CUST-NUM-ASCII.
+186084*    MOVE AGENT-PHONE-NUM           TO YMBCBA-AGENT-PHONE-NUM.
+186084*    MOVE PARAM-MTRF-COMPANY-CODE   TO YMBCBA-COMPANY-CODE.   
+186084*    MOVE ATSR-COOP-BUDGET-SF       TO YMBCBA-COOP-BUDGET-SF. 
+186084*    MOVE ATSR-COOP-BUDGET-NF       TO YMBCBA-COOP-BUDGET-NF. 
+186084*    MOVE ATSR-COOP-BUDGET-PF       TO YMBCBA-COOP-BUDGET-PF. 
+186084*    MOVE ATSR-COOP-USED-SF         TO YMBCBA-COOP-USED-SF.   
+186084*    MOVE ATSR-COOP-USED-NF         TO YMBCBA-COOP-USED-NF.   
+186084*    MOVE ATSR-COOP-USED-PF         TO YMBCBA-COOP-USED-PF.   
+186084*    MOVE ATSR-COOP-USED            TO YMBCBA-COOP-USED.  
+186084*    MOVE ATSR-COOP-COMMITED        TO YMBCBA-COOP-COMMITED.  
+186084*    MOVE ATSR-COOP-PROD-GOAL       TO YMBCBA-COOP-PROD-GOAL. 
+186084*    IF  ATSR-COOP-MEDIA-DESC > SPACES
+186084*        MOVE ATSR-COOP-MEDIA-DESC  TO YMBCBA-COOP-MEDIA-DESC.
+186084*    MOVE ATSR-FULFIL-NUM-ORDERS    TO YMBCBA-FULFIL-NUM-ORDERS.  
+186084*    MOVE ATSR-FULFIL-MKT-VALUE     TO YMBCBA-FULFIL-MKT-VALUE.   
+186084*    MOVE ATSR-FULFIL-TAX-VALUE     TO YMBCBA-FULFIL-TAX-VALUE.   
+186084*    MOVE ATSR-FULFIL-POSTAGE-COST  TO YMBCBA-FULFIL-POSTAGE-COST.
+186084*    MOVE ATSR-FULFIL-HANDLING-COST TO YMBCBA-FULFIL-HANDLING-COST.   
+186084*    PERFORM VARYING WS-CC-IDX FROM 1 BY 1
+186084*                              UNTIL WS-CC-IDX > WS-YMBCBA-LEN
+186084*       MOVE YMBCBA-REC (WS-CC-IDX:1) TO WS-ASCII 
+186084*       IF WS-BIN < 32
+186084*          MOVE SPACES TO YMBCBA-REC(WS-CC-IDX:1) 
+186084*       END-IF
+186084*    END-PERFORM. 
+186084*    WRITE YMBCBA-REC 
+186084*    ADD 1 TO YMBCBA-CNT-REC-CNT. 
+186084* 
+186084*    MOVE WS-CBA-REC          TO YMBCBA-REC.  
+
+      *    FIND CURRENT AGENT-COMP-YR-REC RECORD.   
+
+186084*    GO TO 1100-PROCESS-TOTALS-SUPPORT.   
+
+186084*1100-EXIT.   
+186084*    EXIT.
+
+186084*1300-COOP-HDR-DTL.   
+186084*    FETCH NEXT COOP-CCL-ADVERTISING-REC WITHIN   
+186084*       AGENT-COOP-SET SET
+186084*      AT END GO TO 1300-EXIT 
+186084*      ON ERROR GO TO 1300-EXIT.  
+186084*    PERFORM DPP20-UNLOAD-CCAR-DATES THRU DPP20-EXIT. 
+186084*    MOVE CCAR-CALC-KEY              TO YMBSCH-CALC-KEY   
+186084*                                       YMBSCD-CALC-KEY.  
+186084*    MOVE ATCR-REGION-CODE           TO YMBSCH-REGION-CODE
+186084*                                       YMBSCD-REGION-CODE.   
+186084*    MOVE ATCR-SALES-REP-CODE        TO YMBSCH-REP-CODE   
+186084*                                       YMBSCD-REP-CODE.  
+186084*    MOVE PARAM-MTRF-COMPANY-CODE    TO YMBSCH-COMPANY-CODE   
+186084*                                       YMBSCD-COMPANY-CODE.  
+186084*    MOVE AGENT-CUSTOMER-NUM         TO YMBSCH-AGENT-CUSTOMER-NUM 
+186084*                                       YMBSCD-AGENT-CUSTOMER-NUM.
+186084*    MOVE AGENT-CUSTOMER-NUM         TO  YMP01-AGENT-CUST-NUM-OLD.
+186084*    PERFORM YMP01-ALPHANUMERIC-TO-ASCII. 
+186084*    MOVE YMP01-AGENT-CUST-NUM-NEW TO YMBSCH-AGENT-CUST-NUM-ASCII 
+186084*                                     YMBSCD-AGENT-CUST-NUM-ASCII.
+186084*    MOVE DPP20-CCAR-POST-DATE       TO YMBSCH-POST-DATE. 
+186084*    MOVE DPP20-CCAR-PMT-DATE        TO YMBSCH-PMT-DATE.  
+186084*    EVALUATE CCAR-STATUS 
+186084*      WHEN 'A'   MOVE 'APPROVED         ' TO  YMBSCH-STATUS-DESC 
+186084*      WHEN 'C'   MOVE 'CANCELED         ' TO  YMBSCH-STATUS-DESC 
+186084*      WHEN 'F'   MOVE 'FUNDS COMMITTED  ' TO  YMBSCH-STATUS-DESC 
+186084*      WHEN 'D'   MOVE 'DECLINED         ' TO  YMBSCH-STATUS-DESC 
+186084*      WHEN 'P'   MOVE 'PENDING          ' TO  YMBSCH-STATUS-DESC 
+186084*      WHEN OTHER MOVE 'UNKNOWN          ' TO  YMBSCH-STATUS-DESC.
+186084*    MOVE CCAR-STATUS                TO YMBSCH-STATUS.
+186084*    MOVE CCAR-COMMENT1              TO YMBSCH-COMMENT1.  
+186084*    MOVE CCAR-CHECK-NUM             TO YMBSCH-CHECK-NUM. 
+186084*    MOVE CCAR-AGENCY-CONTACT        TO YMBSCH-AGENCY-CONTACT.
+
+186084*    PERFORM VARYING WS-CC-IDX FROM 1 BY 1
+186084*                              UNTIL WS-CC-IDX > WS-YMBSCH-LEN
+186084*       MOVE YMBSCH-REC (WS-CC-IDX:1) TO WS-ASCII 
+186084*       IF WS-BIN < 32
+186084*          MOVE SPACES TO YMBSCH-REC(WS-CC-IDX:1) 
+186084*       END-IF
+186084*    END-PERFORM. 
+186084*    WRITE YMBSCH-REC.
+186084*    ADD 1 TO YMBSCH-CNT-REC-CNT. 
+186084* 
+186084*    MOVE WS-SCH-REC          TO YMBSCH-REC.  
+186084* 
+186084*    MOVE 0                          TO C-SUB.
+
+186084*1300-COOP-DETAIL-LOOP.   
+186084*    ADD 1 TO C-SUB.  
+
+186084*    IF C-SUB > 4 
+186084*        GO TO 1300-COOP-HDR-DTL. 
+
+186084*    IF CCAR-ADVERT-TYPE (C-SUB) NOT > SPACES 
+186084*        GO TO 1300-COOP-DETAIL-LOOP. 
+
+186084*    MOVE CCAR-CALC-KEY              TO YMBSCD-CALC-KEY.  
+186084*    MOVE ATCR-REGION-CODE           TO YMBSCD-REGION-CODE.   
+186084*    MOVE ATCR-SALES-REP-CODE        TO YMBSCD-REP-CODE.  
+186084*    MOVE PARAM-MTRF-COMPANY-CODE    TO YMBSCD-COMPANY-CODE.  
+214948*    MOVE AGENT-CUSTOMER-NUM         TO YMBSCD-AGENT-CUSTOMER-NUM.
+214948     MOVE AGENT-CUSTOMER-NUM         TO  YMP01-AGENT-CUST-NUM-OLD.
+214948     PERFORM YMP01-ALPHANUMERIC-TO-ASCII. 
+186084*    MOVE YMP01-AGENT-CUST-NUM-NEW TO YMBSCD-AGENT-CUST-NUM-ASCII.
+186084*    MOVE CCAR-ADVERT-TYPE      (C-SUB) TO YMBSCD-ADVERT-TYPE.
+186084*    MOVE CCAR-DESC             (C-SUB) TO YMBSCD-DESC.   
+186084*    MOVE CCAR-ADVERT-START-MTH (C-SUB) TO YMBSCD-ADVERT-START-MTH.   
+186084*    MOVE CCAR-ADVERT-END-MTH   (C-SUB) TO YMBSCD-ADVERT-END-MTH. 
+186084*    MOVE CCAR-BUDGET-TYPE      (C-SUB) TO YMBSCD-BUDGET-TYPE.
+186084*    MOVE CCAR-ADVERT-AMT       (C-SUB) TO YMBSCD-ADVERT-AMT. 
+186084*    MOVE CCAR-REIMBURSE-PCT    (C-SUB) TO YMBSCD-REIMBURSE-PCT.  
+186084*    MOVE C-SUB                         TO YMBSCD-ENTRY-CNT.  
+
+186084*    EVALUATE CCAR-ADVERT-TYPE (C-SUB)
+186084*        WHEN 'T'      MOVE 'TELEVISION   ' TO YMBSCD-ADVERT-DESC 
+186084*        WHEN 'D'      MOVE 'DIRECT MAIL  ' TO YMBSCD-ADVERT-DESC 
+186084*        WHEN 'R'      MOVE 'RADIO        ' TO YMBSCD-ADVERT-DESC 
+186084*        WHEN 'N'      MOVE 'NEWSPAPER    ' TO YMBSCD-ADVERT-DESC 
+186084*        WHEN 'O'      MOVE 'ONLINE       ' TO YMBSCD-ADVERT-DESC 
+186084*        WHEN 'M'      MOVE 'MAGAZINE     ' TO YMBSCD-ADVERT-DESC 
+186084*        WHEN 'X'      MOVE 'MISCELLANEOUS' TO YMBSCD-ADVERT-DESC 
+186084*        WHEN OTHER    MOVE 'UNKNOWN      ' TO YMBSCD-ADVERT-DESC.
+
+186084*    EVALUATE CCAR-BUDGET-TYPE (C-SUB)
+186084*        WHEN 'I'      MOVE 'INDIVIDUAL   ' TO YMBSCD-BUDGET-DESC 
+186084*        WHEN 'P'      MOVE 'POOLED       ' TO YMBSCD-BUDGET-DESC 
+186084*        WHEN 'R'      MOVE 'RELATIONSHIP ' TO YMBSCD-BUDGET-DESC 
+186084*        WHEN 'N'      MOVE 'NATIONAL     ' TO YMBSCD-BUDGET-DESC 
+186084*        WHEN OTHER    MOVE 'UNKNOWN      ' TO YMBSCD-BUDGET-DESC.
+
+186084*    PERFORM VARYING WS-CC-IDX FROM 1 BY 1
+186084*                              UNTIL WS-CC-IDX > WS-YMBSCD-LEN
+186084*       MOVE YMBSCD-REC (WS-CC-IDX:1) TO WS-ASCII 
+186084*       IF WS-BIN < 32
+186084*          MOVE SPACES TO YMBSCD-REC(WS-CC-IDX:1) 
+186084*       END-IF
+186084*    END-PERFORM. 
+186084*    WRITE YMBSCD-REC.
+186084*    ADD 1 TO YMBSCD-CNT-REC-CNT. 
+186084* 
+186084*    MOVE WS-SCD-REC          TO YMBSCD-REC.  
+
+186084*    GO TO 1300-COOP-DETAIL-LOOP. 
+
+186084*1300-EXIT.   
+186084*    EXIT.
+
+202954*1400-GET-HISTORY.
+202954*    FETCH LAST RECORD WITHIN AGENT-HISTORY-SET SET   
+202954*            ON ERROR  GO TO 1430-HISTORY-ERROR.  
+
+202954*    GO TO 1420-DRAIN-HIST-REC.   
+
+202954*1410-FETCH-HIST-REC. 
+202954*      FETCH PRIOR RECORD WITHIN AGENT-HISTORY-SET SET
+202954*            AT END    GO TO 1499-EXIT
+202954*            ON ERROR  GO TO 1430-HISTORY-ERROR.  
+
+202954*1420-DRAIN-HIST-REC. 
+202954***  RE-USING C-SUB FROM 1300-COOP-DETAIL-LOOP.   
+202954****  THIS FIRST CHECK JUST PROTECTS THE PROGRAM FROM HITTING A   
+202954****   BAD RECORD AND MISBEHAVING.
+202954*    IF AHR-ENTRY-CTR = 0 
+202954*       GO TO 1410-FETCH-HIST-REC.
+
+202954*    PERFORM VARYING C-SUB FROM AHR-ENTRY-CTR BY -1   
+202954*                               UNTIL C-SUB < 1   
+202954*      IF AHR-DATE (C-SUB) < WS-HIST-BEGIN-DATE   
+202954*         GO TO 1499-EXIT 
+202954*      ELSE   
+202954*        IF ( (AHR-DATE (C-SUB) = WS-HIST-BEGIN-DATE) 
+202954*           AND   
+202954*           (AHR-TIME (C-SUB) < WS-HIST-BEGIN-TIME)   
+202954*           ) 
+202954*           GO TO 1499-EXIT   
+202954*        end-if   
+202954*      END-IF 
+202954*      IF AHR-ACTIVITY-CODE (C-SUB) > SPACES  
+202954*        MOVE WS-AHR-REC                 TO YMBAHR-REC
+202954*        MOVE AHR-CUSTOMER-NUM           TO YMBAHR-CUSTOMER-NUM   
+202954*        MOVE AHR-RECORD-SEQ-NUM         TO YMBAHR-RECORD-SEQ-NUM 
+202954*        MOVE AHR-DATE (C-SUB)           TO YMBAHR-DATE   
+202954*        MOVE AHR-TIME (C-SUB)           TO YMBAHR-TIME   
+202954*        MOVE C-SUB                      TO YMBAHR-ENTRY-NUM  
+202954*        MOVE AHR-OPER-INITIALS (C-SUB)  TO YMBAHR-OPER-INITIALS  
+202954*        MOVE AHR-ACTIVITY-CODE (C-SUB)  TO YMBAHR-ACTIVITY-CODE  
+202954*        MOVE AHR-ACTIVITY-DESC (C-SUB)  TO YMBAHR-ACTIVITY-DESC  
+202954*        MOVE AHR-COMMENT (C-SUB)        TO YMBAHR-COMMENT
+202954*        MOVE AHR-AGENCY-CONTACT (C-SUB) TO YMBAHR-AGENCY-CONTACT 
+202954*        MOVE AHR-COMPANY-CODE (C-SUB)   TO YMBAHR-COMPANY-CODE   
+202954*        MOVE AHR-HISTORY-TYPE (C-SUB)   TO YMBAHR-HISTORY-TYPE   
+202954*        MOVE AHR-HISTORY-AMT (C-SUB)    TO YMBAHR-HISTORY-AMT-NUM
+202954*        IF AHR-HISTORY-AMT (C-SUB) < 0   
+202954*          MOVE '-'                     TO YMBAHR-HISTORY-AMT-SIGN
+202954*        ELSE 
+202954*          MOVE SPACE                   TO YMBAHR-HISTORY-AMT-SIGN
+202954*        END-IF   
+202954*        PERFORM VARYING CH-SUB FROM 1 BY 1 UNTIL CH-SUB > 30 
+202954*          IF (  (YMBAHR-COMMENT-CHAR (CH-SUB) < SPACE) OR
+202954*                (YMBAHR-COMMENT-CHAR (CH-SUB) > '~'  )   
+202954*             )   
+202954*             MOVE SPACE TO YMBAHR-COMMENT-CHAR (CH-SUB)  
+202954*          END-IF 
+202954*        END-PERFORM  
+202954*        ADD 1 TO WS-AHR-REC-CNT  
+202954*        WRITE YMBAHR-REC 
+202954*      END-IF 
+202954*    END-PERFORM. 
+
+202954*    GO TO 1410-FETCH-HIST-REC.   
+
+202954*1430-HISTORY-ERROR.  
+202954*    IF ERROR-NUM = '0007' OR '0013'  
+202954*          GO TO 1499-EXIT
+202954*    ELSE 
+202954*       DISPLAY 'HIST-REC ERROR: ' ERROR-STATUS '/' ERROR-NUM 
+202954*          UPON PRINTER   
+202954*       GO TO 9100-DATABASE-ERROR.
+
+202954*1499-EXIT.   
+202954*    EXIT.
+
+
+100098 1500-FIND-AGCR.  
+100098     MOVE WS-DATE-TIME(1:4)  TO WS-YEAR.  
+100098     MOVE 1 TO WS-LOOP-CNT.   
+100098 1500-LOOP.   
+100098     IF WS-LOOP-CNT > 5   
+100098        GO TO 1500-EXIT.  
+100098  
+100098     MOVE WS-CUSTOMER-NUM TO AGCR-CUSTOMER-NUM
+100098     MOVE 'C'             TO AGCR-COMPANY-CODE
+100098     MOVE WS-YEAR         TO AGCR-YEAR
+100098     FETCH AGENT-GRP-CAPACITY-REC RECORD  
+100098           ON ERROR GO TO 1500-NEXT.  
+100098 1500-NEXT.   
+100098     IF ERROR-STATUS = ZEROS  
+100098        PERFORM 1500-WRITE-AGCR   
+100098     END-IF.  
+100098     ADD 1 TO WS-YEAR WS-LOOP-CNT 
+100098     GO TO 1500-LOOP. 
+100098 1500-WRITE-AGCR. 
+163338     MOVE WS-AGC-REC        TO YMBAGC-REC.
+100098     MOVE 'CCLAGC'          TO YMBAGC-RECORD-ID.  
+100098     MOVE WS-DATESTAMP      TO YMBAGC-DATESTAMP.  
+214948*    MOVE AGCR-CUSTOMER-NUM TO YMBAGC-CUSTOMER-NUM.   
+214948     MOVE AGCR-CUSTOMER-NUM TO YMP01-AGENT-CUST-NUM-OLD.  
+214948     PERFORM YMP01-ALPHANUMERIC-TO-ASCII. 
+214948     MOVE YMP01-AGENT-CUST-NUM-NEW TO YMBAGC-CUSTOMER-NUM-ASCII.  
+100098     MOVE 'C'               TO YMBAGC-COMPANY-CODE.   
+100098     MOVE AGCR-YEAR         TO YMBAGC-YEAR.   
+100098     MOVE AGCR-BKG-SOFT-MAX     TO YMBAGC-SOFT-MAX.   
+100098     MOVE AGCR-BKG-HARD-MAX     TO YMBAGC-HARD-MAX.   
+163338     MOVE AGCR-BKGS-SOLD-CNT    TO YMBAGC-BKGS-SOLD-CNT.  
+100098     ADD  1                 TO YMBAGC-CNT-REC-CNT.
+214673     PERFORM VARYING WS-CC-IDX FROM 1 BY 1
+214673                               UNTIL WS-CC-IDX > WS-YMBAGC-LEN
+214673        MOVE YMBAGC-REC (WS-CC-IDX:1) TO WS-ASCII 
+214673        IF WS-BIN < 32
+214673           MOVE SPACES TO YMBAGC-REC(WS-CC-IDX:1) 
+214673        END-IF
+214673     END-PERFORM. 
+100098     WRITE YMBAGC-REC.
+100098  
+100098 1500-EXIT.   
+100098     EXIT.
+
+       9000-END-OF-JOB. 
+           CLOSE YMBAGT-FILE
+np0504           ymbmtr-file
+186084*          YMBSCH-FILE
+186084*          YMBSCD-FILE
+100098           YMBAGC-FILE
+186084*          YMBCBA-FILE
+131886           YMBPHN-FILE
+162641           YMBAER-FILE
+202954*          TIME-FILE  
+202954*          YMBAHR-FILE
+192660           YMBACUR-FILE.  
+           CLOSE  PARAM-FILE.   
+
+NP0104     DISPLAY YMBAGT-CNT-REC-CNT ' AGT RECORDS WRITTEN'
+NP0104         UPON PRINTER.
+NP0404     DISPLAY YMBMTR-CNT-REC-CNT ' MTRF RECORDS WRITTEN'   
+NP0404         UPON PRINTER.
+186084*    DISPLAY YMBSCH-CNT-REC-CNT ' SCH COOP HDR RECORDS WRITTEN'   
+186084*        UPON PRINTER.
+186084*    DISPLAY YMBSCD-CNT-REC-CNT ' SCD COOP DTL RECORDS WRITTEN'   
+186084*        UPON PRINTER.
+186084*    DISPLAY YMBCBA-CNT-REC-CNT ' CBA COOP AGT BD RECORDS WRITTEN'
+186084*        UPON PRINTER.
+100098     DISPLAY YMBAGC-CNT-REC-CNT ' AGENT GRP CAP RECORDS WRITTEN'  
+100098         UPON PRINTER.
+NP0802     MOVE WS-AGT-RECORD-ID TO YMBAGT-CNT-RECORD-ID.   
+NP0802     MOVE ' COUNT: '       TO YMBAGT-CNT-FILLER-1.
+NP0802     MOVE WS-DATESTAMP     TO YMBAGT-CNT-DATESTAMP.   
+NP0802     WRITE YMBAGT-CNT-REC.
+NP0802     CLOSE YMBAGT-CNT-FILE.   
+
+NP0404     MOVE WS-MTRF-RECORD-ID TO YMBMTR-CNT-RECORD-ID.  
+NP0404     MOVE ' COUNT: '       TO YMBMTR-CNT-FILLER-1.
+NP0404     MOVE WS-DATESTAMP     TO YMBMTR-CNT-DATESTAMP.   
+NP0404     WRITE YMBMTR-CNT-REC.
+NP0404     CLOSE YMBMTR-CNT-FILE.   
+
+186084*    MOVE WS-SCH-RECORD-ID TO YMBSCH-CNT-RECORD-ID.   
+186084*    MOVE ' COUNT: '       TO YMBSCH-CNT-FILLER-1.
+186084*    MOVE WS-DATESTAMP     TO YMBSCH-CNT-DATESTAMP.   
+186084*    WRITE YMBSCH-CNT-REC.
+186084*    CLOSE YMBSCH-CNT-FILE.   
+
+186084*    MOVE WS-SCD-RECORD-ID TO YMBSCD-CNT-RECORD-ID.   
+186084*    MOVE ' COUNT: '        TO YMBSCD-CNT-FILLER-1.   
+186084*    MOVE WS-DATESTAMP      TO YMBSCD-CNT-DATESTAMP.  
+186084*    WRITE YMBSCD-CNT-REC.
+186084*    CLOSE YMBSCD-CNT-FILE.   
+
+186084*    MOVE WS-CBA-RECORD-ID TO YMBCBA-CNT-RECORD-ID.   
+186084*    MOVE ' COUNT: '       TO YMBCBA-CNT-FILLER-1.
+186084*    MOVE WS-DATESTAMP     TO YMBCBA-CNT-DATESTAMP.   
+186084*    WRITE YMBCBA-CNT-REC.
+186084*    CLOSE YMBCBA-CNT-FILE.   
+
+100098     MOVE 'CCLAGC'          TO YMBAGC-CNT-RECORD-ID.  
+100098     MOVE ' COUNT: '        TO YMBAGC-CNT-FILLER-1.   
+100098     MOVE WS-DATESTAMP      TO YMBAGC-CNT-DATESTAMP.  
+100098     WRITE YMBAGC-CNT-REC.
+100098     CLOSE YMBAGC-CNT-FILE.   
+
+131886     MOVE 'CCLPHN'          TO YMBPHN-CNT-RECORD-ID.  
+131886     MOVE ' COUNT: '        TO YMBPHN-CNT-FILLER-1.   
+131886     MOVE WS-DATESTAMP      TO YMBPHN-CNT-DATESTAMP.  
+131886     WRITE YMBPHN-CNT-REC.
+131886     CLOSE YMBPHN-CNT-FILE.   
+
+162641*  NO NEED FOR A WHOLE FILE TO HOLD THE CNT--WAREHOUSE ISN'T ASKING   
+162641**** US FOR COUNT RECORDS ANYMORE.
+162641     DISPLAY 'AGENT-EMAIL-RECS: ' WS-AER-REC-CNT UPON PRINTER.
+202954*    DISPLAY 'AGENT-HIST-RECS : ' WS-AHR-REC-CNT UPON PRINTER.
+
+192660     MOVE 'CCLACR'          TO YMBACUR-CNT-RECORD-ID. 
+192660     MOVE ' COUNT: '        TO YMBACUR-CNT-FILLER-1.  
+192660     MOVE WS-DATESTAMP      TO YMBACUR-CNT-DATESTAMP. 
+192660     WRITE YMBACUR-CNT-REC.   
+192660     CLOSE YMBACUR-CNT-FILE.  
+144449*    DEPART.  
+           DISPLAY 'AGENT-RECORDS READ = ' WS-AGENT-CNT UPON PRINTER.   
+           GO TO DPP12-END-OF-JOB.  
+
+NP0902*9100-DATABASE-ERROR. 
+NP0902     COPY YMP01DLP REPLACING  
+NP0902                   0000-IMPART-OPEN BY 0100-FILE-CONTINUE 
+NP0902                   1210-FILE-CONTINUE BY 0100-FILE-CONTINUE   
+NP0902                   2000-FETCH-FIRST-AREA BY 9100-FETCH-FIRST-AREA 
+NP0902                   2100-FETCH-NEXT-AREA BY 9100-FETCH-NEXT-AREA.  
+188688 9200-EDIT-ERROR-MSG. 
+188688     PERFORM DPP12-EDIT-ERROR-MSG 
+188688        THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+188688  
+188688     GO TO DPP12-END-OF-JOB.  
+188688  
+188688 9210-EDIT-CONTINUE-MSG.  
+188688     PERFORM DPP12-EDIT-ERROR-MSG 
+188688        THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+188688  
+188688 9300-SEVERE-ERROR-MSG.   
+188688     GO TO DPP12-SEVERE-ERROR-MSG.
+188688  
+188688 9400-INFO-MSG.   
+188688     PERFORM DPP12-INFO-MSG   
+188688        THRU DPP12-INFO-MSG-EXIT. 
+188688  
+188688 9500-RETURN-SUBROUTINE-ERROR.
+188688     GO TO DPP12-RETURN-SUBROUTINE-ERROR. 
+188688  
+188688 9600-SAVE-SUBROUTINE-ERRORS. 
+188688     PERFORM DPP12-SAVE-SUBROUTINE-MSGS   
+188688        THRU DPP12-SAVE-SUBROUTINE-MSGS-X.
+
+
+
+NP0902 9100-FETCH-FIRST-AREA.   
+NP0902     DISPLAY 'SHOULD NOT REACH 9100-FETCH-FIRST-AREA' 
+NP0902         UPON PRINTER.
+NP0902  
+NP0902 9100-FETCH-NEXT-AREA.
+NP0902     DISPLAY 'SHOULD NOT REACH 9100-FETCH-NEXT-AREA'  
+NP0902         UPON PRINTER.
+NP0902  
+           GO TO DPP12-DATABASE-ERROR.  
+
+202954*A1000-DIMINISH-NEXT-TIME.
+202954*** THIS ROUTINE ASSUMES WILL NOT DECREMENT TO A TIME PRIOR TO
+202954*** MIDNIGHT--JUST USE MIDNIGHT IF THAT CLOSE--MUCH EASIER.   
+202954*    IF DPP02-SYSTEM-MN > 1   
+202954*       SUBTRACT 2 FROM DPP02-SYSTEM-MN   
+202954*    ELSE 
+202954*DECREMENT TO PREVIOUS HOUR   
+202954*       IF DPP02-SYSTEM-HH > 0
+202954*          COMPUTE DPP02-SYSTEM-MN = DPP02-SYSTEM-MN + 58 
+202954*          SUBTRACT 1 FROM DPP02-SYSTEM-HH
+202954*       ELSE  
+202954* LESS THAN 2 MINUTES AFTER MIDNIGHT, JUST SET TO MIDNIGHT.   
+202954*          MOVE ZEROES TO DPP02-SYSTEM-MN 
+202954*                         DPP02-SYSTEM-SS 
+202954*    END-IF.  
+
+       COPY DPP10Y2K.   
+       COPY DPP12BER.   
+144449 COPY DPP12ERR.   
+144449 COPY DPP12WDB.   
+       COPY DPP20Y2K.   
+NP0504 COPY MKP01VDP.   
+214948 COPY YMP01AAP.   

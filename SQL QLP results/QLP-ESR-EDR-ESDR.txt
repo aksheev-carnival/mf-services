@@ -1,0 +1,303 @@
+   5   5    LIST EDR-CALC-KEY,                              ;   
+   6   6         EDR-END-DATE,                              ;   
+   7   7         EDR-END-TIME,                              ;   
+   8   8         EDR-ON-ARRIVAL-IND,                        ;   
+   9   9         EDR-AT-YOUR-LEISURE-IND,                   ;   
+  10  10         EDR-AUTO-SHIP-ALLOC-IND,                   ;   
+  11  11         EDR-TOTAL-ALLOC,                           ;   
+  12  12         EDR-TOTAL-SOLD,                            ;   
+  13  13         EDR-PRESALES-ALLOC,                        ;   
+  14  14         EDR-PRESALES-SOLD,                         ;   
+  15  15         EDR-DAY-OF-WEEK,                           ;   
+  16  16         EDR-BEGIN-BOOK-DATE,                       ;   
+  17  17         EDR-AVAIL-STATUS,                          ;   
+  18  18         EDR-MIN-SALES-REQ,                         ;   
+  19  19         EDR-UPDATE-DATE,                           ;   
+  20  20         EDR-UPDATE-TIME                            ;   
+  21  21    WHERE                                           ;   
+  22  22        (EDR-CALC-KEY = '424044202709220830'        ;   
+  23  23         OR EDR-CALC-KEY = '424044202709220000')    ;   
+  24  24    AND AREA-NAME OF EXC-DEPARTURE-REC = 'EXCINV09' ;   
+  25  25    OR                                              ;   
+  26  26        (EDR-CALC-KEY = '424083202707280830'        ;   
+  27  27         OR EDR-CALC-KEY = '424083202707280000')    ;   
+  28  28    AND AREA-NAME OF EXC-DEPARTURE-REC = 'EXCINV07' ;   
+  29  29    OR                                              ;   
+  30  30        (EDR-CALC-KEY = '424083202612230830'        ;   
+  31  31         OR EDR-CALC-KEY = '424083202612230000')    ;   
+  32  32    AND AREA-NAME OF EXC-DEPARTURE-REC = 'EXCINV12' ;   
+  33  33    OR                                              ;   
+  34  34        (EDR-CALC-KEY = '424291202708110930'        ;   
+  35  35         OR EDR-CALC-KEY = '424291202708110000')    ;   
+  36  36    AND AREA-NAME OF EXC-DEPARTURE-REC = 'EXCINV08' ;   
+  37  37
+    EDR-CALC-KEY =  424044202709220830  
+    EDR-END-DATE =  20270922
+    EDR-END-TIME =  1430
+    EDR-ON-ARRIVAL-IND =  N 
+    EDR-AT-YOUR-LEISURE-IND =  N
+    EDR-AUTO-SHIP-ALLOC-IND =  N
+    EDR-TOTAL-ALLOC =   5000
+    EDR-TOTAL-SOLD =      0 
+    EDR-PRESALES-ALLOC =   5000 
+    EDR-PRESALES-SOLD =      0  
+    EDR-DAY-OF-WEEK =  WED  
+    EDR-BEGIN-BOOK-DATE =  20250909 
+    EDR-AVAIL-STATUS =  Y   
+    EDR-MIN-SALES-REQ =      1  
+    EDR-UPDATE-DATE =  20250907 
+    EDR-UPDATE-TIME =   91142   
+
+    EDR-CALC-KEY =  424083202707280830  
+    EDR-END-DATE =  20270728
+    EDR-END-TIME =  1330
+    EDR-ON-ARRIVAL-IND =  N 
+    EDR-AT-YOUR-LEISURE-IND =  N
+    EDR-AUTO-SHIP-ALLOC-IND =  N
+    EDR-TOTAL-ALLOC =   5000
+    EDR-TOTAL-SOLD =      0 
+    EDR-PRESALES-ALLOC =   5000 
+    EDR-PRESALES-SOLD =      0  
+    EDR-DAY-OF-WEEK =  WED  
+    EDR-BEGIN-BOOK-DATE =  20250909 
+    EDR-AVAIL-STATUS =  Y   
+    EDR-MIN-SALES-REQ =     10  
+    EDR-UPDATE-DATE =  20250907 
+    EDR-UPDATE-TIME =   91142   
+
+    EDR-CALC-KEY =  424083202612230830  
+    EDR-END-DATE =  20261223
+    EDR-END-TIME =  1330
+    EDR-ON-ARRIVAL-IND =  N 
+    EDR-AT-YOUR-LEISURE-IND =  N
+    EDR-AUTO-SHIP-ALLOC-IND =  N
+    EDR-TOTAL-ALLOC =   5000
+    EDR-TOTAL-SOLD =     11 
+    EDR-PRESALES-ALLOC =   5000 
+    EDR-PRESALES-SOLD =     11  
+    EDR-DAY-OF-WEEK =  WED  
+    EDR-BEGIN-BOOK-DATE =  20250909 
+    EDR-AVAIL-STATUS =  Y   
+    EDR-MIN-SALES-REQ =     10  
+    EDR-UPDATE-DATE =  20261013 
+    EDR-UPDATE-TIME =  120440   
+
+    EDR-CALC-KEY =  424291202708110930  
+    EDR-END-DATE =  20270811
+    EDR-END-TIME =  1430
+    EDR-ON-ARRIVAL-IND =  N 
+    EDR-AT-YOUR-LEISURE-IND =  N
+    EDR-AUTO-SHIP-ALLOC-IND =  N
+    EDR-TOTAL-ALLOC =   5000
+    EDR-TOTAL-SOLD =      0 
+    EDR-PRESALES-ALLOC =   5000 
+    EDR-PRESALES-SOLD =      0  
+    EDR-DAY-OF-WEEK =  WED  
+    EDR-BEGIN-BOOK-DATE =  20260220 
+    EDR-AVAIL-STATUS =  Y   
+    EDR-MIN-SALES-REQ =     10  
+    EDR-UPDATE-DATE =  20260220 
+    EDR-UPDATE-TIME =  154958   
+
+         4 EDR-CALC-KEY RECORDS SELECTED
+  38  38    LIST ESR-CALC-KEY                               ;   
+  39  39    WHERE                                           ;   
+  40  40        ESR-CALC-KEY = 'VA20270918008424044'        ;   
+  41  41    AND AREA-NAME OF EXC-SAILING-REC = 'EXCINV09'   ;   
+  42  42    OR                                              ;   
+  43  43        ESR-CALC-KEY = 'VA20270724008424083'        ;   
+  44  44    AND AREA-NAME OF EXC-SAILING-REC = 'EXCINV07'   ;   
+  45  45    OR                                              ;   
+  46  46        ESR-CALC-KEY = 'SN20261221005424083'        ;   
+  47  47    AND AREA-NAME OF EXC-SAILING-REC = 'EXCINV12'   ;   
+  48  48    OR                                              ;   
+  49  49        ESR-CALC-KEY = 'VA20270807008424291'        ;   
+  50  50    AND AREA-NAME OF EXC-SAILING-REC = 'EXCINV08'   
+    ESR-CALC-KEY =  VA20270918008424044 
+
+    ESR-CALC-KEY =  VA20270724008424083 
+
+    ESR-CALC-KEY =  SN20261221005424083 
+
+    ESR-CALC-KEY =  VA20270807008424291 
+
+         4 ESR-CALC-KEY RECORDS SELECTED
+  51  51
+  52  52    LIST ESDR-CALC-KEY,                             ;   
+  53  53         ESDR-EXC-TIME,                             ;   
+  54  54         ESDR-STATUS,                               ;   
+  55  55         ESDR-TOTAL-ALLOC,                          ;   
+  56  56         ESDR-PRESALES-ALLOC,                       ;   
+  57  57         ESDR-GROUPS-ALLOC,                         ;   
+  58  58         ESDR-START-TIME-BUFF-TYPE,                 ;   
+  59  59         ESDR-START-TIME-BUFF,                      ;   
+  60  60         ESDR-END-TIME-BUFF-TYPE,                   ;   
+  61  61         ESDR-END-TIME-BUFF,                        ;   
+  62  62         ESDR-AUTO-SHIP-ALLOC-IND,                  ;   
+  63  63         ESDR-PRC-OVERRIDE-CODE,                    ;   
+  64  64         ESDR-OPERATIONAL-LIMIT,                    ;   
+  65  65         ESDR-BASE-PRICE,                           ;   
+  66  66         ESDR-EXC-TYPE,                             ;   
+  67  67         ESDR-EXC-END-DATE,                         ;   
+  68  68         ESDR-EXC-END-TIME,                         ;   
+  69  69         ESDR-ON-ARRIVAL-IND,                       ;   
+  70  70         ESDR-AT-YOUR-LEISURE-IND,                  ;   
+  71  71         ESDR-MIN-SEATING,                          ;   
+  72  72         ESDR-MAX-SEATING,                          ;   
+  73  73         ESDR-UPDATE-DATE,                          ;   
+  74  74         ESDR-UPDATE-TIME,                          ;   
+  75  75         ESDR-CURRENCY-CODE,                        ;   
+  76  76         ESDR-PRICE-CODE(1),                        ;   
+  77  77         ESDR-TOTAL-SOLD(1),                        ;   
+  78  78         ESDR-PRESALES-SOLD(1),                     ;   
+  79  79         ESDR-PRICE-AVAIL(1),                       ;   
+  80  80         ESDR-PRICE-MAX-CAPACITY(1),                ;   
+  81  81         ESDR-PRICE(1),                             ;   
+  82  82         ESDR-PRICE-CODE(2),                        ;   
+  83  83         ESDR-TOTAL-SOLD(2),                        ;   
+  84  84         ESDR-PRESALES-SOLD(2),                     ;   
+  85  85         ESDR-PRICE-AVAIL(2),                       ;   
+  86  86         ESDR-PRICE-MAX-CAPACITY(2),                ;   
+  87  87         ESDR-PRICE(2),                             ;   
+  88  88         ESDR-PRICE-CODE(3),                        ;   
+  89  89         ESDR-TOTAL-SOLD(3),                        ;   
+  90  90         ESDR-PRESALES-SOLD(3),                     ;   
+  91  91         ESDR-PRICE-AVAIL(3),                       ;   
+  92  92         ESDR-PRICE-MAX-CAPACITY(3),                ;   
+  93  93         ESDR-PRICE(3),                             ;   
+  94  94         ESDR-PRICE-CODE(4),                        ;   
+  95  95         ESDR-TOTAL-SOLD(4),                        ;   
+  96  96         ESDR-PRESALES-SOLD(4),                     ;   
+  97  97         ESDR-PRICE-AVAIL(4),                       ;   
+  98  98         ESDR-PRICE-MAX-CAPACITY(4),                ;   
+  99  99         ESDR-PRICE(4),                             ;   
+ 100 100         ESDR-PRICE-CODE(5),                        ;   
+ 101 101         ESDR-TOTAL-SOLD(5),                        ;   
+ 102 102         ESDR-PRESALES-SOLD(5),                     ;   
+ 103 103         ESDR-PRICE-AVAIL(5),                       ;   
+ 104 104         ESDR-PRICE-MAX-CAPACITY(5),                ;   
+ 105 105         ESDR-PRICE(5)                              ;   
+ 106 106    WHERE                                                   ;   
+ 107 107    ESDR-CALC-KEY = 'VA2027091800842404420270922'           ;   
+ 108 108    AND AREA-NAME OF EXC-SAILING-DEPARTURE-REC = 'EXCINV09' ;   
+ 109 109    OR                                                      ;   
+ 110 110    ESDR-CALC-KEY = 'VA2027072400842408320270728'           ;   
+ 111 111    AND AREA-NAME OF EXC-SAILING-DEPARTURE-REC = 'EXCINV07' ;   
+ 112 112    OR                                                       ;  
+ 113 113    ESDR-CALC-KEY = 'SN2026122100542408320261223'            ;  
+ 114 114    AND AREA-NAME OF EXC-SAILING-DEPARTURE-REC = 'EXCINV12'  ;  
+ 115 115    OR                                                       ;  
+ 116 116    ESDR-CALC-KEY = 'VA2027080700842429120270811'            ;  
+ 117 117    AND AREA-NAME OF EXC-SAILING-DEPARTURE-REC = 'EXCINV08' 
+    ESDR-CALC-KEY =  SN2026122100542408320261223
+    ESDR-EXC-TIME =   830   
+    ESDR-STATUS =  A
+    ESDR-TOTAL-ALLOC =    150   
+    ESDR-PRESALES-ALLOC =    150
+    ESDR-GROUPS-ALLOC =      0  
+    ESDR-START-TIME-BUFF-TYPE =  M  
+    ESDR-START-TIME-BUFF =    0 
+    ESDR-END-TIME-BUFF-TYPE =  M
+    ESDR-END-TIME-BUFF =    0   
+    ESDR-AUTO-SHIP-ALLOC-IND =  N   
+    ESDR-PRC-OVERRIDE-CODE =  N 
+    ESDR-OPERATIONAL-LIMIT =      0 
+    ESDR-BASE-PRICE =    229.99 
+    ESDR-EXC-TYPE =  EX 
+    ESDR-EXC-END-DATE =  20261223   
+    ESDR-EXC-END-TIME =  1330   
+    ESDR-ON-ARRIVAL-IND =  N
+    ESDR-AT-YOUR-LEISURE-IND =  N   
+    ESDR-MIN-SEATING =      0   
+    ESDR-MAX-SEATING =      0   
+    ESDR-UPDATE-DATE =  20261013
+    ESDR-UPDATE-TIME =  120440  
+    ESDR-CURRENCY-CODE =  USD   
+    ESDR-PRICE-CODE ( 1 ) =  A  
+    ESDR-TOTAL-SOLD ( 1 ) =      2  
+    ESDR-PRESALES-SOLD ( 1 ) =      2   
+    ESDR-PRICE-AVAIL ( 1 ) =  Y 
+    ESDR-PRICE-MAX-CAPACITY ( 1 ) =      0  
+    ESDR-PRICE ( 1 ) =    229.99
+    ESDR-PRICE-CODE ( 2 ) =  C  
+    ESDR-TOTAL-SOLD ( 2 ) =      1  
+    ESDR-PRESALES-SOLD ( 2 ) =      1   
+    ESDR-PRICE-AVAIL ( 2 ) =  Y 
+    ESDR-PRICE-MAX-CAPACITY ( 2 ) =      0  
+    ESDR-PRICE ( 2 ) =    139.99
+    ESDR-PRICE-CODE ( 3 ) =  I  
+    ESDR-TOTAL-SOLD ( 3 ) =      0  
+    ESDR-PRESALES-SOLD ( 3 ) =      0   
+    ESDR-PRICE-AVAIL ( 3 ) =  N 
+    ESDR-PRICE-MAX-CAPACITY ( 3 ) =      0  
+    ESDR-PRICE ( 3 ) =    139.99
+    ESDR-PRICE-CODE ( 4 ) =  T  
+    ESDR-TOTAL-SOLD ( 4 ) =      0  
+    ESDR-PRESALES-SOLD ( 4 ) =      0   
+    ESDR-PRICE-AVAIL ( 4 ) =  Y 
+    ESDR-PRICE-MAX-CAPACITY ( 4 ) =      0  
+    ESDR-PRICE ( 4 ) =    229.99
+    ESDR-PRICE-CODE ( 5 ) =  S  
+    ESDR-TOTAL-SOLD ( 5 ) =      0  
+    ESDR-PRESALES-SOLD ( 5 ) =      0   
+    ESDR-PRICE-AVAIL ( 5 ) =  Y 
+    ESDR-PRICE-MAX-CAPACITY ( 5 ) =      0  
+    ESDR-PRICE ( 5 ) =    229.99
+
+    ESDR-CALC-KEY =  VA2027080700842429120270811
+    ESDR-EXC-TIME =   930   
+    ESDR-STATUS =  A
+    ESDR-TOTAL-ALLOC =    100   
+    ESDR-PRESALES-ALLOC =    100
+    ESDR-GROUPS-ALLOC =      0  
+    ESDR-START-TIME-BUFF-TYPE =  M  
+    ESDR-START-TIME-BUFF =    0 
+    ESDR-END-TIME-BUFF-TYPE =  M
+    ESDR-END-TIME-BUFF =    0   
+    ESDR-AUTO-SHIP-ALLOC-IND =  N   
+    ESDR-PRC-OVERRIDE-CODE =  N 
+    ESDR-OPERATIONAL-LIMIT =      0 
+    ESDR-BASE-PRICE =     81.99 
+    ESDR-EXC-TYPE =  EX 
+    ESDR-EXC-END-DATE =  20270811   
+    ESDR-EXC-END-TIME =  1430   
+    ESDR-ON-ARRIVAL-IND =  N
+    ESDR-AT-YOUR-LEISURE-IND =  N   
+    ESDR-MIN-SEATING =      0   
+    ESDR-MAX-SEATING =      0   
+    ESDR-UPDATE-DATE =  20261019
+    ESDR-UPDATE-TIME =  175756  
+    ESDR-CURRENCY-CODE =  USD   
+    ESDR-PRICE-CODE ( 1 ) =  A  
+    ESDR-TOTAL-SOLD ( 1 ) =      0  
+    ESDR-PRESALES-SOLD ( 1 ) =      0   
+    ESDR-PRICE-AVAIL ( 1 ) =  Y 
+    ESDR-PRICE-MAX-CAPACITY ( 1 ) =      0  
+    ESDR-PRICE ( 1 ) =     81.99
+    ESDR-PRICE-CODE ( 2 ) =  C  
+    ESDR-TOTAL-SOLD ( 2 ) =      0  
+    ESDR-PRESALES-SOLD ( 2 ) =      0   
+    ESDR-PRICE-AVAIL ( 2 ) =  Y 
+    ESDR-PRICE-MAX-CAPACITY ( 2 ) =      0  
+    ESDR-PRICE ( 2 ) =     81.99
+    ESDR-PRICE-CODE ( 3 ) =  I  
+    ESDR-TOTAL-SOLD ( 3 ) =      0  
+    ESDR-PRESALES-SOLD ( 3 ) =      0   
+    ESDR-PRICE-AVAIL ( 3 ) =  N 
+    ESDR-PRICE-MAX-CAPACITY ( 3 ) =      0  
+    ESDR-PRICE ( 3 ) =     81.99
+    ESDR-PRICE-CODE ( 4 ) =  T  
+    ESDR-TOTAL-SOLD ( 4 ) =      0  
+    ESDR-PRESALES-SOLD ( 4 ) =      0   
+    ESDR-PRICE-AVAIL ( 4 ) =  Y 
+    ESDR-PRICE-MAX-CAPACITY ( 4 ) =      0  
+    ESDR-PRICE ( 4 ) =     81.99
+    ESDR-PRICE-CODE ( 5 ) =  S  
+    ESDR-TOTAL-SOLD ( 5 ) =      0  
+    ESDR-PRESALES-SOLD ( 5 ) =      0   
+    ESDR-PRICE-AVAIL ( 5 ) =  Y 
+    ESDR-PRICE-MAX-CAPACITY ( 5 ) =      0  
+    ESDR-PRICE ( 5 ) =     81.99
+
+         2 ESDR-CALC-KEY RECORDS SELECTED   
+

@@ -1,0 +1,1348 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.    SXB31MRV. 
+       DATE-WRITTEN.  NOVEMBER 11, 2015.
+       DATE-COMPILED.   
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER. UNISYS. 
+       OBJECT-COMPUTER. UNISYS  MEMORY SIZE 3 MODULES.  
+       SPECIAL-NAMES.   
+           PRINTER IS PRT   
+           PRINTER IS PRINTER.  
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+             SELECT INPUT-FILE      ASSIGN TO DISC SXBREV01IN.  
+             SELECT OUTPUT-FILE1    ASSIGN TO DISC SXBMRV02D.   
+             SELECT OUTPUT-FILE2    ASSIGN TO DISC SXBMRV03D.   
+             SELECT ERROR-FILE      ASSIGN TO DISC SXBMRV04D.   
+             SELECT ERR-MSG-FILE    ASSIGN TO DISC SXBMRV05D.   
+
+       DATA DIVISION.   
+       SUBSCHEMA SECTION.   
+144449 INVOKE SUBSCHEMA PST200UCOBSU
+144449        IN FILE SUBSCHEMAS OF SCHEMA PST200SCHEMA 
+144449        COPYING RECORDS    INTO COMMON
+144449        COPYING DATA-NAMES INTO COMMON
+144449        SAVE DATA INCLUDES DEFERRED-UPDATES   
+144449        DMCA  COMMON  
+144449        ERROR RECOVERY IS 9100-DATABASE-ERROR 
+144449        ROLLBACK       IS 9100-DATABASE-ERROR.
+
+       FILE SECTION.
+       FD INPUT-FILE
+           LABEL RECORDS ARE STANDARD.  
+       01  INPUT-REC                             PIC X(1500).   
+
+       FD OUTPUT-FILE1  
+           LABEL RECORDS ARE STANDARD.  
+       01  OUTPUT-REC1. 
+           03 OUT-COMMENT                    PIC X(500).
+           03 OUT-EGOR-EXC-DATE              PIC 9(10). 
+           03 OUT-EGOR-EXC-ID                PIC X(06). 
+           03 OUT-EGOR-EXC-TIME              PIC 9(05). 
+           03 OUT-EGOR-GUEST-SEQ-NUM         PIC 9(10). 
+           03 OUT-EGOR-PRICE-TYPE            PIC X(01). 
+           03 OUT-IGNORE-CLOSED-DEP-IND      PIC X(01). 
+           03 OUT-IGNORE-SCHEDULE-IND        PIC X(01). 
+           03 OUT-ORDER-NUMBER               PIC X(09). 
+           03 OUT-TO-SHIP-CODE               PIC X(02). 
+           03 OUT-TO-SAIL-DATE               PIC 9(10). 
+           03 OUT-TO-DURATION-DAYS           PIC 9(05). 
+           03 OUT-TO-EXC-DATE                PIC X(10). 
+           03 OUT-TO-EXC-ID                  PIC X(06). 
+           03 OUT-TO-EXC-TIME                PIC 9(05). 
+           03 OUT-TO-LOCATION                PIC X(03). 
+           03 OUT-USER-ID                    PIC X(15). 
+           03 OUT-PO-DATE-TIME               PIC X(16). 
+           03 OUT-FLEX-TIMING                PIC X(01). 
+           03 OUT-FLEX-DATE                  PIC X(01). 
+           03 OUT-INCLUDE-ITINERARY          PIC X(01). 
+           03 OUT-EGOR-BOOK-DATE             PIC 9(08). 
+           03 OUT-TW-NUM                     PIC 9(06). 
+           03 OUT-NO-OF-EGOR                 PIC 9(05). 
+           03 OUT-LINE-NUM                   PIC 9(05). 
+
+       FD OUTPUT-FILE2  
+           LABEL RECORDS ARE STANDARD.  
+       01  OUTPUT-REC2. 
+           03 OUTPUT-BEG-DATE                PIC 9(08). 
+           03 OUTPUT-END-DATE                PIC 9(08). 
+           03 FILLER                         PIC X(116).
+
+       FD ERROR-FILE
+           LABEL RECORDS ARE STANDARD.  
+       01  ERROR-REC.   
+           03 ERR-REASON                      PIC X(100).   
+           03 ERR-FILLER                      PIC X(01).
+           03 ERR-ENTRY                       PIC X(1500).  
+
+       FD ERR-MSG-FILE  
+           LABEL RECORDS ARE STANDARD.  
+       01 ERR-MSG-REC.  
+          03 ERR-MSG-CODE                     PIC X(03).
+          03 ERR-MSG-DESC                     PIC X(100).   
+
+       WORKING-STORAGE SECTION. 
+       01  MCFLAG                             PIC 9(10) BINARY. 
+144449 01  WS-PROG-ID                         PIC X(8) VALUE 'SXB31MRV'.
+       01  WS-ALPHA.
+           03  WS-ERROR-CODE                  PIC X(03).
+           03  WS-EOF-FLAG                    PIC X(01).
+           03  WS-TIME-FOUND                  PIC X(01).
+           03  WS-SHIP-FOUND                  PIC X(01).
+           03  WS-USER-ID                     PIC X(15).
+           03  WS-HDR-WRITTEN                 PIC X(01).
+       01  WS-MISC-NUMERIC. 
+           03 WS-SYSTEM-DATE                  PIC 9(08).
+           03 WS-SYSTEM-TIME                  PIC 9(08).
+           03 WS-LINE-NUM                     PIC 9(05).
+           03 WS-SUB                          PIC 9(05) BINARY. 
+           03 WS-ERR-CNT                      PIC 9(05) BINARY. 
+           03 WS-COUNT                        PIC 9(05) BINARY. 
+       01  WS-TEMP-START-DATE                 PIC 9(08).
+       01  WS-TEMP-START-DATE1 REDEFINES WS-TEMP-START-DATE.
+           03 WS-TEMP-START-YEAR              PIC 9(04).
+           03 WS-TEMP-START-MM                PIC 9(02).
+           03 WS-TEMP-START-DD                PIC 9(02).
+       01  WS-TEMP-END-DATE                   PIC 9(08).
+       01  WS-TEMP-END-DATE1 REDEFINES WS-TEMP-END-DATE.
+           03 WS-TEMP-END-YEAR                PIC 9(04).
+           03 WS-TEMP-END-MM                  PIC 9(02).
+           03 WS-TEMP-END-DD                  PIC 9(02).
+       01  WS-TEMP-TIME.
+           03 WS-HH                           PIC 9(02).
+           03 WS-MM                           PIC 9(02).
+           03 WS-AMPM                         PIC X(02).
+       01  WS-TIME1                           PIC X(04).
+       01  WS-TIME1-REDEF REDEFINES WS-TIME1.   
+           03 WS-EFF-TIME1                    PIC 9(04).
+       01  WS-TIME2                           PIC X(04).
+       01  WS-TIME2-REDEF REDEFINES WS-TIME2.   
+           03 WS-EFF-TIME2                    PIC 9(04).
+       01  WS-TIME3                           PIC X(04).
+       01  WS-TIME3-REDEF REDEFINES WS-TIME3.   
+           03 WS-EFF-TIME3                    PIC 9(04).
+       01  WS-TIME4                           PIC X(04).
+       01  WS-TIME4-REDEF REDEFINES WS-TIME4.   
+           03 WS-EFF-TIME4                    PIC 9(04).
+       01  WS-TO-TIME                         PIC X(04).
+       01  WS-TO-TIME-REDEF REDEFINES WS-TO-TIME.   
+           03 WS-EFF-TO-TIME                  PIC 9(04).
+       01  WS-DATE                            PIC 9(08).
+       01  WS-DATE1 REDEFINES WS-DATE.  
+           03 WS-YYYY                         PIC X(04).
+           03 WS-MON                          PIC X(02) JUSTIFIED RIGHT.
+           03 WS-DD                           PIC X(02) JUSTIFIED RIGHT.
+       01  WS-DAY                             PIC X(10).
+           88 WS-VALID-DAY                    VALUE 'MONDAY',   
+                                                    'TUESDAY',  
+                                                    'WEDNESDAY',
+                                                    'THURSDAY', 
+                                                    'FRIDAY',   
+                                                    'SATURDAY', 
+                                                    'SUNDAY',   
+                                                    'ALL'.  
+       01  WS-TO-ALLOW-FLEX-DATE-SEARCH       PIC X(03).
+       01  WS-INPUT-REC.
+           03 WS-FROM-START-DATE-RANGE        PIC X(10).
+           03 WS-FROM-END-DATE-RANGE          PIC X(10).
+           03 WS-FROM-DAY-OF-WEEK             PIC X(10).
+           03 WS-FROM-PORT1                   PIC X(03).
+           03 WS-FROM-OPERATOR                PIC 9(07).
+           03 WS-FROM-PRE-SALE-ITEM           PIC X(06).
+           03 WS-FROM-IGNORE-GUESTS-SCHEDULE  PIC X(01).
+           03 WS-FROM-IGNORE-PRE-SALE-STATUS  PIC X(01).
+           03 WS-FROM-EFFECTIVE-TIME1         PIC X(08).
+           03 WS-FROM-EFFECTIVE-TIME2         PIC X(08).
+           03 WS-FROM-EFFECTIVE-TIME3         PIC X(08).
+           03 WS-FROM-EFFECTIVE-TIME4         PIC X(08).
+           03 WS-FROM-EFFECTIVE-SHIP1         PIC X(03).
+           03 WS-FROM-EFFECTIVE-SHIP2         PIC X(03).
+           03 WS-FROM-EFFECTIVE-SHIP3         PIC X(03).
+           03 WS-FROM-EFFECTIVE-SHIP4         PIC X(03).
+           03 WS-FROM-EFFECTIVE-SHIP5         PIC X(03).
+           03 WS-FROM-EFFECTIVE-SHIP6         PIC X(03).
+           03 WS-FROM-EFFECTIVE-SHIP7         PIC X(03).
+           03 WS-FROM-EFFECTIVE-SHIP8         PIC X(03).
+           03 WS-TO-DATE                      PIC X(10).
+           03 WS-TO-LOCATION                  PIC X(03).
+           03 WS-TO-OPERATOR                  PIC 9(07).
+           03 WS-TO-PRE-SALE-ITEM             PIC X(06).
+           03 WS-TO-NEW-OFFER-TIME            PIC X(08).
+           03 WS-TO-ALLOW-FLEX-TIME-SEARCH    PIC X(03).
+           03 WS-REVISION-REASON-TYPE         PIC X(20).
+           03 WS-REASON-TEXT                  PIC X(500).   
+
+       01  WS-ERR-MSG-TABLE.
+           03 WS-ERR-MSG-REC OCCURS 100 TIMES.  
+              05 WS-ERR-MSG-CODE              PIC X(03).
+              05 WS-ERR-MSG-DESC              PIC X(100).   
+
+       01  WS-ERR-HDR-REC.  
+           03 WS-ERR-REASON                   PIC X(100).   
+           03 WS-ERR-FILLER                   PIC X(01).
+           03 WS-ERR-ENTRY                    PIC X(1500).  
+
+       COPY DPP01CIW.   
+       COPY DPP01DTA.   
+       COPY DPP01ERR.   
+144449 COPY DPP01MCB.   
+       COPY DPP01SCO.   
+       COPY DPP12SCO.   
+       COPY DPP42ERR.   
+       COPY RSP00DMS.   
+       COPY RSP32DMS.   
+       COPY RSP64DMS.   
+       COPY RSP77GMD.   
+       COPY DPP02Y2K.   
+       COPY SXP62TVW.   
+       COMMON-STORAGE SECTION.  
+
+       PROCEDURE DIVISION.  
+
+       1000-STARTUP.
+
+           PERFORM 1020-INITIALIZE  
+              THRU 1020-INITIALIZE-EXIT.
+           PERFORM 1040-IMPART-PARA 
+              THRU 1040-IMPART-PARA-EXIT.   
+           PERFORM 1060-OPEN-FILES  
+              THRU 1060-OPEN-FILES-EXIT.
+           PERFORM 1080-READ-PARA   
+              THRU 1080-READ-PARA-EXIT. 
+           PERFORM 1120-PROCESS-MAIN
+              THRU 1120-PROCESS-MAIN-EXIT   
+              UNTIL WS-EOF-FLAG = 'Y'.  
+           PERFORM 1240-DATE-FILE-UPDATE
+              THRU 1240-DATE-FILE-UPDATE-EXIT.  
+           GO TO 9000-END-OF-JOB.   
+
+       1020-INITIALIZE. 
+           COPY DPP01INT.   
+           MOVE LOW-VALUES             TO WS-MISC-NUMERIC.  
+
+           MOVE SPACES                 TO WS-ALPHA  
+                                          WS-DAY.   
+
+           ACCEPT WS-SYSTEM-DATE  FROM DATE YYYYMMDD.   
+           ACCEPT WS-SYSTEM-TIME  FROM TIME.
+
+       1020-INITIALIZE-EXIT.
+           EXIT.
+
+       1040-IMPART-PARA.
+           PERFORM DPP12-BEGIN-THREAD THRU DPP12-BEGIN-THREAD-EXIT. 
+
+           IF DPP01-SQL-ERROR-IND = 'Y' 
+              GO TO DPP12-THREAD-ERROR-EXIT.
+
+           IMPART.  
+
+           OPEN EXCINV01 USAGE-MODE  IS RETRIEVAL   
+                EXCINV02 USAGE-MODE  IS RETRIEVAL   
+                EXCINV03 USAGE-MODE  IS RETRIEVAL   
+                EXCINV04 USAGE-MODE  IS RETRIEVAL   
+                EXCINV05 USAGE-MODE  IS RETRIEVAL   
+                EXCINV06 USAGE-MODE  IS RETRIEVAL   
+                EXCINV07 USAGE-MODE  IS RETRIEVAL   
+                EXCINV08 USAGE-MODE  IS RETRIEVAL   
+                EXCINV09 USAGE-MODE  IS RETRIEVAL   
+                EXCINV10 USAGE-MODE  IS RETRIEVAL   
+                EXCINV11 USAGE-MODE  IS RETRIEVAL   
+                EXCINV12 USAGE-MODE  IS RETRIEVAL   
+                ETRF     USAGE-MODE  IS RETRIEVAL   
+                EXCURSION USAGE-MODE IS RETRIEVAL   
+                EXCORDER0 USAGE-MODE IS RETRIEVAL   
+                EXCORDER1 USAGE-MODE IS RETRIEVAL   
+                EXCORDER2 USAGE-MODE IS RETRIEVAL   
+                EXCORDER3 USAGE-MODE IS RETRIEVAL   
+                EXCORDER4 USAGE-MODE IS RETRIEVAL   
+                EXCORDER5 USAGE-MODE IS RETRIEVAL   
+                EXCORDER6 USAGE-MODE IS RETRIEVAL   
+                EXCORDER7 USAGE-MODE IS RETRIEVAL   
+                EXCORDER8 USAGE-MODE IS RETRIEVAL   
+                EXCORDER9 USAGE-MODE IS RETRIEVAL.  
+
+       1040-IMPART-PARA-EXIT.   
+           EXIT.
+
+       1060-OPEN-FILES. 
+           OPEN INPUT  INPUT-FILE   
+                       ERR-MSG-FILE.
+           OPEN OUTPUT OUTPUT-FILE1 
+                       OUTPUT-FILE2 
+                       ERROR-FILE.  
+
+       1060-OPEN-FILES-EXIT.
+           EXIT.
+
+       1080-READ-PARA.  
+
+      *    READ USER ID 
+           READ INPUT-FILE AT END   
+               GO TO 9000-END-OF-JOB.   
+
+           MOVE 1                      TO WS-LINE-NUM.  
+
+           MOVE INPUT-REC              TO WS-USER-ID.   
+
+      *    SKIP TWO LINES   
+           READ INPUT-FILE AT END   
+               GO TO 9000-END-OF-JOB.   
+
+           ADD 1                       TO WS-LINE-NUM.  
+
+           READ INPUT-FILE AT END   
+               GO TO 9000-END-OF-JOB.   
+
+           ADD 1                       TO WS-LINE-NUM.  
+
+      *    READ HEADER  
+           READ INPUT-FILE AT END   
+               GO TO 9000-END-OF-JOB.   
+
+           ADD 1                       TO WS-LINE-NUM.  
+
+           MOVE INPUT-REC              TO WS-ERR-ENTRY. 
+           MOVE 'ERROR REASON'         TO WS-ERR-REASON.
+           MOVE ','                    TO WS-ERR-FILLER.
+           MOVE 'N'                    TO WS-HDR-WRITTEN.   
+
+           MOVE 0                      TO WS-SUB
+                                          OUTPUT-BEG-DATE   
+                                          OUTPUT-END-DATE.  
+
+       1100-READ-ERR-FILE.  
+
+           READ ERR-MSG-FILE AT END 
+              GO TO 1080-READ-PARA-EXIT.
+
+           ADD 1                       TO WS-SUB.   
+           MOVE ERR-MSG-REC            TO WS-ERR-MSG-REC (WS-SUB)   
+
+           GO TO 1100-READ-ERR-FILE.
+
+       1080-READ-PARA-EXIT. 
+           MOVE WS-SUB                 TO WS-ERR-CNT.   
+
+       1120-PROCESS-MAIN.   
+
+           IF WS-ERROR-CODE > SPACES
+              IF WS-HDR-WRITTEN = 'N'   
+                 MOVE 'Y'              TO WS-HDR-WRITTEN
+                 MOVE WS-ERR-HDR-REC   TO ERROR-REC 
+                 WRITE ERROR-REC
+              END-IF
+              PERFORM 1200-WRITE-ERR-FILE THRU 1220-WRITE-ERR-FILE-EXIT 
+              MOVE SPACES                 TO WS-ERROR-CODE  
+           END-IF.  
+
+           READ INPUT-FILE AT END   
+              MOVE 'Y'                 TO WS-EOF-FLAG.  
+
+           ADD 1                       TO WS-LINE-NUM.  
+
+           IF WS-EOF-FLAG = 'Y' 
+              GO TO 1120-PROCESS-MAIN-EXIT  
+           END-IF.  
+
+           IF INPUT-REC (1:1) = ',' OR ' '  
+              GO TO 1120-PROCESS-MAIN-EXIT  
+           END-IF.  
+
+           INITIALIZE WS-INPUT-REC. 
+
+           IF INPUT-REC > SPACES
+              UNSTRING INPUT-REC
+                       DELIMITED BY ',' INTO
+                       WS-FROM-START-DATE-RANGE 
+                       WS-FROM-END-DATE-RANGE   
+                       WS-FROM-DAY-OF-WEEK  
+                       WS-FROM-PORT1
+                       WS-FROM-OPERATOR 
+                       WS-FROM-PRE-SALE-ITEM
+                       WS-FROM-IGNORE-GUESTS-SCHEDULE   
+                       WS-FROM-IGNORE-PRE-SALE-STATUS   
+                       WS-FROM-EFFECTIVE-TIME1  
+                       WS-FROM-EFFECTIVE-TIME2  
+                       WS-FROM-EFFECTIVE-TIME3  
+                       WS-FROM-EFFECTIVE-TIME4  
+                       WS-FROM-EFFECTIVE-SHIP1  
+                       WS-FROM-EFFECTIVE-SHIP2  
+                       WS-FROM-EFFECTIVE-SHIP3  
+                       WS-FROM-EFFECTIVE-SHIP4  
+                       WS-FROM-EFFECTIVE-SHIP5  
+                       WS-FROM-EFFECTIVE-SHIP6  
+                       WS-FROM-EFFECTIVE-SHIP7  
+                       WS-FROM-EFFECTIVE-SHIP8  
+                       WS-TO-DATE   
+                       WS-TO-LOCATION   
+                       WS-TO-OPERATOR   
+                       WS-TO-PRE-SALE-ITEM  
+                       WS-TO-NEW-OFFER-TIME 
+                       WS-TO-ALLOW-FLEX-TIME-SEARCH 
+                       WS-REVISION-REASON-TYPE  
+                       WS-REASON-TEXT   
+           ELSE 
+              MOVE 'D01'               TO WS-ERROR-CODE 
+              GO TO 1120-PROCESS-MAIN-EXIT  
+           END-IF.  
+
+       1140-VALIDATE-INPUT. 
+
+           MOVE ZEROES                 TO WS-COUNT. 
+           INSPECT WS-FROM-START-DATE-RANGE TALLYING WS-COUNT FOR   
+              ALL '/'   
+           IF WS-COUNT = 2  
+              CONTINUE  
+           ELSE 
+              MOVE 'D02'               TO WS-ERROR-CODE 
+              GO TO 1120-PROCESS-MAIN-EXIT  
+           END-IF.  
+
+           UNSTRING WS-FROM-START-DATE-RANGE
+               DELIMITED BY '/' INTO
+               WS-MON   
+               WS-DD
+               WS-YYYY. 
+
+           INSPECT WS-MON REPLACING LEADING SPACES BY '0'.  
+           INSPECT WS-DD REPLACING LEADING SPACES BY '0'.   
+
+           MOVE WS-DATE                TO DPP02-YYYYMMDD-DATE.  
+
+           PERFORM DPP10-VALIDATE-YYYYMMDD-DATE.
+
+           IF DPP02-IS-DATE-VALID = 'Y' 
+              IF  DPP02-YYYYMMDD-DATE >= WS-SYSTEM-DATE 
+                  CONTINUE  
+              ELSE  
+                  MOVE 'D03'           TO WS-ERROR-CODE 
+                  GO TO 1120-PROCESS-MAIN-EXIT  
+              END-IF
+           ELSE 
+              MOVE 'D04'               TO WS-ERROR-CODE 
+              GO TO 1120-PROCESS-MAIN-EXIT  
+           END-IF.  
+
+           MOVE DPP02-YYYYMMDD-DATE    TO WS-TEMP-START-DATE.   
+
+           MOVE ZEROES                 TO WS-COUNT. 
+
+           IF WS-FROM-END-DATE-RANGE > SPACES   
+              CONTINUE  
+           ELSE 
+              MOVE WS-FROM-START-DATE-RANGE 
+                                       TO WS-FROM-END-DATE-RANGE
+           END-IF.  
+
+           INSPECT WS-FROM-END-DATE-RANGE TALLYING WS-COUNT FOR 
+              ALL '/'   
+           IF WS-COUNT = 2  
+              CONTINUE  
+           ELSE 
+              MOVE 'D05'           TO WS-ERROR-CODE 
+              GO TO 1120-PROCESS-MAIN-EXIT  
+           END-IF.  
+
+           UNSTRING WS-FROM-END-DATE-RANGE  
+               DELIMITED BY '/' INTO
+               WS-MON   
+               WS-DD
+               WS-YYYY. 
+
+           INSPECT WS-MON REPLACING LEADING SPACES BY '0'.  
+           INSPECT WS-DD REPLACING LEADING SPACES BY '0'.   
+
+           MOVE WS-DATE                TO DPP02-YYYYMMDD-DATE.  
+
+           PERFORM DPP10-VALIDATE-YYYYMMDD-DATE.
+
+           IF DPP02-IS-DATE-VALID = 'Y' 
+              IF  DPP02-YYYYMMDD-DATE >= WS-SYSTEM-DATE 
+                  CONTINUE  
+              ELSE  
+                  MOVE 'D06'           TO WS-ERROR-CODE 
+                  GO TO 1120-PROCESS-MAIN-EXIT  
+              END-IF
+           ELSE 
+              MOVE 'D07'               TO WS-ERROR-CODE 
+              GO TO 1120-PROCESS-MAIN-EXIT  
+           END-IF.  
+
+           MOVE DPP02-YYYYMMDD-DATE    TO WS-TEMP-END-DATE. 
+
+           IF WS-TEMP-START-DATE <= WS-TEMP-END-DATE
+              CONTINUE  
+           ELSE 
+              MOVE 'D08'            TO WS-ERROR-CODE
+              GO TO 1120-PROCESS-MAIN-EXIT  
+           END-IF   
+
+           IF WS-FROM-DAY-OF-WEEK > SPACES  
+              MOVE FUNCTION UPPER-CASE (WS-FROM-DAY-OF-WEEK) TO WS-DAY  
+              IF WS-VALID-DAY   
+                 CONTINUE   
+              ELSE  
+                 MOVE 'D09'            TO WS-ERROR-CODE 
+                 GO TO 1120-PROCESS-MAIN-EXIT   
+              END-IF
+              MOVE WS-DAY              TO WS-FROM-DAY-OF-WEEK   
+           ELSE 
+              MOVE 'ALL'               TO WS-FROM-DAY-OF-WEEK   
+           END-IF.  
+
+           IF WS-FROM-IGNORE-GUESTS-SCHEDULE > SPACES   
+              IF WS-FROM-IGNORE-GUESTS-SCHEDULE = 'Y' OR 'N'
+                 CONTINUE   
+              ELSE  
+                 MOVE 'D10'           TO WS-ERROR-CODE  
+              END-IF
+           END-IF.  
+
+           IF WS-FROM-IGNORE-PRE-SALE-STATUS > SPACES   
+              IF WS-FROM-IGNORE-PRE-SALE-STATUS = 'Y' OR 'N'
+                 CONTINUE   
+              ELSE  
+                 MOVE 'D11'           TO WS-ERROR-CODE  
+              END-IF
+           END-IF.  
+
+           IF WS-FROM-PORT1 > SPACES
+              CONTINUE  
+           ELSE 
+              MOVE 'ALL'               TO WS-FROM-PORT1 
+           END-IF.  
+
+           IF WS-FROM-PRE-SALE-ITEM > SPACES AND
+              WS-FROM-PRE-SALE-ITEM NOT = 'ALL' 
+              CONTINUE  
+           ELSE 
+              IF WS-FROM-PORT1 = 'ALL'  
+                 MOVE 'D12'            TO WS-ERROR-CODE 
+                 GO TO 1120-PROCESS-MAIN-EXIT   
+              END-IF
+           END-IF.  
+
+           IF WS-FROM-PRE-SALE-ITEM = 'ALL' 
+              IF (WS-FROM-EFFECTIVE-SHIP1 NOT = 'ALL' AND SPACES) OR
+                 (WS-FROM-EFFECTIVE-SHIP2 NOT = 'ALL' AND SPACES) OR
+                 (WS-FROM-EFFECTIVE-SHIP3 NOT = 'ALL' AND SPACES) OR
+                 (WS-FROM-EFFECTIVE-SHIP4 NOT = 'ALL' AND SPACES) OR
+                 (WS-FROM-EFFECTIVE-SHIP5 NOT = 'ALL' AND SPACES) OR
+                 (WS-FROM-EFFECTIVE-SHIP6 NOT = 'ALL' AND SPACES) OR
+                 (WS-FROM-EFFECTIVE-SHIP7 NOT = 'ALL' AND SPACES) OR
+                 (WS-FROM-EFFECTIVE-SHIP8 NOT = 'ALL' AND SPACES)   
+                 CONTINUE   
+              ELSE  
+                 MOVE 'D40'            TO WS-ERROR-CODE 
+                 GO TO 1120-PROCESS-MAIN-EXIT   
+              END-IF
+           END-IF.  
+
+           IF WS-FROM-PRE-SALE-ITEM > SPACES AND
+              WS-FROM-PRE-SALE-ITEM NOT = 'ALL' 
+              MOVE WS-FROM-PRE-SALE-ITEM TO EMR-EXC-ID  
+              FETCH EXC-MASTER-REC RECORD   
+                  ON ERROR GO TO 1180-EMR-NOT-FOUND 
+           END-IF.  
+
+           IF (WS-FROM-PORT1 NOT = 'ALL') AND   
+              (WS-FROM-PRE-SALE-ITEM > SPACES AND   
+               WS-FROM-PRE-SALE-ITEM NOT = 'ALL') AND   
+              EMR-PORT-CODE NOT = WS-FROM-PORT1 
+              MOVE 'D13'               TO WS-ERROR-CODE 
+              GO TO 1120-PROCESS-MAIN-EXIT  
+           END-IF.  
+
+           IF WS-FROM-OPERATOR > ZEROES AND 
+              WS-FROM-PRE-SALE-ITEM > SPACES AND
+              WS-FROM-PRE-SALE-ITEM NOT = 'ALL' 
+              IF EMR-VENDOR-ID = WS-FROM-OPERATOR   
+                 CONTINUE   
+              ELSE  
+                 MOVE 'D14'            TO WS-ERROR-CODE 
+                 GO TO 1120-PROCESS-MAIN-EXIT   
+              END-IF
+           END-IF.  
+
+           IF WS-FROM-EFFECTIVE-TIME1 > SPACES  
+              MOVE FUNCTION UPPER-CASE (WS-FROM-EFFECTIVE-TIME1)
+                                       TO WS-FROM-EFFECTIVE-TIME1   
+           END-IF.  
+           IF WS-FROM-EFFECTIVE-TIME2 > SPACES  
+              MOVE FUNCTION UPPER-CASE (WS-FROM-EFFECTIVE-TIME2)
+                                       TO WS-FROM-EFFECTIVE-TIME2   
+           END-IF.  
+           IF WS-FROM-EFFECTIVE-TIME3 > SPACES  
+              MOVE FUNCTION UPPER-CASE (WS-FROM-EFFECTIVE-TIME3)
+                                       TO WS-FROM-EFFECTIVE-TIME3   
+           END-IF.  
+           IF WS-FROM-EFFECTIVE-TIME4 > SPACES  
+              MOVE FUNCTION UPPER-CASE (WS-FROM-EFFECTIVE-TIME4)
+                                       TO WS-FROM-EFFECTIVE-TIME4   
+           END-IF.  
+
+           IF WS-FROM-EFFECTIVE-TIME1 > SPACES AND  
+              WS-FROM-EFFECTIVE-TIME1 NOT = 'ALL'   
+              UNSTRING WS-FROM-EFFECTIVE-TIME1  
+                  DELIMITED BY ':' OR SPACES
+                  INTO WS-HH
+                       WS-MM
+                       WS-AMPM  
+
+              IF WS-AMPM NOT = 'AM' AND 'PM'
+                 MOVE 'D15'            TO WS-ERROR-CODE 
+                 GO TO 1120-PROCESS-MAIN-EXIT   
+              END-IF
+
+              IF WS-AMPM = 'PM' AND WS-HH < 12  
+                 COMPUTE WS-HH = WS-HH + 12 
+              END-IF
+
+              IF WS-AMPM = 'AM' AND WS-HH = 12  
+                 MOVE ZEROES           TO WS-HH 
+              END-IF
+              INSPECT WS-HH REPLACING ALL SPACES BY '0' 
+              MOVE WS-HH               TO WS-TIME1(1:2) 
+              MOVE WS-MM               TO WS-TIME1(3:2) 
+
+              IF WS-EFF-TIME1 < 2400
+                 CONTINUE   
+              ELSE  
+                 MOVE 'D15'            TO WS-ERROR-CODE 
+                 GO TO 1120-PROCESS-MAIN-EXIT   
+              END-IF
+           END-IF.  
+
+           IF WS-FROM-EFFECTIVE-TIME2 > SPACES AND  
+              WS-FROM-EFFECTIVE-TIME2 NOT = 'ALL'   
+              UNSTRING WS-FROM-EFFECTIVE-TIME2  
+                  DELIMITED BY ':' OR SPACES
+                  INTO WS-HH
+                       WS-MM
+                       WS-AMPM  
+
+              IF WS-AMPM NOT = 'AM' AND 'PM'
+                 MOVE 'D16'            TO WS-ERROR-CODE 
+                 GO TO 1120-PROCESS-MAIN-EXIT   
+              END-IF
+
+              IF WS-AMPM = 'PM' AND WS-HH < 12  
+                 COMPUTE WS-HH = WS-HH + 12 
+              END-IF
+
+              IF WS-AMPM = 'AM' AND WS-HH = 12  
+                 MOVE ZEROES           TO WS-HH 
+              END-IF
+              INSPECT WS-HH REPLACING ALL SPACES BY '0' 
+              MOVE WS-HH               TO WS-TIME2(1:2) 
+              MOVE WS-MM               TO WS-TIME2(3:2) 
+
+              IF WS-EFF-TIME2 < 2400
+                 CONTINUE   
+              ELSE  
+                 MOVE 'D16'            TO WS-ERROR-CODE 
+                 GO TO 1120-PROCESS-MAIN-EXIT   
+              END-IF
+           END-IF.  
+
+           IF WS-FROM-EFFECTIVE-TIME3 > SPACES AND  
+              WS-FROM-EFFECTIVE-TIME3 NOT = 'ALL'   
+              UNSTRING WS-FROM-EFFECTIVE-TIME3  
+                  DELIMITED BY ':' OR SPACES
+                  INTO WS-HH
+                       WS-MM
+                       WS-AMPM  
+
+              IF WS-AMPM NOT = 'AM' AND 'PM'
+                 MOVE 'D17'            TO WS-ERROR-CODE 
+                 GO TO 1120-PROCESS-MAIN-EXIT   
+              END-IF
+
+              IF WS-AMPM = 'PM' AND WS-HH < 12  
+                 COMPUTE WS-HH = WS-HH + 12 
+              END-IF
+
+              IF WS-AMPM = 'AM' AND WS-HH = 12  
+                 MOVE ZEROES           TO WS-HH 
+              END-IF
+              INSPECT WS-HH REPLACING ALL SPACES BY '0' 
+              MOVE WS-HH               TO WS-TIME3(1:2) 
+              MOVE WS-MM               TO WS-TIME3(3:2) 
+
+              IF WS-EFF-TIME3 < 2400
+                 CONTINUE   
+              ELSE  
+                 MOVE 'D17'            TO WS-ERROR-CODE 
+                 GO TO 1120-PROCESS-MAIN-EXIT   
+              END-IF
+           END-IF.  
+
+           IF WS-FROM-EFFECTIVE-TIME4 > SPACES AND  
+              WS-FROM-EFFECTIVE-TIME4 NOT = 'ALL'   
+              UNSTRING WS-FROM-EFFECTIVE-TIME4  
+                  DELIMITED BY ':' OR SPACES
+                  INTO WS-HH
+                       WS-MM
+                       WS-AMPM  
+
+              IF WS-AMPM NOT = 'AM' AND 'PM'
+                 MOVE 'D18'            TO WS-ERROR-CODE 
+                 GO TO 1120-PROCESS-MAIN-EXIT   
+              END-IF
+
+              IF WS-AMPM = 'PM' AND WS-HH < 12  
+                 COMPUTE WS-HH = WS-HH + 12 
+              END-IF
+
+              IF WS-AMPM = 'AM' AND WS-HH = 12  
+                 MOVE ZEROES           TO WS-HH 
+              END-IF
+              INSPECT WS-HH REPLACING ALL SPACES BY '0' 
+              MOVE WS-HH               TO WS-TIME4(1:2) 
+              MOVE WS-MM               TO WS-TIME4(3:2) 
+
+              IF WS-EFF-TIME4 < 2400
+                 CONTINUE   
+              ELSE  
+                 MOVE 'D18'            TO WS-ERROR-CODE 
+                 GO TO 1120-PROCESS-MAIN-EXIT   
+              END-IF
+           END-IF.  
+
+           IF WS-FROM-EFFECTIVE-TIME1 = SPACES AND  
+              WS-FROM-EFFECTIVE-TIME2 = SPACES AND  
+              WS-FROM-EFFECTIVE-TIME3 = SPACES AND  
+              WS-FROM-EFFECTIVE-TIME4 = SPACES  
+              MOVE 'ALL'               TO WS-FROM-EFFECTIVE-TIME1   
+                                          WS-FROM-EFFECTIVE-TIME2   
+                                          WS-FROM-EFFECTIVE-TIME3   
+                                          WS-FROM-EFFECTIVE-TIME4   
+           END-IF.  
+
+           IF WS-FROM-EFFECTIVE-TIME1 = 'ALL' OR
+              WS-FROM-EFFECTIVE-TIME2 = 'ALL' OR
+              WS-FROM-EFFECTIVE-TIME3 = 'ALL' OR
+              WS-FROM-EFFECTIVE-TIME4 = 'ALL'   
+              IF (WS-FROM-EFFECTIVE-TIME1 NOT = 'ALL' AND SPACES) OR
+                 (WS-FROM-EFFECTIVE-TIME2 NOT = 'ALL' AND SPACES) OR
+                 (WS-FROM-EFFECTIVE-TIME3 NOT = 'ALL' AND SPACES) OR
+                 (WS-FROM-EFFECTIVE-TIME4 NOT = 'ALL' AND SPACES)   
+                 MOVE 'D19'            TO WS-ERROR-CODE 
+                 GO TO 1120-PROCESS-MAIN-EXIT   
+              END-IF
+           END-IF.  
+
+           IF WS-FROM-EFFECTIVE-SHIP1 = SPACES AND  
+              WS-FROM-EFFECTIVE-SHIP2 = SPACES AND  
+              WS-FROM-EFFECTIVE-SHIP3 = SPACES AND  
+              WS-FROM-EFFECTIVE-SHIP4 = SPACES AND  
+              WS-FROM-EFFECTIVE-SHIP5 = SPACES AND  
+              WS-FROM-EFFECTIVE-SHIP6 = SPACES AND  
+              WS-FROM-EFFECTIVE-SHIP7 = SPACES AND  
+              WS-FROM-EFFECTIVE-SHIP8 = SPACES  
+                 MOVE 'ALL'            TO WS-FROM-EFFECTIVE-SHIP1   
+                                          WS-FROM-EFFECTIVE-SHIP2   
+                                          WS-FROM-EFFECTIVE-SHIP3   
+                                          WS-FROM-EFFECTIVE-SHIP4   
+                                          WS-FROM-EFFECTIVE-SHIP5   
+                                          WS-FROM-EFFECTIVE-SHIP6   
+                                          WS-FROM-EFFECTIVE-SHIP7   
+                                          WS-FROM-EFFECTIVE-SHIP8   
+           END-IF.  
+
+           IF WS-FROM-EFFECTIVE-SHIP1 = 'ALL' OR
+              WS-FROM-EFFECTIVE-SHIP2 = 'ALL' OR
+              WS-FROM-EFFECTIVE-SHIP3 = 'ALL' OR
+              WS-FROM-EFFECTIVE-SHIP4 = 'ALL' OR
+              WS-FROM-EFFECTIVE-SHIP5 = 'ALL' OR
+              WS-FROM-EFFECTIVE-SHIP6 = 'ALL' OR
+              WS-FROM-EFFECTIVE-SHIP7 = 'ALL' OR
+              WS-FROM-EFFECTIVE-SHIP8 = 'ALL'   
+              IF (WS-FROM-EFFECTIVE-SHIP1 NOT = 'ALL' AND SPACES) OR
+                 (WS-FROM-EFFECTIVE-SHIP2 NOT = 'ALL' AND SPACES) OR
+                 (WS-FROM-EFFECTIVE-SHIP3 NOT = 'ALL' AND SPACES) OR
+                 (WS-FROM-EFFECTIVE-SHIP4 NOT = 'ALL' AND SPACES) OR
+                 (WS-FROM-EFFECTIVE-SHIP5 NOT = 'ALL' AND SPACES) OR
+                 (WS-FROM-EFFECTIVE-SHIP6 NOT = 'ALL' AND SPACES) OR
+                 (WS-FROM-EFFECTIVE-SHIP7 NOT = 'ALL' AND SPACES) OR
+                 (WS-FROM-EFFECTIVE-SHIP8 NOT = 'ALL' AND SPACES)   
+                 MOVE 'D20'         TO WS-ERROR-CODE
+                 GO TO 1120-PROCESS-MAIN-EXIT   
+              END-IF
+              IF WS-FROM-PRE-SALE-ITEM NOT > SPACES OR  
+                 WS-FROM-PRE-SALE-ITEM = 'ALL'  
+                 MOVE 'D21'            TO WS-ERROR-CODE 
+                 GO TO 1120-PROCESS-MAIN-EXIT   
+              END-IF
+           END-IF.  
+
+           IF WS-TO-DATE > SPACES   
+              MOVE FUNCTION UPPER-CASE (WS-TO-DATE) TO WS-DAY   
+              IF WS-VALID-DAY   
+                 CONTINUE   
+              ELSE  
+                 MOVE 'D23'            TO WS-ERROR-CODE 
+                 GO TO 1120-PROCESS-MAIN-EXIT   
+              END-IF
+              MOVE WS-DAY              TO WS-TO-DATE
+           ELSE 
+              MOVE 'ALL'               TO WS-TO-DATE
+              MOVE 'YES'               TO WS-TO-ALLOW-FLEX-DATE-SEARCH  
+           END-IF.  
+
+           IF WS-TO-LOCATION > SPACES   
+              CONTINUE  
+           ELSE 
+              MOVE WS-FROM-PORT1       TO WS-TO-LOCATION
+           END-IF.  
+
+           IF WS-FROM-PRE-SALE-ITEM = 'ALL' 
+              IF WS-TO-PRE-SALE-ITEM NOT = 'ALL' AND SPACES 
+                 MOVE 'D43'            TO WS-ERROR-CODE 
+                 GO TO 1120-PROCESS-MAIN-EXIT   
+              ELSE  
+                  MOVE 'ALL'           TO WS-TO-PRE-SALE-ITEM   
+              END-IF
+           ELSE 
+              IF WS-FROM-PRE-SALE-ITEM > SPACES 
+                 IF WS-TO-PRE-SALE-ITEM NOT > SPACES
+                    MOVE WS-FROM-PRE-SALE-ITEM  
+                                       TO WS-TO-PRE-SALE-ITEM   
+                 END-IF 
+              END-IF
+           END-IF.  
+
+           IF WS-TO-ALLOW-FLEX-DATE-SEARCH = 'YES'  
+              CONTINUE  
+           ELSE 
+              IF (WS-TO-NEW-OFFER-TIME > SPACES OR  
+                 WS-TO-ALLOW-FLEX-TIME-SEARCH > SPACES) AND 
+                 WS-TO-DATE > SPACES AND
+                 WS-TO-LOCATION > SPACES AND
+                 WS-TO-PRE-SALE-ITEM > SPACES   
+                 CONTINUE   
+              ELSE  
+                 MOVE 'D22'               TO WS-ERROR-CODE  
+                 GO TO 1120-PROCESS-MAIN-EXIT   
+              END-IF
+           END-IF.  
+
+           IF WS-TO-PRE-SALE-ITEM > SPACES  
+              MOVE WS-TO-PRE-SALE-ITEM TO EMR-EXC-ID
+              FETCH EXC-MASTER-REC RECORD   
+                  ON ERROR GO TO 1180-EMR-NOT-FOUND 
+           END-IF.  
+
+           IF WS-TO-LOCATION = 'ALL'
+              MOVE EMR-PORT-CODE       TO WS-TO-LOCATION
+           END-IF.  
+
+           IF WS-TO-OPERATOR > ZEROES AND   
+              WS-TO-PRE-SALE-ITEM > SPACES  
+              IF EMR-VENDOR-ID = WS-TO-OPERATOR 
+                 CONTINUE   
+              ELSE  
+                 MOVE 'D24'            TO WS-ERROR-CODE 
+                 GO TO 1120-PROCESS-MAIN-EXIT   
+              END-IF
+           END-IF.  
+
+           IF (WS-TO-LOCATION NOT = 'ALL') AND  
+              (WS-TO-PRE-SALE-ITEM > SPACES) AND
+              EMR-PORT-CODE NOT = WS-TO-LOCATION
+              MOVE 'D25'               TO WS-ERROR-CODE 
+              GO TO 1120-PROCESS-MAIN-EXIT  
+           END-IF.  
+
+           IF WS-TO-ALLOW-FLEX-TIME-SEARCH > SPACES 
+              MOVE FUNCTION UPPER-CASE (WS-TO-ALLOW-FLEX-TIME-SEARCH)   
+              TO WS-TO-ALLOW-FLEX-TIME-SEARCH   
+              IF WS-TO-ALLOW-FLEX-TIME-SEARCH = 'YES' OR 'NO'   
+                 CONTINUE   
+              ELSE  
+                 MOVE 'D26'            TO WS-ERROR-CODE 
+                 GO TO 1120-PROCESS-MAIN-EXIT   
+              END-IF
+           ELSE 
+              MOVE 'NO'                TO WS-TO-ALLOW-FLEX-TIME-SEARCH  
+           END-IF.  
+
+           IF WS-TO-ALLOW-FLEX-TIME-SEARCH = 'YES' AND  
+              WS-TO-NEW-OFFER-TIME > SPACES 
+              MOVE 'D27'               TO WS-ERROR-CODE 
+              GO TO 1120-PROCESS-MAIN-EXIT  
+           END-IF.  
+
+           IF WS-TO-NEW-OFFER-TIME > SPACES AND 
+              WS-TO-NEW-OFFER-TIME NOT = 'ALL'  
+              UNSTRING WS-TO-NEW-OFFER-TIME 
+                  DELIMITED BY ':' OR SPACES
+                  INTO WS-HH
+                       WS-MM
+                       WS-AMPM  
+              IF WS-AMPM = 'PM' AND WS-HH < 12  
+                 COMPUTE WS-HH = WS-HH + 12 
+              END-IF
+
+              IF WS-AMPM = 'AM' AND WS-HH = 12  
+                 MOVE ZEROES           TO WS-HH 
+              END-IF
+              INSPECT WS-HH REPLACING ALL SPACES BY '0' 
+              MOVE WS-HH               TO WS-TO-TIME(1:2)   
+              MOVE WS-MM               TO WS-TO-TIME(3:2)   
+
+              IF WS-EFF-TO-TIME <= 2400 
+                 CONTINUE   
+              ELSE  
+                 MOVE 'D28'            TO WS-ERROR-CODE 
+                 GO TO 1120-PROCESS-MAIN-EXIT   
+              END-IF
+           ELSE 
+              MOVE SPACES              TO WS-TO-TIME
+           END-IF.  
+
+
+           IF WS-REASON-TEXT > SPACES   
+              CONTINUE  
+           ELSE 
+              MOVE 'D29'               TO WS-ERROR-CODE 
+              GO TO 1120-PROCESS-MAIN-EXIT  
+           END-IF.  
+
+       1160-DATE-RANGE. 
+
+           IF (OUTPUT-BEG-DATE = 00000000) OR   
+              (OUTPUT-BEG-DATE > WS-TEMP-START-DATE)
+              MOVE WS-TEMP-START-DATE  TO OUTPUT-BEG-DATE   
+           END-IF.  
+
+           IF (OUTPUT-END-DATE = 00000000) OR   
+              (OUTPUT-END-DATE < WS-TEMP-END-DATE)  
+              MOVE WS-TEMP-END-DATE    TO OUTPUT-END-DATE   
+           END-IF.  
+
+           PERFORM 1260-GUEST-LIST THRU 1260-GUEST-LIST-EXIT.   
+
+       1120-PROCESS-MAIN-EXIT.  
+           EXIT.
+
+       1180-EMR-NOT-FOUND.  
+
+           MOVE 'D30'                  TO WS-ERROR-CODE.
+           GO TO 1120-PROCESS-MAIN-EXIT.
+
+       1200-WRITE-ERR-FILE. 
+
+           MOVE SPACES                 TO ERROR-REC.
+           PERFORM VARYING WS-SUB FROM 1 BY 1   
+              UNTIL WS-SUB > WS-ERR-CNT 
+              IF WS-ERROR-CODE = WS-ERR-MSG-CODE (WS-SUB)   
+                 MOVE WS-ERR-MSG-DESC (WS-SUB)  
+                                       TO ERR-REASON
+                 MOVE INPUT-REC        TO ERR-ENTRY 
+                 MOVE ','              TO ERR-FILLER
+                 WRITE ERROR-REC
+                 MOVE WS-ERR-CNT       TO WS-SUB
+              END-IF
+           END-PERFORM. 
+
+           IF ERR-REASON NOT > SPACES   
+              STRING 'UNKNOWN ERROR:' DELIMITED BY '  ' 
+                     WS-ERROR-CODE DELIMITED BY SIZE
+                                       INTO ERR-REASON  
+              MOVE ','                 TO ERR-FILLER
+              MOVE INPUT-REC           TO ERR-ENTRY 
+              WRITE ERROR-REC   
+           END-IF.  
+
+           MOVE SPACES                 TO WS-ERROR-CODE.
+
+       1220-WRITE-ERR-FILE-EXIT.
+           EXIT.
+
+************************************************************************
+******* BUILD 03D FILE START                                           *
+************************************************************************
+       1240-DATE-FILE-UPDATE.   
+
+           IF OUTPUT-END-DATE > ZEROES  
+              MOVE 21 TO DPP02-NUMBER-DAYS  
+              MOVE OUTPUT-END-DATE     TO DPP02-YYYYMMDD-DATE   
+              PERFORM DPP10-ADVANCE-YYYYMMDD-DATE   
+              MOVE DPP02-YYYYMMDD-DATE TO OUTPUT-END-DATE   
+           END-IF.  
+
+           IF OUTPUT-BEG-DATE > ZEROES  
+              MOVE 21 TO DPP02-NUMBER-DAYS  
+              MOVE OUTPUT-BEG-DATE     TO DPP02-YYYYMMDD-DATE   
+              PERFORM DPP10-DEMINISH-YYYYMMDD-DATE  
+              MOVE DPP02-YYYYMMDD-DATE TO OUTPUT-BEG-DATE   
+           END-IF.  
+
+           WRITE OUTPUT-REC2.   
+
+       1240-DATE-FILE-UPDATE-EXIT.  
+           EXIT.
+
+************************************************************************
+******* BUILD 03D FILE EXIT                                            *
+************************************************************************
+
+************************************************************************
+******* BUILD 02D FILE START                                           *
+************************************************************************
+
+       1260-GUEST-LIST. 
+
+           IF WS-FROM-PRE-SALE-ITEM > SPACES AND
+              WS-FROM-PRE-SALE-ITEM NOT = 'ALL' 
+              MOVE WS-FROM-PRE-SALE-ITEM
+                                       TO EMR-EXC-ID
+              FETCH EXC-MASTER-REC RECORD   
+              GO TO 1340-EMR-PROCESS
+           END-IF.  
+
+           IF WS-FROM-PORT1 NOT = 'ALL' 
+              MOVE WS-FROM-PORT1       TO ELR-LOCATION-CODE 
+              FETCH EXC-LOCATION-REC RECORD 
+                 ON ERROR GO TO 1280-PORT-ERROR 
+           END-IF.  
+
+       1280-PORT-ERROR. 
+
+           IF ERROR-NUM NOT = '0000'
+              MOVE 'D31'            TO WS-ERROR-CODE
+              GO TO 1260-GUEST-LIST-EXIT
+           END-IF.  
+
+           FETCH FIRST EXC-MASTER-REC   
+                WITHIN EXC-LOCATION-MASTER-SET SET  
+                ON ERROR GO TO 1320-EMR-ERROR.  
+
+       1300-NEXT-EMR.   
+
+           FETCH NEXT EXC-MASTER-REC
+                WITHIN EXC-LOCATION-MASTER-SET SET  
+                ON ERROR GO TO 1320-EMR-ERROR.  
+
+       1320-EMR-ERROR.  
+
+           IF ERROR-NUM NOT = '0000'
+              GO TO 1260-GUEST-LIST-EXIT
+           END-IF.  
+
+       1340-EMR-PROCESS.
+
+           IF WS-FROM-OPERATOR > ZEROES AND 
+              EMR-VENDOR-ID NOT = WS-FROM-OPERATOR  
+              GO TO 1300-NEXT-EMR   
+           END-IF.  
+
+       1360-FETCH-EMYR. 
+
+           FETCH FIRST EXC-MMYY-REC WITHIN EXC-MASTER-MMYY-SET SET  
+              ON ERROR GO TO 1400-EMYR-SET-ERROR.   
+
+           GO TO 1400-EMYR-SET-ERROR.   
+
+       1380-FETCH-NEXT-EMYR.
+
+           FETCH NEXT EXC-MMYY-REC WITHIN EXC-MASTER-MMYY-SET SET   
+              ON ERROR GO TO 1400-EMYR-SET-ERROR.   
+
+       1400-EMYR-SET-ERROR. 
+
+           IF ERROR-NUM NOT = '0000'
+              IF WS-FROM-PRE-SALE-ITEM > SPACES AND 
+                 WS-FROM-PRE-SALE-ITEM NOT = 'ALL'  
+                 GO TO 1260-GUEST-LIST-EXIT 
+              ELSE  
+                 GO TO 1300-NEXT-EMR
+              END-IF
+           END-IF.  
+
+           IF EMYR-EXC-YYYY >= WS-TEMP-START-YEAR AND   
+              EMYR-EXC-YYYY <= WS-TEMP-END-YEAR 
+              CONTINUE  
+           ELSE 
+              GO TO 1380-FETCH-NEXT-EMYR
+           END-IF.  
+
+           IF EMYR-EXC-YYYY = WS-TEMP-START-YEAR
+              IF EMYR-EXC-MM >= WS-TEMP-START-MM
+                 CONTINUE   
+              ELSE  
+                 GO TO 1380-FETCH-NEXT-EMYR 
+              END-IF
+           END-IF.  
+
+           IF EMYR-EXC-YYYY = WS-TEMP-END-YEAR  
+              IF EMYR-EXC-MM <= WS-TEMP-END-MM  
+                 CONTINUE   
+              ELSE  
+                 GO TO 1380-FETCH-NEXT-EMYR 
+              END-IF
+           END-IF.  
+
+       1420-FETCH-EDR.  
+
+           FETCH FIRST EXC-DEPARTURE-REC WITHIN 
+              EXC-MMYY-DEPARTURE-SET SET
+              ON ERROR GO TO 1460-EDR-ERROR.
+
+           GO TO 1460-EDR-ERROR.
+
+       1440-NEXT-EDR.   
+
+           FETCH NEXT EXC-DEPARTURE-REC WITHIN  
+              EXC-MMYY-DEPARTURE-SET SET
+              ON ERROR GO TO 1460-EDR-ERROR.
+
+       1460-EDR-ERROR.  
+
+           IF ERROR-NUM NOT = '0000'
+              GO TO 1380-FETCH-NEXT-EMYR
+           END-IF.  
+
+           IF WS-FROM-DAY-OF-WEEK(1:3) = EDR-DAY-OF-WEEK OR 
+              WS-FROM-DAY-OF-WEEK = 'ALL'   
+              CONTINUE  
+           ELSE 
+              GO TO 1440-NEXT-EDR   
+           END-IF.  
+
+           IF EDR-BEGIN-DATE >= WS-TEMP-START-DATE AND  
+              EDR-BEGIN-DATE <= WS-TEMP-END-DATE
+              CONTINUE  
+           ELSE 
+              GO TO 1440-NEXT-EDR   
+           END-IF.  
+           MOVE 'N'                    TO WS-TIME-FOUND.
+           IF WS-FROM-EFFECTIVE-TIME1 = 'ALL' OR
+              WS-FROM-EFFECTIVE-TIME2 = 'ALL' OR
+              WS-FROM-EFFECTIVE-TIME3 = 'ALL' OR
+              WS-FROM-EFFECTIVE-TIME4 = 'ALL'   
+              MOVE 'Y'                 TO WS-TIME-FOUND 
+           ELSE 
+              IF WS-EFF-TIME1 <= 0  
+                 CONTINUE   
+              ELSE  
+                 IF EDR-BEGIN-TIME = WS-EFF-TIME1   
+                    MOVE 'Y'           TO WS-TIME-FOUND 
+                 END-IF 
+              END-IF
+              IF WS-EFF-TIME2 <= 0  
+                 CONTINUE   
+              ELSE  
+                 IF EDR-BEGIN-TIME = WS-EFF-TIME2   
+                    MOVE 'Y'           TO WS-TIME-FOUND 
+                 END-IF 
+              END-IF
+              IF WS-EFF-TIME3 <= 0  
+                 CONTINUE   
+              ELSE  
+                 IF EDR-BEGIN-TIME = WS-EFF-TIME3   
+                    MOVE 'Y'           TO WS-TIME-FOUND 
+                 END-IF 
+              END-IF
+              IF WS-EFF-TIME4 <= 0  
+                 CONTINUE   
+              ELSE  
+                 IF EDR-BEGIN-TIME = WS-EFF-TIME4   
+                    MOVE 'Y'           TO WS-TIME-FOUND 
+                 END-IF 
+              END-IF
+           END-IF.  
+
+           IF WS-TIME-FOUND = 'Y'   
+              CONTINUE  
+           ELSE 
+              GO TO 1440-NEXT-EDR   
+           END-IF.  
+
+       1480-FETCH-ESDR. 
+
+           FETCH NEXT EXC-SAILING-DEPARTURE-REC 
+              WITHIN EXC-DEPARTURE-SAILING-SET SET  
+              ON ERROR GO TO 1500-ESDR-ERR. 
+
+       1500-ESDR-ERR.   
+
+           IF ERROR-NUM NOT = '0000'
+              GO TO 1440-NEXT-EDR   
+           END-IF.  
+
+           MOVE 'N'                    TO WS-SHIP-FOUND.
+
+           IF WS-FROM-EFFECTIVE-SHIP1 = 'ALL' OR
+              WS-FROM-EFFECTIVE-SHIP2 = 'ALL' OR
+              WS-FROM-EFFECTIVE-SHIP3 = 'ALL' OR
+              WS-FROM-EFFECTIVE-SHIP4 = 'ALL' OR
+              WS-FROM-EFFECTIVE-SHIP5 = 'ALL' OR
+              WS-FROM-EFFECTIVE-SHIP6 = 'ALL' OR
+              WS-FROM-EFFECTIVE-SHIP7 = 'ALL' OR
+              WS-FROM-EFFECTIVE-SHIP8 = 'ALL'   
+              MOVE 'Y'                 TO WS-SHIP-FOUND 
+              CONTINUE  
+           ELSE 
+              IF WS-FROM-EFFECTIVE-SHIP1 NOT = 'ALL' AND SPACES 
+                 IF ESDR-SHIP-CODE = WS-FROM-EFFECTIVE-SHIP1
+                    MOVE 'Y'           TO WS-SHIP-FOUND 
+                 END-IF 
+              END-IF
+              IF WS-FROM-EFFECTIVE-SHIP2 NOT = 'ALL' AND SPACES 
+                 IF ESDR-SHIP-CODE = WS-FROM-EFFECTIVE-SHIP2
+                    MOVE 'Y'           TO WS-SHIP-FOUND 
+                 END-IF 
+              END-IF
+              IF WS-FROM-EFFECTIVE-SHIP3 NOT = 'ALL' AND SPACES 
+                 IF ESDR-SHIP-CODE = WS-FROM-EFFECTIVE-SHIP3
+                    MOVE 'Y'           TO WS-SHIP-FOUND 
+                 END-IF 
+              END-IF
+              IF WS-FROM-EFFECTIVE-SHIP4 NOT = 'ALL' AND SPACES 
+                 IF ESDR-SHIP-CODE = WS-FROM-EFFECTIVE-SHIP4
+                    MOVE 'Y'           TO WS-SHIP-FOUND 
+                 END-IF 
+              END-IF
+           END-IF.  
+
+           IF WS-SHIP-FOUND = 'Y'   
+              CONTINUE  
+           ELSE 
+              GO TO 1480-FETCH-ESDR 
+           END-IF.  
+
+       1520-FETCH-EGOR. 
+
+           FETCH NEXT EXC-GUEST-ORDER-REC   
+              WITHIN EXC-SAIL-DEP-GUEST-ORDER-SET SET   
+              ON ERROR GO TO 1540-EGOR-ERROR.   
+
+       1540-EGOR-ERROR. 
+
+           IF ERROR-NUM NOT = '0000'
+              GO TO 1480-FETCH-ESDR 
+           END-IF.  
+
+           IF (EGOR-STATUS NOT = 'A')   
+              GO TO 1520-FETCH-EGOR 
+           END-IF.  
+
+           INITIALIZE OUTPUT-REC1.  
+
+           MOVE WS-REASON-TEXT         TO OUT-COMMENT.  
+           MOVE EGOR-EXC-DATE          TO OUT-EGOR-EXC-DATE.
+           MOVE EGOR-EXC-ID            TO OUT-EGOR-EXC-ID.  
+           MOVE EGOR-EXC-TIME          TO OUT-EGOR-EXC-TIME.
+           MOVE EGOR-GUEST-SEQ-NUM     TO OUT-EGOR-GUEST-SEQ-NUM.   
+           MOVE EGOR-PRICE-TYPE        TO OUT-EGOR-PRICE-TYPE.  
+           MOVE WS-FROM-IGNORE-GUESTS-SCHEDULE  
+                                       TO OUT-IGNORE-SCHEDULE-IND.  
+           MOVE EGOR-CALC-KEY (1:9)    TO OUT-ORDER-NUMBER. 
+           MOVE WS-FROM-IGNORE-PRE-SALE-STATUS  
+                                       TO OUT-IGNORE-CLOSED-DEP-IND.
+           MOVE WS-TO-DATE             TO OUT-TO-EXC-DATE.  
+           MOVE WS-TO-LOCATION         TO OUT-TO-LOCATION.  
+           MOVE WS-USER-ID             TO OUT-USER-ID.  
+           IF WS-TO-PRE-SALE-ITEM > SPACES  
+              MOVE WS-TO-PRE-SALE-ITEM TO OUT-TO-EXC-ID 
+           ELSE 
+              MOVE EMR-EXC-ID          TO OUT-TO-EXC-ID 
+           END-IF.  
+
+           IF WS-TO-TIME > SPACES   
+              MOVE WS-EFF-TO-TIME      TO OUT-TO-EXC-TIME   
+           ELSE 
+              IF WS-TO-ALLOW-FLEX-TIME-SEARCH = 'YES'   
+                 CONTINUE   
+              ELSE  
+                 MOVE EGOR-EXC-TIME    TO OUT-TO-EXC-TIME   
+              END-IF
+           END-IF.  
+           MOVE WS-SYSTEM-DATE         TO OUT-PO-DATE-TIME (1:8).   
+           MOVE WS-SYSTEM-TIME         TO OUT-PO-DATE-TIME (9:8).   
+           MOVE WS-TO-ALLOW-FLEX-TIME-SEARCH
+                                       TO OUT-FLEX-TIMING.  
+           MOVE WS-TO-ALLOW-FLEX-DATE-SEARCH
+                                       TO OUT-FLEX-DATE.
+           MOVE SPACES                 TO OUT-INCLUDE-ITINERARY.
+           MOVE ZEROES                 TO OUT-NO-OF-EGOR.   
+
+           FETCH OWNER RECORD WITHIN EXC-ORDER-GUEST-ORDER-SET SET  
+              ON ERROR GO TO 1480-FETCH-ESDR.   
+
+           MOVE EOR-ORDER-DATE         TO OUT-EGOR-BOOK-DATE.   
+           MOVE EOR-SHIP-CODE          TO OUT-TO-SHIP-CODE. 
+           MOVE EOR-SAIL-DATE          TO OUT-TO-SAIL-DATE. 
+           MOVE EOR-DURATION-DAYS      TO OUT-TO-DURATION-DAYS. 
+
+       COPY SXP62INT.   
+
+           MOVE EOR-BOOK-NUM TO SXP62-I-INDV-BOOK-NUM.  
+
+           CALL 'SXC62TVW' USING  DPP01-COMMON-DATA-FIELDS  
+                                  DPP01-COMMON-INFO 
+                                  SXP62-INPUT-PARAMS
+                                  SXP62-OUTPUT-PARAMS.  
+
+           IF DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 0
+              GO TO 9500-RETURN-SUBROUTINE-ERROR.   
+
+           MOVE SXP62-O-TRVL-WITH-NUM  TO OUT-TW-NUM.   
+           MOVE WS-LINE-NUM            TO OUT-LINE-NUM. 
+           WRITE OUTPUT-REC1.   
+
+           GO TO 1520-FETCH-EGOR.   
+
+       1260-GUEST-LIST-EXIT.
+           EXIT.
+
+************************************************************************
+******* BUILD 02D FILE EXIT                                            *
+************************************************************************
+
+       9000-END-OF-JOB. 
+           CLOSE INPUT-FILE 
+                 ERR-MSG-FILE   
+                 OUTPUT-FILE1   
+                 OUTPUT-FILE2   
+                 ERROR-FILE.
+
+           GO TO DPP12-END-OF-JOB.  
+
+       9100-DATABASE-ERROR. 
+           GO TO DPP12-DATABASE-ERROR.  
+
+       9200-EDIT-ERROR-MSG. 
+           PERFORM DPP12-EDIT-ERROR-MSG 
+              THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+
+           GO TO DPP12-END-OF-JOB.  
+
+       9210-EDIT-CONTINUE-MSG.  
+           PERFORM DPP12-EDIT-ERROR-MSG 
+              THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+
+       9300-SEVERE-ERROR-MSG.   
+           GO TO DPP12-SEVERE-ERROR-MSG.
+
+       9400-INFO-MSG.   
+           PERFORM DPP12-INFO-MSG   
+              THRU DPP12-INFO-MSG-EXIT. 
+
+       9500-RETURN-SUBROUTINE-ERROR.
+           GO TO DPP12-RETURN-SUBROUTINE-ERROR. 
+
+       9600-SAVE-SUBROUTINE-ERRORS. 
+           PERFORM DPP12-SAVE-SUBROUTINE-MSGS   
+              THRU DPP12-SAVE-SUBROUTINE-MSGS-X.
+
+       COPY DPP12BER.   
+       COPY DPP12ERR.   
+       COPY DPP12WDB.   
+       COPY DPP10Y2K.   

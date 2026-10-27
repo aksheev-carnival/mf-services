@@ -1,0 +1,146 @@
+RSP49INP PROC   
+      ****************************************************************  
+      *      RETURN BOOKING COMMUNICATION DETAILS WORKING STORAGE    *  
+      ****************************************************************  
+      * Description:                                                 *  
+      *    Used to validate Agency setup and accordingly provide     *  
+      *    email/fax details for communication purpose.              *  
+      ****************************************************************  
+163852* 15-MAY-15     V2B     JAI BHIMANI            CQ163852        *  
+163852* ADD INPUT FIELD FOR SENDING FIRST EMAIL ADDRESS WHEN SET.    *  
+**********************************************************************  
+189599* 05-JUL-16     0SA     TCS LTD.               CQ189599          *
+189599* CHANGES DONE TO SEND MEDICAL FORMS TO THE PAX EMAIL ADDRESS,   *
+189599* IF MENTIONED, INSTEAD OF SENDING THEM TO THE AGENCY.           *
+************************************************************************
+214948* 28-MAR-19      FUB     TCS LTD.               CQ214948         *
+214948* CHANGE THE DATATYPE OF FIELDS RELATED TO CUST-NUM.             *
+************************************************************************
+AUPRSL* 25-FEB-22     IUJ     TCS LTD.               AUPRSL            *
+AUPRSL* CHANGES DONE TO FETCH AGENT ABN NUMBER                         *
+************************************************************************
+186084* 23-AUG-24     PY0     TCS LTD.               ADO1860847        *
+186084* CHANGES DONE FOR TRADE SALES MODERNIZATION.                    *
+************************************************************************
+229393* 06-OCT-25     HPL                            ADO2293938        *
+229393* ADDED 2 FIELDS IN THE OUTPUT TO BE USED IN GRURUI RESPONSE     *
+************************************************************************
+       01  RSP49-AGENCY-INPUT.  
+           03  RSP49-CONTROL-FLAGS. 
+189599         05  RSP49-DIRECT-COM-FLG               PIC 9(01).
+189599         05  FILLER                             PIC X(03).
+               05  RSP49-OVERRIDE-EMAIL-FAX-FLG       PIC 1    BINARY-1.
+189599*        05  FILLER                             PIC 1(34) 
+189599         05  FILLER                             PIC 1(35) 
+                                                               BINARY-1.
+           03  RSP49-I-AN-PARAMS.   
+               05  RSP49-I-COMPANY-CODE               PIC X(01).
+               05  RSP49-I-GRP-BOOK-NUM               PIC X(06).
+               05  RSP49-I-IBR-BOOK-NUM               PIC X(06).
+               05  RSP49-I-EMAIL-TYPE                 PIC X(01).
+               05  RSP49-I-LETTER-TYPE                PIC X(01).
+               05  RSP49-I-AAR-AGENCY-ID              PIC X(18).
+               05  RSP49-I-AAR-ALT-AGENCY-ID          PIC X(18).
+               05  RSP49-I-AAR-TYPE                   PIC X(02).
+163852*        05  FILLER                             PIC X(03).
+163852         05  RSP49-I-FIRST-EMAIL-IND            PIC X(01).
+214948         05  RSP49-I-CUSTOMER-NUM               PIC X(07).
+214948         05  RSP49-I-ALT-CUSTOMER-NUM           PIC X(07).
+214948         05  FILLER                             PIC X(04).
+           03  RSP49-I-N-PARAMS.
+               05  RSP49-I-PHONE-NUM                  PIC 9(10) BINARY. 
+               05  RSP49-I-ALT-PHONE-NUM              PIC 9(10) BINARY. 
+214948*        05  RSP49-I-CUSTOMER-NUM               PIC 9(07) BINARY. 
+214948*        05  RSP49-I-ALT-CUSTOMER-NUM           PIC 9(07) BINARY. 
+214948         05  FILLER                             PIC X(08).
+
+
+ END PROC   
+
+RSP49OUT PROC   
+       01  RSP49-AGENCY-OUTPUT. 
+           03  RSP49-O-N-PARAMS.
+               05  RSP49-O-PAX-EMAIL-CNT              PIC 9(02)  BINARY.
+               05  RSP49-O-COMMUN-ENTRY-CNT           PIC 9(02)  BINARY.
+               05  RSP49-O-COMMUN-AGT-CNT             PIC 9(02)  BINARY.
+               05  RSP49-O-RESP-AGENCY-SUB            PIC 9(01)  BINARY.
+               05  RSP49-O-PAX-AGENCY-SUB             PIC 9(01)  BINARY.
+               05  FILLER                             PIC X(03).
+           03  RSP49-O-AN-PARAMS.   
+               05  RSP49-O-CONF-ALLOW-IND             PIC X(01).
+               05  RSP49-O-COMPANY-CODE               PIC X(01).
+               05  FILLER                             PIC X(02).
+           03  RSP49-O-PAX-EMAIL-ENTRY OCCURS 5 TIMES.  
+               05  RSP49-O-PAX-EMAIL                  PIC X(100).   
+           03  RSP49-O-COMMUN-ENTRY OCCURS 4 TIMES. 
+               05  RSP49-O-C-LETTER-TYPE              PIC X(01).
+               05  RSP49-O-C-EMAIL                    PIC X(100).   
+               05  RSP49-O-C-FAX-NUM                  PIC 9(10)  BINARY.
+               05  RSP49-O-C-AGENCY-SUB               PIC 9(01)  BINARY.
+               05  FILLER                             PIC X(02).
+           03  RSP49-O-COMMUN-AGT-DETAILS OCCURS 2 TIMES.   
+               05  RSP49-O-C-AGENT-NAME               PIC X(30).
+               05  RSP49-O-C-AGENT-TTA-NUM            PIC X(06).
+               05  RSP49-O-C-AGENT-ABTA-NUM           PIC X(06).
+               05  RSP49-O-C-AGENT-ADDRESS1           PIC X(30).
+               05  RSP49-O-C-AGENT-ADDRESS2           PIC X(30).
+               05  RSP49-O-C-AGENT-CITY               PIC X(20).
+               05  RSP49-O-C-AGENT-STATE              PIC X(02).
+               05  RSP49-O-C-AGENT-ZIP-CODE.
+                   07  RSP49-O-C-AGENT-ZIP            PIC X(05).
+                   07  RSP49-O-C-AGENT-BLK            PIC X(04).
+                   07  RSP49-O-C-AGENT-LOC            PIC X(02).
+               05  RSP49-O-C-AGENT-COUNTRY-CODE       PIC X(02).
+               05  RSP49-O-C-AGENT-COMMENT            PIC X(20).
+               05  RSP49-O-C-AGENT-ACCT-COMM-CODE     PIC X(01).
+               05  RSP49-O-C-AGENT-CUST-CODE          PIC X(01).
+               05  RSP49-O-C-AGENT-OWNER-MANAGER      PIC X(20).
+               05  RSP49-O-C-ATCR-FAX-CONF-IND        PIC X(01).
+               05  RSP49-O-C-ATCR-MAIL-CONF-IND       PIC X(01).
+               05  RSP49-O-C-AGENT-INTL-SALES-IND     PIC X(01).
+               05  RSP49-O-C-AGENT-DIRECT-IND         PIC X(01).
+               05  RSP49-O-C-AGENT-PHONE-NUM          PIC 9(10)  BINARY.
+214948*        05  RSP49-O-C-AGENT-CUST-NUM           PIC 9(07)  BINARY.
+214948         05  RSP49-O-C-AGENT-CUST-NUM           PIC X(07).
+               05  RSP49-O-C-AGENT-FAX-NUM            PIC 9(10)  BINARY.
+               05  RSP49-O-C-AGENT-EMAIL              PIC X(100).   
+174603         05  RSP49-O-C-AGENT-ACCT-EMAIL         PIC X(100).   
+174603         05  RSP49-O-C-AGENT-IBR-EMAIL          PIC X(100).   
+174603         05  RSP49-O-C-AGENT-GBR-EMAIL          PIC X(100).   
+174603         05  RSP49-O-C-AGENT-ALL-EMAIL          PIC X(100).   
+               05  RSP49-O-C-AGENT-COUNTRY-NUM        PIC 9(03)  BINARY.
+               05  RSP49-O-C-AGENT-CITY-NUM           PIC 9(03)  BINARY.
+               05  RSP49-O-C-AGENT-DBKEY              PIC 1(36) 
+                                                               BINARY-1.
+               05  RSP49-O-C-ATCR-DBKEY               PIC 1(36) 
+                                                               BINARY-1.
+               05  RSP49-O-C-AGENT-REG-REP-TERR.
+                   07  RSP49-O-C-AGENT-REGION-CODE    PIC 9(02) BINARY. 
+                   07  RSP49-O-C-AGENT-SALES-REP-CODE PIC 9(02) BINARY. 
+                   07  RSP49-O-C-AGENT-TERRITORY-CODE PIC 9(02) BINARY. 
+186084*        05  RSP49-O-C-AGENT-CONTRACT-NUM       PIC 9(06) BINARY. 
+186084         05  RSP49-O-C-AGENT-MSTR-CON-NUM       PIC 9(06) BINARY. 
+               05  RSP49-O-C-ATCR-INDICATORS.   
+                   07  RSP49-O-C-ATCR-INDICATORS1     PIC 1(36).
+                   07  RSP49-O-C-ATCR-INDICATORS2     PIC 1(36).
+AUPRSL         05  RSP49-O-C-AGENT-ABN-NUMBER         PIC X(11).
+229393         05  RSP49-O-C-AGENT-IATA-NUM           PIC 9(08).
+229393         05  RSP49-O-C-AGENT-ARC-NUM            PIC 9(08).
+ END PROC   
+
+RSP49INT PROC   
+       RSP49-INIT-INPUTS.   
+           MOVE LOW-VALUES TO RSP49-CONTROL-FLAGS   
+                              RSP49-I-N-PARAMS. 
+           MOVE SPACES     TO RSP49-I-AN-PARAMS.
+
+       RSP49-INIT-INPUTS-EXIT.  
+           EXIT.
+
+       RSP49-INIT-OUTPUTS.  
+           MOVE LOW-VALUES TO RSP49-O-N-PARAMS. 
+           MOVE SPACES     TO RSP49-O-AN-PARAMS.
+
+       RSP49-INIT-OUTPUTS-EXIT. 
+           EXIT.
+ END PROC   

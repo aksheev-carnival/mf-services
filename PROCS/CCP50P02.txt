@@ -1,0 +1,160 @@
+CCP50P02 PROC   
+      ****************************************************  
+      *   THIS PROC IS FOR CCL CORP                      *  
+      *   IT FUNCTIONS                                   *  
+      *      - TO FORMAT THE MESSAGE CCL-CORP-MESSSAGE   *  
+      *        SHOULD BE POPULATED BY                    *  
+      *           PERFROM DPP12-GET-NEXT-MESSAGE         *  
+      *              THRU DPP12-GET-NEXT-MESSAGE         *  
+      *           PERFORM CCP50-GET-INPUT-MESSAGE        *  
+      *              THRU CCP75-EXIT.                    *  
+      ****************************************************  
+************************************************************************
+153181* 30-APR-12      2SJ     TCS LTD                CQ153181         *
+153181* SYSTEM LIMIT FOR THE WORKSPACE MESSAGE SIZE  INCREASED FURTHER.*
+************************************************************************
+CCFRAU* 06-JUN-16      E1T                             CQ185904        *
+CCFRAU* CREDIT CARD FRAUD PROJECT                                      *
+************************************************************************
+
+       CCP50-GET-INPUT-MESSAGE. 
+           SUBTRACT CCC-INTERNAL-HDR-LEN FROM P-ML  
+                    GIVING CCMV-MESSAGE-LENGTH. 
+
+           MOVE CCC-EOS-CHR TO  
+                CC-MESSAGE-WORKSPACE (CCMV-MESSAGE-LENGTH:1)
+
+           MOVE 1 TO CCMV-MESSAGE-PTR.  
+
+           MOVE LOW-VALUES    TO CC-MESSAGE-HEADER. 
+
+           UNSTRING CC-MESSAGE-WORKSPACE
+                    DELIMITED BY CCC-EOE-CHR OR CCC-EOS-CHR 
+                    INTO CCMH-MSG-HDR CCMH-VERSION-NUM  
+                    DELIMITER CCMV-DELIMITER
+                    POINTER CCMV-MESSAGE-PTR.   
+
+153181     IF CCMH-BLOCK-CNT = 0 AND
+153181        CCMH-MSG-LEN > 100000 
+153181        SUBTRACT 100000 FROM CCMH-MSG-LEN.
+
+       CCP50-GET-NEXT-SEGMENT.  
+           IF (CCMV-DELIMITER NOT = CCC-EOS-CHR)
+              DISPLAY 'SEGMENT MISALLIGNMENT FOR ' CCMV-SEGMENT-NAME
+                      UPON PRINTER  
+              MOVE 1 TO CCMV-ERROR-SUB  
+              GO TO CCP75-EXIT. 
+
+           IF CCMV-MESSAGE-PTR NOT < CCMV-MESSAGE-LENGTH
+              GO TO CCP75-EXIT. 
+
+           MOVE ZERO   TO CCMV-SEGMENT-LEVEL.   
+           MOVE SPACES TO CCMV-SEGMENT-NAME.
+
+           UNSTRING CC-MESSAGE-WORKSPACE
+                    DELIMITED BY CCC-EOE-CHR OR CCC-EOS-CHR 
+                    INTO CCMV-SEGMENT-NAME CCMV-SEGMENT-LEVEL   
+                    DELIMITER CCMV-DELIMITER
+                    POINTER CCMV-MESSAGE-PTR.   
+
+           IF (CCMV-SEGMENT-NAME NOT = 'MSGHDR')
+              GO TO CCP50-CONTINUE. 
+
+           MOVE SPACES   TO MSGHDR-SEGMENT. 
+
+           UNSTRING CC-MESSAGE-WORKSPACE
+                    DELIMITED BY CCC-EOE-CHR OR CCC-EOS-CHR 
+                    INTO MSGHDR-SESSION-ID  
+                         MSGHDR-CRUISE-LINE-CODE
+                         MSGHDR-SYSTEM-ID   
+                         MSGHDR-USER-ID 
+                         MSGHDR-AGENCY-ID   
+                         MSGHDR-INTERNET-ID 
+                         MSGHDR-UI-CODE 
+                         MSGHDR-VERSION-NUM 
+                         MSGHDR-ATTEMPT-CNT 
+                         MSGHDR-SEND-DESCRIPTION-IND
+                         MSGHDR-ADVISE-CODE (1) 
+                         MSGHDR-ADVISE-CODE (2) 
+                         MSGHDR-ADVISE-CODE (3) 
+                         MSGHDR-ADVISE-CODE (4) 
+                         MSGHDR-ADVISE-CODE (5) 
+                         MSGHDR-CONDITION-CODE (1)  
+                         MSGHDR-CONDITION-CODE (2)  
+                         MSGHDR-CONDITION-CODE (3)  
+                         MSGHDR-CONDITION-CODE (4)  
+                         MSGHDR-CONDITION-CODE (5)  
+                         MSGHDR-ADVISE-TEXT (1) 
+                         MSGHDR-ADVISE-TEXT (2) 
+                         MSGHDR-ADVISE-TEXT (3) 
+                         MSGHDR-ADVISE-TEXT (4) 
+                         MSGHDR-ADVISE-TEXT (5) 
+                         MSGHDR-AGENT-PHONE-NUM 
+                         MSGHDR-AGENT-ARC-NUM   
+                         MSGHDR-AGENT-CLIA-NUM  
+                         MSGHDR-COPYRIGHT   
+                         MSGHDR-USER-NAME   
+                         MSGHDR-COOKIE  
+                         MSGHDR-GDS-COOKIE  
+                         MSGHDR-ALT-AGENCY-ID   
+CCFRAU                   MSGHDR-SOURCE-IP-ADDRESS                                                       
+                    DELIMITER CCMV-DELIMITER
+                    POINTER CCMV-MESSAGE-PTR.   
+
+           STRING 'Copyright (C) 2000 Carnival Corporation.  '  
+                  'All rights reserved.' DELIMITED BY SIZE  
+                  INTO MSGHDR-COPYRIGHT.
+
+TESTITD    IF NOT (MSGHDR-USER-ID = 'TESTCCL')  
+TESTITD       GO TO CCP50-NO-DISPLAY.   
+
+TESTITD    MOVE CC-MESSAGE-WORKSPACE (1:CCMV-MESSAGE-LENGTH) TO 
+TESTITD         CC-MESSAGE-DISPLAY (1:CCMV-MESSAGE-LENGTH). 
+
+TESTITD    INSPECT CC-MESSAGE-DISPLAY REPLACING 
+TESTITD                                 ALL CCC-EOE-CHR BY 'e'  
+TESTITD                                 ALL CCC-EOS-CHR BY 's'  
+TESTITD                                 ALL CCC-EOR-CHR BY 'r'. 
+
+TESTITD    MOVE 1 TO CCMV-START.
+
+TESTITDCCP50-TEST-LOOP-2.   
+TESTITD    IF (CCMV-START + 79) > (CCMV-MESSAGE-LENGTH) 
+TESTITD       COMPUTE CCMV-LEN = CCMV-MESSAGE-LENGTH - CCMV-START   
+TESTITD    ELSE 
+TESTITD       MOVE 80 TO CCMV-LEN.  
+
+TESTITD    IF CC-MESSAGE-DISPLAY (CCMV-START:CCMV-LEN) > SPACES 
+TESTITD       DISPLAY CC-MESSAGE-DISPLAY (CCMV-START:CCMV-LEN)  
+TESTITD               UPON PRINTER. 
+
+TESTITD    ADD CCMV-LEN TO CCMV-START.  
+
+TESTITD    IF CCMV-START < CCMV-MESSAGE-LENGTH  
+TESTITD       GO TO CCP50-TEST-LOOP-2.  
+
+TESTITD    DISPLAY '************************' UPON PRINTER. 
+
+TESTITDCCP50-NO-DISPLAY.
+           MOVE SPACE TO CCP00-CRSMR-ERROR-FLAG.
+           PERFORM CCP10-GET-SYSTEM THRU CCP10-SYSTEM-EXIT. 
+
+           IF CCP00-CRSMR-ERROR-FLAG = 'Y'  
+              MOVE 6 TO CCMV-ERROR-SUB  
+              GO TO CCP75-EXIT. 
+
+           IF CCMV-MESSAGE-LENGTH = 
+                 (CCMH-MSG-LEN + CCC-SABRE-HDR-PREFIX)  
+              NEXT SENTENCE 
+           ELSE 
+              DISPLAY 'CCMV-MESSAGE-LENGTH = ' CCMV-MESSAGE-LENGTH  
+                      UPON PRINTER  
+              ADD CCC-SABRE-HDR-PREFIX CCMH-MSG-LEN 
+                  GIVING CCMH-MSG-LEN   
+              DISPLAY 'CCMH-MSG-LEN = ' CCMH-MSG-LEN UPON PRINTER   
+              GO TO 9100-DATABASE-ERROR.
+
+           GO TO CCP50-GET-NEXT-SEGMENT.
+
+       CCP50-CONTINUE.  
+ END PROC   

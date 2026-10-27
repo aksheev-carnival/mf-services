@@ -1,0 +1,2031 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.    ARO39PAY. 
+       AUTHOR.        CARNIVAL  
+       DATE-WRITTEN.  OCT-03-2007.  
+      ******************************************************************
+      *                      CREDIT CARD CHARGE SUBROUTINE             *
+************************************************************************
+C99744* 17-NOV-09      RGM     TCS LTD.               CQ99744          *
+C99744* COMMENTED DISPLAY UPON PRINTER TO STOP TIP PRINTS              *
+************************************************************************
+C78366* 13-JUL-10      5KM     TCS LTD.               CQ78366          *
+C78366* Determine Auth Number for JEA Inv. Removed txn code hardcoding *
+************************************************************************
+126351* August 2011    JD   CCL  CC3 - Bringing Reservations into the  *
+126351* Credit Card Common Arch process: for Multi Currency build upon *
+************************************************************************
+108267* August 2011    JD   CCL  MULTI CURRENCY CHANGES                *
+************************************************************************
+C64222* June 2012      JDea     CCL  GIFT CARD CHANGES                 *
+************************************************************************
+CCL-UK* 05-JUL-12      KA8     TCS LTD.               CQCCL-UK         *
+CCL-UK* CARNIVAL-UK:COMPUTING CREDIT CARD CHARGE FEE USING ARP37 PROC  *
+************************************************************************
+154125* 23-MAY-13      JNA      AUSTRALIA 2 PROJECT                    *
+154125* CHANGE COMPANY-CODE REFERNECES TO FINANCIAL-COMPANY-CODE       *
+************************************************************************
+145421* 24-APR-14      AR3     TCS LTD.               CQ145421         *
+145421* MODIFIED CODE TO INITIALIZE ARP90 VARIABLES.                   *
+************************************************************************
+162639* 13-JUN-14      JNA      PIN-BASED DEBIT PROJECT                *
+************************************************************************
+179336* 04-FEB-15      JEF      Amex AAV validation   CQ179336         *
+************************************************************************
+183464* 05-MAY-15      LS1     TCS LTD.               CQ183464         *
+183464* CHANGES DONE TO CORRECTLY POPULATE TRANSACTION DATE FOR GIFTCRD*
+183464* PASS OFF MSG & PREVENT TIPPRTS BEING CREATED FOR THE SAME.     *
+************************************************************************
+183895* 05-MAY-15      LS1     TCS LTD.               CQ183895         *
+183895* INTIALISED ARP00 FIELDS TO PREVENT INVALID CARDS GOING AS      *
+183895* REFERRED.                                                      *
+************************************************************************
+185904* JULY 2016   JD   CCL  ALL GIFT-CARD BALANCE INQUIRYS WILL NOW  *
+185904* PASS OFF TO CERIDIAN EVEN WHEN WE HAVE THE VALUE INTERNALLY    *
+************************************************************************
+196374* 12-JUL-16      LS1    TCS LTD.                CQ196374         *
+196374* MODIFIED CODE FOR PAYPAL PROJECT.                              *
+************************************************************************
+203287* 01-MAR-17     AJS     TCS LTD.               CQ203287          *
+203287* SPLIT PAYMENT PROJECT.                                         *
+************************************************************************
+TOKEN * 24-MAY-18     KA8     TCS LTD.                                 *
+TOKEN * TOKENIZATION PROJECT CHANGES.                                  *
+************************************************************************
+CCLAUS* 06-AUG-19     VPD     TCS LTD                CQCCLAUS          *
+CCLAUS* CCLAUS CHANGES:ARP37-FIN-COMPANY-CODE POPULATED                *
+************************************************************************
+CCLAUS* 10-SEP-19     ZIT     TCS LTD.               CQCCLAUS          *
+CCLAUS* CARNIVAL-AUS:COMPUTING CREDIT CARD SURCHARGE FEE               *
+************************************************************************
+TOKEN2* 27-SEP-19     GS9     CCL                                      *
+TOKEN2* TOKENIZATION PHASE 2 PROJECT CHANGES.                          *
+************************************************************************
+TOKEN3* 01-MAR-21     GS9     CCL                                      *
+TOKEN3* TOKENIZATION PHASE 3 - PCI ACQUIRER INTEGRATION PROJECT.       *
+************************************************************************
+891462* 30-APR-24     RVC     TCS LTD                ADO1891462        *
+891462* SUNSET DETOKENITATION CALLS.                                   *
+************************************************************************
+TOKENX* 7-NOV-24      DET     TCS LTD                ADO2008959        *
+TOKENX* CLONED ARO39CVR SUBROUTINE TO SUPPORT TOKENX VAULT.            *
+************************************************************************
+CCLHP2* 06-FEB-25     TEK     TCS LTD.                CCLHP2           *
+CCLHP2* HYBRIS PHASE 2 : CODE CHANGE TO RESOLVE PAYMENT DEADLOCK ISSUE *
+************************************************************************
+PCI3  * 05-NOV-25     DET     TCS LTD                ADO2008959        *
+PCI3  * APSR's Tokenx migration                                        *
+************************************************************************
+LOYLTY*  6-MAR-26     I7J     TCS                   CARNIVAL REWARDS   *
+LOYLTY*             - Added edits for loyalty card type and pmt type   *
+LOYLTY*             - Pass voyage-id, if non-usd pass usd quivalent    *
+LOYLTY*               payment amount to in the message to webmethods   *
+LOYLTY*             - commented unused copy books                      *
+LOYLTY******************************************************************
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER. UNISYS-2200.
+       OBJECT-COMPUTER. UNISYS-2200.
+       SPECIAL-NAMES.   
+              PRINTER IS PRINTER
+TOKEN2        PRINTER IS PRT
+              CONSOLE IS CONSOLE.   
+
+       DATA DIVISION.   
+       SUBSCHEMA SECTION.   
+       INVOKE SUBSCHEMA PST100UCOBSU
+              IN FILE SUBSCHEMAS OF SCHEMA PST100SCHEMA 
+              COPYING RECORDS    INTO COMMON
+              COPYING DATA-NAMES INTO COMMON
+144449*       RUN-UNIT-ID IS AROCVR 
+              OVERLAY PAX-REC WITH PAX-CXF-REC  
+169014*                            PAX-FUT-REC  
+                                   PAX-VI-REC   
+              DMCA COMMON   
+144449        SAVE DATA INCLUDES DEFERRED-UPDATES   
+              ERROR RECOVERY IS 9100-DATABASE-ERROR.
+
+       WORKING-STORAGE SECTION. 
+TOKENX 01  WS-PROG-ID                        PIC X(8) VALUE 'ARO39PAY'. 
+
+        01  MCFLAG                            PIC 9(10)  USAGE BINARY.  
+162639 01  WS-START-DIGIT                    PIC 9(2).  
+       01  WS-NUMERIC-FIELDS.   
+           03  WS-SYS-DATE. 
+               05  WS-SYS-DATE-CC            PIC 9(2).  
+               05  WS-SYS-DATE-YY            PIC 9(2).  
+               05  WS-SYS-DATE-MM            PIC 9(2).  
+               05  WS-SYS-DATE-DD            PIC 9(2).  
+
+           03  WS-SYS-DATE-YYMM.
+               05  WS-SYS-DATE-YEAR          PIC 9(2).  
+               05  WS-SYS-DATE-MONTH         PIC 9(2).  
+
+PCI3  *    03  WS-SYS-TIME. 
+PCI3  *        05  WS-SYS-TIME-HH                PIC 9(2).  
+PCI3  *        05  WS-SYS-TIME-MN                PIC 9(2).  
+PCI3  *        05  WS-SYS-TIME-SS                PIC 9(2).  
+PCI3  *        05  WS-SYS-TIME-MS                PIC 9(2).  
+
+183464     03  WS-TRANS-DATE.   
+183464         05 WS-TRANS-DATE-MM           PIC 9(02). 
+183464         05 WS-TRANS-DATE-DD           PIC 9(02). 
+
+           03  WS-TIME. 
+               05  WS-HOUR                       PIC 9(2).  
+               05  WS-MINUTE                     PIC 9(2).  
+               05  WS-SECONDS                    PIC 9(2).  
+
+162639     03  WS-EXP-DATE. 
+162639         05  WS-EXP-DATE-YY                PIC X(2).  
+162639         05  WS-EXP-DATE-MM                PIC X(2).  
+162639     03  WS-EXPIRATION-DATE-NUM REDEFINES WS-EXP-DATE.
+162639         05  WS-EXPIRATION-DATE-YY-NUM     PIC 9(2).  
+162639         05  WS-EXPIRATION-DATE-MM-NUM     PIC 9(2).  
+
+           03  WS-EXPIRATION-DATE.  
+               05  WS-EXPIRATION-DATE-MM         PIC 9(2).  
+               05  WS-EXPIRATION-DATE-YY         PIC 9(2).  
+
+           03  WS-DATE-TIME.
+               05  WS-DATE-TIME-DATE             PIC 9(08). 
+               05  WS-DATE-TIME-TIME             PIC 9(08). 
+
+PCI3  *    03  WS-CARD-VALUE                     PIC -ZZZZ.ZZ.  
+
+       01  WS-ALPHA-FIELDS. 
+           03  WS-TRANS-CODE.   
+               05  WS-TRANS-APP                  PIC X(02). 
+               05  WS-TRANS-ID                   PIC X(03). 
+
+           03  WS-TRANS-IN-CODE.
+               05  WS-TRANS-IN-APP               PIC X(02). 
+               05  WS-TRANS-IN-NAME              PIC X(03). 
+               05  FILLER                        PIC X(01). 
+
+C64222     03  WS-ALPHA-ACCOUNT-NUM              PIC X(18). 
+  |        03  WS-NUMERIC-ACCT-NUM REDEFINES  WS-ALPHA-ACCOUNT-NUM. 
+  |            05  WS-ACCOUNT-NUM                PIC 9(16). 
+C64222         05  WS-CC-FILLER                  PIC 9(02). 
+
+PCI3  *    03  WS-SHIP-CODE                      PIC X(02). 
+PCI3  *    03  WS-IBR-BOOK-NUM                   PIC X(06). 
+PCI3  *    03  WS-GROUP-BOOK-NUM                 PIC X(06). 
+PCI3  *    03  WS-BOOK-TYPE                      PIC X(01). 
+PCI3  *    03  WS-BK-TYPE                        PIC X(01). 
+162639*    03  WS-CURRENCY-CODE                  PIC X(03). 
+212649*    03  WS-PRODUCT-TYPE                   PIC X(02). 
+PCI3  *    03  WS-PMT-REF-NUM                    PIC X(18). 
+PCI3  *    03  WS-PRODUCT-NUMBER                 PIC X(16). 
+PCI3  *    03  WS-PRODUCT-NUM REDEFINES WS-PRODUCT-NUMBER.  
+PCI3  *        05 WS-BOOK-NUM                    PIC X(6).  
+PCI3  *        05 WS-ORDER-AUTH-NUM              PIC X(4).  
+PCI3  *        05 WS-ORDER-AUTH-NUM              PIC X(5).  
+PCI3  *        05 FILLER                         PIC X(6).  
+PCI3  *        05 FILLER                         PIC X(5).  
+PCI3  *    03  WS-PRODUCT REDEFINES WS-PRODUCT-NUMBER.  
+PCI3  *        05 WS-PRODUCT-PREFIX              PIC X(2).  
+PCI3  *        05 WS-ORDER-NUM                   PIC X(14). 
+PCI3  * 
+PCI3  *     03  WS-BK-NUM.  
+PCI3  *         05  FILLER                    PIC X(04).
+PCI3  *         05  WS-5TH-DIGIT-OF-BOOK-NUM  PIC X(01).
+PCI3  *         05  WS-LST-DIGIT-OF-BOOK-NUM  PIC X(01).
+PCI3  *             88  LST-DIGIT-OF-BOOK-NUM-NUMERIC   
+PCI3  *                                   VALUES ARE '0' THRU '9'.  
+PCI3  *     03  WS-TOKENX-TOKEN-NUM           PIC X(18).
+
+       01  WS-LEVEL88-FIELDS.   
+112836     03  WS-PRG-IMPART-IND             PIC X(01) VALUE 'N' .  
+               88 PRG-IMPARTED-SCHEMA            VALUE 'Y' .
+
+212649     03  WS-PRODUCT-TYPE               PIC X(01). 
+212649         88 VALID-PRODUCT-TYPE  VALUE 'A', 'B', 'C', 'D', 
+212649             'E', 'F', 'G', 'I', 'K', 'Q', 'S', 'T', 'V'. 
+
+PCI3  *     03  WS-TOKENX-FLAG                PIC X(01) VALUE 'N' . 
+PCI3  *         88 TOKENX-FLAG                    VALUE 'Y' .   
+PCI3  * 
+PCI3  *01  WS-TOKEN-IND                      PIC X. 
+PCI3  *01  WS-DETOKEN-IND                    PIC X. 
+PCI3  *01  WS-SYNC                           PIC X. 
+PCI3  *01  WS-TKN-PMT-ACCT-NUM               PIC X. 
+TOKEN2 01  SCHEMA-3                          PIC X(3) VALUE SPACES. 
+PCI3  *01  WS-MCCR-TOKEN                     PIC X(20). 
+PCI3  *01  WS-GETPAN-IND                     PIC X(01). 
+PCI3  *01  WS-CARD-NUM                       PIC X(20). 
+PCI3  *01  WS-SUB1                           PIC 9(02). 
+PCI3  *01  WS-NUMERIC-CTR                    PIC 9(02). 
+PCI3  *01  WS-ALPHA-CTR                      PIC 9(02). 
+PCI3  *01  WS-SPACES-CTR                     PIC 9(02). 
+PCI3   01  WS-LENGTH                         PIC 9(02). 
+
+PCI3   01  UCC-NUM. 
+PCI3       05  UCC-NUM-1ST             PIC X.   
+PCI3           88  UCC-VISA            VALUE  '4'.  
+PCI3           88  UCC-MCRD            VALUE  '5', '2'. 
+PCI3           88  UCC-DISC            VALUE  '6'.  
+PCI3       05  FILLER                  PIC X(15).   
+PCI3   01  UCC-NUM-R REDEFINES UCC-NUM. 
+PCI3       05  UCC-NUM-1ST-2           PIC X(2).
+PCI3           88  UCC-JCB             VALUE '35', '18', '21'.  
+PCI3           88  UCC-CUP             VALUE '62', '88'.
+PCI3           88  UCC-DINERS          VALUE '30', '36', '38', '39'.
+PCI3           88  UCC-AMEX            VALUE '34', '37'.
+PCI3       05  FILLER                  PIC X(14).   
+
+108267 COPY ARP37CTW.   
+PCI3  *COPY ARP38TKN.   
+CCFRAU COPY ARP39AVW.   
+       COPY INFO-BUFFER.
+       COPY ARP00CDW.   
+126351 COPY ARP90PWS.   
+PCI3  * COPY ARP39TKX.  
+TOKENX*162639 COPY DPP09VNW.
+TOKENX COPY DPP39VNW.   
+C64222 COPY UAP99GCW.   
+       COPY DPP02Y2K.   
+144449 COPY DPP01MCB.   
+144449*COPY DPP01OWS.   
+       COPY CCP00SWS.   
+LOYLTY*COPY IRP66IBR.   
+144449 COPY DPP01DTA.   
+144449 COPY DPP42ERR.   
+       COPY DPP42SWS.   
+C78366 COPY DPP90TRW.   
+144449 COPY RSP75GTD.   
+PPC470 COPY TDP01SAW.   
+PCI3  *COPY DPP10MOW.   
+CCLAUS COPY ARP26PCW.   
+
+       COMMON-STORAGE SECTION.  
+
+       LINKAGE SECTION. 
+       COPY DPP01SCO.   
+       COPY DPP01CIW.   
+C64222*COPY ARP39CVW.   
+TOKENX COPY ARP39PAY.   
+
+       PROCEDURE DIVISION USING DPP01-COMMON-DATA-FIELDS
+                                DPP01-COMMON-INFO   
+CCFRAU                          ARP39-CO-TYPES  
+162639                          ARP39-CO-INPUT-DATA 
+162639                          ARP39-CO-OUTPUT-DATA.   
+
+       0100-RESTART.
+           COPY DPP02INT.   
+           COPY DPP42INT.   
+CCLAUS     EXEC SQL USE DEFAULT SCHEMA PSTRDMS END-EXEC.
+PPC470     EXEC SQL WHENEVER SQLERROR   
+PPC470          GO TO 9150-RDMS-ERROR   
+PPC470     END-EXEC.
+
+162639     INITIALIZE           ARP39-CO-OUTPUT-DATA
+162639                          ARP37-CARD-WORK-AREA.   
+GSTEST*    DISPLAY 'ARO39PAY INVOKED IN PST - ' ARP39-I-PROCESS-ID  
+GSTEST*      UPON CONSOLE.  
+CCFRAU     INITIALIZE           WS-NUMERIC-FIELDS   
+                                WS-ALPHA-FIELDS.
+
+PCI3  *           MOVE SPACES                TO WS-GROUP-BOOK-NUM   
+PCI3  *                                         WS-IBR-BOOK-NUM 
+PCI3  *                                         WS-PRODUCT-NUM  
+PCI3  *                                         WS-SHIP-CODE
+PCI3  *                                   WS-BOOK-TYPE  
+PCI3  *                                   WS-BK-TYPE
+162639*                                  WS-CURRENCY-CODE   
+162639     MOVE SPACES                TO WS-PRODUCT-TYPE.   
+162639*                                  WS-UCC-DEPT-STATUS-INFO
+PCI3  *                                   WS-BK-NUM.
+
+CCFRAU     MOVE 0                     TO WS-START-DIGIT.
+
+108267     MOVE 'N'                   TO WS-PRG-IMPART-IND. 
+
+       0100-OPEN.   
+145421     INITIALIZE ARP90-WS-DATA 
+145421                ARP90-PAYMENT-REC.
+           MOVE FUNCTION CURRENT-DATE TO DPP02-SYSTEM-DATE-TIME.
+           MOVE DPP02-SYSTEM-DATE     TO WS-SYS-DATE.   
+           MOVE DPP02-SYS-HHMMSS      TO WS-TIME.   
+
+TOKEN2*    Fetch the token control table to check if we should tokenize/
+TOKEN2*    detokenize or not.   
+PCI3  *    MOVE 'Y' TO WS-TOKEN-IND, WS-DETOKEN-IND.
+PCI3  *    MOVE 'N' TO WS-SYNC. 
+PCI3  *    MOVE 'C' TO WS-TKN-PMT-ACCT-NUM. 
+PCI3  *    EXEC SQL WHENEVER SQLERROR   
+PCI3  *       CONTINUE  
+PCI3  *    END-EXEC.
+PCI3  *    EXEC SQL WHENEVER NOT FOUND  
+PCI3  *       CONTINUE  
+PCI3  *    END-EXEC.
+PCI3  *    EXEC SQL SELECT TKN_TOKEN, TKN_DETOKEN, TKN_SYNC,
+PCI3  *       TKN_PMT_ACCT_NUM  
+PCI3  *       INTO :WS-TOKEN-IND, :WS-DETOKEN-IND, :WS-SYNC,
+PCI3  *       :WS-TKN-PMT-ACCT-NUM  
+PCI3  *       FROM TOKEN_CONTROL_TBL TCT1   
+PCI3  *       WHERE TCT1.TKN_CONTROL_KEY = 1
+PCI3  *    END-EXEC.
+
+GSTEST*    DISPLAY 'TOKEN/DETOKEN-IND: ' WS-TOKEN-IND '/'   
+GSTEST*       WS-DETOKEN-IND UPON CONSOLE.  
+
+TOKEN2*    This will get the value of the invoked schema from the DMCA. 
+TOKEN2     CALL 'UCSFDASC$' USING DMCA, SCHEMA-3, 3.
+           IF ARP39-I-PROCESS-ID = 'CCVALIDATE' 
+162639        PERFORM 0200-VALIDATE-FIELDS THRU 0499-EXIT   
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+           IF ARP39-I-PROCESS-ID = 'CCPASSOFF'  
+              PERFORM 0500-PREP-FOR-PASSOFF THRU 1300-EXIT  
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+           MOVE 'INVALID PROCESS-ID'  TO ARP39-OUTPUT-MESSAGE.  
+           GO TO 9000-END-OF-JOB.   
+
+       0200-VALIDATE-FIELDS.
+
+162639     IF ARP39-BOOK-TYPE > SPACES  
+162639        IF ARP39-BOOK-TYPE = 'I' OR 'G'   
+162639           NEXT SENTENCE  
+162639        ELSE  
+162639           STRING 'INVALID BOOK-TYPE '
+162639               ARP39-BOOK-TYPE
+162639               DELIMITED BY SIZE  
+162639               INTO ARP39-OUTPUT-MESSAGE  
+162639               GO TO 0499-EXIT.   
+212649***** CHANGED TO USE LEVEL 88.
+162639*     IF ARP39-PRODUCT-TYPE = 'A' 
+162639*                          OR 'B' 
+162639*                          OR 'C' 
+162639*                          OR 'D' 
+162639*                          OR 'E' 
+162639*                          OR 'F' 
+162639*                          OR 'G' 
+162639*                          OR 'I' 
+162639*                          OR 'K' 
+162639*                          OR 'Q' 
+162639*                          OR 'S' 
+162639*                          OR 'T' 
+162639*                          OR 'V' 
+212649     MOVE ARP39-PRODUCT-TYPE TO WS-PRODUCT-TYPE.  
+212649     IF VALID-PRODUCT-TYPE
+162639        CONTINUE  
+162639     ELSE 
+162639        STRING 'INVALID PRODUCT-TYPE '
+162639               ARP39-PRODUCT-TYPE 
+162639               DELIMITED BY SIZE  
+162639               INTO ARP39-OUTPUT-MESSAGE  
+162639               GO TO 0499-EXIT.   
+
+162639     MOVE ARP39-PAYMENT-TYPE    TO PTCR-PAYMENT-TYPE. 
+
+162639     FETCH PAYMENT-TYPE-CLASS-REC RECORD. 
+
+162639     IF PTCR-PAYMENT-CLASS > SPACES   
+162639        MOVE PTCR-PAYMENT-CLASS TO ARP37-PAYMENT-CLASS
+162639     ELSE 
+              MOVE ARP39-PAYMENT-TYPE TO ARP37-PAYMENT-CLASS.   
+162639  
+PCI3  *      IF ARP39-TOKEN-NUM > SPACES
+PCI3  *         PERFORM 2500-CHECK-TOKEN THRU 2500-EXIT 
+PCI3  *      END-IF.
+
+TOKEN      IF ARP39-CARD-NUM > SPACES   
+TOKEN         MOVE ARP39-CARD-NUM    TO ARP37-CARD-NUM  
+TOKEN      ELSE 
+TOKEN         IF ARP39-TOKEN-NUM > SPACES   
+PCI3             IF ARP39-TOKEN-NUM(1:1) = 'T'  
+PCI3                MOVE ARP39-TOKEN-NUM(2:)
+PCI3                                     TO ARP39-TOKEN-NUM 
+PCI3             END-IF 
+TOKEN            MOVE ARP39-TOKEN-NUM    TO ARP37-CARD-NUM  
+TOKEN         END-IF
+TOKEN      END-IF.  
+
+
+162639     MOVE ARP39-CURRENCY-CODE   TO ARP37-CURRENCY-CODE.   
+CCLAUS     IF ARP39-FIN-COMPANY-CODE > SPACES   
+CCLAUS        MOVE ARP39-FIN-COMPANY-CODE   
+CCLAUS                                TO ARP37-FIN-COMP-CODE
+CCLAUS     ELSE 
+CCLAUS         MOVE 'C'               TO ARP37-FIN-COMP-CODE
+CCLAUS     END-IF.  
+196374     IF ARP37-PAYMENT-CLASS = 'PAL'   
+196374        MOVE 99999999           TO ARP37-CARD-NUM(1:8)
+196374     END-IF.  
+
+
+PCI3       IF ARP37-PAYMENT-CLASS = 'UCC'   
+PCI3          MOVE ARP37-CARD-NUM     TO UCC-NUM
+PCI3          IF UCC-DINERS 
+PCI3             MOVE 0000          TO ARP37-CARD-NUM(5:4)  
+PCI3          END-IF
+PCI3       END-IF.  
+
+           PERFORM ARP37-FETCH-BIN-NUM-REC THRU ARP37-EXIT. 
+
+           IF ARP37-ERROR-NUM > 0   
+              MOVE ARP37-MESSAGE TO ARP39-OUTPUT-MESSAGE
+              GO TO 0499-EXIT.  
+
+PCI3  *    MOVE  1                TO WS-GETPAN-IND. 
+PCI3  * 
+PCI3  *    EXEC SQL WHENEVER NOT FOUND CONTINUE END-EXEC.   
+PCI3  *    EXEC SQL WHENEVER SQLERROR GO TO 9150-RDMS-ERROR END-EXEC.   
+PCI3  * 
+PCI3  *    EXEC SQL SELECT TCT_GET_PAN_IND FROM IRAMRDMS.WP_CONTROL_TBL 
+PCI3  *       WHERE TCT_LMN_CODE  = :ARP39-LMN-CODE AND 
+PCI3  *             TCT_CARD_TYPE = :BNR-CARD-TYPE  
+PCI3  *       INTO :WS-GETPAN-IND   
+PCI3  *    END-EXEC.
+
+PCI3       INITIALIZE WS-LENGTH.
+PCI3       INSPECT ARP39-TOKEN-NUM TALLYING 
+PCI3           WS-LENGTH FOR CHARACTERS BEFORE SPACE.   
+
+
+PCI3       IF (ARP37-PAYMENT-CLASS(1:2) = 'GC') OR  
+PCI3          (ARP37-PAYMENT-CLASS = 'PPL') 
+PCI3          CONTINUE  
+PCI3       ELSE 
+PCI3          IF WS-LENGTH > 0  
+PCI3             IF WS-LENGTH = BNR-CARD-LENGTH 
+PCI3                CONTINUE
+PCI3             ELSE   
+PCI3                MOVE  'TOKEN AND CARD LENGTH DOESNT MATCH'  
+PCI3                                        TO ARP39-OUTPUT-MESSAGE 
+PCI3                GO TO 0499-EXIT 
+PCI3             END-IF 
+PCI3         END-IF 
+PCI3       END-IF.  
+
+162639     IF BNR-CARD-TYPE = 'GC'  
+162639                     OR 'PN'  
+196374                     OR 'PP'  
+LOYLTY                     OR 'LP'  
+162639        GO TO 0250-CONT.  
+
+           IF BNR-PROMO-STMT-NUM-LAST3 > ZERO   
+              AND ARP39-DIRECT-BK-IND = 'N' 
+                  STRING 'Card Number belongs to Special Promotion, '   
+                         'must be a Direct Guest Booking'   
+                  DELIMITED BY SIZE 
+                  INTO ARP39-OUTPUT-MESSAGE 
+                  GO TO 0499-EXIT.  
+
+UATP  *    We're adding LMR and MNR fetch to make sure the data is setup
+UATP  *    correctly and there is no validation failure during passoff. 
+UATP       MOVE BNR-PAYMENT-CLASS     TO LMR-PAYMENT-CLASS. 
+UATP       MOVE BNR-CARD-TYPE         TO LMR-CARD-TYPE. 
+UATP       MOVE ARP39-LMN-CODE        TO LMR-LMN-CODE.  
+UATP
+UATP       MOVE 'LMR FETCH ERROR' TO ARP39-OUTPUT-MESSAGE.  
+UATP       FETCH LOGICAL-MERCHANT-REC RECORD.   
+UATP       MOVE SPACES TO ARP39-OUTPUT-MESSAGE. 
+UATP
+UATP       MOVE LMR-MERCHANT-NUM  TO MNR-MERCHANT-NUM.  
+UATP
+UATP       MOVE 'MNR FETCH ERROR' TO ARP39-OUTPUT-MESSAGE.  
+UATP       FETCH MERCHANT-NUM-REC RECORD.   
+UATP       MOVE SPACES            TO ARP39-OUTPUT-MESSAGE.  
+UATP       FETCH CURRENT BIN-NUM-REC RECORD.
+
+           MOVE ARP39-EXP-DATE-MM     TO WS-EXP-DATE-MM.
+           MOVE ARP39-EXP-DATE-YY     TO WS-EXP-DATE-YY.
+
+           IF WS-EXP-DATE NUMERIC   
+              NEXT SENTENCE 
+           ELSE 
+              MOVE 'Invalid Exp Date'     TO ARP39-OUTPUT-MESSAGE   
+              GO TO 0499-EXIT.  
+
+           IF ((WS-EXPIRATION-DATE-MM-NUM > 12) OR  
+               (WS-EXPIRATION-DATE-MM-NUM < 1)) OR  
+               (WS-EXPIRATION-DATE-YY-NUM < DPP02-SYSTEM-YY)
+               MOVE 'Invalid Exp Date'     TO ARP39-OUTPUT-MESSAGE  
+               GO TO 0499-EXIT  
+           END-IF.  
+
+162639     MOVE WS-SYS-DATE-YY            TO WS-SYS-DATE-YEAR.  
+162639     MOVE WS-SYS-DATE-MM            TO WS-SYS-DATE-MONTH. 
+
+           IF WS-EXPIRATION-DATE-NUM < WS-SYS-DATE-YYMM 
+              MOVE 'Invalid Exp Date'     TO ARP39-OUTPUT-MESSAGE   
+              GO TO 0499-EXIT   
+           END-IF.  
+
+162639 0250-CONT.   
+
+185904     IF BNR-CARD-TYPE = 'GC'  
+  |           IF ARP39-CID-NUM = SPACES 
+  |             CONTINUE
+  |           ELSE  
+  |             IF ARP39-CID-NUM NOT NUMERIC
+  |                MOVE 'Invalid PIN '     TO ARP39-OUTPUT-MESSAGE  
+  |                GO TO 0499-EXIT  
+  |             END-IF  
+  |           END-IF
+185904     END-IF.  
+
+162639     MOVE BNR-CARD-TYPE            TO ARP39-CARD-TYPE.
+162639     MOVE BNR-CARD-DISPLAY         TO ARP39-CARD-DISPLAY. 
+
+GSTEST*     IF WS-TKN-PMT-ACCT-NUM = 'T'
+GSTEST*       IF FUNCTION UPPER-CASE(SCHEMA-3) NOT = 'PRD'  
+GSTEST*          DISPLAY 'PMT-CHANNEL       : ' ARP39-SOURCE-ID 
+GSTEST*             UPON CONSOLE
+GSTEST*          DISPLAY 'IN-PAYMENT-TYPE   : ' ARP39-PAYMENT-TYPE  
+GSTEST*             UPON CONSOLE
+GSTEST*          DISPLAY 'IN-ARP39-CARD-NUM : ' ARP39-CARD-NUM  
+GSTEST*             UPON CONSOLE
+GSTEST*          DISPLAY 'IN-ARP39-TOKEN-NUM: ' ARP39-TOKEN-NUM 
+GSTEST*             UPON CONSOLE
+GSTEST*       END-IF
+GSTEST*     END-IF. 
+
+LOYLTY     IF ARP39-CARD-NUM = SPACES AND ARP39-PAYMENT-TYPE = 'LPP'
+LOYLTY        MOVE ARP39-TOKEN-NUM       TO ARP39-CARD-NUM. 
+
+TOKEN2*    We will still get card numbers from the front-end especially 
+TOKEN2*    for giftcards and paypal.
+TOKEN2     MOVE ARP39-CARD-NUM           TO ARP90-PMT-ACCOUNT-NUM.  
+TOKEN2     MOVE ARP39-TOKEN-NUM          TO ARP90-PMT-TOKEN-NUM.
+
+TOKEN2*    If the payment is not UCC then skip getting the token.   
+UATP       IF ARP39-PAYMENT-TYPE  = 'UCC' OR 'UTP'  
+UATP          CONTINUE  
+UATP       ELSE 
+TOKEN2        GO TO 0300-FETCH-APRR-REC.
+
+PCI3  *    MOVE ARP39-CARD-NUM       TO WS-CARD-NUM.
+PCI3  *    MOVE 0                    TO WS-NUMERIC-CTR  
+PCI3  *                                 WS-ALPHA-CTR
+PCI3  *                                 WS-SPACES-CTR   
+PCI3  *                                 WS-SUB1.
+PCI3  * 
+PCI3  *    PERFORM 1500-VAL-CARD
+PCI3  *       THRU 1500-VAL-CARD-EXIT.  
+PCI3  * 
+PCI3  *    PUT INSPECT CHANGE FOR VALIDATING NUMERIC FOR CARD NUM BECAUSE   
+PCI3  *    CARD NUMBER CAN HAVE REFERENCE NUM IN IT , WHICH IS VALID
+PCI3  *891462     IF WS-GETPAN-IND = 0 AND  
+PCI3  *       IF ARP39-PAYMENT-TYPE  = 'UCC'  AND   
+PCI3  *       ARP39-CARD-NUM > SPACES   AND 
+PCI3  *       WS-ALPHA-CTR = ZEROES 
+PCI3  *       MOVE 'CARD NUM NOT ALLOWED FOR THE BANK CARD TYPE'
+PCI3  *                               TO ARP39-OUTPUT-MESSAGE   
+PCI3  *       GO TO 0499-EXIT   
+PCI3  *    END-IF.  
+
+891462     IF ARP39-TOKEN-NUM < SPACES  AND 
+891462        ARP39-PAYMENT-TYPE  = 'UCC'   
+891462        MOVE  'MISSING TOKEN FOR CREDIT CARD' 
+891462                                TO ARP39-OUTPUT-MESSAGE   
+891462        GO TO 0499-EXIT   
+891462     END-IF.  
+
+TOKEN2*    If ref-num is provided skip the checks and fetch the APRR.   
+TOKEN2     IF ARP39-CARD-NUM (1:3) = '001'  
+TOKEN2        GO TO 0300-FETCH-APRR-REC.
+
+891462*    IF ARP39-CARD-NUM = ARP39-TOKEN-NUM  
+891462*       MOVE 'CARD AND TOKEN CANT BE SAME' TO ARP39-OUTPUT-MESSAGE
+891462*       GO TO 0499-EXIT   
+891462*    END-IF.  
+
+PCI3  *    Check if the input card number is valid  
+PCI3  *    IF ARP39-CARD-NUM > SPACES   
+PCI3  *       IF ARP39-CARD-NUM = 0 
+PCI3  *          DISPLAY 'INVALID-CARD: ' ARP39-CARD-NUM UPON CONSOLE   
+PCI3  *          MOVE 'CARD NUMBER IS INVALID' TO ARP39-OUTPUT-MESSAGE  
+PCI3  *          GO TO 0499-EXIT
+PCI3  *       END-IF
+PCI3  *        MOVE SPACES            TO DPP10-INPUT-CARD   
+PCI3  *        MOVE ARP39-CARD-NUM TO DPP10-INPUT-CARD  
+PCI3  *        PERFORM DPP10-VALIDATE-LUHNS-ALGORITHM THRU  
+PCI3  *                DPP10-VALIDATE-EXIT  
+PCI3  *        IF DPP10-RESULT NOT = 0  
+PCI3  *           DISPLAY 'INVALID-CARD: ' ARP39-CARD-NUM UPON CONSOLE  
+PCI3  *           MOVE 'CARD NUMBER IS INVALID' TO ARP39-OUTPUT-MESSAGE 
+PCI3  *           GO TO 0499-EXIT   
+PCI3  *        END-IF   
+PCI3  *     END-IF. 
+
+TOKEN2*    Check if the input token number is valid 
+TOKEN2     IF ARP39-TOKEN-NUM > SPACES  
+TOKEN2        IF ARP39-TOKEN-NUM = 0
+GSTEST*          DISPLAY 'INVALID-TOKEN: ' ARP39-TOKEN-NUM UPON CONSOLE 
+TOKEN2           MOVE 'TOKEN NUMBER IS INVALID' TO ARP39-OUTPUT-MESSAGE 
+TOKEN2           GO TO 0499-EXIT
+TOKEN2        END-IF
+PCI3  *        MOVE SPACES            TO DPP10-INPUT-CARD   
+PCI3  *        MOVE ARP39-TOKEN-NUM TO DPP10-INPUT-CARD 
+PCI3  *        PERFORM DPP10-VALIDATE-LUHNS-ALGORITHM THRU  
+PCI3  *                DPP10-VALIDATE-EXIT  
+PCI3  *        IF DPP10-RESULT = 0  
+PCI3  *           DISPLAY 'INVALID-TOKEN: ' ARP39-TOKEN-NUM UPON CONSOLE
+PCI3  *           MOVE 'TOKEN NUMBER IS INVALID' TO ARP39-OUTPUT-MESSAGE
+PCI3  *           GO TO 0499-EXIT   
+PCI3  *        END-IF   
+TOKEN2     END-IF.  
+
+TOKEN3*    If both the card and token are received then update MCCR.
+TOKEN3*    IF ARP39-CARD-NUM > SPACES AND   
+TOKEN3*       ARP39-TOKEN-NUM > SPACES  
+TOKEN3*       IF WS-SYNC = 'Y'  
+TOKEN3*          PERFORM 3000-GET-MCCR THRU 3000-EXIT   
+TOKEN3*       END-IF
+TOKEN3*    END-IF.  
+
+PCI3  * If we don't have the CC we need to get it from MC.  
+PCI3  *    IF ARP39-CARD-NUM <= SPACES AND  
+PCI3  *       ARP39-TOKEN-NUM > SPACES  AND 
+PCI3  *       WS-GETPAN-IND = 1 
+PCI3  *         INITIALIZE ARP38-TKN-INPUT-DATA ARP38-TKN-OUTPUT-DATA   
+PCI3  *         MOVE ARP39-TOKEN-NUM  TO ARP38-IN-TOKEN-NUM 
+PCI3  *         PERFORM 2000-CALL-ARO38TKN  
+PCI3  *         IF ARP38-ERROR-NUM = 0  
+PCI3  *            MOVE ARP38-OUT-CARD-NUM TO ARP39-CARD-NUM
+PCI3  *            MOVE ARP38-O-CARD-DISPLAY TO ARP39-O-CARD-DISPLAY
+PCI3  *            MOVE ARP38-O-CREDIT-DEBIT (1:1) TO   
+PCI3  *                                         ARP39-O-CREDIT-DEBIT
+PCI3  *         ELSE
+PCI3  *            DISPLAY 'ARP38-ERROR-MESSAGE: ' ARP38-ERROR-MESSAGE  
+PCI3  *               UPON PRT  
+PCI3  *            MOVE ARP38-ERROR-MESSAGE TO ARP39-OUTPUT-MESSAGE 
+PCI3  *            GO TO 0499-EXIT  
+PCI3  *         END-IF  
+PCI3  *    ELSE 
+891462         IF ARP39-CARD-NUM <= SPACES  
+891462            MOVE ARP39-TOKEN-NUM      TO ARP39-CARD-NUM   
+891462         END-IF.  
+PCI3  *    END-IF.  
+
+891462* THIS CHECK IS NO LONGER VALID BECAUSE TOKEN IS MANDATORY.   
+891462** If we don't have the token we need to get it from MC.  
+891462*     IF ARP39-CARD-NUM > SPACES AND  
+891462*        ARP39-TOKEN-NUM <= SPACES
+891462*          INITIALIZE ARP38-TKN-INPUT-DATA ARP38-TKN-OUTPUT-DATA  
+891462*          MOVE ARP39-CARD-NUM    TO ARP38-IN-CARD-NUM
+891462*          PERFORM 2000-CALL-ARO38TKN 
+891462*          IF ARP38-ERROR-NUM = 0 
+891462*             MOVE ARP38-OUT-TOKEN-NUM  TO ARP39-TOKEN-NUM
+891462*             MOVE ARP38-O-CARD-DISPLAY TO ARP39-O-CARD-DISPLAY   
+891462*             MOVE ARP38-O-CREDIT-DEBIT (1:1) TO  
+891462*                                          ARP39-O-CREDIT-DEBIT   
+891462*          ELSE   
+891462*             MOVE ARP38-ERROR-MESSAGE TO ARP39-OUTPUT-MESSAGE
+891462*             GO TO 0499-EXIT 
+891462*          END-IF 
+891462*     END-IF. 
+
+TOKEN2*    Fetch the APSR using the token-number for UCC payments.  
+TOKEN2     MOVE ARP39-TOKEN-NUM          TO ARP90-PMT-TOKEN-NUM 
+TOKEN2                                      ARP90-PMT-ACCOUNT-NUM.  
+
+       0300-FETCH-APRR-REC. 
+TOKEN2*    IF ARP39-CARD-NUM > SPACES   
+           PERFORM ARP90-FETCH-ACCT-PMT-SRC-REC THRU
+                   ARP90-FETCH-ACCT-PMT-SRC-EXIT.   
+162639     IF ARP90-PMT-SRC-REC-NOT-FOUND   
+162639        GO TO 0450-CHECK-DIGIT
+TOKEN2     END-IF.  
+TOKEN2*    ELSE 
+TOKEN2*       PERFORM ARP90-FETCH-ACCT-TKN-SRC-REC THRU 
+TOKEN2*               ARP90-FETCH-ACCT-PMT-TKN-EXIT 
+TOKEN2*       IF ARP90-PMT-TKN-REC-NOT-FOUND
+TOKEN2*          GO TO 0450-CHECK-DIGIT 
+TOKEN2*       END-IF
+TOKEN2*    END-IF.  
+
+CCFRAU     IF APRR-AVS-FAILED-ATTEMPTS > 0  
+CCFRAU        MOVE 'AVS' TO AVS-CALCAREA
+CCFRAU        PERFORM ARP39-CHECK-ARR-BLOCK THRU
+CCFRAU                ARP39-CHECK-ARR-BLOCK-EXIT
+CCFRAU        IF ARP39-CARD-BLOCKED 
+CCFRAU           MOVE 'This card is blocked due to failed AVS' TO   
+CCFRAU                                      ARP39-OUTPUT-MESSAGE
+CCFRAU           GO TO 0499-EXIT
+CCFRAU        END-IF
+CCFRAU     END-IF.  
+
+           SET ARP90-IDX TO 1.  
+           SEARCH ARP90-APRR-STATUSES   
+                AT END GO TO 0350-INVALID-STATUS
+                WHEN ARP90-APRR-STATUS-CODE (ARP90-IDX) = APRR-STATUS   
+                       GO TO 0400-CONTINUE. 
+
+       0350-INVALID-STATUS. 
+           MOVE 'Invalid Card'  TO ARP39-OUTPUT-MESSAGE.
+           GO TO 0499-EXIT. 
+
+       0400-CONTINUE.   
+           IF ARP90-DONT-ACPT-CARD-BY-SEO (ARP90-IDX)   
+126351        MOVE 'Card Not Accepted, Use Another Card or Contact Accou
+126351-            'nting'  TO ARP39-OUTPUT-MESSAGE 
+              GO TO 0499-EXIT.  
+
+126351     IF ARP90-DONT-ACPT-CARD-BY-RES (ARP90-IDX)   
+  |           MOVE 'Card Not Accepted, Use Another Card or Contact Accou
+  |   -            'nting'  TO ARP39-OUTPUT-MESSAGE 
+126351        GO TO 0499-EXIT.  
+
+185904     IF ARP39-CARD-TYPE = 'GC'
+  |           AND ARP39-PROCESSING-CODE = 310000
+  |               MOVE 1                  TO APRR-GC-BAL-REQ-IND
+  |               MOVE 0                  TO APRR-GC-BALANCE
+  |               FIND CURRENT ACCT-PAYMENT-REFERENCE-REC RECORD
+  |               MODIFY ACCT-PAYMENT-REFERENCE-REC RECORD  
+  |               MOVE 'Acceptable card'  TO ARP39-OUTPUT-MESSAGE   
+  |               MOVE ARP90-PMT-REF-NUM  TO ARP39-PMT-REF-NUM  
+  |               PERFORM 1350-GIFTCARD-PASSOFF THRU 1350-EXIT  
+185904            GO TO 0499-EXIT.  
+
+LOYLTY     IF ARP39-CARD-TYPE = 'LP'
+  |               FIND CURRENT ACCT-PAYMENT-REFERENCE-REC RECORD
+  |               MOVE 'Acceptable card'  TO ARP39-OUTPUT-MESSAGE   
+  |               MOVE ARP90-PMT-REF-NUM  TO ARP39-PMT-REF-NUM  
+LOYLTY            GO TO 0499-EXIT.  
+
+           MOVE 'Acceptable card'    TO ARP39-OUTPUT-MESSAGE.   
+162639     GO TO 0499-EXIT. 
+
+       0450-CHECK-DIGIT.
+196374     IF  BNR-CARD-TYPE    = 'PP'  
+196374         MOVE 'Y' TO ARP00-VALID-UCC-NUMBER-IND   
+196374         GO TO 0499-CONT  
+196374     END-IF.  
+
+LOYLTY     IF  BNR-CARD-TYPE    = 'LP'  
+LOYLTY         GO TO 0499-CONT  
+LOYLTY     END-IF.  
+
+TOKEN      IF  ARP39-TOKEN-NUM > SPACES 
+TOKEN           MOVE 'Y' TO ARP00-VALID-UCC-NUMBER-IND  
+TOKEN           GO TO 0499-CONT 
+TOKEN      END-IF.  
+
+           MOVE BNR-CKD-NUM     TO ARP00-CKD-NUM.   
+162639     MOVE ARP39-CARD-NUM  TO ARP00-ALPHA-UCC-NUMBER.  
+183895     MOVE 'N'             TO ARP00-VALID-UCC-NUMBER-IND.  
+183895     MOVE SPACES          TO ARP00-MESSAGE.   
+           EVALUATE ARP00-CKD-NUM   
+               WHEN 1   
+                    PERFORM ARP01-CALCULATE-CC-DIGTS THRU ARP01-EXIT
+               WHEN 2   
+                    PERFORM ARP02-CALCULATE-CC-DIGTS THRU ARP02-EXIT
+               WHEN 3   
+                    PERFORM ARP03-CALCULATE-CC-DIGTS THRU ARP03-EXIT
+               WHEN 4   
+                    PERFORM ARP04-CALCULATE-CC-DIGTS THRU ARP04-EXIT
+               WHEN 5   
+                    PERFORM ARP05-CALCULATE-CC-DIGTS THRU ARP05-EXIT
+               WHEN 6   
+                    PERFORM ARP06-CALCULATE-CC-DIGTS THRU ARP06-EXIT
+               WHEN 7   
+                    PERFORM ARP07-CALCULATE-CC-DIGTS THRU ARP07-EXIT
+               WHEN 8   
+                    PERFORM ARP08-CALCULATE-CC-DIGTS THRU ARP08-EXIT
+               WHEN 9   
+                    PERFORM ARP09-CALCULATE-CC-DIGTS THRU ARP09-EXIT
+               WHEN 10  
+                    PERFORM ARP10-CALCULATE-CC-DIGTS THRU ARP10-EXIT
+               WHEN 11  
+                    PERFORM ARP11-CALCULATE-CC-DIGTS THRU ARP11-EXIT
+               WHEN 12  
+                    PERFORM ARP12-CALCULATE-CC-DIGTS THRU ARP12-EXIT
+               WHEN 13  
+                    PERFORM ARP13-CALCULATE-CC-DIGTS THRU ARP13-EXIT
+               WHEN 14  
+                    PERFORM ARP14-CALCULATE-CC-DIGTS THRU ARP14-EXIT
+               WHEN 15  
+                    PERFORM ARP15-CALCULATE-CC-DIGTS THRU ARP15-EXIT
+               WHEN 16  
+                    PERFORM ARP16-CALCULATE-CC-DIGTS THRU ARP16-EXIT
+               WHEN 17  
+                    PERFORM ARP17-CALCULATE-CC-DIGTS THRU ARP17-EXIT
+               WHEN 18  
+                    PERFORM ARP18-CALCULATE-CC-DIGTS THRU ARP18-EXIT
+               WHEN 19  
+                    PERFORM ARP19-CALCULATE-CC-DIGTS THRU ARP19-EXIT
+               WHEN 20  
+                    PERFORM ARP20-CALCULATE-CC-DIGTS THRU ARP20-EXIT
+               WHEN OTHER   
+                    MOVE 'Invalid Card' TO ARP39-OUTPUT-MESSAGE 
+                    GO TO 0499-EXIT 
+           END-EVALUATE.
+
+       0499-CONT.   
+162639     IF ARP39-CARD-TYPE = 'GC'
+              AND ARP39-PROCESSING-CODE = 310000
+162639            MOVE ARP39-CARD-NUM     TO ARP90-PMT-ACCOUNT-NUM  
+TOKEN                                        ARP90-PMT-TOKEN-NUM
+185904            MOVE 'GCB'              TO ARP90-PAYMENT-CLASS
+162639            MOVE ARP39-CARD-DISPLAY TO ARP90-CARD-DISPLAY 
+185904            MOVE 'Y'                TO ARP90-GC-BAL-REQ-IND   
+185904            MOVE 0                  TO ARP90-GC-BALANCE   
+                  PERFORM ARP90-STORE-PMT-SRC-REC THRU  
+                                ARP90-STORE-PMT-SRC-EXIT
+                  MOVE ARP90-PMT-REF-NUM  TO ARP39-PMT-REF-NUM  
+                  MOVE 'Acceptable card'  TO ARP39-OUTPUT-MESSAGE   
+181110            PERFORM 1350-GIFTCARD-PASSOFF THRU 1350-EXIT  
+                  GO TO 0499-EXIT.  
+
+LOYLTY     IF ARP39-CARD-TYPE = 'LP'
+LOYLTY         IF ARP39-TOKEN-NUM > SPACES  
+LOYLTY            MOVE ARP39-TOKEN-NUM TO ARP90-PMT-ACCOUNT-NUM 
+LOYLTY                                    ARP90-PMT-TOKEN-NUM   
+LOYLTY         ELSE 
+LOYLTY            MOVE ARP39-CARD-NUM     TO ARP90-PMT-ACCOUNT-NUM  
+LOYLTY                                       ARP90-PMT-TOKEN-NUM
+LOYLTY         END-IF   
+LOYLTY         MOVE 'LPP'                 TO ARP90-PAYMENT-CLASS
+LOYLTY         MOVE ARP39-CARD-DISPLAY    TO ARP90-CARD-DISPLAY 
+LOYLTY         PERFORM ARP90-STORE-PMT-SRC-REC THRU 
+LOYLTY                       ARP90-STORE-PMT-SRC-EXIT   
+LOYLTY         MOVE ARP90-PMT-REF-NUM     TO ARP39-PMT-REF-NUM  
+LOYLTY         MOVE 'Acceptable card'     TO ARP39-OUTPUT-MESSAGE   
+LOYLTY         GO TO 0499-EXIT. 
+
+TOKEN      IF ARP00-VALID-UCC-NUMBER
+196374        IF BNR-CARD-TYPE = 'PP'   
+196374           MOVE 'PAL'              TO ARP90-PAYMENT-TYPE  
+196374        ELSE  
+UATP             IF BNR-CARD-TYPE = 'UT'
+UATP                MOVE 'UTP'           TO ARP90-PAYMENT-TYPE  
+UATP             ELSE   
+196374           MOVE ARP39-PAYMENT-TYPE TO ARP90-PAYMENT-TYPE  
+UATP             END-IF 
+              END-IF
+185904        MOVE ARP90-PAYMENT-TYPE    TO ARP90-PAYMENT-CLASS 
+TOKEN         MOVE ARP39-ATCR-IND     TO ARP90-ATCR-IND 
+TOKEN2*       IF ARP39-CARD-NUM = SPACES
+UATP          IF ARP39-PAYMENT-TYPE = 'UCC' OR 'UTP'
+TOKEN            MOVE ARP39-TOKEN-NUM    TO ARP90-PMT-ACCOUNT-NUM   
+TOKEN            MOVE 'Y'                TO ARP90-TOKEN-IND 
+TOKEN         ELSE  
+TOKEN            MOVE ARP39-CARD-NUM     TO ARP90-PMT-ACCOUNT-NUM   
+TOKEN         END-IF
+TOKEN         MOVE ARP39-TOKEN-NUM    TO ARP90-PMT-TOKEN-NUM
+TOKEN         IF  BNR-CARD-TYPE = 'PP' OR ARP39-CARD-TYPE = 'GC'
+TOKEN             MOVE ARP90-PMT-ACCOUNT-NUM TO ARP90-PMT-TOKEN-NUM 
+TOKEN         END-IF
+162639        MOVE ARP39-CARD-DISPLAY TO ARP90-CARD-DISPLAY 
+              PERFORM ARP90-STORE-PMT-SRC-REC THRU  
+                      ARP90-STORE-PMT-SRC-EXIT  
+TOKEN2        IF ARP90-INVALID-CARD 
+                 MOVE 'Acceptable card'  TO ARP39-OUTPUT-MESSAGE
+TOKEN2        ELSE  
+TOKEN2           MOVE 'Invalid Card'     TO ARP39-OUTPUT-MESSAGE
+TOKEN2        END-IF
+           ELSE 
+              MOVE 'Invalid Card'     TO ARP39-OUTPUT-MESSAGE   
+           END-IF.  
+
+       0499-EXIT.   
+           EXIT.
+
+C64222*** THE FLOW HAS BEEN CHANGED IN CASE 64222 WHERE THE CALLING 
+      *** PROGRAMS VALIDATE MULTIPLE CARDS PRIOR TO CALLING THE PASS-   
+      *** OFF AND SINCE WE HAVE LOST CURRENCY & HAVE TO REINITIALIZE
+      *** ALL OUR PREVIOUSLY OBTAINED VALUES/STICKING, WE ARE ENSURING  
+      *** VALID DATA IS STILL BEING PASSED IN THE PASS-OFF WHERE IF A   
+C64222***"BAD CARD" IS BEING ENTERED NOW THE FLOW WILL GOTO END-OF JOB. 
+       0500-PREP-FOR-PASSOFF.   
+
+891462     MOVE ARP39-PAYMENT-TYPE    TO PTCR-PAYMENT-TYPE. 
+891462  
+891462     FETCH PAYMENT-TYPE-CLASS-REC RECORD. 
+891462  
+891462     IF PTCR-PAYMENT-CLASS > SPACES   
+891462        MOVE PTCR-PAYMENT-CLASS TO ARP37-PAYMENT-CLASS
+891462     ELSE 
+891462        MOVE ARP39-PAYMENT-TYPE TO ARP37-PAYMENT-CLASS.   
+891462  
+891462  
+PCI3       IF ARP39-TOKEN-NUM > SPACES  
+PCI3          IF ARP39-TOKEN-NUM(1:1) = 'T' 
+PCI3             MOVE ARP39-TOKEN-NUM(2:)   
+PCI3                                  TO ARP39-TOKEN-NUM
+PCI3          END-IF
+PCI3       END-IF.  
+PCI3  * 
+891462     IF ARP39-CARD-NUM > SPACES   
+891462        MOVE ARP39-CARD-NUM    TO ARP37-CARD-NUM  
+891462     ELSE 
+891462        IF ARP39-TOKEN-NUM > SPACES   
+891462           MOVE ARP39-TOKEN-NUM    TO ARP37-CARD-NUM  
+891462        END-IF
+891462     END-IF.  
+891462  
+891462     MOVE ARP39-CURRENCY-CODE   TO ARP37-CURRENCY-CODE.   
+891462     IF ARP39-FIN-COMPANY-CODE > SPACES   
+891462        MOVE ARP39-FIN-COMPANY-CODE   
+891462                                TO ARP37-FIN-COMP-CODE
+891462     ELSE 
+891462         MOVE 'C'               TO ARP37-FIN-COMP-CODE
+891462     END-IF.  
+891462     IF ARP37-PAYMENT-CLASS = 'PAL'   
+891462        MOVE 99999999           TO ARP37-CARD-NUM(1:8)
+891462     END-IF.  
+891462  
+PCI3       IF ARP37-PAYMENT-CLASS = 'UCC'   
+PCI3          MOVE ARP37-CARD-NUM     TO UCC-NUM
+PCI3          IF UCC-DINERS 
+PCI3             MOVE 0000            TO ARP37-CARD-NUM(5:4)
+PCI3          END-IF
+PCI3       END-IF.  
+PCI3
+891462     PERFORM ARP37-FETCH-BIN-NUM-REC THRU ARP37-EXIT. 
+891462  
+891462  
+PCI3  *     MOVE  1                    TO WS-GETPAN-IND.
+PCI3  * 
+PCI3  *     EXEC SQL WHENEVER NOT FOUND CONTINUE END-EXEC.  
+PCI3  *     EXEC SQL WHENEVER SQLERROR GO TO 9150-RDMS-ERROR END-EXEC.  
+PCI3  * 
+PCI3  *     EXEC SQL SELECT TCT_GET_PAN_IND FROM IRAMRDMS.WP_CONTROL_TBL
+PCI3  *        WHERE TCT_LMN_CODE  = :ARP39-LMN-CODE AND
+PCI3  *              TCT_CARD_TYPE = :BNR-CARD-TYPE 
+PCI3  *        INTO :WS-GETPAN-IND  
+PCI3  *     END-EXEC.   
+
+
+PCI3  * If we don't have the CC we need to get it from MC. This logic is
+PCI3  * a contingency logic which assumes that the CC was not passed as 
+PCI3  * an input during pass-off even though it was returned during the 
+PCI3  * validate call.  
+PCI3  * 
+PCI3  *     IF ARP39-CARD-NUM <= SPACES AND 
+PCI3  *        ARP39-TOKEN-NUM > SPACES AND 
+PCI3  *        (ARP39-PAYMENT-TYPE = 'UCC' OR 'UTP')  AND   
+PCI3  *         WS-GETPAN-IND = 1   
+PCI3  *          INITIALIZE ARP38-TKN-INPUT-DATA ARP38-TKN-OUTPUT-DATA  
+PCI3  *          MOVE ARP39-TOKEN-NUM  TO ARP38-IN-TOKEN-NUM
+PCI3  *          PERFORM 2000-CALL-ARO38TKN 
+PCI3  *          IF ARP38-ERROR-NUM = 0 
+PCI3  *             MOVE ARP38-OUT-CARD-NUM TO ARP39-CARD-NUM   
+PCI3  *             MOVE ARP38-O-CARD-DISPLAY TO ARP39-O-CARD-DISPLAY   
+PCI3  *             MOVE ARP38-O-CREDIT-DEBIT (1:1) TO  
+PCI3  *                                          ARP39-O-CREDIT-DEBIT   
+PCI3  *             IF FUNCTION UPPER-CASE(SCHEMA-3) NOT = 'PRD'
+PCI3  *                DISPLAY 'TOKEN MISSING IN PASSOFF FOR '  
+PCI3  *                   ARP39-SOURCE-ID UPON CONSOLE  
+PCI3  *                DISPLAY 'TOKEN MISSING IN PASSOFF FOR '  
+PCI3  *                   ARP39-SOURCE-ID UPON PRINTER  
+PCI3  *             END-IF  
+PCI3  *          ELSE   
+PCI3  *             DISPLAY 'ARP38-ERROR-MESSAGE: ' ARP38-ERROR-MESSAGE 
+PCI3  *                UPON PRT 
+PCI3  *             MOVE ARP38-ERROR-MESSAGE TO ARP39-OUTPUT-MESSAGE
+PCI3  *             GO TO 0499-EXIT 
+PCI3  *          END-IF 
+PCI3  *     ELSE
+891462         IF ARP39-CARD-NUM <= SPACES  
+891462            MOVE ARP39-TOKEN-NUM      TO ARP39-CARD-NUM   
+891462         END-IF.  
+PCI3  *     END-IF. 
+
+891462* Below logic is no loger valid because token is mandatory.   
+891462** If we don't have the token we need to get it from MC.  
+891462*     IF ARP39-CARD-NUM > SPACES AND  
+891462*        ARP39-TOKEN-NUM <= SPACES AND
+891462*        (ARP39-PAYMENT-TYPE = 'UCC' OR 'UTP')
+891462*          INITIALIZE ARP38-TKN-INPUT-DATA ARP38-TKN-OUTPUT-DATA  
+891462*          MOVE ARP39-CARD-NUM    TO ARP38-IN-CARD-NUM
+891462*          PERFORM 2000-CALL-ARO38TKN 
+891462*          IF ARP38-ERROR-NUM = 0 
+891462*             MOVE ARP38-OUT-TOKEN-NUM  TO ARP39-TOKEN-NUM
+891462*             MOVE ARP38-O-CARD-DISPLAY TO ARP39-O-CARD-DISPLAY   
+891462*             MOVE ARP38-O-CREDIT-DEBIT (1:1) TO  
+891462*                                          ARP39-O-CREDIT-DEBIT   
+891462*             IF FUNCTION UPPER-CASE(SCHEMA-3) NOT = 'PRD'
+891462*                DISPLAY 'CARD MISSING IN PASSOFF FOR '   
+891462*                   ARP39-SOURCE-ID UPON CONSOLE  
+891462*                DISPLAY 'CARD MISSING IN PASSOFF FOR '   
+891462*                   ARP39-SOURCE-ID UPON PRINTER  
+891462*             END-IF  
+891462*          ELSE   
+891462*             MOVE ARP38-ERROR-MESSAGE TO ARP39-OUTPUT-MESSAGE
+891462*             GO TO 0499-EXIT 
+891462*          END-IF 
+891462*     END-IF. 
+
+PCI3  *     MOVE ARP39-PAYMENT-TYPE    TO PTCR-PAYMENT-TYPE.
+PCI3  * 
+PCI3  *     FETCH PAYMENT-TYPE-CLASS-REC RECORD.
+PCI3  * 
+PCI3  *     IF PTCR-PAYMENT-CLASS > SPACES  
+PCI3  *        MOVE PTCR-PAYMENT-CLASS TO ARP37-PAYMENT-CLASS   
+PCI3  *     ELSE
+PCI3  *        MOVE ARP39-PAYMENT-TYPE TO ARP37-PAYMENT-CLASS.  
+PCI3  * 
+PCI3  *     IF ARP39-CARD-NUM > SPACES  
+PCI3  *        MOVE ARP39-CARD-NUM    TO ARP37-CARD-NUM 
+PCI3  *     ELSE
+PCI3  *        IF ARP39-TOKEN-NUM > SPACES  
+PCI3  *           MOVE ARP39-TOKEN-NUM    TO ARP37-CARD-NUM 
+PCI3  *        END-IF   
+PCI3  *     END-IF. 
+PCI3  * 
+PCI3  *     MOVE ARP39-CURRENCY-CODE   TO ARP37-CURRENCY-CODE.  
+PCI3  *     IF ARP39-FIN-COMPANY-CODE > SPACES  
+PCI3  *        MOVE ARP39-FIN-COMPANY-CODE  
+PCI3  *                                TO ARP37-FIN-COMP-CODE   
+PCI3  *     ELSE
+PCI3  *         MOVE 'C'               TO ARP37-FIN-COMP-CODE   
+PCI3  *     END-IF. 
+PCI3  * 
+PCI3  *     IF ARP37-PAYMENT-CLASS = 'PAL'  
+PCI3  *        MOVE 99999999           TO ARP37-CARD-NUM(1:8)   
+PCI3  *     END-IF. 
+PCI3  * 
+PCI3  *     PERFORM ARP37-FETCH-BIN-NUM-REC THRU ARP37-EXIT.
+
+162639     IF ARP37-ERROR-NUM > ZEROES  
+              MOVE ARP37-MESSAGE    TO ARP39-OUTPUT-MESSAGE 
+              GO TO 9000-END-OF-JOB.
+
+PCI3       INITIALIZE WS-LENGTH.
+PCI3       INSPECT ARP39-TOKEN-NUM TALLYING 
+PCI3           WS-LENGTH FOR CHARACTERS BEFORE SPACE.   
+
+PCI3       IF (ARP37-PAYMENT-CLASS(1:2) = 'GC') OR  
+PCI3          (ARP37-PAYMENT-CLASS = 'PPL') 
+PCI3          CONTINUE  
+PCI3       ELSE 
+PCI3          IF WS-LENGTH > 0  
+PCI3             IF WS-LENGTH = BNR-CARD-LENGTH 
+PCI3                CONTINUE
+PCI3             ELSE   
+PCI3                MOVE  'TOKEN AND CARD LENGTH DOESNT MATCH'  
+PCI3                                        TO ARP39-OUTPUT-MESSAGE 
+PCI3                GO TO 0499-EXIT 
+PCI3             END-IF 
+PCI3         END-IF 
+PCI3       END-IF.  
+162639     IF BNR-CARD-TYPE = 'GC'  
+162639                     OR 'PN'  
+196374                     OR 'PP'  
+LOYLTY                     OR 'LP'  
+162639        GO TO 0550-CONT   
+LOYLTY     END-IF.  
+
+162639     IF BNR-PROMO-STMT-NUM-LAST3 > ZERO   
+              AND ARP39-DIRECT-BK-IND = 'N' 
+                  STRING 'Card Number belongs to Special Promotion, '   
+                         'must be a Direct Guest Booking'   
+                  DELIMITED BY SIZE 
+                  INTO ARP39-OUTPUT-MESSAGE 
+                  GO TO 9000-END-OF-JOB.
+
+           MOVE ARP39-EXP-DATE-MM     TO WS-EXP-DATE-MM.
+           MOVE ARP39-EXP-DATE-YY     TO WS-EXP-DATE-YY.
+
+           IF WS-EXP-DATE NUMERIC   
+              NEXT SENTENCE 
+           ELSE 
+              MOVE 'Invalid Exp Date'     TO ARP39-OUTPUT-MESSAGE   
+              GO TO 9000-END-OF-JOB.
+
+           IF ((WS-EXPIRATION-DATE-MM-NUM > 12) OR  
+               (WS-EXPIRATION-DATE-MM-NUM < 1)) OR  
+               (WS-EXPIRATION-DATE-YY-NUM < DPP02-SYSTEM-YY)
+               MOVE 'Invalid Exp Date'     TO ARP39-OUTPUT-MESSAGE  
+               GO TO 9000-END-OF-JOB
+           END-IF.  
+
+162639     MOVE WS-SYS-DATE-YY            TO WS-SYS-DATE-YEAR.  
+162639     MOVE WS-SYS-DATE-MM            TO WS-SYS-DATE-MONTH. 
+
+           IF WS-EXPIRATION-DATE-NUM < WS-SYS-DATE-YYMM 
+              MOVE 'Invalid Exp Date'     TO ARP39-OUTPUT-MESSAGE   
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+162639 0550-CONT.   
+185904     IF BNR-CARD-TYPE = 'GC' AND  
+  |           ARP39-CID-NUM = SPACES
+  |           GO TO 0555-CONT.  
+
+185904     IF BNR-CARD-TYPE = 'GC'  
+  |           IF ARP39-CID-NUM NOT NUMERIC  
+  |              MOVE 'Invalid PIN '     TO ARP39-OUTPUT-MESSAGE
+  |              GO TO 0499-EXIT
+  |           END-IF
+185904     END-IF.  
+
+162639 0555-CONT.   
+162639     MOVE BNR-CARD-TYPE            TO ARP39-CARD-TYPE.
+162639     MOVE BNR-CARD-DISPLAY         TO ARP39-CARD-DISPLAY. 
+
+TOKEN      MOVE ARP39-TOKEN-NUM          TO ARP90-PMT-TOKEN-NUM.
+TOKEN2*    IF ARP39-CARD-NUM > SPACES   
+TOKEN2     IF ARP39-PAYMENT-TYPE = 'UCC' OR 'UTP'   
+TOKEN2         MOVE ARP39-TOKEN-NUM      TO ARP90-PMT-ACCOUNT-NUM   
+TOKEN2         MOVE 'Y'                  TO ARP90-TOKEN-IND 
+TOKEN2     ELSE 
+TOKEN2         MOVE ARP39-CARD-NUM       TO ARP90-PMT-ACCOUNT-NUM   
+TOKEN2     END-IF.  
+           PERFORM ARP90-FETCH-ACCT-PMT-SRC-REC THRU
+                   ARP90-FETCH-ACCT-PMT-SRC-EXIT.   
+TOKEN2*    ELSE 
+TOKEN2*       PERFORM ARP90-FETCH-ACCT-TKN-SRC-REC THRU 
+TOKEN2*            ARP90-FETCH-ACCT-PMT-TKN-EXIT
+TOKEN2*    END-IF.  
+
+TOKEN      IF  ARP39-CARD-NUM = SPACES  
+TOKEN          MOVE 'Y'                TO ARP90-TOKEN-IND   
+TOKEN      END-IF.  
+
+162639 0600-FETCH-PTSR. 
+162639     MOVE SPACES                  TO PAYMENT-TYPE-STATUS-REC. 
+162639     MOVE ARP39-PAYMENT-TYPE      TO PTSR-PAYMENT-TYPE.   
+162639     MOVE ARP39-LMN-CODE          TO PTSR-LMN-CODE.   
+162639     MOVE WS-SYS-DATE             TO PTSR-DATE.   
+162639     MOVE ARP39-BOOK-TYPE         TO PTSR-BOOK-TYPE.  
+
+162639     IF ARP39-BOOK-TYPE = 'I' OR 'G'  
+162639        MOVE ARP39-BOOK-NUM-LAST1 TO PTSR-BOOK-NUM-LAST1. 
+
+162639     MOVE '1'                     TO PTSR-REC-TYPE.   
+
+162639     MOVE 2                       TO FETCH-WITH-LOCK. 
+162639     FETCH PAYMENT-TYPE-STATUS-REC RECORD 
+162639         ON ERROR GO TO 0975-STORE-PTSR.  
+162639     MOVE 0                       TO FETCH-WITH-LOCK. 
+
+162639     GO TO 1000-STORE-PTRR.   
+
+162639 0975-STORE-PTSR. 
+162639     MOVE 0                       TO FETCH-WITH-LOCK. 
+162639     STORE PAYMENT-TYPE-STATUS-REC.   
+
+       1000-STORE-PTRR. 
+           INITIALIZE PAYMENT-TYPE-REQUEST-REC. 
+
+           IF ARP39-BOOK-TYPE = 'G' 
+              MOVE ARP39-GROUP-BOOK-NUM TO PTRR-BOOK-NUM
+           ELSE 
+              MOVE ARP39-BOOK-NUM       TO PTRR-BOOK-NUM.   
+
+CCLHP2     IF  ARP39-PRODUCT-TYPE = 'B' 
+CCLHP2         MOVE ARP39-PRODUCT-NUM(7:6) TO PTRR-BOOK-NUM 
+CCLHP2     END-IF.  
+
+           MOVE WS-SYS-DATE             TO PTRR-CREATION-DATE.  
+           MOVE WS-TIME                 TO PTRR-CREATION-TIME.  
+UATP       IF ARP39-PAYMENT-TYPE = 'UCC' OR 'UTP'   
+TOKEN         MOVE ARP39-TOKEN-NUM    TO ARP90-PMT-ACCOUNT-NUM  
+TOKEN         MOVE 'Y'                TO ARP90-TOKEN-IND
+TOKEN2     ELSE 
+TOKEN         MOVE ARP39-CARD-NUM     TO ARP90-PMT-ACCOUNT-NUM  
+TOKEN2     END-IF   
+TOKEN2*    MOVE ARP39-CARD-NUM          TO ARP90-PMT-ACCOUNT-NUM.   
+TOKEN      MOVE ARP39-TOKEN-NUM         TO ARP90-PMT-TOKEN-NUM. 
+           MOVE ARP39-EXP-DATE-MM       TO WS-EXP-DATE-MM.  
+           MOVE ARP39-EXP-DATE-YY       TO WS-EXP-DATE-YY.  
+
+           MOVE ARP90-PMT-REF-NUM       TO PTRR-PMT-REF-NUM.
+162639     MOVE ZEROES                  TO PTRR-EXPIRATION-DATE.
+162639     MOVE ARP39-EXP-DATE-MM       TO DPP02-YYMM-MM.   
+162639     MOVE ARP39-EXP-DATE-YY       TO DPP02-YYMM-YY.   
+162639     PERFORM DPP10-YYMM-TO-YYYYMM.
+162639     MOVE DPP02-YYYYMM-DATE       TO PTRR-EXPIRATION-DATE.
+162639     MOVE ARP39-BOOK-TYPE         TO PTRR-BOOK-TYPE.  
+162639     MOVE ZEROES                  TO PTRR-AGENT-NOTIFIED-DATE 
+162639                                     PTRR-AGENT-NOTIFIED-TIME.
+162639     MOVE ARP39-BK-HIST-SEQ-NUM   TO PTRR-BOOK-HIST-RECORD-NUM.   
+162639     MOVE ARP39-BK-HIST-SUB       TO PTRR-BOOK-HIST-SUB.  
+
+162639     STORE PAYMENT-TYPE-REQUEST-REC.  
+
+162639     MOVE CURRENT-DBKEY TO ARP39-PTRR-DBK.
+
+162639     INSERT PAYMENT-TYPE-REQUEST-REC RECORD   
+162639                                INTO PAYMENT-TYPE-REQUEST-SET.
+
+162639 1100-FETCH-LMR.  
+162639     MOVE BNR-PAYMENT-CLASS     TO LMR-PAYMENT-CLASS. 
+162639     MOVE BNR-CARD-TYPE         TO LMR-CARD-TYPE. 
+177233     MOVE ARP39-CARD-TYPE       TO LMR-CARD-TYPE. 
+162639     MOVE ARP39-LMN-CODE        TO LMR-LMN-CODE.  
+162639     FETCH LOGICAL-MERCHANT-REC RECORD.   
+
+162639     MOVE LMR-MERCHANT-NUM      TO MNR-MERCHANT-NUM.  
+
+162639     FETCH MERCHANT-NUM-REC RECORD.   
+
+       1100-STORE-PAYMENT-RECORD.   
+           MOVE SPACES                TO PAYMENT-REC.   
+
+C95356     MOVE 'Y'     TO ARP90-LINK-TO-PMT-SRC-IND
+112836                     ARP90-LINK-TO-PMT-HDR-REC-IND.   
+
+112836     MOVE ARP39-SAIL-DATE            TO ARP90-SAIL-DATE.  
+112836     MOVE ARP39-SHIP-CODE            TO ARP90-SHIP-CODE.  
+112836     MOVE ARP39-DURATION-DAYS        TO ARP90-DURATION-DAYS.  
+187449     IF ARP39-PAYMENT-TYPE = 'CDV'
+  |           MOVE ARP39-CARD-NUM          TO ARP90-PRODUCT-NUM 
+187449     ELSE 
+108267        MOVE ARP39-PRODUCT-NUM       TO ARP90-PRODUCT-NUM.
+C64222     MOVE ARP39-BOOK-TYPE            TO ARP90-BOOK-TYPE.  
+
+203287*     IF ARP39-AUTO-PAY-IND = 'Y' 
+203287*        MOVE 'R'               TO ARP90-AUTOPAY-REQUEST-CODE 
+203287*     ELSE
+203287*        IF  ARP39-AUTO-PAY-IND = 'V' 
+203287*            MOVE 'V'           TO ARP90-AUTOPAY-REQUEST-CODE 
+203287*        ELSE 
+203287*            MOVE SPACES        TO ARP90-AUTOPAY-REQUEST-CODE 
+203287*        END-IF   
+203287*     END-IF. 
+
+203287     IF ARP39-AUTO-PAY-IND > SPACES   
+203287        IF ARP39-AUTO-PAY-IND = 'Y'   
+203287           MOVE 'R'            TO ARP90-AUTOPAY-REQUEST-CODE  
+203287        ELSE  
+203287           MOVE ARP39-AUTO-PAY-IND
+203287                               TO ARP90-AUTOPAY-REQUEST-CODE  
+203287        END-IF
+203287     ELSE 
+203287        MOVE SPACES            TO ARP90-AUTOPAY-REQUEST-CODE  
+203287     END-IF.  
+
+
+162639     IF ARP39-PRODUCT-TYPE = 'G' OR 'I'   
+162639        MOVE 'B'               TO ARP90-AUTH-BOOK-IND 
+162639     ELSE 
+162639        IF ARP39-PRODUCT-TYPE = 'A' OR 'D'
+162639           MOVE 'A'            TO ARP90-AUTH-BOOK-IND 
+162639        ELSE  
+162639           MOVE SPACES         TO ARP90-AUTH-BOOK-IND.
+
+162639     IF ARP39-PRODUCT-TYPE = 'I' OR 'G'   
+162639        NEXT SENTENCE 
+162639     ELSE 
+162639        GO TO 1100-CONT1. 
+
+162639     IF ARP39-BOOK-TYPE              = 'G'
+162639        IF ARP39-GUESTDATA-BOOK-NUM  = SPACES 
+162639           MOVE ARP39-PRODUCT-NUM        TO ARP90-PRODUCT-NUM 
+162639                                            ARP90-GROUP-BOOK-NUM  
+162639           GO TO 1100-CONT2   
+162639        ELSE  
+162639           MOVE ARP39-GUESTDATA-BOOK-NUM TO ARP90-PRODUCT-NUM 
+162639           MOVE ARP39-GROUP-BOOK-NUM     TO ARP90-GROUP-BOOK-NUM  
+162639           GO TO 1100-CONT2   
+162639     ELSE 
+162639           MOVE ARP39-PRODUCT-NUM        TO ARP90-PRODUCT-NUM 
+162639           MOVE SPACES                   TO ARP90-GROUP-BOOK-NUM  
+162639           GO TO 1100-CONT2.  
+
+162639 1100-CONT1.  
+162639     IF ARP39-PRODUCT-TYPE = 'A'  
+162639                          OR 'D'  
+162639        MOVE ARP39-AUTHNO       TO ARP90-SS-AUTHNO-NUM
+162639     ELSE 
+162639        MOVE ZEROES             TO ARP90-SS-AUTHNO-NUM
+162639     END-IF.  
+
+162639 1100-CONT2.  
+162639     IF ARP39-CARD-TYPE = 'GC'
+162639                       OR 'PN'
+196374                       OR 'PP'
+LOYLTY                       OR 'LP'
+  |           NEXT SENTENCE 
+C64222     ELSE 
+              MOVE 0                          TO ARP90-EXPIRATION-DATE  
+              MOVE ARP39-EXP-DATE-MM          TO WS-EXP-DATE-MM 
+              MOVE ARP39-EXP-DATE-YY          TO WS-EXP-DATE-YY 
+              MOVE WS-EXPIRATION-DATE-MM-NUM  TO DPP02-YYMM-MM  
+              MOVE WS-EXPIRATION-DATE-MM-NUM  TO WS-EXPIRATION-DATE-MM  
+              MOVE WS-EXPIRATION-DATE-YY-NUM  TO DPP02-YYMM-YY  
+              MOVE WS-EXPIRATION-DATE-YY-NUM  TO WS-EXPIRATION-DATE-YY  
+              PERFORM DPP10-YYMM-TO-YYYYMM  
+              MOVE DPP02-YYYYMM-DATE          TO ARP90-EXPIRATION-DATE. 
+TOKEN2*    IF ARP39-CARD-NUM = SPACES   
+TOKEN2     IF ARP39-PAYMENT-TYPE = 'UCC' or 'UTP'   
+TOKEN         MOVE ARP39-TOKEN-NUM   TO ARP90-PMT-ACCOUNT-NUM   
+TOKEN2*       MOVE 'Y'               TO ARP90-TOKEN-IND 
+TOKEN      ELSE 
+162639        MOVE ARP39-CARD-NUM    TO ARP90-PMT-ACCOUNT-NUM.  
+162639     MOVE ARP39-PRODUCT-TYPE   TO ARP90-PRODUCT-TYPE. 
+162639***  MOVE BNR-CARD-DISPLAY     TO ARP90-CARD-DISPLAY. 
+177233     MOVE ARP39-CARD-DISPLAY   TO ARP90-CARD-DISPLAY. 
+112836     MOVE ARP39-LMN-CODE       TO ARP90-LMN-CODE. 
+162639     MOVE MNR-MERCHANT-NUM     TO ARP90-MERCHANT-NUM. 
+162639     MOVE ARP39-PAYMENT-TYPE   TO ARP90-PAYMENT-TYPE. 
+162639     MOVE LMR-PAYMENT-CLASS    TO ARP90-PAYMENT-CLASS.
+162639     MOVE ARP39-CURRENCY-CODE  TO ARP90-CURRENCY-CODE.
+108267     MOVE ARP39-PAYMENT-AMT    TO ARP90-REQUESTED-AMT.
+112836     MOVE SPACES               TO ARP90-CARD-APPROVAL-CODE.   
+162639     MOVE 'P'                  TO ARP90-APPROVAL-DENIAL-CODE. 
+
+           MOVE ARP39-CARD-HOLDER-LAST-NAME 
+112836                               TO ARP90-CARD-HOLDER-LAST-NAME.
+           MOVE ARP39-CARD-HOLDER-FIRST-NAME
+112836                               TO ARP90-CARD-HOLDER-FIRST-NAME.   
+
+CCL-UK     MOVE ARP39-SCH-CARD-USAGE-FEE-PCT
+CCL-UK                                 TO ARP90-SCH-CARD-USAGE-FEE-PCT. 
+CCLAUS     MOVE ARP39-CARD-USAGE-FEE-AMT
+CCLAUS                               TO ARP90-USAGE-FEE-AMT.
+162639     MOVE ARP39-DEBIT-CREDIT-IND TO ARP90-CARD-CODE.  
+
+112836     MOVE 0                    TO ARP90-CASH-BATCH-NUM
+112836                                  ARP90-CASH-BATCH-DATE   
+112836                                  ARP90-PLOR-SEQ-NUM  
+112836                                  ARP90-CDR-RECORD-SEQ-NUM
+112836                                  ARP90-CDR-SUB.  
+162639     MOVE ARP39-PINNABLE-IND   TO ARP90-PINNABLE-IND. 
+189089     MOVE ARP39-DIGITAL-WALLET-IND TO ARP90-DIGITAL-WALLET-IND.   
+162639     MOVE ARP39-TRANSACTION-ID TO ARP90-TRANSACTION-ID.   
+162639***  MOVE BNR-CARD-DISPLAY     TO ARP90-CARD-DISPLAY. 
+162639***  MOVE BNR-CARD-TYPE        TO ARP90-CARD-TYPE.
+177233     MOVE ARP39-CARD-DISPLAY   TO ARP90-CARD-DISPLAY. 
+177233     MOVE ARP39-CARD-TYPE      TO ARP90-CARD-TYPE.
+162639     MOVE ARP39-OPER-INITIALS  TO ARP90-OPER-INITIALS.
+162639     MOVE MNR-STMT-NUM-LAST3   TO ARP90-STMT-NUM-LAST3.   
+162639  
+162639     IF LMR-STMT-NUM-LAST3 > ZEROES   
+162639        MOVE LMR-STMT-NUM-LAST3 TO ARP90-STMT-NUM-LAST3.  
+162639  
+162639     IF BNR-PROMO-STMT-NUM-LAST3 > ZEROES 
+162639        MOVE BNR-PROMO-STMT-NUM-LAST3 TO ARP90-STMT-NUM-LAST3.
+162639  
+162639     COMPUTE WS-START-DIGIT = BNR-CARD-LENGTH - 3.
+162639  
+TOKEN      IF ARP39-CARD-NUM > SPACES   
+162639     MOVE ARP39-CARD-NUM(WS-START-DIGIT:4)
+162639                               TO ARP90-CARD-NUM-LAST4
+TOKEN      ELSE 
+TOKEN      MOVE ARP39-TOKEN-NUM(WS-START-DIGIT:4)   
+TOKEN                                TO ARP90-CARD-NUM-LAST4
+TOKEN      END-IF.  
+196374     IF ARP39-PMT-TOKEN-ID-TYPE = 'V' 
+196374       MOVE ARP39-PMT-TOKEN-ID   TO ARP90-PSCR-VAULT-TOKEN-ID 
+196374     END-IF.  
+
+           PERFORM ARP90-STORE-PAYMENT-REC THRU 
+                   ARP90-STORE-PAYMENT-REC-EXIT.
+
+162639     FIND CURRENT PAYMENT-REC RECORD. 
+162639     MOVE CURRENT-DBKEY TO ARP39-PYDR-DBK.
+
+162639     IF ARP39-PRODUCT-TYPE = 'G'  
+162639        NEXT SENTENCE 
+162639     ELSE 
+162639        GO TO 1300-VISANET-PASS-OFF.  
+
+126351 1200-STORE-UUPR. 
+  |         MOVE SPACES              TO UUPR-VISANET-PASSOFF-MESSAGE
+  |                                     UUPR-FILLER 
+  |                                     UUPR-AUTOPAY-REQUEST-CODE   
+  |                                     UUPR-PAYMENT-TYPE   
+  |                                     UUPR-EXTENDED-PMT-IND.  
+  | 
+  |         MOVE 0                   TO UUPR-PROCESSED-DATE-TIME
+  |                                     UUPR-ENTRY-CTR  
+  |                                     UUPR-VISANET-RTN-TIME   
+  |                                     UUPR-UCC-REQUEST-DBKEY  
+  |                                     UUPR-PAYMENT-REC-DBKEY  
+  |                                     UUPR-BOOK-HIST-DBKEY
+  |                                     UUPR-CO-PAYMENT-REC-DBKEY.  
+  | 
+  |         IF  ARP39-AUTO-PAY-IND  = 'Y'   
+  |             MOVE 'R'                TO UUPR-AUTOPAY-REQUEST-CODE
+CCL-UK      ELSE
+CCL-UK          IF  ARP39-AUTO-PAY-IND = 'V'
+CCL-UK              MOVE 'V'            TO UUPR-AUTOPAY-REQUEST-CODE
+CCL-UK          END-IF  
+  |         END-IF. 
+  | 
+  |         MOVE 'Y'                   TO UUPR-DENIAL-DISPLAY-IND.  
+126351      MOVE 'N'                   TO UUPR-EXTENDED-PMT-IND.
+126351      ACCEPT WS-DATE-TIME-DATE   FROM DATE YYYYMMDD.  
+126351      ACCEPT WS-DATE-TIME-TIME   FROM TIME.   
+  |         MOVE WS-DATE-TIME          TO UUPR-CREATED-DATE-TIME.   
+126351****  MOVE ARP39-BOOK-NUM        TO UUPR-BOOK-NUM.
+126351      MOVE ARP39-GROUP-BOOK-NUM  TO UUPR-BOOK-NUM.
+  |         MOVE ARP39-BOOK-TYPE       TO UUPR-BOOK-TYPE.   
+  |         MOVE ARP39-AUTH-LTR-STATUS TO UUPR-AUTH-LETTER-STATUS.  
+  |         MOVE WS-EXPIRATION-DATE    TO UUPR-EXPIRATION-DATE. 
+162639      MOVE ARP39-LMN-CODE        TO UUPR-LOGICAL-MERCHANT-NUM.
+  |         MOVE ARP39-BK-HIST-SEQ-NUM TO UUPR-BOOK-HIST-RECORD-SEQ-NUM.
+  |         MOVE ARP39-BK-HIST-SUB     TO UUPR-BOOK-HIST-SUB.   
+126351      MOVE ARP39-CARD-HOLDER-LAST-NAME  TO UUPR-LAST-NAME.
+126351      MOVE ARP39-CARD-HOLDER-FIRST-NAME TO UUPR-FIRST-NAME.   
+126351      MOVE ARP39-PAYMENT-AMT            TO UUPR-AMT.  
+
+162639*     IF ARP39-CARD-TYPE = 'GC'   
+162639*        MOVE 'GCP'              TO UUPR-PAYMENT-TYPE 
+162639*     ELSE
+162639      MOVE ARP39-PAYMENT-TYPE    TO UUPR-PAYMENT-TYPE.
+
+162639      MOVE ARP39-PTRR-DBK        TO UUPR-UCC-REQUEST-DBKEY.   
+126351      MOVE ARP39-BK-HIST-SEQ-NUM TO UUPR-BOOK-HIST-RECORD-SEQ-NUM.
+126351      MOVE ARP39-BK-HIST-SUB     TO UUPR-BOOK-HIST-SUB.   
+126351      MOVE ARP90-PMT-REF-NUM     TO UUPR-PMT-REF-NUM. 
+
+126351      IF (ARP39-GUESTDATA-BOOK-NUM NOT = SPACES AND LOW-VALUES )  
+126351          MOVE ARP39-GUESTDATA-BOOK-NUM       TO  
+126351                                      UUPR-GUESTDATA-BOOK-NUM (1) 
+126351          MOVE ARP39-GUESTDATA-CABIN-NUM      TO  
+126351                                     UUPR-GUESTDATA-CABIN-NUM (1) 
+126351          MOVE ARP39-PAYMENT-AMT              TO  
+126351                                           UUPR-GUESTDATA-AMT (1) 
+126351          MOVE ARP39-GUESTDATA-SEQ-NUM        TO  
+126351                                       UUPR-GUESTDATA-SEQ-NUM (1) 
+126351          MOVE ARP39-GUESTDATA-CABIN-SEQ-NUM  TO  
+126351                                 UUPR-GUESTDATA-CABIN-SEQ-NUM (1) 
+126351          MOVE ARP39-CARD-HOLDER-FIRST-NAME   TO  
+126351                                    UUPR-GUESTDATA-FIRST-NAME (1) 
+126351          MOVE ARP39-CARD-HOLDER-LAST-NAME    TO  
+126351                                     UUPR-GUESTDATA-LAST-NAME (1) 
+126351          MOVE 2                              TO UUPR-TABLE-CTR   
+126351     ELSE 
+126351          MOVE 1                              TO UUPR-TABLE-CTR   
+126351          MOVE 'NONE  '                       TO  
+126351                                      UUPR-GUESTDATA-BOOK-NUM (1) 
+126351     END-IF.  
+
+********** Insert into UCC-UNPROCESSED-SET. 
+
+144449*    MOVE 00001415              TO DPP01-ERROR-NUMBER.
+  |        MOVE 2                     TO FETCH-WITH-LOCK.   
+  |        FIND  UCC-PAYMENT-HDR-REC RECORD 
+  |            ON ERROR GO TO 1250-STORE-PMT-HDR-REC.   
+126351     MOVE 0                     TO FETCH-WITH-LOCK.   
+
+144449*    MOVE 00000516              TO DPP01-ERROR-NUMBER.
+  |        STORE UCC-UNPROCESSED-REC.   
+162639     MOVE CURRENT-DBKEY         TO ARP39-UUPR-DBK.
+  | 
+162639*    MOVE WS-UUPR-DBKEY         TO ARP39-UUPR-DBKEY.  
+  | 
+144449*    MOVE 00002217              TO DPP01-ERROR-NUMBER.
+  |        INSERT UCC-UNPROCESSED-REC RECORD  INTO  
+  |                UCC-UNPROCESSED-SET. 
+  | 
+  |         GO TO 1300-VISANET-PASS-OFF.
+  | 
+  |    1250-STORE-PMT-HDR-REC.  
+  |        MOVE 0                     TO FETCH-WITH-LOCK.   
+  |        IF  ERROR-NUM = 0013 
+  |              NEXT SENTENCE  
+  |        ELSE 
+  |            GO TO 9100-DATABASE-ERROR.   
+  | 
+  |        MOVE '91CC'                TO UPHR-FILLER.   
+  |        STORE UCC-PAYMENT-HDR-REC.   
+  |        GO TO 1200-STORE-UUPR.   
+  | 
+  |    1250-EXIT.   
+126351     EXIT.
+
+       1300-VISANET-PASS-OFF.   
+162639     IF ARP39-CARD-TYPE = 'GC'
+C64222        PERFORM 1350-GIFTCARD-PASSOFF THRU 1350-EXIT  
+              GO TO 9000-END-OF-JOB.
+
+           PERFORM 1400-PERFORM-MCB-INIT THRU 1400-EXIT.
+           MOVE LOW-VALUES            TO VISANET-PASSOFF-MESSAGE.   
+
+162639     MOVE ARP39-PTRR-DBK        TO VPM1-UCC-REQUEST-DBKEY.
+162639     MOVE ARP39-PYDR-DBK        TO VPM1-PMT-REC-DBKEY.
+162639     MOVE ARP39-UUPR-DBK        TO VPM1-UUPR-DBKEY.   
+  |        MOVE ARP39-ORDER-REC-DBK   TO VPM1-ORDER-REC-DBKEY.  
+  |        MOVE ARP39-BK-HIST-SUB     TO VPM1-BK-HIST-SUB.  
+126351     MOVE ARP39-BK-HIST-SEQ-NUM TO VPM1-BK-HIST-SEQ-NUM.  
+C64222     MOVE ARP39-GROUP-BOOK-NUM  TO VPM1-GROUP-BOOK-NUM.   
+           MOVE VPM-START-VALUE       TO VPM-START. 
+           MOVE VPM-VERSION-VALUE     TO VPM-VERSION.   
+           MOVE 1                     TO VPM-TRANSACTION-TYPE.  
+           MOVE 'P'                   TO VPM-AUTH-CHAR-IND. 
+162639     MOVE ARP39-PRODUCT-TYPE    TO VPM1-PRODUCT-TYPE. 
+           MOVE ARP39-LMN-CODE        TO VPM-LOGICAL-MERCHANT-NO.   
+           MOVE SPACE                 TO VPM-CCL-LOCATION-ID.   
+
+TOKEN      MOVE 0                     TO VPM-CHANNEL-IND.   
+TOKEN2*    IF ARP90-PMT-TKN-REC-NOT-FOUND   
+TOKEN2     MOVE SPACES                TO VPM-TOKEN-NUM. 
+TOKEN2*    ELSE 
+TOKEN2     IF ARP39-TOKEN-NUM > SPACES  
+PCI3          IF ARP39-TOKEN-NUM(1:1) = 'T' 
+PCI3             MOVE ARP39-TOKEN-NUM(2:)   
+PCI3                                  TO VPM-TOKEN-NUM  
+PCI3          ELSE  
+PCI3             MOVE ARP39-TOKEN-NUM   
+PCI3                                  TO VPM-TOKEN-NUM  
+PCI3          END-IF
+TOKEN2        MOVE 1                  TO VPM-CHANNEL-IND
+TOKEN2     END-IF.  
+TOKEN2*       ELSE  
+TOKEN2*          MOVE APRR-PMT-TOKEN-NUM     TO VPM-TOKEN-NUM.  
+TOKEN      MOVE APRR-PMT-REF-NUM      TO VPM-PMT-REF-NUM.   
+TOKEN      MOVE ARP39-CCL-SESSION-ID  TO VPM-CCL-SESSION-ID.
+TOKEN      MOVE ARP39-SOURCE-ID       TO VPM-SOURCE-ID. 
+
+TOKEN3     INITIALIZE VPM-MPGS-DATA.
+PCI3  *     IF TOKENX-FLAG  
+PCI3       IF ARP39-TOKEN-NUM(1:1) = 'T'
+PCI3          MOVE ARP39-TOKEN-NUM(2:)  
+PCI3                               TO VPM-TOKENX-TOKEN  
+PCI3       ELSE 
+PCI3          MOVE ARP39-TOKEN-NUM  
+PCI3                               TO VPM-TOKENX-TOKEN  
+PCI3       END-IF.  
+TOKENX*        MOVE ARP39-TOKEN-NUM 
+TOKENX*                                TO VPM-TOKENX-TOKEN  
+PCI3  *     END-IF. 
+TOKEN3     IF ARP39-SAIL-DATE > 0   
+TOKEN3        MOVE ARP39-SAIL-DATE    TO VPM-SAIL-DATE  
+TOKEN3                                   DPP02-YYYYMMDD-DATE
+TOKEN3        MOVE ARP39-DURATION-DAYS TO DPP02-NUMBER-DAYS 
+TOKEN3        PERFORM DPP10-ADVANCE-YYYYMMDD-DATE   
+TOKEN3        MOVE DPP02-YYYYMMDD-DATE TO VPM-RETURN-DATE   
+TOKEN3     END-IF.  
+TOKEN3     IF ARP39-SHIP-CODE > SPACES  
+TOKEN3        EXEC SQL  
+TOKEN3              SELECT  SHIP_NAME   
+TOKEN3                INTO :VPM-SHIP-NAME   
+TOKEN3                FROM  SHIP
+TOKEN3               WHERE  SHIP_CODE = :ARP39-SHIP-CODE
+TOKEN3        END-EXEC  
+TOKEN3     END-IF.  
+
+LOYLTY     STRING ARP39-SHIP-CODE     DELIMITED BY SIZE 
+                  ARP39-SAIL-DATE     DELIMITED BY SIZE 
+                  ARP39-DURATION-DAYS DELIMITED BY SIZE 
+LOYLTY       INTO VPM-VOYAGE-ID.
+
+C78366     IF (ARP39-OPER-INITIALS = SPACES OR LOW-VALUES)  
+C78366         MOVE 'SYS'                  TO INFO-USERID   
+C78366     ELSE 
+C78366         MOVE ARP39-OPER-INITIALS    TO INFO-USERID   
+C78366     END-IF.  
+
+126351     MOVE INFO-USERID             TO VPM-CCL-REQUESTOR-ID.
+179335*    MOVE SPACES                  TO VPM-9DIGIT-ZIP-R.
+126351     MOVE SPACES                  TO VPM1-FAX-IND.
+TOKEN2*    IF  ARP39-CARD-NUM = SPACES  
+TOKEN2*        IF APSR-TOKEN-IND NOT = 1
+TOKEN2*           MOVE ARP90-PMT-ACCOUNT-NUM TO VPM-CREDIT-CARD-NUMBER  
+TOKEN2*        ELSE 
+TOKEN2*           MOVE SPACES           TO VPM-CREDIT-CARD-NUMBER   
+TOKEN2*    ELSE 
+162639     MOVE ARP39-CARD-NUM          TO VPM-CREDIT-CARD-NUMBER.  
+           MOVE ARP39-EXP-DATE-MM       TO WS-EXP-DATE-MM.  
+           MOVE ARP39-EXP-DATE-YY       TO WS-EXP-DATE-YY.  
+           MOVE WS-EXPIRATION-DATE-NUM  TO VPM-EXPIRATION-DATE. 
+           MOVE ARP39-PAYMENT-AMT       TO VPM-TRANSACTION-AMOUNT.  
+
+LOYLTY     IF ARP39-CARD-TYPE = 'LP'
+LOYLTY        IF ARP39-CURRENCY-CODE = 'USD'
+LOYLTY              CONTINUE
+LOYLTY        ELSE  
+LOYLTY              MOVE ARP39-PAYMENT-AMT-USD-EQ   
+LOYLTY                                     TO VPM-TRANSACTION-AMOUNT
+LOYLTY        END-IF
+LOYLTY     END-IF.  
+
+CCL-UK     MOVE ARP39-CARD-USAGE-FEE-AMT TO VPM1-CARD-USAGE-FEE-AMT.
+CCL-UK     MOVE ARP39-DEBIT-CREDIT-IND   TO VPM1-DEBIT-CREDIT-IND.  
+
+126351     MOVE ARP90-AUTOPAY-REQUEST-CODE  
+126351                                  TO VPM1-AUTOPAY-REQUEST-CODE.   
+162639     MOVE ARP39-PAYMENT-TYPE      TO VPM1-PAYMENT-TYPE.   
+162639     MOVE ARP90-STMT-NUM-LAST3    TO VPM1-CC-STMT-NUM.
+162639     MOVE ARP39-CARD-TYPE         TO VPM1-CARD-TYPE.  
+C64222     MOVE ARP39-INVOICE-IND       TO VPM1-INVOICE-IND.
+  |        MOVE ARP39-PRODUCT-NUM       TO VPM1-PRODUCT-NUM.
+  |        MOVE ARP39-CURRENCY-CODE     TO VPM1-CURRENCY-CODE.  
+126351     MOVE ARP39-CUST-NUM2         TO VPM1-CUST-NUM2.  
+126351     MOVE ARP39-PASSBACK-TRANS-ID TO VPM1-PASSOFF-TRANS-CODE. 
+           MOVE WS-ORIG-RUNID           TO WS-TRANS-IN-CODE.
+
+C78366     MOVE WS-TRANS-IN-APP         TO DPP90-CURR-TXN-CODE. 
+C78366     MOVE 'AR'                    TO DPP90-PASS-OFF-TXN-CODE. 
+           MOVE 'CPU'                   TO WS-TRANS-ID. 
+
+179336*    IF VPM1-CURRENCY-CODE = 'USD' AND
+179336*       ARP39-PAYMENT-TYPE = 'UCC' AND
+179336*       VPM1-CARD-TYPE     = 'AX' 
+179336*       MOVE ARP39-9DIGIT-ZIP     TO VPM-9DIGIT-ZIP   
+179336*       MOVE ARP39-CARD-HOLDER-ADDRESS TO VPM-CARDHOLDER-ADDRESS  
+179336*       MOVE FUNCTION UPPER-CASE (ARP39-CARD-HOLDER-FIRST-NAME)   
+179336*                                 TO VPM-CARDHOLDER-FIRST-NAME
+179336*       MOVE FUNCTION UPPER-CASE (ARP39-CARD-HOLDER-LAST-NAME)
+179336*                                 TO VPM-CARDHOLDER-LAST-NAME 
+179336*       MOVE ARP39-CID-NUM        TO VPM-CID-NUM  
+179336*       IF VPM-ADDRESS-VERIFY-DATA > SPACES   
+179336*          MOVE 6 TO VPM-TRANSACTION-TYPE 
+179336*          IF VPM-CID-NUM > SPACES
+179336*             MOVE 7 TO VPM-TRANSACTION-TYPE  
+179336*          END-IF 
+179336*       END-IF
+179336*    END-IF.  
+
+CCFRAU     MOVE SPACES                  TO VPM-9DIGIT-ZIP   
+CCFRAU                                     VPM-CARDHOLDER-ADDRESS   
+CCFRAU                                     VPM-CARDHOLDER-FIRST-NAME
+CCFRAU                                     VPM-CARDHOLDER-LAST-NAME 
+CCFRAU                                     VPM1-PMT-IP-ADDRESS  
+CCFRAU                                     VPM-CID-NUM. 
+
+CCFRAU     IF ARP39-9DIGIT-ZIP > SPACES 
+CCFRAU        MOVE ARP39-9DIGIT-ZIP     TO VPM-9DIGIT-ZIP.  
+
+CCFRAU     IF ARP39-CARD-HOLDER-ADDRESS > SPACES
+CCFRAU        MOVE ARP39-CARD-HOLDER-ADDRESS TO VPM-CARDHOLDER-ADDRESS. 
+CCFRAU  
+CCFRAU     IF ARP39-CARD-HOLDER-FIRST-NAME > SPACES 
+CCFRAU        MOVE FUNCTION UPPER-CASE (ARP39-CARD-HOLDER-FIRST-NAME)   
+CCFRAU                                  TO VPM-CARDHOLDER-FIRST-NAME.   
+
+CCFRAU     IF ARP39-CARD-HOLDER-LAST-NAME > SPACES  
+CCFRAU        MOVE FUNCTION UPPER-CASE (ARP39-CARD-HOLDER-LAST-NAME)
+CCFRAU                                  TO VPM-CARDHOLDER-LAST-NAME.
+
+CCFRAU     IF ARP39-IP-ADDRESS > SPACES 
+CCFRAU        MOVE ARP39-IP-ADDRESS TO VPM1-PMT-IP-ADDRESS. 
+
+CCFRAU     IF ARP39-CID-NUM > SPACES
+CCFRAU        MOVE ARP39-CID-NUM        TO VPM-CID-NUM. 
+
+CCFRAU     MOVE ARP39-VPM-TRANS-TYPE    TO VPM-TRANSACTION-TYPE.
+CCFRAU*    IF VPM-ADDRESS-VERIFY-DATA > SPACES  
+CCFRAU*       MOVE 6 TO VPM-TRANSACTION-TYPE
+CCFRAU*       IF VPM-CID-NUM > SPACES   
+CCFRAU*          MOVE 7 TO VPM-TRANSACTION-TYPE 
+CCFRAU*       END-IF
+CCFRAU*    END-IF.  
+
+C78366     PERFORM DPP90-FIND-TRANS-CODE THRU DPP90-EXIT.   
+
+C78366     IF DPP90-ERROR-SW > 0
+C78366        MOVE 'Invalid TRANS-APP'     TO ARP39-OUTPUT-MESSAGE  
+C78366        GO TO 1300-EXIT   
+C78366     ELSE 
+C78366        MOVE DPP90-PASS-OFF-TXN-CODE TO WS-TRANS-APP  
+C78366     END-IF.  
+
+           MOVE WS-TRANS-CODE          TO VPM-RESCHEDULE-TC.
+126351     MOVE ARP39-PRODUCT-NUM      TO VPM1-PRODUCT-NUM. 
+126351     MOVE ARP39-AMEX-EXT-PMT-IND TO VPM1-EXTENDED-PMT-IND.
+           MOVE 'CCL'                  TO VPM-CCL-LOCATION-NAME.
+
+179336     IF PTCR-PAYMENT-CLASS = 'PIN' AND
+162639        ARP39-TRANSACTION-ID > SPACES 
+162639        MOVE ARP39-TRANSACTION-ID   TO VPM-PIN-TRANSACTION-ID 
+162639        STRING WS-SYS-DATE
+162639               WS-TIME
+162639               ARP39-PRODUCT-NUM  
+162639               DELIMITED BY SIZE  
+162639               INTO VPM-PIN-ORDER-ID  
+179336     END-IF.  
+
+196374     IF  PTCR-PAYMENT-CLASS = 'PAL'   
+196374         MOVE ARP39-PMT-TOKEN-ID   TO VPM-PMT-TOKEN-ID
+196374         MOVE ARP39-CREATE-VAULT-IND  
+196374                                   TO VPM-CREATE-VAULT-IND
+196374         MOVE ARP39-PMT-TOKEN-ID-TYPE 
+196374                                   TO VPM-PMT-VAULT-ID-TYPE   
+196374     END-IF.  
+
+TOKEN2* Final check before passing off to AUTH1. We should pass both
+TOKEN2* card and token to AUTH and if any one of them is missing then   
+TOKEN2* decline the payment and create a tip print indicating a problem 
+UATP       IF ARP39-PAYMENT-TYPE = 'UCC' OR 'UTP'   
+TOKEN2        IF ARP39-CARD-NUM <= SPACES OR
+TOKEN2           ARP39-TOKEN-NUM <= SPACES  
+TOKEN2         MOVE 'CC or Token is missing' TO ARP39-OUTPUT-MESSAGE
+TOKEN2         DISPLAY 'ARP39-PRODUCT-NUM: ' ARP39-PRODUCT-NUM UPON PRT 
+TOKEN2         DISPLAY 'ARP39-SOURCE-ID: ' ARP39-SOURCE-ID UPON PRT 
+TOKEN2         DISPLAY 'CARD: ' ARP39-CARD-NUM(1:6) 'XXXXX' 
+TOKEN2            ARP39-CARD-NUM(12:5) UPON PRT 
+TOKEN2         DISPLAY 'TOKEN: ' ARP39-TOKEN-NUM UPON PRT   
+TOKEN2         GO TO 9000-END-OF-JOB.   
+           PERFORM VISANET-PASSOFF. 
+
+           IF SUCCESSFUL-PASSOFF = 'N'  
+              MOVE 'VisaNet Processing Error'   
+                                      TO ARP39-OUTPUT-MESSAGE   
+           END-IF.  
+
+           IF SUCCESSFUL-PASSOFF = 'Y'  
+              MOVE ' PAYMENT HAS BEEN SUBMITTED FOR APPROVAL'   
+                                      TO ARP39-OUTPUT-MESSAGE   
+           END-IF.  
+
+       1300-EXIT.   
+           EXIT.
+
+C64222 1350-GIFTCARD-PASSOFF.   
+  |        PERFORM 1400-PERFORM-MCB-INIT THRU 1400-EXIT.
+  |        MOVE LOW-VALUES            TO GIFTCARD-PASSOFF-MESSAGE.  
+  |        MOVE GPM-START-VALUE       TO GPM-START. 
+  |        MOVE GPM-VERSION-VALUE     TO GPM-VERSION.   
+
+183464     MOVE WS-SYS-DATE-MM        TO WS-TRANS-DATE-MM.  
+183464     MOVE WS-SYS-DATE-DD        TO WS-TRANS-DATE-DD.  
+
+
+162639     MOVE ARP39-CARD-NUM        TO WS-ALPHA-ACCOUNT-NUM   
+C64222     MOVE WS-ACCOUNT-NUM        TO GPM-GC-NUMBER. 
+  |        MOVE ARP39-PAYMENT-TYPE    TO GPM-PAYMENT-TYPE.  
+ M|        MOVE ARP39-PROCESSING-CODE TO GPM-PROCESSING-CODE.   
+ M|        MOVE ARP90-REQUESTED-AMT   TO GPM-TRANSACTION-AMT
+ V|                                      GPM-REQUESTED-AMT. 
+ M|        MOVE WS-TIME               TO GPM-TRANSACTION-TIME.  
+183464*    MOVE WS-SYS-DATE           TO GPM-TRANSACTION-DATE.  
+183464     MOVE WS-TRANS-DATE         TO GPM-TRANSACTION-DATE.  
+ M|        MOVE 999                   TO GPM-SHIP-NUM.  
+ M|        MOVE ARP39-CHANNEL-NUMBER  TO GPM-LOCATION.  
+ M|        MOVE ARP39-CURRENCY-CODE   TO GPM-CURRENCY-CODE  
+ M|                                      GPM-CARD-HOLDER-CURRENCY.  
+ M|        MOVE ZEROES                TO GPM-REMAINING-BALANCE  
+ M|                                      GPM-SYS-TRACE-AUDIT-NUM
+ M|                                      GPM-CONVERSION-RATE
+ M|                                      GPM-MERCHANT-NUM   
+ M|                                      GPM-TRACK-2-DATA   
+ M|                                      GPM-CARD-BALANCE   
+ M|                                      GPM-DIVISION.  
+ M|        MOVE SPACES                TO GPM-RESPONSE-CODE  
+ M|                                      GPM-SERVICE-FLAG   
+ M|                                      GPM-INVOICE-NUM
+ M|                                      GPM-EOV-DATE-TIME  
+ M|                                      GPM-TRACK-1-DATA   
+ M|                                      GPM-ADDITIONAL-DATA
+ M|                                      GPM-PIN-NUM
+ V|                                      GPM-FAX-IND.   
+
+C64222*** IN HOUSE VARIABLES ********   
+           MOVE 1                      TO GPM-TRANSACTION-TYPE. 
+ V|        MOVE ARP39-LMN-CODE         TO GPM-LOGICAL-MERCHANT-NO.  
+ V|        MOVE ARP39-PRODUCT-NUM      TO GPM-PRODUCT-NUM.  
+ V|        MOVE ARP39-GROUP-BOOK-NUM   TO GPM-GROUP-BOOK-NUM.   
+162639     MOVE ARP39-PRODUCT-TYPE     TO GPM-PRODUCT-TYPE. 
+162639     MOVE ARP39-CARD-TYPE        TO GPM-CARD-TYPE.
+ V|        MOVE ARP90-CARD-HOLDER-FIRST-NAME
+ V|                                    TO GPM-RECIPIENT-FIRST-NAME. 
+ V|        MOVE ARP90-CARD-HOLDER-LAST-NAME 
+ V|                                    TO GPM-RECIPIENT-LAST-NAME.  
+ V|        MOVE ARP90-SHIP-CODE        TO GPM-SHIP-CODE.
+ V|        MOVE ARP90-SAIL-DATE        TO GPM-SAIL-DATE.
+ V|        MOVE ARP90-DURATION-DAYS    TO GPM-DURATION-DAYS.
+162639     MOVE ARP90-PMT-REF-NUM      TO GPM-PMT-REF-NUM.  
+162639     MOVE ARP90-STMT-NUM-LAST3   TO GPM-GC-STMT-NUM.  
+ V|        MOVE ARP39-CUST-NUM2        TO GPM-CUST-NUM2.
+ V|        MOVE ARP39-BK-HIST-SUB      TO GPM-BK-HIST-SUB.  
+162639     MOVE ARP39-PTRR-DBK         TO GPM-UCC-REQUEST-DBKEY.
+162639     MOVE ARP39-PYDR-DBK         TO GPM-PMT-REC-DBKEY.
+162639     MOVE ARP39-UUPR-DBK         TO GPM-UUPR-REC-DBKEY.   
+ V|        MOVE ARP39-ORDER-REC-DBK    TO GPM-ORDER-REC-DBKEY.  
+ V|        MOVE ARP39-BK-HIST-SEQ-NUM  TO GPM-BK-HIST-SEQ-NUM.  
+ V|        IF (ARP39-OPER-INITIALS = SPACES OR LOW-VALUES)  
+ V|            MOVE 'SYS'                  TO INFO-USERID   
+ V|        ELSE 
+ V|            MOVE ARP39-OPER-INITIALS    TO INFO-USERID   
+ V|        END-IF.  
+ V|        MOVE INFO-USERID             TO GPM-CCL-REQUESTOR-ID.
+ V|        MOVE ARP39-PASSBACK-TRANS-ID TO GPM-PASSOFF-TRANS-CODE.  
+SB|        MOVE ARP39-GUESTDATA-SEQ-NUM TO GPM-PAX-SEQ-NUM. 
+SB|        MOVE ARP39-MSG-NUM           TO GPM-INVOICE-NUM. 
+185904     MOVE ARP39-CID-NUM           TO GPM-PIN-NUM. 
+           MOVE WS-ORIG-RUNID           TO WS-TRANS-IN-CODE.
+           MOVE WS-TRANS-IN-APP         TO DPP90-CURR-TXN-CODE. 
+           MOVE 'AR'                    TO DPP90-PASS-OFF-TXN-CODE. 
+
+           IF ARP39-PROCESSING-CODE = 310000 AND
+              ARP39-CHANNEL-NUMBER = 0000002
+              MOVE 'Y'                     TO GPM-VENDOR-PASSOFF
+              MOVE ARP39-PASSBACK-TRANS-ID TO GPM-RESCHEDULE-TC 
+              MOVE ARP39-SHIP-NUM          TO GPM-SHIP-NUM  
+ V            MOVE ARP39-SHIP-CODE         TO GPM-SHIP-CODE 
+ V            MOVE ARP39-SAIL-DATE         TO GPM-SAIL-DATE 
+ V            MOVE ARP39-DURATION-DAYS     TO GPM-DURATION-DAYS 
+ V            MOVE ARP39-MSG-NUM           TO GPM-MESSAGE-NUMBER
+212649***** Need to move the auth to both the old and new field until   
+212649***** all ships are converted.
+              MOVE ARP39-AUTHNO            TO GPM-FOLIO-NUM 
+212649                                        GPM-FOLIO-NUMBER  
+              MOVE ARP39-AUTHNO            TO GPM-FOLIO-NUM 
+              MOVE ARP39-BOOK-NUM          TO GPM-BOOK-NUM  
+              MOVE ARP39-SHIP-ROUTING      TO GPM-SHIP-ROUTING  
+              MOVE ARP39-TRACK2-DATA       TO GPM-TRACK-2-DATA  
+              MOVE ARP39-TRANS-DATE        TO GPM-TRANSACTION-DATE  
+185904        MOVE ARP39-CID-NUM           TO GPM-PIN-NUM   
+C64222     ELSE 
+  |          IF (ARP39-PROCESSING-CODE = 310000 AND 
+  |              ARP39-CHANNEL-NUMBER NOT = 0000002)
+  |             MOVE 'Y'                     TO GPM-VENDOR-PASSOFF  
+185904          MOVE ARP39-CID-NUM           TO GPM-PIN-NUM 
+  |          ELSE   
+  |             MOVE 'CPU'                TO WS-TRANS-ID.   
+  | 
+  |        PERFORM DPP90-FIND-TRANS-CODE THRU DPP90-EXIT.   
+  | 
+  |        IF DPP90-ERROR-SW > 0
+  |           MOVE 'Invalid TRANS-APP'     TO ARP39-OUTPUT-MESSAGE  
+  |           GO TO 1350-EXIT   
+  |        ELSE 
+  |           MOVE DPP90-PASS-OFF-TXN-CODE TO WS-TRANS-APP  
+  |        END-IF.  
+  | 
+  |        MOVE WS-TRANS-APP           TO GPM-APP-CODE. 
+  |        MOVE WS-TRANS-ID            TO GPM-TRANS-CODE.   
+  |        CALL 'UCSFDASC$' USING DMCA, GPM-PASSOFF-SCHEMA, 3.  
+  | 
+  |    1350-CONTINUE.   
+  |        PERFORM GIFTCARD-PASSOFF.
+  | 
+  |        IF SUCCESSFUL-PASSOFF = 'N'  
+  |           MOVE 'Gift Card Processing Error' 
+  |                                   TO ARP39-OUTPUT-MESSAGE   
+  |        END-IF.  
+  | 
+  |        IF ARP39-PROCESSING-CODE = 310000 AND
+  |           SUCCESSFUL-PASSOFF = 'Y'  
+  |           MOVE 'Balance Inquiry Sent' TO ARP39-OUTPUT-MESSAGE   
+  |           GO TO 1350-EXIT   
+  |        END-IF.  
+  | 
+  |        IF SUCCESSFUL-PASSOFF = 'Y'  
+  |           MOVE ' Redemption has been Submitted for Approval'
+  |                                   TO ARP39-OUTPUT-MESSAGE   
+  |        END-IF.  
+  | 
+  |    1350-EXIT.   
+C64222     EXIT.
+
+       1400-PERFORM-MCB-INIT.   
+           CALL 'UCSPCT$'   USING 2, 0, PCT-1ST-2WORDS. 
+           CALL 'UCSFDASC$' USING PCT-WD0-ORIG-RUNID,   
+                                  WS-ORIG-RUNID, 6. 
+
+C99744**** DISPLAY WS-ORIG-RUNID UPON PRINTER.  
+       1400-EXIT.   
+           EXIT.
+
+PCI3  * 1500-VAL-CARD.  
+PCI3  *     ADD  1     TO  WS-SUB1. 
+PCI3  *     IF  WS-SUB1 > 20
+PCI3  *         GO TO 1500-VAL-CARD-EXIT
+PCI3  *     END-IF. 
+PCI3  *     IF (WS-CARD-NUM (WS-SUB1:1) IS NUMERIC) 
+PCI3  *        ADD 1            TO WS-NUMERIC-CTR   
+PCI3  *     ELSE
+PCI3  *        IF (WS-CARD-NUM (WS-SUB1:1) IS ALPHABETIC)   
+PCI3  *        AND (WS-CARD-NUM (WS-SUB1:1) NOT = SPACES)   
+PCI3  *           ADD 1         TO WS-ALPHA-CTR 
+PCI3  *        ELSE 
+PCI3  *           IF (WS-CARD-NUM (WS-SUB1:1) = SPACES) 
+PCI3  *              ADD 1      TO WS-SPACES-CTR
+PCI3  *           END-IF
+PCI3  *        END-IF   
+PCI3  *     END-IF. 
+PCI3  *     GO TO 1500-VAL-CARD.
+PCI3  * 
+PCI3  * 1500-VAL-CARD-EXIT. 
+PCI3  *     EXIT.   
+
+PCI3  * 2000-CALL-ARO38TKN. 
+PCI3  *     MOVE ARP39-SOURCE-ID TO ARP38-SOURCE-ID.
+PCI3  *     CALL 'ARO38TKN' USING DPP01-COMMON-DATA-FIELDS, 
+PCI3  *                           DPP01-COMMON-INFO,
+PCI3  *                           ARP38-TKN-INPUT-DATA, 
+PCI3  *                           ARP38-TKN-OUTPUT-DATA.
+PCI3  * 
+PCI3  *     IF ARP38-ERROR-MESSAGE > SPACES 
+PCI3  *         DISPLAY 'ARP38-ERROR-MESSAGE: ' ARP38-ERROR-MESSAGE 
+PCI3  *            UPON PRT 
+PCI3  *     END-IF. 
+PCI3  * 2000-EXIT.  
+PCI3  *     EXIT.   
+PCI3  * 
+PCI3  * 2500-CHECK-TOKEN.   
+PCI3  * 
+PCI3  *     IF ARP39-TOKEN-NUM(1:1) = 'T'   
+PCI3  *        PERFORM 3000-CALL-ARO39TKX THRU 3000-EXIT
+PCI3  *        IF ARP39-O-ERROR-NUM = 0 
+PCI3  *           MOVE SPACES             TO ARP39-TOKEN-NUM
+PCI3  *           MOVE ARP39-OUT-MPGS-TOKEN 
+PCI3  *                                   TO ARP39-TOKEN-NUM
+PCI3  *           MOVE ARP39-OUT-TOKENX-TOKEN   
+PCI3  *                                   TO WS-TOKENX-TOKEN-NUM
+PCI3  *        ELSE 
+PCI3  *           MOVE ARP39-O-ERROR-MSG  TO ARP39-OUTPUT-MESSAGE   
+PCI3  *           DISPLAY 'ERROR MSG:' ARP39-O-ERROR-MSG UPON   
+PCI3  *           PRT   
+PCI3  *           GO TO 0499-EXIT   
+PCI3  *        END-IF   
+PCI3  *     END-IF. 
+PCI3  * 
+PCI3  * 2500-EXIT.  
+PCI3  *     EXIT.   
+PCI3  * 
+PCI3  * 3000-CALL-ARO39TKX. 
+PCI3  *     SET TOKENX-FLAG               TO TRUE.  
+PCI3  *     INITIALIZE ARP39-TKN-INPUT-DATA 
+PCI3  *                WS-TOKENX-TOKEN-NUM. 
+PCI3  *     MOVE ARP39-TOKEN-NUM          TO ARP39-IN-TOKENX-TOKEN. 
+PCI3  *     MOVE ARP39-EXPIRATION-DATE    TO ARP39-IN-EXP-DATE-MMYY.
+PCI3  * 
+PCI3  *     IF SCHEMA-3 = 'PRD' or 'prd'
+PCI3  *        MOVE 'PRD'                 TO ARP39-IP-ENV   
+PCI3  *     ELSE
+PCI3  *        MOVE 'TST'                 TO ARP39-IP-ENV   
+PCI3  *     END-IF. 
+PCI3  * 
+PCI3  *     CALL 'ARO39TKX' USING DPP01-COMMON-DATA-FIELDS  
+PCI3  *                           DPP01-COMMON-INFO 
+PCI3  *                           ARP39-TKN-INPUT-DATA  
+PCI3  *                           ARP39-TKN-OUTPUT-DATA.
+PCI3  * 
+PCI3  *     IF ARP39-O-ERROR-MSG > SPACES   
+PCI3  *         DISPLAY 'TOKENX-ERROR-MSG: ' ARP39-O-ERROR-MSG '|'  
+PCI3  *           ARP39-TOKEN-NUM '|' ARP39-EXPIRATION-DATE UPON PRINTER
+PCI3  *     END-IF. 
+PCI3  * 3000-EXIT.  
+PCI3  *     EXIT.   
+
+TOKEN3*3000-GET-MCCR.   
+TOKEN3*    EXEC SQL WHENEVER NOT FOUND GO TO 3050-STORE-MCCR END-EXEC.  
+TOKEN3*    EXEC SQL SELECT MCCR_TOKEN INTO :WS-MCCR-TOKEN   
+TOKEN3*       FROM MCCR MT1 
+TOKEN3*          WHERE MT1.MCCR_TOKEN = :ARP39-TOKEN-NUM
+TOKEN3*    END-EXEC.
+TOKEN3*    GO TO 3000-EXIT. 
+TOKEN3*3050-STORE-MCCR. 
+TOKEN3*    EXEC SQL WHENEVER SQLERROR GO TO DPP42-RDMS-ERROR END-EXEC.  
+TOKEN3*    EXEC SQL INSERT INTO MCCR
+TOKEN3*       COLUMNS(MCCR_TOKEN = :ARP39-TOKEN-NUM,
+TOKEN3*               MCCR_CARD = :ARP39-CARD-NUM   
+TOKEN3*              )  
+TOKEN3*    END-EXEC.
+TOKEN3*    EXEC SQL COMMIT TERMINATE END-EXEC.  
+TOKEN3*3000-EXIT.   
+TOKEN3*    EXIT.
+
+       9000-END-OF-JOB. 
+144449     GO TO DPP42-END-OF-JOB.  
+
+PPC470 9150-RDMS-ERROR. 
+PPC470      GO TO DPP42-RDMS-ERROR. 
+
+       9100-DATABASE-ERROR. 
+144449     GO TO DPP42-DATABASE-ERROR.  
+
+       9200-EDIT-ERROR-MSG. 
+           PERFORM DPP42-EDIT-ERROR-MSG 
+              THRU DPP42-EDIT-ERROR-MSG-EXIT.   
+
+           GO TO DPP42-END-OF-JOB.  
+
+144449 9500-RETURN-SUBROUTINE-ERROR.
+144449     GO TO DPP42-RETURN-SUBROUTINE-ERROR. 
+
+108267 COPY ARP37CTP.   
+CCFRAU COPY ARP39AVP.   
+       COPY ARP01CDP.   
+       COPY ARP02CDP.   
+       COPY ARP03CDP.   
+       COPY ARP04CDP.   
+       COPY ARP05CDP.   
+       COPY ARP06CDP.   
+       COPY ARP07CDP.   
+       COPY ARP08CDP.   
+       COPY ARP09CDP.   
+       COPY ARP10CDP.   
+       COPY ARP11CDP.   
+       COPY ARP12CDP.   
+       COPY ARP13CDP.   
+       COPY ARP14CDP.   
+       COPY ARP15CDP.   
+       COPY ARP16CDP.   
+       COPY ARP17CDP.   
+       COPY ARP18CDP.   
+       COPY ARP19CDP.   
+       COPY ARP20CDP.   
+126351 COPY ARP90SPR.   
+162639 COPY DPP09VNM.   
+C64222 COPY UAP99GCM.   
+       COPY DPP10Y2K.   
+LOYLTY*COPY IRP66RIB.   
+       COPY DPP42SER.   
+PCI3  *COPY DPP10MOD.   
+144449 COPY DPP42WDB.   
+CCLAUS COPY ARP26PCP.   
+144449 COPY DPP90TRP REPLACING DPP12-RETURN-SUBROUTINE-ERROR BY 
+144449                         9500-RETURN-SUBROUTINE-ERROR 
+                               DPP01-COMMON-DATA-FIELDS BY  
+                               DPP42-COMMON-DATA-FIELDS 
+                               DPP01-SUB-MSG-CTR BY 
+                               DPP42-SUB-MSG-CTR
+                               DPP01-SUB-MSG-STATUS BY  
+                               DPP42-SUB-MSG-STATUS.

@@ -1,0 +1,4298 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.    RSO22PAY. 
+       AUTHOR.        TCS LTD.  
+       DATE-WRITTEN.  FEB 2019. 
+       DATE-COMPILED.   
+      ******************************************************************
+      * Description:                                                   *
+      *     Subprogram to return a table of payment guidelines         *
+      *     that apply to input offer supplied.                        *
+      ******************************************************************
+      * Input      DPP01-COMMON-DATA-FIELDS                            *
+      *            DPP01-COMMON-INFO                                   *
+      *            RSP22-INPUT-PARAMS                                  *
+      * Output     RSP22-OUTPUT-PARAMS                                 *
+      * Calling Sequence                                               *
+      *                                                                *
+      *          CALL 'RSO22PAY' USING DPP01-COMMON-DATA-FIELDS        *
+      *                                DPP01-COMMON-INFO               *
+      *                                RSP22-INPUT-PARAMS              *
+      *                                RSP22-OUTPUT-PARAMS             *
+      *                                RSP90-OVERRIDE-FLAGS-INFO.      *
+      ******************************************************************
+189399* 04-APR-24     PY0     TCS LTD.              ADO1893999         *
+189399* CHANGES ARE DONE TO CORRECT THE STRICITEST POLICY LOGIC.       *
+************************************************************************
+CALFEE* 10-APR-24     AZ4     TCS LTD.               ADO1871081        *
+CALFEE* CHANGES DONE FOR CALIFORNIA LAW PRICE ADVERTISING.             *
+************************************************************************
+190403* 01-AUG-24     SSG     TCS LTD.              ADO 1904039        *
+190403* CHANGES DONE FOR TIPPRTS in GRUGRV                             *
+************************************************************************
+190530* 26-OCT-24     VSY     TCS LTD.              ADO 1905304        *
+190530* CHANGES DONE FOR AUTO CANCELLED BOOKING WHEN CHANGING OFFER    *
+190530* CODE                                                           *
+************************************************************************
+PRCCMB* 31-JUL-25     XB1     TCS LTD.               ADO2142370        *
+PRCCMB* CHANGES MADE IN QUERY FOR CHARGE FEE INDICATOR IN SOP.         *
+************************************************************************
+216688* 12-DEC-25     SAI     TCS LTD.               ADO2216688        *
+216688* CHANGES MADE TO ADD FIELD IN THE QUERY OF SAIL_OFFER_PMT_ADJUST*
+************************************************************************
+303734* 27-MAR-26     XB1     TCS LTD.               ADO2303734        *
+303734* CHANGES MADE IN QUERY FOR POS-OTHER-FEE-AMT (1) IN SOP SINCE   *
+303734* DECODE ELSE PART NOT WORKING IN QUERY.                         *
+************************************************************************
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER. UNISYS-2200.
+       OBJECT-COMPUTER. UNISYS-2200 MEMORY 3 MODULES.   
+       SPECIAL-NAMES.   PRINTER IS PRINTER  
+                        CONSOLE IS CONSOLE. 
+
+       DATA DIVISION.   
+
+       SUBSCHEMA SECTION.   
+       INVOKE SUBSCHEMA PST100UCOBSU
+              IN FILE SUBSCHEMAS OF SCHEMA PST100SCHEMA 
+              COPYING RECORDS    INTO COMMON
+              COPYING DATA-NAMES INTO COMMON
+              OVERLAY PAX-REC WITH PAX-CXF-REC  
+                                   PAX-VI-REC   
+              DMCA  COMMON  
+              SAVE DATA INCLUDES DEFERRED-UPDATES   
+              ERROR RECOVERY IS 9100-DATABASE-ERROR.
+
+       WORKING-STORAGE SECTION. 
+
+       01  WS-PROG-ID                       PIC X(08) VALUE 'RSO22PAY'. 
+
+       01  WS-MISC-N-VARS.  
+           03  WS-LAST-PRP-OWNER-ID         PIC S9(11) BINARY.  
+           03  WS-LAST-PRP-OWNER-CODE       PIC X(3).   
+           03  WS-PRP-OWNER-CODE            PIC X(3).   
+           03  WS-PRP-OWNER-ID              PIC S9(11) BINARY.  
+           03  WS-ITEM-TYPE                 PIC X(2).   
+           03  WS-ITEM-CODE                 PIC X(8).   
+           03  WS-NONADJ-PMT-AMT            PIC S9(11)V9(02) BINARY.
+           03  WS-TOT-FARE-AMT              PIC S9(11)V9(02) BINARY.
+           03  WS-ADJ-PMT-AMT               PIC S9(11)V9(02) BINARY.
+           03  WS-EFF-PMT-AMT               PIC S9(11)V9(02) BINARY.
+           03  WS-CAT-PMT-AMT               PIC S9(05)V9(02) BINARY.
+           03  WS-PMT-ADJ-AMT               PIC S9(05)V9(03) BINARY.
+           03  WS-OCC-IDX                   PIC S9(05) BINARY.  
+           03  WS-T-IDX                     PIC S9(05) BINARY.  
+           03  WS-C-IDX                     PIC S9(05) BINARY.  
+           03  WS-CAT-SUB                   PIC S9(05) BINARY.  
+           03  WS-D-IDX                     PIC S9(05) BINARY.  
+           03  WS-F-IDX                     PIC S9(05) BINARY.  
+           03  SUB                          PIC S9(05) BINARY.  
+           03  WS-SUB                       PIC S9(05) BINARY.  
+           03  WS-TSUB                      PIC S9(05) BINARY.  
+           03  WS-CSUB                      PIC S9(05) BINARY.  
+           03  WS-ISUB                      PIC S9(05) BINARY.  
+           03  WS-ITSUB                     PIC S9(05) BINARY.  
+           03  WS-ICSUB                     PIC S9(05) BINARY.  
+           03  WS-SCSUB                     PIC S9(05) BINARY.  
+           03  WS-NUM-HOURS                 PIC S9(05) BINARY.  
+189399     03  WS-SAIL-NUM-HOURS            PIC S9(05) BINARY.  
+           03  WS-TIME-DIFF                 PIC S9(10) BINARY.  
+190530     03  WS-TIME-MINUTE               PIC 9(02).  
+190530     03  WS-TIME-HOURS                PIC 9(02).  
+190530     03  WS-MINUTE1                   PIC 9(02).  
+190530     03  WS-HOUR1                     PIC 9(02).  
+190530     03  WS-NEW-OPTION-DATE           PIC X(10).  
+190530     03  WS-OPTION-TOTAL-MINUTES      PIC 9(08).  
+190530     03  WS-CURRENT-TOTAL-MINUTES     PIC 9(08).  
+190530     03  WS-AUTO-CXF-IND              PIC X(01).  
+           03  WS-SORT-KEY                  PIC S9(05) BINARY.  
+           03  WS-NUM-DAYS                  PIC S9(05) BINARY.  
+189399     03  WS-SAIL-NUM-DAYS             PIC S9(05) BINARY.  
+           03  WS-DAYS-PRIOR                PIC S9(05) BINARY.  
+           03  WS-DAY-OF-WEEK               PIC S9(05) BINARY.  
+           03  WS-MINIMUM-DAYS              PIC S9(05) BINARY.  
+           03  WS-MINIMUM-HOURS             PIC S9(05) BINARY.  
+           03  WS-EXTEND-DAY-WEEK           PIC S9(05) BINARY.  
+           03  WS-TEMP                      PIC S9(03) BINARY.  
+           03  WS-MAX-NUM-EXTENSION         PIC S9(05) BINARY.  
+           03  WS-BEST-DISC-AMT             PIC S9(11)V9(02) BINARY.
+           03  WS-NEW-DISC-AMT              PIC S9(11)V9(02) BINARY.
+           03  WS-CAT-ADJ-AMT               PIC S9(11)V9(02) BINARY.
+           03  WS-CAT-ADJ-PCT               PIC S9(11)V9(03) BINARY.
+           03  WS-SAIL-CAT-PMT-AMT          PIC S9(11)V9(03) BINARY.
+           03  WS-COURTSEY-OPT-DAYS         PIC 9(03) . 
+           03  WS-COURTSEY-OPT-HRS          PIC 9(02).  
+           03  WS-COURTSEY-OPT-MIN          PIC 9(02).  
+           03  WS-OPTION-DAYS               PIC 9(05) . 
+           03  WS-OPTION-HOURS              PIC 9(05).  
+           03  WS-OPTION-MINS               PIC 9(02).  
+           03  WS-TODAYS-SUB                PIC 9(01).  
+           03  WS-DURATION-DAYS             PIC 9(03).  
+           03  WS-CAT-PMT-AMT-EFF           PIC 9(08)V9(02) BINARY. 
+           03  WS-SINGLES-PCT               PIC 9(01)V9(03) BINARY. 
+           03  WS-CAT-ADJ-AMT-EFF           PIC 9(08)V9(02) BINARY. 
+           03  WS-RSP22-PMT-ITM-CAT-IDX     PIC 9(02) BINARY.   
+           03  WS-SAIL-PMT-ITM-CAT-IDX      PIC 9(02) BINARY.   
+           03  WS-CAT-PEN-AMT               PIC S9(08)V9(03) BINARY.
+303734     03  WS-FULL-CHARGE-OTH-FEE-IND   PIC X(01).  
+303734     03  WS-FULL-OTHER-AMT            PIC S9(09)V9(02) BINARY.
+303734     03  WS-SNG-FEE-ADJUST-PCT        PIC S9(09)V9(02) BINARY.
+303734     03  WS-POS-1-FEE-ADJUST-PCT      PIC S9(09)V9(02) BINARY.
+
+
+       01  WS-MISC-AN-VARS. 
+           03  WS-LAST-TERM-DATETIME        PIC X(19).  
+           03  WS-SAIL-PMT-DATETIME         PIC X(19).  
+           03  WS-ORG-DATETIME. 
+               05 WS-ORG-DATE               PIC X(10).  
+               05 WS-ORG-DATE-FILL          PIC X(01).  
+               05 WS-ORG-TIME               PIC X(08).  
+           03  WS-ITEM-CODE1                PIC X(08).  
+           03  WS-PRICE-CURRENCY-CODE       PIC X(03).  
+PRCCMB*    03  WS-BASE-CURRENCY-CODE        PIC X(03).  
+           03  WS-CATEGORY-CODE             PIC X(03).  
+           03  WS-ITEM-TYPE1                PIC X(02).  
+           03  WS-META-CODE                 PIC X(02).  
+           03  WS-SAIL-BASE-DATE-CODE       PIC X(01).  
+           03  WS-DATE-EXTEND-IND           PIC X(01).  
+           03  WS-AUTO-CANCEL-IND           PIC X(01).  
+           03  WS-BASE-DATE-CODE            PIC X(01).  
+           03  WS-AMT-PCT-CODE              PIC X(01).  
+           03  WS-REFUND-IND                PIC X(01).  
+           03  WS-TERM-CODE1                PIC X(01).  
+           03  WS-TERM-CODE                 PIC X(01).  
+           03  WS-MIN-TERM-FLAG             PIC X(01) VALUE 'N'.
+           03  WS-CAT-ADJ-AMT-PCT           PIC X(01).  
+           03  WS-USE-STRICT-IND            PIC X(01).  
+           03  WS-ALLOW-FOR-MAIL-IND        PIC X(01).  
+           03  WS-CHG-OPTION                PIC X(01).  
+           03  WS-SET-MORNING-OPTION        PIC X(01).  
+           03  WS-AGT-OPT-DATETIME          PIC X(19).  
+           03  WS-REST-OPT-DATETIME         PIC X(19).  
+           03  WS-SAIL-GUIDELINE-IND        PIC X(01).  
+           03  WS-INTL-OPT-EXT-IND          PIC X(01).  
+           03  WS-OFFER-PMT-ADJ-EXIST-IND   PIC X(01).  
+           03  WS-FIRST-ITEM-RUN-IND        PIC X(01).  
+           03  WS-PMT-ITEM-TYPE             PIC X(03).  
+           03  WS-PMT-ITEM-CODE             PIC X(08).  
+           03  WS-OFFER-CODE                PIC X(08).  
+           03  FILLER                       PIC X(02).  
+
+       01  WS-BASE-SYS-DATETIME.
+           03  WS-BASE-SYS-DATE             PIC X(10).  
+           03  WS-BASE-SYS-DATE-FILL        PIC X(01).  
+           03  WS-BASE-SYS-TIME             PIC X(08).  
+
+       01  WS-BASE-SAIL-DATETIME.   
+           03  WS-BASE-SAIL-DATE            PIC X(10).  
+           03  WS-BASE-SAIL-DATE-FILL       PIC X(01).  
+           03  WS-BASE-SAIL-TIME            PIC X(08) VALUES '00:00:00'.
+       01  WS-BASE-SYSTEM-DATE              PIC 9(08).  
+
+       01  WS-BOOK-DATETIME.
+           03  WS-BOOK-DATE                 PIC X(10).  
+           03  WS-BOOK-DATE-FILL            PIC X(01).  
+           03  WS-BOOK-TIME                 PIC X(08).  
+
+       01  WS-BOOK-DATE-DMS                 PIC 9(08).  
+
+       01  WS-SYS-DATETIME-1.   
+           03  WS-SYS-DATE-1                PIC X(10).  
+           03  WS-SYS-DATE-FILL-1           PIC X(01).  
+           03  WS-SYS-TIME-1                PIC X(08).  
+
+       01  WS-MISC-DATETIME-1.  
+           03  WS-MISC-DATE-1               PIC X(10).  
+           03  WS-MISC-DATE-FILL-1          PIC X(01).  
+           03  WS-MISC-TIME-1               PIC X(08).  
+
+       01  WS-PMT-DATETIME                  PIC X(19).  
+       01  WS-PMT-DATETIME-X REDEFINES WS-PMT-DATETIME. 
+           03  WS-PMT-DATE                  PIC X(10).  
+           03  WS-PMT-DATE-FILL             PIC X(01).  
+           03  WS-PMT-TIME                  PIC X(08).  
+       01  WS-PMT-DATETIME-N REDEFINES WS-PMT-DATETIME. 
+           03  WS-PMT-DATE-CC               PIC 9(02).  
+           03  WS-PMT-DATE-YY               PIC 9(02).  
+           03  WS-PMT-DATE-FILL1            PIC X(01).  
+           03  WS-PMT-DATE-MM               PIC 9(02).  
+           03  WS-PMT-DATE-FILL2            PIC X(01).  
+           03  WS-PMT-DATE-DD               PIC 9(02).  
+           03  WS-PMT-DATE-FILL3            PIC X(01).  
+           03  WS-PMT-TIME-HH               PIC 9(02).  
+           03  WS-PMT-TIME-FILL4            PIC X(01).  
+           03  WS-PMT-TIME-MN               PIC 9(02).  
+           03  WS-PMT-TIME-FILL5            PIC X(01).  
+           03  WS-PMT-TIME-SS               PIC 9(02).  
+
+ME1909 01  WS-DEPOSIT-DATETIME              PIC X(19).  
+ME1909 01  WS-DEPOSIT-DATETIME-X REDEFINES WS-DEPOSIT-DATETIME. 
+ME1909     03  WS-DEPOSIT-DATE              PIC X(10).  
+ME1909     03  WS-DEPOSIT-DATE-FILL         PIC X(01).  
+ME1909     03  WS-DEPOSIT-TIME              PIC X(08).  
+
+       01  WS-FINAL-PMT-DATETIME.   
+           03  WS-FINAL-PMT-DATE            PIC X(10).  
+           03  WS-FINAL-PMT-DATE-FILL       PIC X(01).  
+           03  WS-FINAL-PMT-TIME            PIC X(08).  
+
+       01  WS-SYS-DATE                      PIC 9(8)  VALUE ZEROES. 
+       01  WS-SYS-TIME. 
+           03  WS-SYS-HH                    PIC 9(2)  VALUE ZEROES. 
+           03  WS-SYS-MN                    PIC 9(2)  VALUE ZEROES. 
+           03  WS-SYS-SS                    PIC 9(2)  VALUE ZEROES. 
+
+       01  WS-SAIL-DATETIME.
+           03  WS-SAIL-DATE                 PIC X(10).  
+           03  WS-SAIL-DATE-FILL            PIC X(01).  
+           03  WS-SAIL-TIME                 PIC X(08).  
+
+       01  WS-MAX-PMT-DATETIME. 
+           03  WS-MAX-PMT-DATE              PIC X(10).  
+           03  WS-MAX-PMT-DATE-FILL         PIC X(01).  
+           03  WS-MAX-PMT-TIME              PIC X(08).  
+
+       01  WS-TEMP-DATE                     PIC 9(08).  
+       01  WS-TEMP-DATE-N REDEFINES WS-TEMP-DATE.   
+           03  WS-TEMP-CC                   PIC S9(02) BINARY.  
+           03  WS-TEMP-YY                   PIC S9(02) BINARY.  
+           03  WS-TEMP-MM                   PIC S9(02) BINARY.  
+           03  WS-TEMP-DD                   PIC S9(02) BINARY.  
+
+       01  WS-TEMP-TIME                     PIC 9(06).  
+       01  WS-TEMP-TIME-N REDEFINES WS-TEMP-TIME.   
+           03  WS-TEMP-HH                   PIC S9(02) BINARY.  
+           03  WS-TEMP-MN                   PIC S9(02) BINARY.  
+           03  WS-TEMP-SS                   PIC S9(02) BINARY.  
+       01  WS-TEMP-TIME-1                   PIC 9(04).  
+       01  WS-EXT-DATETIME. 
+           03  WS-EXT-DATE                  PIC X(10).  
+           03  WS-EXT-DATE-FILL             PIC X(01).  
+           03  WS-EXT-TIME                  PIC X(08).  
+
+       01  WS-EXTEND-TIME                   PIC X(08).  
+       01  WS-EXTEND-TIME-N REDEFINES WS-EXTEND-TIME.   
+           03 WS-EXTEND-HH                  PIC 9(02).  
+           03 WS-EXTEND-FILL1               PIC X(01).  
+           03 WS-EXTEND-MN                  PIC 9(02).  
+           03 WS-EXTEND-FILL2               PIC X(01).  
+           03 WS-EXTEND-SS                  PIC 9(02).  
+
+       01  WS-POS-AMT-TBL.  
+           03  WS-POS-AMT-ENTRY OCCURS 5 TIMES. 
+               05  WS-POS-CRU-AMT           PIC S9(11)V9(02) BINARY.
+CALFEE*        05  WS-POS-NCF-AMT           PIC S9(11)V9(02) BINARY.
+CALFEE         05  WS-POS-OTHER-FEE-AMT     PIC S9(11)V9(02) BINARY.
+
+       01  WS-CAT-AMT-TBL.  
+           03 WS-CAT-ENTRY OCCURS 90 TIMES. 
+CALFEE        05 WS-CAT-SINGLES-PCT         PIC 9(05)V9(03) BINARY. 
+              05 WS-CAT-WMT-ENTRY OCCURS 5 TIMES.   
+                 07 WS-CAT-FARE-AMT         PIC S9(11)V9(02) BINARY.
+                 07 WS-CAT-DEP-AMT          PIC S9(11)V9(02) BINARY.
+
+
+       01  WS-PMT-TERM-TABLE.   
+           03 WS-PMT-TERM-CNT               PIC 9(02) BINARY.   
+           03 WS-PMT-TERM-TBL OCCURS 10 TIMES.  
+              05 WS-PMT-TERM-CODE           PIC X(01).  
+              05 WS-PMT-TERM-IDX            PIC 9(05) BINARY.   
+              05 WS-PMT-SAIL-ITEM-TYPE      PIC X(03).  
+              05 WS-PMT-SAIL-ITEM-CODE      PIC X(08).  
+              05 WS-PMT-USE-STRICT-IND      PIC X(01).  
+
+       01  WS-PMT-SAIL-CAT-TABLE.   
+           03 WS-PMT-SAIL-CAT-CNT           PIC 9(02) BINARY.   
+           03 WS-PMT-SAIL-CAT-TBL OCCURS 90 TIMES.  
+              05 WS-PMT-CATEGORY-CODE       PIC X(03).  
+              05 WS-PMT-META-CODE           PIC X(02).  
+              05 WS-PMT-CAT-IDX             PIC 9(05) BINARY.   
+              05 WS-PMT-TOTAL-FARE-AMT      PIC S9(08)V9(02) BINARY.
+
+       01  WS-ITM-PMT-CAT-TABLE.
+           03 WS-ITM-PMT-CNT                PIC 9(02) BINARY.   
+           03 WS-ITM-PMT-TBL OCCURS 2 TIMES.
+              05 WS-ITM-PMT-ITEM-TYPE       PIC X(03).  
+              05 WS-ITM-PMT-ITEM-CODE       PIC X(08).  
+              05 WS-ITM-PMT-TERM-CNT        PIC 9(02) BINARY.   
+              05 WS-ITM-PMT-TERM-TBL OCCURS 10 TIMES.   
+                 07 WS-ITM-PMT-TERM-CODE    PIC X(01).  
+                 07 WS-ITM-PMT-TRM-CAT-CNT  PIC 9(02) BINARY.   
+                 07 WS-ITM-PMT-TRM-CAT-TBL OCCURS 90 TIMES. 
+                    09 WS-ITM-PMT-META-CODE PIC X(02).  
+                    09 WS-ITM-PMT-CAT-CODE  PIC X(03).  
+                    09 WS-ITM-PMT-CAT-AMT   PIC S9(08)V9(02) BINARY.
+           03 WS-GET-ITM-PMT-FIELDS.
+              05 WS-GET-ITM-PMT-TERM-CODE   PIC X(01).  
+              05 WS-GET-ITM-PMT-META-CODE   PIC X(02).  
+              05 WS-GET-ITM-PMT-CAT-CODE    PIC X(03).  
+              05 WS-GET-ITM-PMT-CAT-AMT     PIC S9(08)V9(02) BINARY.
+
+       01  WS-LAST-SAIL-ID                PIC S9(11) BINARY VALUE 0.
+       01  WS-LAST-SM-OWNER-ID            PIC S9(11) BINARY VALUE 0.
+       01  WS-LAST-PM-OWNER-ID            PIC S9(11) BINARY VALUE 0.
+       01  WS-LAST-PROM-OWNER-ID          PIC S9(11) BINARY VALUE 0.
+       01  WS-LAST-TERMS-LEVEL-CODE       PIC X VALUE ' '.  
+       01  WS-LAST-REQ-CAB-CODE           PIC X VALUE ' '.  
+       01  WS-LAST-LOCALITY-CODE          PIC X(4) VALUE '    '.
+       01  WS-LAST-CURRENCY-CODE          PIC X(3) VALUE '   '. 
+       01  WS-LAST-CUSTOMER-CODE          PIC X(1) VALUE ' '.   
+       01  WS-LAST-CONNECTION-CODE        PIC X(2) VALUE '  '.  
+       01  WS-PROM-ITEM-TYPE              PIC X(2). 
+       01  WS-PROM-ITEM-CODE              PIC X(8). 
+       01  WS-PM-ITEM-TYPE                PIC X(2). 
+       01  WS-PM-ITEM-CODE                PIC X(8). 
+       01  WS-SM-ITEM-TYPE                PIC X(2). 
+       01  WS-SM-ITEM-CODE                PIC X(8). 
+
+       COPY DPP02Y2K.   
+       COPY DPP01DTA.   
+       COPY DPP42ERR.   
+       COPY DPP42SWS.   
+       COPY RSP22CON.   
+       COPY MKP01VDW.   
+       COPY MKP40RIW.   
+       COPY RSP86GLD.   
+       COPY SSP05GCD.   
+       COPY TDP01SAW.   
+       COPY SMP68EFF.   
+
+       COMMON-STORAGE SECTION.  
+
+       LINKAGE SECTION. 
+       COPY DPP01SCO.   
+       COPY DPP01CIW.   
+       COPY RSP22INP.   
+       COPY RSP22OUT.   
+       COPY RSP90OVW.   
+
+       PROCEDURE DIVISION USING DPP01-COMMON-DATA-FIELDS
+                                DPP01-COMMON-INFO   
+                                RSP22-INPUT-PARAMS  
+                                RSP22-OUTPUT-PARAMS 
+                                RSP90-OVERRIDE-FLAGS-INFO.  
+
+       0000-RSO22PAY-MAINLINE.  
+           COPY DPP42INT.   
+           MOVE WS-PROG-ID              TO DPP42-HOLD-MSG-SOURCE.   
+           MOVE SPACES     TO TDP01-I-DIN-TIME-CODE 
+                              TDP01-I-SCAT-CODE 
+                              TDP01-I-ACTIVE-IND.   
+           MOVE ZEROES     TO TDP01-I-DUR-DAYS  
+                              TDP01-I-SAIL-ID.  
+           EXEC SQL 
+                USE DEFAULT SCHEMA PSTRDMS  
+           END-EXEC.
+
+           EXEC SQL WHENEVER SQLERROR   
+                CONTINUE
+           END-EXEC.
+
+           EXEC SQL WHENEVER NOT FOUND  
+                CONTINUE
+           END-EXEC.
+
+           MOVE LOW-VALUES              TO RSP22-O-N-PARAMS 
+                                           WS-POS-AMT-TBL   
+                                           WS-MISC-N-VARS.  
+           MOVE SPACES                  TO RSP22-O-AN-PARAMS
+                                           WS-MISC-AN-VARS. 
+
+       0100-BASIC-VALIDATION.   
+
+           IF  RSP22-I-SHIP-CODE <= SPACES  
+               MOVE 01                  TO DPP42-HOLD-MSG-INDEX 
+               GO TO 9200-EDIT-ERROR-MSG
+           END-IF.  
+
+           IF  RSP22-I-SAIL-ID <= ZEROES
+               MOVE 02                  TO DPP42-HOLD-MSG-INDEX 
+               GO TO 9200-EDIT-ERROR-MSG
+           END-IF.  
+
+           IF  RSP22-I-REQ-CAB-CODE NOT = 'B' AND 'R'   
+               MOVE 03                  TO DPP42-HOLD-MSG-INDEX 
+               GO TO 9200-EDIT-ERROR-MSG
+           END-IF.  
+
+           IF  RSP22-I-REQ-CAB-CODE = 'B' AND   
+               RSP22-I-BERTH-BY-DATE-IND = 'N' AND  
+               RSP22-I-OFFER-ID <= ZEROES   
+               MOVE 04                  TO DPP42-HOLD-MSG-INDEX 
+               GO TO 9200-EDIT-ERROR-MSG
+           END-IF.  
+
+           IF  RSP22-I-REQ-CAB-CODE = 'R' AND   
+               RSP22-I-POLICY-CODE NOT > SPACES 
+               MOVE 05                  TO DPP42-HOLD-MSG-INDEX 
+               GO TO 9200-EDIT-ERROR-MSG
+           END-IF.  
+
+           IF  RSP22-I-REQ-CAB-CODE = 'B' AND   
+               RSP22-I-POLICY-PROMO-CODE > SPACES AND   
+               RSP22-I-BERTH-BY-DATE-IND = 'N' AND  
+               RSP22-I-BERTH-BY-DATE NOT > SPACES   
+               MOVE 06                  TO DPP42-HOLD-MSG-INDEX 
+               GO TO 9200-EDIT-ERROR-MSG
+           END-IF.  
+
+           IF  RSP22-I-OFFER-ID > ZEROES
+               IF  RSP22-I-OCCUPANCY < 1 OR 
+                   RSP22-I-OCCUPANCY > 5
+                   MOVE 07              TO DPP42-HOLD-MSG-INDEX 
+                   GO TO 9200-EDIT-ERROR-MSG
+               END-IF   
+           END-IF.  
+
+           IF RSP22-I-EXTEND-CODE = 'Y' OR 'M' OR 'N'   
+              CONTINUE  
+           ELSE 
+              MOVE 29                  TO DPP42-HOLD-MSG-INDEX  
+              GO TO 9200-EDIT-ERROR-MSG 
+           END-IF.  
+
+           IF  RSP22-I-DEPOSIT-TYPE-1 > SPACES  
+               IF RSP22-I-DEPOSIT-TYPE-1 = 'F' OR 'V' OR 'C' OR 'W' 
+                  CONTINUE  
+           ELSE 
+               MOVE 08                  TO DPP42-HOLD-MSG-INDEX 
+               GO TO 9200-EDIT-ERROR-MSG
+           END-IF.  
+
+           IF  RSP22-I-DEPOSIT-TYPE-2 > SPACES  
+                IF RSP22-I-DEPOSIT-TYPE-1 = 'F' OR 'V' OR 'C' OR 'W'
+                   CONTINUE 
+           ELSE 
+               MOVE 09                  TO DPP42-HOLD-MSG-INDEX 
+               GO TO 9200-EDIT-ERROR-MSG
+           END-IF.  
+
+           IF  RSP22-I-LOCALITY-CODE <= SPACES  
+               MOVE 10                  TO DPP42-HOLD-MSG-INDEX 
+               GO TO 9200-EDIT-ERROR-MSG
+           END-IF.  
+
+           IF  RSP22-I-CURRENCY-CODE <= SPACES  
+               MOVE 11                  TO DPP42-HOLD-MSG-INDEX 
+               GO TO 9200-EDIT-ERROR-MSG
+           END-IF.  
+
+           IF  RSP22-I-CUSTOMER-CODE = 'A' OR 'C'   
+               CONTINUE 
+           ELSE 
+               IF RSP22-I-PAYMENT-ITEM-CODE <= SPACES   
+                  MOVE 12                  TO DPP42-HOLD-MSG-INDEX  
+                  GO TO 9200-EDIT-ERROR-MSG 
+               END-IF   
+           END-IF.  
+
+           IF  RSP22-I-CONNECTION-CODE <= SPACES AND
+               RSP22-I-PAYMENT-ITEM-CODE <= SPACES  
+               MOVE 13                  TO DPP42-HOLD-MSG-INDEX 
+               GO TO 9200-EDIT-ERROR-MSG
+           END-IF.  
+
+           IF  RSP22-I-PRC-XCHG-RATE <= 0   
+               MOVE 14                  TO DPP42-HOLD-MSG-INDEX 
+               GO TO 9200-EDIT-ERROR-MSG
+           END-IF.  
+
+       COPY RSP86INT.   
+           MOVE RSP22-I-LOCALITY-CODE TO RSP86-I-LOCALITY-CODE. 
+
+           CALL 'RSC86GLD' USING DPP42-COMMON-DATA-FIELDS,  
+                                 DPP01-COMMON-INFO, 
+                                 RSP86-INPUT-PARAMS,
+                                 RSP86-OUTPUT-PARAMS.   
+
+           IF DPP42-SUB-MSG-CTR > 0 
+              IF DPP42-SUB-MSG-STATUS (1) > 1   
+                 GO TO 9500-RETURN-SUBROUTINE-ERROR 
+              ELSE  
+                 PERFORM 9600-SAVE-SUBROUTINE-ERRORS
+              END-IF
+           END-IF.  
+
+           MOVE RSP22-I-COMPANY-CODE  TO SSP05-I-COMPANY-CODE.  
+
+           CALL 'SSC05GCD' USING DPP42-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 SSP05-INPUT-PARAMS 
+                                 SSP05-OUTPUT-PARAMS.   
+
+           IF DPP42-SUB-MSG-CTR > 0 AND DPP42-SUB-MSG-STATUS (1) > 1
+              GO TO 9500-RETURN-SUBROUTINE-ERROR
+           END-IF.  
+
+           EXEC SQL 
+                SELECT  CURRENT_TIMESTAMP(0)
+                  INTO :WS-SYS-DATETIME-1   
+                  FROM  RDMS.RDMS_DUMMY 
+                 WHERE  KEY_COL = 1 
+                 FETCH  FIRST 1 ROW ONLY
+           END-EXEC.
+           IF  SQLCODE < 0  
+               GO TO 9150-RDMS-ERROR
+           END-IF.  
+
+           IF  RSP22-I-BOOK-DATETIME > SPACES   
+               MOVE RSP22-I-BOOK-DATE   TO WS-BOOK-DATE 
+               MOVE SPACES              TO WS-BOOK-DATE-FILL
+                IF  RSP22-I-BOOK-TIME > SPACES  
+                    MOVE RSP22-I-BOOK-TIME  
+                                        TO WS-BOOK-TIME 
+                ELSE
+                    MOVE '00:00:00'     TO WS-BOOK-TIME 
+                END-IF  
+           ELSE 
+               MOVE WS-SYS-DATETIME-1   TO WS-BOOK-DATETIME 
+           END-IF.  
+
+           IF RSP22-I-SINGLES-PCT <= ZEROES 
+              IF SSP05-O-SGL-DEP-DBL-DATE > ZEROES  
+                 MOVE WS-BOOK-DATE      TO DPP02-RDMS-DATE  
+                 MOVE WS-BOOK-TIME      TO DPP02-RDMS-TIME  
+                 PERFORM DPP10-RDMS-TO-DMS-DATETIME 
+                 MOVE DPP02-DMS-DATE    TO WS-BOOK-DATE-DMS 
+                 IF WS-BOOK-DATE-DMS > ZEROES AND   
+                    WS-BOOK-DATE-DMS > SSP05-O-SGL-DEP-DBL-DATE 
+                    MOVE 2              TO WS-SINGLES-PCT   
+                 ELSE   
+                    MOVE 1              TO WS-SINGLES-PCT   
+                 END-IF 
+              ELSE  
+                 MOVE 2                 TO WS-SINGLES-PCT   
+              END-IF
+           ELSE 
+              MOVE RSP22-I-SINGLES-PCT  TO WS-SINGLES-PCT   
+           END-IF.  
+
+           IF  (RSP22-I-CUSTOMER-NUM > SPACES)  
+               MOVE SPACES              TO AAR-CUSTOMER-KEY 
+               MOVE 'CM'                TO AAR-CUSTOMER-TYPE
+               MOVE RSP22-I-CUSTOMER-NUM TO AAR-CUSTOMER-NUM
+
+               FETCH AGENCY-ASSOCIATION-REC RECORD  
+
+               FETCH OWNER WITHIN AGENCY-ASSOCIATION-SET SET
+
+               MOVE AGENT-PHONE-NUM         TO ATCR-PHONE-NUM   
+               MOVE 'C'                     TO ATCR-COMPANY-CODE
+
+               FETCH AGENT-TERMS-COMPANY-REC RECORD 
+
+               MOVE ATCR-AGENCY-INDICATORS  TO MKP40A-INDICATORS
+
+               IF MKP40A-INTL-WKND-OPT-EXT-YES  
+                  MOVE 'Y'                 TO WS-MIN-TERM-FLAG  
+               END-IF   
+           END-IF.  
+
+           MOVE WS-SYS-DATETIME-1       TO WS-BASE-SYS-DATETIME.
+           MOVE WS-BASE-SYS-DATE (1:4)  TO WS-BASE-SYSTEM-DATE (1:4).   
+           MOVE WS-BASE-SYS-DATE (6:2)  TO WS-BASE-SYSTEM-DATE (5:2).   
+           MOVE WS-BASE-SYS-DATE (9:2)  TO WS-BASE-SYSTEM-DATE (7:2).   
+           IF RSP86-O-TIME-ZONE-CODE = 'AET'
+              PERFORM DPP10-INIT-TMZ-VARS THRU  
+                      DPP10-INIT-TMZ-VARS-EXIT  
+              MOVE 'USD'               TO DPP02-TMZ-FRM-BASE-CURRENCY   
+              MOVE 'AUD'               TO DPP02-TMZ-TO-BASE-CURRENCY
+              MOVE WS-BOOK-DATETIME    TO DPP02-RDMS-DATETIME   
+              MOVE ZEROES              TO DPP02-RDMS-TIME-HS
+              PERFORM DPP10-RDMS-TO-DMS-DATETIME
+              MOVE DPP02-DMS-DATETIME  TO DPP02-TMZ-INP-DATETIME
+              PERFORM DPP10-CHANGE-TIMEZONE THRU
+                      DPP10-CHANGE-TIMEZONE-EXIT
+              IF DPP02-TMZ-ERROR-NUM > 0
+                 MOVE DPP02-TMZ-ERROR-NUM   
+                                       TO DPP42-HOLD-MSG-INDEX  
+                 MOVE 'DPP10TMZ'       TO DPP42-HOLD-MSG-SOURCE 
+                 GO TO 9200-EDIT-ERROR-MSG  
+              END-IF
+              MOVE DPP02-TMZ-OUT-RDMS-DATETIME (1:19)   
+                                       TO WS-BOOK-DATETIME  
+              PERFORM DPP10-INIT-TMZ-VARS THRU  
+                      DPP10-INIT-TMZ-VARS-EXIT  
+              MOVE 'USD'               TO DPP02-TMZ-FRM-BASE-CURRENCY   
+              MOVE 'AUD'               TO DPP02-TMZ-TO-BASE-CURRENCY
+              MOVE WS-SYS-DATETIME-1   TO DPP02-RDMS-DATETIME   
+              MOVE ZEROES              TO DPP02-RDMS-TIME-HS
+              PERFORM DPP10-RDMS-TO-DMS-DATETIME
+              MOVE DPP02-DMS-DATETIME  TO DPP02-TMZ-INP-DATETIME
+              PERFORM DPP10-CHANGE-TIMEZONE THRU
+                      DPP10-CHANGE-TIMEZONE-EXIT
+              IF DPP02-TMZ-ERROR-NUM > 0
+                 MOVE DPP02-TMZ-ERROR-NUM   
+                                       TO DPP42-HOLD-MSG-INDEX  
+                 MOVE 'DPP10TMZ'       TO DPP42-HOLD-MSG-SOURCE 
+                 GO TO 9200-EDIT-ERROR-MSG  
+              END-IF
+              MOVE DPP02-TMZ-OUT-RDMS-DATETIME (1:19)   
+                                       TO WS-SYS-DATETIME-1 
+           END-IF.  
+           MOVE WS-SYS-DATETIME-1(1:4) TO WS-SYS-DATE(1:4). 
+           MOVE WS-SYS-DATETIME-1(6:2) TO WS-SYS-DATE(5:2). 
+           MOVE WS-SYS-DATETIME-1(9:2) TO WS-SYS-DATE(7:2). 
+
+       0200-SETUP-GTT.  
+
+           MOVE ZEROES                   TO WS-PMT-TERM-CNT 
+                                            WS-PMT-SAIL-CAT-CNT.
+
+       0300-GET-SAILING-DETAILS.
+
+           IF (TDP01-SAIL-ID NOT = RSP22-I-SAIL-ID) 
+              MOVE RSP22-I-SHIP-CODE    TO TDP01-I-SHIP-CODE
+              MOVE RSP22-I-SAIL-ID      TO TDP01-I-SAIL-ID  
+              PERFORM TDP01-RET-SAIL-DETAILS
+                 THRU TDP01-RET-SAIL-DETAILS-EXIT   
+              IF (TDP01-PROC-ERROR > ZERO) OR   
+                    TDP01-SAIL-NOTFND   
+                 GO TO 7400-FETCH-SAILING-ERROR 
+              END-IF
+           END-IF.  
+
+           MOVE TDP01-SAIL-DATE          TO WS-SAIL-DATE.   
+
+           IF RSP22-I-SAIL-ID         NOT = WS-LAST-SAIL-ID          OR 
+              RSP22-I-REQ-CAB-CODE    NOT = WS-LAST-REQ-CAB-CODE     OR 
+              TDP01-TERMS-LEVEL-CODE  NOT = WS-LAST-TERMS-LEVEL-CODE OR 
+              RSP22-I-LOCALITY-CODE   NOT = WS-LAST-LOCALITY-CODE    OR 
+              RSP22-I-CURRENCY-CODE   NOT = WS-LAST-CURRENCY-CODE    OR 
+              RSP22-I-CUSTOMER-CODE   NOT = WS-LAST-CUSTOMER-CODE    OR 
+              RSP22-I-CONNECTION-CODE NOT = WS-LAST-CONNECTION-CODE 
+              MOVE ZERO                 TO WS-LAST-SM-OWNER-ID  
+                                           WS-LAST-PM-OWNER-ID  
+                                           WS-LAST-PROM-OWNER-ID
+              MOVE SPACES               TO WS-LAST-TERMS-LEVEL-CODE 
+                                           WS-LAST-REQ-CAB-CODE 
+                                           WS-LAST-LOCALITY-CODE
+                                           WS-LAST-CURRENCY-CODE
+                                           WS-LAST-CUSTOMER-CODE
+                                           WS-LAST-CONNECTION-CODE  
+           END-IF.  
+
+           EXEC SQL DECLARE SAIL_PAYMENT_ITEM_CUR CURSOR
+              SELECT ITEM_TYPE,ITEM_CODE
+                 FROM SAIL_PAYMENT_ITEM 
+                 WHERE SHIP_CODE = :RSP22-I-SHIP-CODE   
+                   AND SAIL_ID   = :RSP22-I-SAIL-ID 
+                   AND PRP_OWNER_CODE = :WS-PRP-OWNER-CODE  
+                   AND PRP_OWNER_ID = :WS-PRP-OWNER-ID  
+                   AND TERM_LEVEL_CODE IN ('~',:TDP01-TERMS-LEVEL-CODE) 
+                   AND REQUEST_CABIN_CODE IN('~',:RSP22-I-REQ-CAB-CODE) 
+                   AND LOCALITY_CODE IN ('~',:RSP22-I-LOCALITY-CODE)
+                   AND CURRENCY_CODE IN ('~',:RSP22-I-CURRENCY-CODE)
+                   AND AGENT_CONSUMER_CODE IN ('~', 
+                                               :RSP22-I-CUSTOMER-CODE)  
+                   AND CONNECTION_CODE IN ('~',:RSP22-I-CONNECTION-CODE)
+              ORDER BY TERM_LEVEL_CODE,REQUEST_CABIN_CODE,  
+                       LOCALITY_CODE,CURRENCY_CODE,AGENT_CONSUMER_CODE, 
+                       CONNECTION_CODE  
+           END-EXEC.
+
+           MOVE WS-SAIL-DATE            TO WS-BASE-SAIL-DATE.   
+
+           IF RSP86-O-TIME-ZONE-CODE = 'AET' AND
+PRCCMB*       WS-BASE-CURRENCY-CODE = 'USD' 
+PRCCMB        TDP01-BASE-CURRENCY-CODE = 'USD'  
+              PERFORM DPP10-INIT-TMZ-VARS THRU  
+                      DPP10-INIT-TMZ-VARS-EXIT  
+              MOVE 'USD'                TO DPP02-TMZ-FRM-BASE-CURRENCY  
+              MOVE 'AUD'                TO DPP02-TMZ-TO-BASE-CURRENCY   
+              MOVE '00:00:00'           TO WS-SAIL-TIME 
+              MOVE SPACES               TO WS-SAIL-DATE-FILL
+              MOVE WS-SAIL-DATETIME     TO DPP02-RDMS-DATETIME  
+              MOVE ZEROES               TO DPP02-RDMS-TIME-HS   
+              PERFORM DPP10-RDMS-TO-DMS-DATETIME
+              MOVE DPP02-DMS-DATETIME   TO DPP02-TMZ-INP-DATETIME   
+              PERFORM DPP10-CHANGE-TIMEZONE THRU
+                      DPP10-CHANGE-TIMEZONE-EXIT
+              IF DPP02-TMZ-ERROR-NUM > 0
+                 MOVE DPP02-TMZ-ERROR-NUM   
+                                        TO DPP42-HOLD-MSG-INDEX 
+                 MOVE 'DPP10TMZ'        TO DPP42-HOLD-MSG-SOURCE
+                 GO TO 9200-EDIT-ERROR-MSG  
+              END-IF
+              MOVE DPP02-TMZ-OUT-RDMS-DATETIME (1:19)   
+                                        TO WS-SAIL-DATETIME 
+           END-IF.  
+           IF RSP86-O-TIME-ZONE-CODE = 'USET' AND   
+PRCCMB*       WS-BASE-CURRENCY-CODE = 'AUD' 
+PRCCMB        TDP01-BASE-CURRENCY-CODE = 'AUD'  
+              PERFORM DPP10-INIT-TMZ-VARS THRU  
+                      DPP10-INIT-TMZ-VARS-EXIT  
+              MOVE 'AUD'                TO DPP02-TMZ-FRM-BASE-CURRENCY  
+              MOVE 'USD'                TO DPP02-TMZ-TO-BASE-CURRENCY   
+              MOVE '00:00:00'           TO WS-SAIL-TIME 
+              MOVE SPACES               TO WS-SAIL-DATE-FILL
+              MOVE WS-SAIL-DATETIME     TO DPP02-RDMS-DATETIME  
+              MOVE ZEROES               TO DPP02-RDMS-TIME-HS   
+              PERFORM DPP10-RDMS-TO-DMS-DATETIME
+              MOVE DPP02-DMS-DATETIME   TO DPP02-TMZ-INP-DATETIME   
+              PERFORM DPP10-CHANGE-TIMEZONE THRU
+                      DPP10-CHANGE-TIMEZONE-EXIT
+              IF DPP02-TMZ-ERROR-NUM > 0
+                 MOVE DPP02-TMZ-ERROR-NUM   
+                                        TO DPP42-HOLD-MSG-INDEX 
+                 MOVE 'DPP10TMZ'        TO DPP42-HOLD-MSG-SOURCE
+                 GO TO 9200-EDIT-ERROR-MSG  
+              END-IF
+              MOVE DPP02-TMZ-OUT-RDMS-DATETIME (1:19)   
+                                        TO WS-SAIL-DATETIME 
+           END-IF.  
+
+           MOVE WS-SAIL-DATE            TO WS-MAX-PMT-DATE. 
+           MOVE SPACES                  TO WS-SAIL-DATE-FILL
+                                           WS-MAX-PMT-DATE-FILL.
+           MOVE '00:00:00'              TO WS-SAIL-TIME.
+           MOVE '23:59:00'              TO WS-MAX-PMT-TIME. 
+
+189399     MOVE SPACES                  TO RSP22-O-ITEM-TYPE
+189399                                     RSP22-O-ITEM-CODE.   
+
+216688     IF RSP22-I-OFFER-ID > ZEROES 
+216688        EXEC SQL SELECT PRICE_CURRENCY_CODE,  
+216688                        OFFER_CODE
+216688           INTO WS-PRICE-CURRENCY-CODE,   
+216688                WS-OFFER-CODE 
+216688           FROM OFFER_ID_STATIC_INFO  
+216688           WHERE OFFER_ID = :RSP22-I-OFFER-ID 
+216688           FETCH FIRST 1 ROW ONLY 
+216688        END-EXEC  
+216688        IF SQLCODE < 0
+216688           GO TO 9150-RDMS-ERROR  
+216688        END-IF
+216688     END-IF.  
+
+           IF RSP22-I-PAYMENT-ITEM-CODE > SPACES
+              MOVE 'PY'                 TO RSP22-O-ITEM-TYPE
+              MOVE RSP22-I-PAYMENT-ITEM-CODE
+                                        TO RSP22-O-ITEM-CODE
+189399*       GO TO 0800-FETCH-ITEM-DATA
+189399        GO TO 0700-CHECK-SAIL-PAYMENT 
+           END-IF.  
+
+       0400-CHECK-OFFER-PAYMENT.
+
+           IF  RSP22-I-OFFER-ID <= ZEROES OR
+               RSP22-I-REQ-CAB-CODE = 'R'   
+               GO TO 0500-CHECK-POLICY-PROMO-PMNT   
+           END-IF.  
+
+216688*    MOVE SPACES                  TO WS-PRP-OWNER-CODE
+216688*                                    WS-OFFER-CODE.   
+216688     MOVE SPACES                  TO WS-PRP-OWNER-CODE.   
+           MOVE ZERO                    TO WS-PRP-OWNER-ID. 
+
+           EXEC SQL SELECT PMT_OWNER_CODE,  
+216688                     PMT_OWNER_ID 
+216688*                    PMT_OWNER_ID,
+216688*                    PRICE_CURRENCY_CODE, 
+216688*                    OFFER_CODE   
+              INTO WS-PRP-OWNER-CODE,   
+216688             WS-PRP-OWNER-ID  
+216688*            WS-PRP-OWNER-ID, 
+216688*            WS-PRICE-CURRENCY-CODE,  
+216688*            WS-OFFER-CODE
+              FROM OFFER_ID_STATIC_INFO 
+              WHERE OFFER_ID = :RSP22-I-OFFER-ID
+              FETCH FIRST 1 ROW ONLY
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR.
+
+           IF WS-PRP-OWNER-CODE <= SPACES OR
+                 WS-PRP-OWNER-ID <= ZERO
+              GO TO 0500-CHECK-POLICY-PROMO-PMNT
+           END-IF.  
+
+           EXEC SQL OPEN SAIL_PAYMENT_ITEM_CUR END-EXEC.
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR.
+
+189399*    MOVE SPACES                  TO RSP22-O-ITEM-TYPE
+189399*                                    RSP22-O-ITEM-CODE.   
+
+           EXEC SQL FETCH FIRST SAIL_PAYMENT_ITEM_CUR   
+              INTO RSP22-O-ITEM-TYPE,   
+                   RSP22-O-ITEM-CODE
+           END-EXEC.
+
+POAMIG*    IF SQLCODE < 0 OR SQLCODE = 100  
+POAMIG     IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR.
+
+           EXEC SQL CLOSE SAIL_PAYMENT_ITEM_CUR END-EXEC.   
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR.
+
+           IF  RSP22-O-ITEM-TYPE > SPACES AND   
+               RSP22-O-ITEM-CODE > SPACES   
+189399*        GO TO 0800-FETCH-ITEM-DATA   
+189399         GO TO 0700-CHECK-SAIL-PAYMENT
+           END-IF.  
+
+       0500-CHECK-POLICY-PROMO-PMNT.
+
+           IF  RSP22-I-POLICY-PROMO-CODE <= SPACES  
+               GO TO 0600-CHECK-POLICY-PAYMENT  
+           END-IF.  
+
+           IF RSP22-I-POLICY-PROMO-OWNER-ID <= ZEROES   
+              EXEC SQL  
+                    SELECT IFNULL(PRP_OWNER_ID,0)   
+                     INTO :RSP22-I-POLICY-PROMO-OWNER-ID
+                     FROM  SAIL_POLICY_PROMO                SPP 
+                    WHERE ((SPP.SHIP_CODE = :RSP22-I-SHIP-CODE) 
+                      AND  (SPP.SAIL_ID = :RSP22-I-SAIL-ID) 
+                      AND  (SPP.PROMOTION_CODE =
+                                             :RSP22-I-POLICY-PROMO-CODE)
+                      AND  (SPP.PAYMENT_GUIDELINES_IND = 'Y'))  
+                    FETCH FIRST 1 ROW ONLY  
+              END-EXEC  
+              IF SQLCODE < 0
+                 GO TO 9150-RDMS-ERROR  
+              ELSE  
+                 IF SQLCODE = 100   
+                    GO TO 0600-CHECK-POLICY-PAYMENT.
+
+           IF RSP22-I-POLICY-PROMO-OWNER-ID = WS-LAST-PROM-OWNER-ID 
+              MOVE WS-PROM-ITEM-TYPE    TO RSP22-O-ITEM-TYPE
+              MOVE WS-PROM-ITEM-CODE    TO RSP22-O-ITEM-CODE
+              IF RSP22-O-ITEM-TYPE <= SPACES OR 
+                    RSP22-O-ITEM-CODE <= SPACES 
+                 NEXT SENTENCE  
+              ELSE  
+189399*          GO TO 0800-FETCH-ITEM-DATA.
+189399           GO TO 0700-CHECK-SAIL-PAYMENT. 
+
+           MOVE 'PRO'                   TO WS-PRP-OWNER-CODE.   
+           MOVE RSP22-I-POLICY-PROMO-OWNER-ID   
+                                        TO WS-PRP-OWNER-ID. 
+
+           EXEC SQL OPEN SAIL_PAYMENT_ITEM_CUR END-EXEC.
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR.
+
+189399*    MOVE SPACES                  TO RSP22-O-ITEM-TYPE
+189399*                                    RSP22-O-ITEM-CODE.   
+
+           EXEC SQL FETCH FIRST SAIL_PAYMENT_ITEM_CUR   
+189399*       INTO RSP22-O-ITEM-TYPE,   
+189399*            RSP22-O-ITEM-CODE
+189399        INTO WS-PROM-ITEM-TYPE,   
+189399             WS-PROM-ITEM-CODE
+           END-EXEC.
+
+POAMIG*    IF SQLCODE < 0 OR SQLCODE = 100  
+POAMIG     IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR.
+
+189399*    MOVE RSP22-O-ITEM-TYPE       TO WS-PROM-ITEM-TYPE.   
+189399*    MOVE RSP22-O-ITEM-CODE       TO WS-PROM-ITEM-CODE.   
+189399     MOVE WS-PROM-ITEM-TYPE       TO RSP22-O-ITEM-TYPE.   
+189399     MOVE WS-PROM-ITEM-CODE       TO RSP22-O-ITEM-CODE.   
+           MOVE RSP22-I-POLICY-OWNER-ID TO WS-LAST-PROM-OWNER-ID.   
+
+           EXEC SQL CLOSE SAIL_PAYMENT_ITEM_CUR END-EXEC.   
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR.
+
+           IF  (RSP22-O-ITEM-TYPE > SPACES) AND 
+               (RSP22-O-ITEM-CODE > SPACES) 
+189399*         GO TO 0800-FETCH-ITEM-DATA  
+189399          GO TO 0700-CHECK-SAIL-PAYMENT   
+           END-IF.  
+
+       0600-CHECK-POLICY-PAYMENT.   
+
+           IF  RSP22-I-POLICY-CODE <= SPACES
+               GO TO 0700-CHECK-SAIL-PAYMENT
+           END-IF.  
+
+           IF RSP22-I-POLICY-OWNER-ID <= ZEROES 
+              EXEC SQL  
+                   SELECT  IFNULL(PRP_OWNER_ID,0)   
+                     INTO :RSP22-I-POLICY-OWNER-ID  
+                     FROM  SAIL_POLICY                      SPO 
+                    WHERE (SPO.SHIP_CODE = :RSP22-I-SHIP-CODE)  
+                      AND (SPO.SAIL_ID = :RSP22-I-SAIL-ID)  
+                      AND (SPO.POLICY_CODE = :RSP22-I-POLICY-CODE)  
+                      AND (SPO.PAYMENT_GUIDELINES_IND = 'Y')
+                    FETCH FIRST 1 ROW ONLY  
+              END-EXEC  
+           END-IF.  
+
+           IF  SQLCODE < 0  
+               GO TO 0700-CHECK-SAIL-PAYMENT
+           ELSE 
+               IF  SQLCODE = 100
+                   GO TO 0700-CHECK-SAIL-PAYMENT
+               END-IF   
+           END-IF.  
+
+           IF RSP22-I-POLICY-OWNER-ID = WS-LAST-PM-OWNER-ID 
+              MOVE WS-PM-ITEM-TYPE      TO RSP22-O-ITEM-TYPE
+              MOVE WS-PM-ITEM-CODE      TO RSP22-O-ITEM-CODE
+              IF RSP22-O-ITEM-TYPE <= SPACES OR 
+                    RSP22-O-ITEM-CODE <= SPACES 
+                 NEXT SENTENCE  
+              ELSE  
+189399*          GO TO 0800-FETCH-ITEM-DATA.
+189399           GO TO 0700-CHECK-SAIL-PAYMENT. 
+
+           MOVE 'POL'                   TO WS-PRP-OWNER-CODE.   
+           MOVE RSP22-I-POLICY-OWNER-ID TO WS-PRP-OWNER-ID. 
+
+           EXEC SQL OPEN SAIL_PAYMENT_ITEM_CUR END-EXEC.
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR.
+
+189399*    MOVE SPACES                  TO RSP22-O-ITEM-TYPE
+189399*                                    RSP22-O-ITEM-CODE.   
+
+           EXEC SQL FETCH FIRST SAIL_PAYMENT_ITEM_CUR   
+189399*       INTO RSP22-O-ITEM-TYPE,   
+189399*            RSP22-O-ITEM-CODE
+189399        INTO WS-PM-ITEM-TYPE, 
+189399             WS-PM-ITEM-CODE  
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR.
+
+189399*    MOVE RSP22-O-ITEM-TYPE       TO WS-PM-ITEM-TYPE. 
+189399*    MOVE RSP22-O-ITEM-CODE       TO WS-PM-ITEM-CODE. 
+189399     MOVE WS-PM-ITEM-TYPE         TO RSP22-O-ITEM-TYPE.   
+189399     MOVE WS-PM-ITEM-CODE         TO RSP22-O-ITEM-CODE.   
+           MOVE RSP22-I-POLICY-OWNER-ID TO WS-LAST-PM-OWNER-ID. 
+
+           EXEC SQL CLOSE SAIL_PAYMENT_ITEM_CUR END-EXEC.   
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR.
+
+           IF  (RSP22-O-ITEM-TYPE > SPACES) AND 
+               (RSP22-O-ITEM-CODE > SPACES) 
+189399*         GO TO 0800-FETCH-ITEM-DATA  
+189399          GO TO 0700-CHECK-SAIL-PAYMENT   
+           END-IF.  
+
+       0700-CHECK-SAIL-PAYMENT. 
+
+           IF TDP01-PRP-OWNER-ID = WS-LAST-SM-OWNER-ID  
+189399        IF RSP22-O-ITEM-TYPE NOT > SPACES OR  
+189399             RSP22-O-ITEM-CODE NOT > SPACES   
+                 MOVE WS-SM-ITEM-TYPE TO RSP22-O-ITEM-TYPE  
+                 MOVE WS-SM-ITEM-CODE TO RSP22-O-ITEM-CODE  
+189399        END-IF
+              IF RSP22-O-ITEM-TYPE <= SPACES OR 
+                    RSP22-O-ITEM-CODE <= SPACES 
+                 GO TO 7600-INVALID-OFFER-ID
+              ELSE  
+                 GO TO 0800-FETCH-ITEM-DATA 
+              END-IF
+           END-IF.  
+
+           MOVE TDP01-PRP-OWNER-CODE    TO WS-PRP-OWNER-CODE.   
+           MOVE TDP01-PRP-OWNER-ID    TO WS-PRP-OWNER-ID.   
+
+           EXEC SQL OPEN SAIL_PAYMENT_ITEM_CUR END-EXEC.
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR.
+
+189399*    MOVE SPACES                  TO RSP22-O-ITEM-TYPE
+189399*                                    RSP22-O-ITEM-CODE.   
+
+           EXEC SQL FETCH FIRST SAIL_PAYMENT_ITEM_CUR   
+189399*       INTO RSP22-O-ITEM-TYPE,   
+189399*            RSP22-O-ITEM-CODE
+189399        INTO WS-SM-ITEM-TYPE, 
+189399             WS-SM-ITEM-CODE  
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              GO TO 7600-INVALID-OFFER-ID   
+           END-IF.  
+
+189399*    MOVE RSP22-O-ITEM-TYPE    TO WS-SM-ITEM-TYPE.
+189399*    MOVE RSP22-O-ITEM-CODE    TO WS-SM-ITEM-CODE.
+189399     IF RSP22-O-ITEM-TYPE NOT > SPACES OR 
+189399          RSP22-O-ITEM-CODE NOT > SPACES  
+189399        MOVE WS-SM-ITEM-TYPE    TO RSP22-O-ITEM-TYPE  
+189399        MOVE WS-SM-ITEM-CODE    TO RSP22-O-ITEM-CODE  
+189399     END-IF.  
+           MOVE TDP01-PRP-OWNER-ID TO WS-LAST-SM-OWNER-ID.  
+
+           EXEC SQL CLOSE SAIL_PAYMENT_ITEM_CUR END-EXEC.   
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR.
+
+           IF  RSP22-O-ITEM-TYPE <= SPACES OR   
+               RSP22-O-ITEM-CODE <= SPACES  
+               GO TO 7600-INVALID-OFFER-ID  
+           END-IF.  
+
+       0800-FETCH-ITEM-DATA.
+
+           MOVE RSP22-I-SAIL-ID         TO WS-LAST-SAIL-ID. 
+           MOVE RSP22-I-REQ-CAB-CODE    TO WS-LAST-REQ-CAB-CODE.
+           MOVE TDP01-TERMS-LEVEL-CODE  TO WS-LAST-TERMS-LEVEL-CODE.
+           MOVE RSP22-I-LOCALITY-CODE   TO WS-LAST-LOCALITY-CODE.   
+           MOVE RSP22-I-CURRENCY-CODE   TO WS-LAST-CURRENCY-CODE.   
+           MOVE RSP22-I-CUSTOMER-CODE   TO WS-LAST-CUSTOMER-CODE.   
+           MOVE RSP22-I-CONNECTION-CODE TO WS-LAST-CONNECTION-CODE. 
+
+           IF WS-PRICE-CURRENCY-CODE NOT > SPACES AND   
+              RSP22-I-BOOK-NUM > ZEROES 
+              EXEC SQL  
+                 SELECT RM.PRICE_CURRENCY_CODE  
+                   INTO :WS-PRICE-CURRENCY-CODE 
+                   FROM OFFER_COMPONENT OC  
+                   JOIN RATE_MASTER RM  
+                     ON RM.PRP_OWNER_CODE = OC.ENTITY_TYPE  
+                    AND RM.PRP_OWNER_ID   = OC.ENTITY_OWNER_ID  
+                  WHERE OC.BOOK_NUM = :RSP22-I-BOOK-NUM 
+                    AND OC.OFFER_ID = :RSP22-I-OFFER-ID 
+                    AND OC.SHIP_CODE = :RSP22-I-SHIP-CODE   
+                    AND (OC.GUEST_SEQ_NUM IS NULL   
+                      OR OC.GUEST_SEQ_NUM = 0)  
+                    AND OC.ENTITY_TYPE = 'RTE'  
+                    AND OC.ENTITY_CODE > ' '
+                FETCH FIRST 1 ROW ONLY  
+              END-EXEC  
+              IF SQLCODE < 0
+                 GO TO 9150-RDMS-ERROR  
+              END-IF
+           END-IF.  
+
+           IF WS-PRICE-CURRENCY-CODE NOT > SPACES AND   
+              RSP22-I-OFFER-ID > ZEROES 
+              EXEC SQL  
+                 SELECT PRICE_CURRENCY_CODE 
+                   INTO :WS-PRICE-CURRENCY-CODE 
+                   FROM OFFER_ID_STATIC_INFO
+                  WHERE OFFER_ID = :RSP22-I-OFFER-ID
+                 FETCH FIRST 1 ROW ONLY 
+              END-EXEC  
+              IF SQLCODE < 0
+                 GO TO 9150-RDMS-ERROR  
+              END-IF
+           END-IF.  
+
+           MOVE TDP01-FINAL-PAYMENT-DATE TO WS-FINAL-PMT-DATE.  
+           MOVE SPACES                   TO WS-FINAL-PMT-DATE-FILL. 
+           MOVE '23:59:00'               TO WS-FINAL-PMT-TIME.  
+
+           IF RSP86-O-TIME-ZONE-CODE = 'AET' AND
+PRCCMB*       WS-BASE-CURRENCY-CODE = 'USD' 
+PRCCMB        TDP01-BASE-CURRENCY-CODE = 'USD'  
+              PERFORM DPP10-INIT-TMZ-VARS THRU  
+                      DPP10-INIT-TMZ-VARS-EXIT  
+              MOVE 'USD'                TO DPP02-TMZ-FRM-BASE-CURRENCY  
+              MOVE 'AUD'                TO DPP02-TMZ-TO-BASE-CURRENCY   
+              MOVE WS-FINAL-PMT-DATETIME
+                                        TO DPP02-RDMS-DATETIME  
+              MOVE ZEROES               TO DPP02-RDMS-TIME-HS   
+              PERFORM DPP10-RDMS-TO-DMS-DATETIME
+              MOVE DPP02-DMS-DATETIME   TO DPP02-TMZ-INP-DATETIME   
+              PERFORM DPP10-CHANGE-TIMEZONE THRU
+                      DPP10-CHANGE-TIMEZONE-EXIT
+              IF DPP02-TMZ-ERROR-NUM > 0
+                 MOVE DPP02-TMZ-ERROR-NUM   
+                                        TO DPP42-HOLD-MSG-INDEX 
+                 MOVE 'DPP10TMZ'        TO DPP42-HOLD-MSG-SOURCE
+                 GO TO 9200-EDIT-ERROR-MSG  
+              END-IF
+              MOVE DPP02-TMZ-OUT-RDMS-DATETIME (1:19)   
+                                        TO WS-FINAL-PMT-DATETIME
+           END-IF.  
+
+           IF RSP86-O-TIME-ZONE-CODE = 'USET' AND   
+PRCCMB*       WS-BASE-CURRENCY-CODE = 'AUD' 
+PRCCMB        TDP01-BASE-CURRENCY-CODE = 'AUD'  
+              PERFORM DPP10-INIT-TMZ-VARS THRU  
+                      DPP10-INIT-TMZ-VARS-EXIT  
+              MOVE 'AUD'                TO DPP02-TMZ-FRM-BASE-CURRENCY  
+              MOVE 'USD'                TO DPP02-TMZ-TO-BASE-CURRENCY   
+              MOVE WS-FINAL-PMT-DATETIME
+                                        TO DPP02-RDMS-DATETIME  
+              MOVE ZEROES               TO DPP02-RDMS-TIME-HS   
+              PERFORM DPP10-RDMS-TO-DMS-DATETIME
+              MOVE DPP02-DMS-DATETIME   TO DPP02-TMZ-INP-DATETIME   
+              PERFORM DPP10-CHANGE-TIMEZONE THRU
+                      DPP10-CHANGE-TIMEZONE-EXIT
+              IF DPP02-TMZ-ERROR-NUM > 0
+                 MOVE DPP02-TMZ-ERROR-NUM   
+                                        TO DPP42-HOLD-MSG-INDEX 
+                 MOVE 'DPP10TMZ'        TO DPP42-HOLD-MSG-SOURCE
+                 GO TO 9200-EDIT-ERROR-MSG  
+              END-IF
+              MOVE DPP02-TMZ-OUT-RDMS-DATETIME (1:19)   
+                                        TO WS-FINAL-PMT-DATETIME
+           END-IF.  
+
+           MOVE 'N'                     TO WS-SAIL-GUIDELINE-IND.   
+           EXEC SQL 
+              SELECT 'Y'
+                INTO :WS-SAIL-GUIDELINE-IND 
+                FROM PRP_ITEM   
+               WHERE PRP_OWNER_CODE = 'SAL'                 AND 
+                     PRP_OWNER_ID   = :TDP01-PRP-OWNER-ID AND   
+                     ITEM_TYPE      = 'PY'                  AND 
+                     ITEM_CODE      = :RSP22-O-ITEM-CODE
+               FETCH FIRST 1 ROW ONLY   
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR 
+           END-IF.  
+
+           EXEC SQL 
+                SELECT  CURRENCY_CODE,  
+                        STRICTEST_POLICY_IND,   
+                        IFNULL(REFUND_TERM_COND_CODE,'    '),   
+                        IFNULL(SCHEDULE_TERM_COND_CODE,'    ')  
+                  INTO :RSP22-O-CURRENCY-CODE,  
+                       :RSP22-O-STRICTEST-POL-IND,  
+                       :RSP22-O-REFUND-TCC, 
+                       :RSP22-O-SCHEDULE-TCC
+                  FROM  ITM_PAYMENT 
+                 WHERE (ITEM_TYPE = :RSP22-O-ITEM-TYPE) 
+                   AND (ITEM_CODE = :RSP22-O-ITEM-CODE) 
+                 FETCH FIRST 1 ROW ONLY 
+           END-EXEC.
+
+           IF  SQLCODE < 0  
+               GO TO 7700-ITEM-PAYMENT-FETCH-ERROR  
+           ELSE 
+               IF  SQLCODE = 100
+                   GO TO 7700-ITEM-PAYMENT-FETCH-ERROR  
+               END-IF   
+           END-IF.  
+
+       0900-PAYMENT-TERM-CUR.   
+
+           EXEC SQL 
+               DECLARE TERM_CUR CURSOR FOR RETENTION
+                SELECT OI.TERM_CODE,
+                       OI.SORT_KEY, 
+                       OI.BASE_DATE_CODE,   
+                       IFNULL(OI.NUM_HOURS,0),  
+                       IFNULL(OI.NUM_DAYS,0),   
+                       OI.REFUND_IND,   
+                       OI.AUTO_CANCEL_IND,  
+                       IFNULL(OI.MAX_NUM_EXTENSIONS,0), 
+                       OI.AMT_PCT_CODE, 
+                       DECODE(OI.BASE_DATE_CODE,
+                        'B',DATEADD('HOUR', 
+                                      MOD(IFNULL(OI.NUM_HOURS,0),24),   
+                             DATEADD('DAY',(IFNULL(OI.NUM_DAYS,0) + 
+                                      INT(IFNULL(OI.NUM_HOURS,0)/24)),  
+                                          :WS-BOOK-DATETIME)),  
+                       'D',DATEADD('HOUR',  
+                               MOD(decode(:rsp22-i-req-cab-code,
+                                      'R',:TDP01-REQ-OPTION-HOURS,  
+                                      'B',:TDP01-BTH-OPTION-HOURS,  
+                                          :TDP01-REQ-OPTION-HOURS),24), 
+                            DATEADD('DAY',  
+                                  (decode(:rsp22-i-req-cab-code,
+                                      'R',:TDP01-REQ-OPTION-DAYS,   
+                                      'B',:TDP01-BTH-OPTION-DAYS,   
+                                         :TDP01-REQ-OPTION-DAYS) +  
+                               INT(decode(:rsp22-i-req-cab-code,
+                                      'R',:TDP01-REQ-OPTION-HOURS,  
+                                      'B',:TDP01-BTH-OPTION-HOURS,  
+                                          :TDP01-REQ-OPTION-HOURS)/24)),
+                                         :WS-BOOK-DATETIME)),   
+                        'F',:WS-FINAL-PMT-DATETIME, 
+                        'I',DATEADD('MINUTE',   
+                                     :TDP01-OPTION-IMMEDIATE-MINUTES,   
+                                     :WS-BOOK-DATETIME),
+                      'S',DATEADD('HOUR',   
+                               (MOD(IFNULL(OI.NUM_HOURS,0),24) * -1),   
+                          DATEADD('DAY',
+                                   ((IFNULL(OI.NUM_DAYS,0) +
+                                 INT(IFNULL(OI.NUM_HOURS,0)/24)) * -1), 
+                                         :WS-SAIL-DATETIME)),   
+                        :WS-SAIL-DATETIME), 
+                       IFNULL(SI.BASE_DATE_CODE,' '),   
+                       DECODE(IFNULL(SI.BASE_DATE_CODE,' '),
+                       'B',DATEADD('HOUR',  
+                                      MOD(IFNULL(SI.NUM_HOURS,0),24),   
+                             DATEADD('DAY',(IFNULL(SI.NUM_DAYS,0) + 
+                                      INT(IFNULL(SI.NUM_HOURS,0)/24)),  
+                                          :WS-BOOK-DATETIME)),  
+                       'D',DATEADD('HOUR',  
+                                MOD(decode(:rsp22-i-req-cab-code,   
+                                       'R',:TDP01-REQ-OPTION-HOURS, 
+                                       'B',:TDP01-BTH-OPTION-HOURS, 
+                                          :TDP01-REQ-OPTION-HOURS),24), 
+                            DATEADD('DAY',  
+                                  (decode(:rsp22-i-req-cab-code,
+                                       'R',:TDP01-REQ-OPTION-DAYS,  
+                                       'B',:TDP01-BTH-OPTION-DAYS,  
+                                          :TDP01-REQ-OPTION-DAYS) + 
+                                INT(decode(:rsp22-i-req-cab-code,   
+                                       'R',:TDP01-REQ-OPTION-HOURS, 
+                                       'B',:TDP01-BTH-OPTION-HOURS, 
+                                          :TDP01-REQ-OPTION-HOURS)/24)),
+                                         :WS-BOOK-DATETIME)),   
+                        'F',:WS-FINAL-PMT-DATETIME, 
+                        'I',DATEADD('MINUTE',   
+                                      :TDP01-OPTION-IMMEDIATE-MINUTES,  
+                                      :WS-BOOK-DATETIME),   
+                      'S',DATEADD('HOUR',   
+                                 (MOD(IFNULL(SI.NUM_HOURS,0),24) * -1), 
+                          DATEADD('DAY',
+                                    ((IFNULL(SI.NUM_DAYS,0) +   
+                                  INT(IFNULL(SI.NUM_HOURS,0)/24))* -1), 
+                                         :WS-SAIL-DATETIME)),   
+                        :WS-SAIL-DATETIME), 
+189399                 IFNULL(SI.NUM_HOURS,0),  
+189399                 IFNULL(SI.NUM_DAYS,0)
+                 FROM  ITM_PAYMENT_TERM                 OI  
+            LEFT JOIN  ITM_PAYMENT_TERM                 SI  
+                   ON (SI.ITEM_TYPE = :WS-SM-ITEM-TYPE) 
+                  AND (SI.ITEM_CODE = :WS-SM-ITEM-CODE) 
+                  AND (SI.TERM_CODE = OI.TERM_CODE) 
+                WHERE (OI.ITEM_TYPE = :RSP22-O-ITEM-TYPE)   
+                  AND (OI.ITEM_CODE = :RSP22-O-ITEM-CODE)   
+                ORDER BY SORT_KEY   
+           END-EXEC.
+
+           IF  SQLCODE < 0  
+               GO TO 9150-RDMS-ERROR
+           END-IF.  
+
+           EXEC SQL 
+                OPEN TERM_CUR   
+           END-EXEC.
+
+           IF  SQLCODE < 0  
+               GO TO 9150-RDMS-ERROR
+           END-IF.  
+
+ME1909     MOVE WS-BOOK-DATETIME        TO WS-DEPOSIT-DATETIME  
+           MOVE '1900-01-01 00:00:00'   TO WS-LAST-TERM-DATETIME.   
+           MOVE 0                       TO WS-T-IDX.
+       1000-NEXT-PAYMENT-TERM.  
+
+           EXEC SQL 
+                FETCH  NEXT TERM_CUR
+                 INTO :WS-TERM-CODE,
+                      :WS-SORT-KEY, 
+                      :WS-BASE-DATE-CODE,   
+                      :WS-NUM-HOURS,
+                      :WS-NUM-DAYS, 
+                      :WS-REFUND-IND,   
+                      :WS-AUTO-CANCEL-IND,  
+                      :WS-MAX-NUM-EXTENSION,
+                      :WS-AMT-PCT-CODE, 
+                      :WS-PMT-DATETIME, 
+                      :WS-SAIL-BASE-DATE-CODE,  
+                      :WS-SAIL-PMT-DATETIME,
+189399                :WS-SAIL-NUM-HOURS,   
+189399                :WS-SAIL-NUM-DAYS 
+           END-EXEC.
+           IF  SQLCODE < 0  
+               GO TO 9150-RDMS-ERROR
+           ELSE 
+               IF  SQLCODE = 100
+                   GO TO 1100-CLOSE-PAYMENT-TERM-CURSOR 
+               END-IF   
+           END-IF.  
+
+           IF WS-MIN-TERM-FLAG = 'Y'
+              IF  WS-BASE-DATE-CODE = 'D' OR 'F'
+
+                  MOVE RSP22-O-ITEM-TYPE       TO WS-ITEM-TYPE1 
+                  MOVE RSP22-O-ITEM-CODE       TO WS-ITEM-CODE1 
+                  MOVE WS-TERM-CODE            TO WS-TERM-CODE1 
+                  MOVE WS-PMT-DATETIME         TO WS-ORG-DATETIME   
+                  PERFORM 6600-CHECK-TERM-MIN THRU  
+                          6900-EXIT 
+                  MOVE WS-ORG-DATETIME         TO WS-PMT-DATETIME   
+              END-IF
+
+              IF  WS-SAIL-BASE-DATE-CODE = 'D' OR 'F'   
+
+                      MOVE WS-SM-ITEM-TYPE     TO WS-ITEM-TYPE1 
+                      MOVE WS-SM-ITEM-CODE     TO WS-ITEM-CODE1 
+                      MOVE WS-TERM-CODE        TO WS-TERM-CODE1 
+                      MOVE WS-SAIL-PMT-DATETIME 
+                                               TO WS-ORG-DATETIME   
+                      PERFORM 6600-CHECK-TERM-MIN THRU  
+                              6900-EXIT 
+                      MOVE WS-ORG-DATETIME     TO WS-SAIL-PMT-DATETIME  
+              END-IF
+           END-IF.  
+
+           MOVE 'N' TO WS-USE-STRICT-IND.   
+           IF (RSP22-O-STRICTEST-POL-IND = 'Y') 
+              IF (WS-PMT-DATETIME > WS-SAIL-PMT-DATETIME)   
+                 MOVE WS-SAIL-PMT-DATETIME TO WS-PMT-DATETIME   
+                 MOVE 'Y'                  TO WS-USE-STRICT-IND 
+189399           MOVE WS-SAIL-NUM-HOURS    TO WS-NUM-HOURS  
+189399           MOVE WS-SAIL-NUM-DAYS     TO WS-NUM-DAYS   
+189399           MOVE WS-SAIL-BASE-DATE-CODE TO WS-BASE-DATE-CODE   
+              ELSE  
+                 IF (WS-PMT-DATETIME = WS-SAIL-PMT-DATETIME)  AND   
+                    (RSP22-O-ITEM-CODE NOT = WS-SM-ITEM-CODE)   
+                    MOVE 'E' TO WS-USE-STRICT-IND   
+                 END-IF 
+              END-IF
+           END-IF.  
+
+           IF  WS-PMT-DATETIME > WS-MAX-PMT-DATETIME
+               MOVE WS-MAX-PMT-DATETIME TO WS-PMT-DATETIME  
+           ELSE 
+               IF  WS-PMT-DATETIME <= WS-BOOK-DATETIME  
+                   MOVE WS-BOOK-DATE    TO WS-PMT-DATE  
+                   MOVE SPACES          TO WS-PMT-DATE-FILL 
+                   MOVE '23:59:00'      TO WS-PMT-TIME  
+               END-IF   
+           END-IF.  
+
+           IF RSP22-I-REQ-CAB-CODE = 'R'
+              IF      (WS-TERM-CODE = 'D')  
+                MOVE WS-PMT-DATETIME    TO WS-DEPOSIT-DATETIME  
+              ELSE  
+                IF      (WS-TERM-CODE = 'F')
+                    AND (WS-PMT-DATETIME < WS-DEPOSIT-DATETIME) 
+                  MOVE WS-DEPOSIT-DATETIME  
+                                        TO WS-PMT-DATETIME  
+                  MOVE '23:59:00'       TO WS-PMT-TIME  
+                END-IF  
+              END-IF
+           END-IF.  
+
+           IF RSP86-O-TIME-ZONE-CODE = 'AET' AND
+              RSP22-I-REQ-CAB-CODE = 'R'
+              PERFORM DPP10-INIT-TMZ-VARS THRU  
+                      DPP10-INIT-TMZ-VARS-EXIT  
+              MOVE 'AUD'                TO DPP02-TMZ-FRM-BASE-CURRENCY  
+              MOVE 'USD'                TO DPP02-TMZ-TO-BASE-CURRENCY   
+              MOVE WS-PMT-DATETIME      TO DPP02-RDMS-DATETIME  
+              MOVE ZEROES               TO DPP02-RDMS-TIME-HS   
+              PERFORM DPP10-RDMS-TO-DMS-DATETIME
+              MOVE DPP02-DMS-DATETIME   TO DPP02-TMZ-INP-DATETIME   
+              PERFORM DPP10-CHANGE-TIMEZONE THRU
+                      DPP10-CHANGE-TIMEZONE-EXIT
+              IF DPP02-TMZ-ERROR-NUM > 0
+                 MOVE DPP02-TMZ-ERROR-NUM   
+                                TO DPP42-HOLD-MSG-INDEX 
+                 MOVE 'DPP10TMZ'
+                                TO DPP42-HOLD-MSG-SOURCE
+                 GO TO 9200-EDIT-ERROR-MSG  
+              END-IF
+              MOVE DPP02-TMZ-OUT-RDMS-DATETIME (1:19)   
+                                TO WS-PMT-DATETIME  
+           END-IF.  
+
+           IF  WS-LAST-TERM-DATETIME <= WS-PMT-DATETIME OR  
+               (RSP22-I-REQ-CAB-CODE = 'B') 
+               IF  WS-T-IDX < RSP22-MAX-PMT-TERMS   
+                   ADD 1                TO WS-T-IDX 
+                                           RSP22-O-TERM-CNT 
+                   MOVE LOW-VALUES      TO RSP22-O-TERM-ENTRY (WS-T-IDX)
+                   MOVE WS-PMT-DATETIME TO RSP22-O-PMT-DATETIME 
+                                                             (WS-T-IDX) 
+                                           WS-LAST-TERM-DATETIME
+                   MOVE WS-PMT-DATE-CC  TO RSP22-O-PMT-DATE-N   
+                                                        (WS-T-IDX)(1:2) 
+                   MOVE WS-PMT-DATE-YY  TO RSP22-O-PMT-DATE-N   
+                                                        (WS-T-IDX)(3:2) 
+                   MOVE WS-PMT-DATE-MM  TO RSP22-O-PMT-DATE-N   
+                                                        (WS-T-IDX)(5:2) 
+                   MOVE WS-PMT-DATE-DD  TO RSP22-O-PMT-DATE-N   
+                                                        (WS-T-IDX)(7:2) 
+                   MOVE WS-PMT-TIME-HH  TO RSP22-O-PMT-TIME-N   
+                                                        (WS-T-IDX)(1:2) 
+                   MOVE WS-PMT-TIME-MN  TO RSP22-O-PMT-TIME-N   
+                                                        (WS-T-IDX)(3:2) 
+                   MOVE WS-PMT-TIME-SS  TO RSP22-O-PMT-TIME-N   
+                                                        (WS-T-IDX)(5:2) 
+
+                   MOVE WS-BASE-DATE-CODE   
+                                        TO RSP22-O-BASE-DATE-CODE   
+                                                       (WS-T-IDX)   
+                   MOVE WS-NUM-HOURS    TO RSP22-O-NUM-HOURS (WS-T-IDX) 
+                   MOVE WS-NUM-DAYS     TO RSP22-O-NUM-DAYS (WS-T-IDX)  
+
+                   PERFORM VARYING WS-TSUB FROM 1 BY 1  
+                             UNTIL WS-TSUB > WS-PMT-TERM-CNT OR 
+                                   WS-PMT-TERM-CODE (WS-TSUB) = 
+                                                         WS-TERM-CODE   
+                      CONTINUE  
+                   END-PERFORM  
+                   IF WS-TSUB > WS-PMT-TERM-CNT 
+                      ADD 1                TO WS-PMT-TERM-CNT   
+                      MOVE WS-PMT-TERM-CNT TO WS-TSUB   
+                   END-IF   
+                   MOVE WS-TERM-CODE       TO WS-PMT-TERM-CODE (WS-TSUB)
+                   MOVE WS-USE-STRICT-IND  TO WS-PMT-USE-STRICT-IND 
+                                                              (WS-TSUB) 
+                   MOVE WS-T-IDX           TO WS-PMT-TERM-IDX (WS-TSUB) 
+                   IF WS-USE-STRICT-IND = 'Y' OR 'E'
+                      MOVE WS-SM-ITEM-TYPE TO WS-PMT-SAIL-ITEM-TYPE 
+                                                              (WS-TSUB) 
+                      MOVE WS-SM-ITEM-CODE TO WS-PMT-SAIL-ITEM-CODE 
+                                                              (WS-TSUB) 
+                   ELSE 
+                      MOVE SPACES          TO WS-PMT-SAIL-ITEM-TYPE 
+                                                              (WS-TSUB) 
+                                              WS-PMT-SAIL-ITEM-CODE 
+                                                              (WS-TSUB) 
+                   END-IF   
+               ELSE 
+                   MOVE 15              TO DPP42-HOLD-MSG-INDEX 
+                   GO TO 9200-EDIT-ERROR-MSG
+               END-IF   
+           ELSE 
+               IF  WS-T-IDX <= 0
+                   MOVE 16              TO DPP42-HOLD-MSG-INDEX 
+                   GO TO 9200-EDIT-ERROR-MSG
+               END-IF   
+               MOVE WS-BASE-DATE-CODE   TO RSP22-O-BASE-DATE-CODE   
+                                                             (WS-T-IDX) 
+               MOVE WS-NUM-HOURS        TO RSP22-O-NUM-HOURS (WS-T-IDX) 
+               MOVE WS-NUM-DAYS         TO RSP22-O-NUM-DAYS (WS-T-IDX)  
+               PERFORM VARYING WS-TSUB FROM 1 BY 1  
+                         UNTIL WS-TSUB > WS-PMT-TERM-CNT OR 
+                               WS-PMT-TERM-CODE (WS-TSUB) = 
+                                                     WS-TERM-CODE   
+                  CONTINUE  
+
+
+
+               END-PERFORM  
+               IF WS-TSUB > WS-PMT-TERM-CNT 
+                  ADD 1                TO WS-PMT-TERM-CNT   
+                  MOVE WS-PMT-TERM-CNT TO WS-TSUB   
+               END-IF   
+               MOVE WS-TERM-CODE       TO WS-PMT-TERM-CODE (WS-TSUB)
+               MOVE WS-T-IDX           TO WS-PMT-TERM-IDX (WS-TSUB) 
+               MOVE WS-USE-STRICT-IND  TO WS-PMT-USE-STRICT-IND 
+                                                              (WS-TSUB) 
+               IF WS-USE-STRICT-IND = 'Y' OR 'E'
+                  MOVE WS-SM-ITEM-TYPE TO WS-PMT-SAIL-ITEM-TYPE 
+                                                              (WS-TSUB) 
+                  MOVE WS-SM-ITEM-CODE TO WS-PMT-SAIL-ITEM-CODE 
+                                                              (WS-TSUB) 
+               ELSE 
+                  MOVE SPACES          TO WS-PMT-SAIL-ITEM-TYPE 
+                                                              (WS-TSUB) 
+                                          WS-PMT-SAIL-ITEM-CODE 
+                                                              (WS-TSUB) 
+               END-IF   
+           END-IF.  
+
+           MOVE WS-TERM-CODE            TO RSP22-O-TERM-CODE (WS-T-IDX).
+           MOVE WS-SORT-KEY             TO RSP22-O-SORT-KEY (WS-T-IDX). 
+           MOVE WS-REFUND-IND           TO RSP22-O-REFUND-IND   
+                                                             (WS-T-IDX).
+           MOVE WS-AUTO-CANCEL-IND      TO RSP22-O-AUTO-CANCEL-IND  
+                                                             (WS-T-IDX).
+190530     IF WS-TERM-CODE = 'D'
+190530        MOVE WS-AUTO-CANCEL-IND   TO WS-AUTO-CXF-IND  
+190530     END-IF.  
+
+           IF RSP22-I-REQ-CAB-CODE = 'B'
+              MOVE TDP01-BTH-MAX-EXTENSIONS TO RSP22-O-MAX-EXTENSIONS   
+                                                             (WS-T-IDX) 
+           ELSE 
+              MOVE WS-MAX-NUM-EXTENSION TO RSP22-O-MAX-EXTENSIONS   
+                                                             (WS-T-IDX) 
+           END-IF.  
+           MOVE WS-AMT-PCT-CODE         TO RSP22-O-AMT-PCT-CODE 
+                                                             (WS-T-IDX).
+           GO TO 1000-NEXT-PAYMENT-TERM.
+
+       1100-CLOSE-PAYMENT-TERM-CURSOR.  
+
+           EXEC SQL 
+                CLOSE TERM_CUR  
+           END-EXEC.
+
+           IF RSP22-I-REQ-CAB-CODE = 'R'
+              GO TO 5200-BUILD-CAT-GTT  
+           END-IF.  
+
+           MOVE ZEROES                  TO WS-D-IDX 
+                                           WS-F-IDX.
+
+           PERFORM VARYING WS-T-IDX FROM 1 BY 1 
+                   UNTIL WS-T-IDX > RSP22-O-TERM-CNT
+             IF RSP22-O-TERM-CODE (WS-T-IDX) = 'D'  
+                MOVE WS-T-IDX           TO WS-D-IDX 
+             END-IF 
+             IF RSP22-O-TERM-CODE (WS-T-IDX) = 'F'  
+                MOVE WS-T-IDX           TO WS-F-IDX 
+             END-IF 
+           END-PERFORM. 
+
+           IF WS-D-IDX <= 0 OR  
+              WS-F-IDX <= 0 
+              MOVE 30              TO DPP42-HOLD-MSG-INDEX  
+              GO TO 9200-EDIT-ERROR-MSG 
+           END-IF.  
+
+           IF RSP22-I-OLD-PAX-CNT = ZERO
+              MOVE ZERO                  TO RSP22-O-NUM-OPT-EXT 
+           ELSE 
+              MOVE RSP22-I-NUM-OPT-EXT   TO RSP22-O-NUM-OPT-EXT.
+
+       1200-DATE-ADJUSTMENT-PARA.   
+           IF  RSP22-I-DEPOSIT-TYPE-1 < SPACES AND  
+               RSP22-I-DEPOSIT-TYPE-2 < SPACES AND  
+               RSP22-I-CABIN-WAITLIST-IND = 'N' 
+                 GO TO 1200-CONTD   
+           END-IF.  
+
+           IF  RSP22-I-DEPOSIT-TYPE-1 = 'F' OR  
+               RSP22-I-DEPOSIT-TYPE-1 = 'V' OR  
+               RSP22-I-DEPOSIT-TYPE-2 = 'F' OR  
+               RSP22-I-DEPOSIT-TYPE-2 = 'V' OR  
+               RSP22-I-CABIN-WAITLIST-IND = 'Y' 
+PRCCMB*        IF WS-BASE-CURRENCY-CODE = 'AUD' 
+PRCCMB         IF TDP01-BASE-CURRENCY-CODE = 'AUD'  
+                  PERFORM DPP10-INIT-TMZ-VARS THRU  
+                          DPP10-INIT-TMZ-VARS-EXIT  
+                  MOVE 'USD'            TO DPP02-TMZ-FRM-BASE-CURRENCY  
+                  MOVE 'AUD'            TO DPP02-TMZ-TO-BASE-CURRENCY   
+                  MOVE WS-SAIL-DATETIME TO DPP02-RDMS-DATETIME  
+                  MOVE ZEROES           TO DPP02-RDMS-TIME-HS   
+                  PERFORM DPP10-RDMS-TO-DMS-DATETIME
+                  MOVE DPP02-DMS-DATETIME   
+                                        TO DPP02-TMZ-INP-DATETIME   
+                  PERFORM DPP10-CHANGE-TIMEZONE THRU
+                          DPP10-CHANGE-TIMEZONE-EXIT
+                  IF DPP02-TMZ-ERROR-NUM > 0
+                     MOVE DPP02-TMZ-ERROR-NUM   
+                                        TO DPP42-HOLD-MSG-INDEX 
+                     MOVE 'DPP10TMZ'    TO DPP42-HOLD-MSG-SOURCE
+                     GO TO 9200-EDIT-ERROR-MSG  
+                  END-IF
+                  MOVE DPP02-TMZ-OUT-RDMS-DATETIME (1:19)   
+                                        TO WS-MISC-DATETIME-1   
+               ELSE 
+                  MOVE WS-SAIL-DATE     TO WS-MISC-DATETIME-1   
+               END-IF   
+               MOVE WS-MISC-DATETIME-1  TO RSP22-O-PMT-DATE(WS-D-IDX)   
+                                           RSP22-O-PMT-DATE(WS-F-IDX)   
+               MOVE '00:00:00'          TO RSP22-O-PMT-TIME(WS-D-IDX)   
+                                           RSP22-O-PMT-TIME(WS-F-IDX)   
+               MOVE WS-MISC-DATETIME-1(1:4) 
+                                        TO RSP22-O-PMT-DATE-N   
+                                           (WS-D-IDX)(1:4)  
+                                           RSP22-O-PMT-DATE-N   
+                                           (WS-F-IDX)(1:4)  
+               MOVE WS-MISC-DATETIME-1(6:2) 
+                                        TO RSP22-O-PMT-DATE-N   
+                                          (WS-D-IDX)(5:2)   
+                                          RSP22-O-PMT-DATE-N
+                                          (WS-F-IDX)(5:2)   
+               MOVE WS-MISC-DATETIME-1(9:2) 
+                                        TO RSP22-O-PMT-DATE-N   
+                                           (WS-D-IDX)(7:2)  
+                                           RSP22-O-PMT-DATE-N   
+                                           (WS-F-IDX)(7:2)  
+               MOVE ZEROES              TO RSP22-O-PMT-TIME-N (WS-D-IDX)
+                                           RSP22-O-PMT-TIME-N (WS-D-IDX)
+               GO TO 5200-BUILD-CAT-GTT 
+           END-IF.  
+
+       1200-CONTD.  
+           MOVE 'N'                     TO WS-ALLOW-FOR-MAIL-IND.   
+           IF (RSP22-I-OLD-DEPOSIT-TYPE-1 NOT = 
+                 RSP22-I-DEPOSIT-TYPE-1)
+              IF RSP22-I-DEPOSIT-TYPE-1 = 'C' OR 'W'
+                 MOVE 'Y'                TO WS-ALLOW-FOR-MAIL-IND.  
+
+           IF (RSP22-I-OLD-DEPOSIT-TYPE-2 NOT = 
+                 RSP22-I-DEPOSIT-TYPE-2)
+              IF RSP22-I-DEPOSIT-TYPE-2 = 'C' OR 'W'
+                 MOVE 'Y'                TO WS-ALLOW-FOR-MAIL-IND.  
+
+           MOVE 'Y'                      TO WS-CHG-OPTION.  
+           MOVE ZEROES                   TO WS-COURTSEY-OPT-DAYS
+                                            WS-COURTSEY-OPT-HRS 
+                                            WS-OPTION-DAYS  
+                                            WS-OPTION-MINS  
+                                            WS-OPTION-HOURS 
+                                            WS-COURTSEY-OPT-MIN.
+
+           IF RSP22-O-BASE-DATE-CODE(WS-D-IDX) = 'I'
+              MOVE TDP01-OPTION-IMMEDIATE-MINUTES   
+                                         TO WS-COURTSEY-OPT-MIN 
+           ELSE 
+              IF RSP22-O-BASE-DATE-CODE(WS-D-IDX) = 'B' 
+                 MOVE RSP22-O-NUM-HOURS (WS-D-IDX)  
+                                         TO WS-COURTSEY-OPT-HRS 
+                 MOVE RSP22-O-NUM-DAYS (WS-D-IDX)   
+                                         TO WS-COURTSEY-OPT-DAYS
+              END-IF
+           END-IF.  
+
+           IF RSP22-I-OLD-PAX-CNT = ZERO
+              GO TO 1800-REGULAR-OPTION-DATE.   
+
+           IF RSP22-I-EXTEND-CODE = 'M' 
+              GO TO 1400-MONDAY-EXTENSION.  
+
+           IF RSP22-I-EXTEND-CODE = 'Y' 
+              GO TO 1300-VALIDATE-EXTEND.   
+
+           IF RSP22-I-OLD-OPTION-DATE NOT = RSP22-I-NEW-OPTION-DATE 
+              GO TO 1300-VALIDATE-EXTEND.   
+
+           IF RSP22-I-OLD-OPTION-TIME NOT = RSP22-I-NEW-OPTION-TIME 
+              GO TO 1300-VALIDATE-EXTEND.   
+
+           MOVE 'N'                      TO WS-CHG-OPTION.  
+
+           IF RSP22-I-OLD-FINAL-DATE NOT = RSP22-I-NEW-FINAL-DATE   
+              GO TO 1300-VALIDATE-EXTEND.   
+
+           IF WS-ALLOW-FOR-MAIL-IND = 'Y'   
+              GO TO 1300-VALIDATE-EXTEND.   
+
+           IF (RSP22-I-RATE-CHG-IND = 'Y')  
+              GO TO 1800-REGULAR-OPTION-DATE.   
+
+           GO TO 5200-BUILD-CAT-GTT.
+
+       1300-VALIDATE-EXTEND.
+           IF WS-ALLOW-FOR-MAIL-IND = 'Y'   
+              GO TO 1800-REGULAR-OPTION-DATE.   
+
+           IF (RSP22-I-RATE-CHG-IND = 'Y')  
+              GO TO 1800-REGULAR-OPTION-DATE.   
+
+           IF RSP22-O-NUM-OPT-EXT NOT < RSP22-O-MAX-EXTENSIONS(WS-D-IDX)
+              IF RSP22-I-ALLOW-EXTENSION-FLG = 0
+                 MOVE 31 TO DPP42-HOLD-MSG-INDEX
+                 GO TO 9200-EDIT-ERROR-MSG  
+              ELSE  
+                 MOVE 1 TO RSP90-ALLOW-EXTENSION-FLG
+                 IF RSP22-I-ADM-OVERRIDE-IND = 0
+                    MOVE 31 TO DPP42-HOLD-MSG-INDEX 
+                    GO TO 9200-EDIT-ERROR-MSG   
+                 ELSE   
+                    MOVE 1 TO RSP90-OVR-OPTION-FLG  
+                 END-IF 
+              END-IF
+           END-IF.  
+
+           GO TO 1800-REGULAR-OPTION-DATE.  
+
+       1400-MONDAY-EXTENSION.   
+           IF (RSP22-I-RATE-CHG-IND = 'Y')  
+              GO TO 1450-ALLOW-MONDAY-EXTENTION.
+
+           IF RSP22-O-NUM-OPT-EXT NOT < RSP22-O-MAX-EXTENSIONS(WS-D-IDX)
+              IF RSP22-I-ALLOW-EXTENSION-FLG = 0
+                 MOVE 31 TO DPP42-HOLD-MSG-INDEX
+                 GO TO 9200-EDIT-ERROR-MSG  
+              ELSE  
+                 MOVE 1 TO RSP90-ALLOW-EXTENSION-FLG
+                 IF RSP22-I-ADM-OVERRIDE-IND = 0
+                    MOVE 31 TO DPP42-HOLD-MSG-INDEX 
+                    GO TO 9200-EDIT-ERROR-MSG   
+                 ELSE   
+                    MOVE 1 TO RSP90-OVR-OPTION-FLG  
+                 END-IF 
+              END-IF
+           END-IF.  
+
+       1450-ALLOW-MONDAY-EXTENTION. 
+
+           IF RSP86-O-TIME-ZONE-CODE = 'AET'
+              PERFORM DPP10-INIT-TMZ-VARS THRU  
+                      DPP10-INIT-TMZ-VARS-EXIT  
+              MOVE 'USD'            TO DPP02-TMZ-FRM-BASE-CURRENCY  
+              MOVE 'AUD'            TO DPP02-TMZ-TO-BASE-CURRENCY   
+              MOVE RSP22-I-OLD-OPTION-DATETIME  
+                                    TO DPP02-RDMS-DATETIME  
+              MOVE ZEROES           TO DPP02-RDMS-TIME-HS   
+              PERFORM DPP10-RDMS-TO-DMS-DATETIME
+              MOVE DPP02-DMS-DATETIME   
+                                    TO DPP02-TMZ-INP-DATETIME   
+              PERFORM DPP10-CHANGE-TIMEZONE THRU
+                      DPP10-CHANGE-TIMEZONE-EXIT
+              IF DPP02-TMZ-ERROR-NUM > 0
+                 MOVE DPP02-TMZ-ERROR-NUM   
+                                    TO DPP42-HOLD-MSG-INDEX 
+                 MOVE 'DPP10TMZ'    TO DPP42-HOLD-MSG-SOURCE
+                 GO TO 9200-EDIT-ERROR-MSG  
+              END-IF
+              MOVE DPP02-TMZ-OUT-RDMS-DATETIME (1:19)   
+                                    TO WS-MISC-DATETIME-1   
+           ELSE 
+              MOVE RSP22-I-OLD-OPTION-DATETIME  
+                                    TO WS-MISC-DATETIME-1   
+           END-IF.  
+
+           MOVE RSP22-I-OLD-OPTION-DATETIME 
+                                    TO DPP02-RDMS-DATETIME  
+           MOVE ZEROES              TO DPP02-RDMS-TIME-HS   
+           PERFORM DPP10-RDMS-TO-DMS-DATETIME.  
+           MOVE DPP02-DMS-DATE      TO DPP02-YYYYMMDD-DATE. 
+
+           PERFORM DPP10-YYYYMMDD-WEEK-DAY. 
+
+           MOVE DPP02-WEEKDAY-NUM        TO WS-TODAYS-SUB.  
+
+           IF WS-TODAYS-SUB = 1 
+              MOVE 1                     TO DPP02-NUMBER-DAYS   
+           ELSE 
+              IF WS-TODAYS-SUB = 7  
+                 MOVE 2                  TO DPP02-NUMBER-DAYS   
+              ELSE  
+                 IF WS-TODAYS-SUB = 6   
+                    MOVE 3               TO DPP02-NUMBER-DAYS   
+                 ELSE   
+                    GO TO 5200-BUILD-CAT-GTT.   
+
+           EXEC SQL 
+                SELECT DATEADD('DAY',:DPP02-NUMBER-DAYS 
+                               ,:WS-MISC-DATETIME-1)
+                  INTO :WS-EXT-DATETIME 
+                  FROM RDMS.RDMS_DUMMY  
+                 WHERE KEY_COL = 1  
+                 FETCH FIRST 1 ROW ONLY 
+           END-EXEC.
+
+           IF RSP22-I-AGT-COUNTRY-CODE NOT = 'CA'   
+               GO TO 1500-STATE-TABLE.  
+
+           SET CAN-NDX TO 1.
+
+           SEARCH MKP01-CAN-PROV-TABLE VARYING CAN-NDX  
+                 AT END GO TO 1500-STATE-TABLE  
+                 WHEN MKP01-PROV-CODE (CAN-NDX) = RSP22-I-AGT-STATE-CODE
+              MOVE MKP01-CN-TIME-DIFF (CAN-NDX) TO MKP01-TIME-DIFF. 
+
+           GO TO 1700-SET-OPTION-TIME.  
+
+       1500-STATE-TABLE.
+           SEARCH ALL MKP01-STATE-TABLE 
+                  AT END GO TO 1600-INVALID-STATE-CODE  
+                  WHEN MKP01-STATE1 (STATE-NDX) = RSP22-I-AGT-STATE-CODE
+              MOVE MKP01-ST-TIME-DIFF (STATE-NDX) TO MKP01-TIME-DIFF.   
+
+           GO TO 1700-SET-OPTION-TIME.  
+
+       1600-INVALID-STATE-CODE. 
+           MOVE ZERO                     TO MKP01-TIME-DIFF.
+
+       1700-SET-OPTION-TIME.
+           MOVE '10:00:00'               TO WS-EXT-TIME.
+           MOVE WS-EXT-DATETIME          TO WS-MISC-DATETIME-1. 
+           EXEC SQL 
+                SELECT DATEADD('HOUR',MOD(:MKP01-TIME-DIFF,24), 
+                         DATEADD('DAY',INT(:MKP01-TIME-DIFF/24) 
+                               ,:WS-MISC-DATETIME-1))   
+                  INTO :WS-EXT-DATETIME 
+                  FROM RDMS.RDMS_DUMMY  
+                 WHERE KEY_COL = 1  
+                 FETCH FIRST 1 ROW ONLY 
+           END-EXEC.
+           MOVE WS-EXT-DATETIME         TO WS-PMT-DATETIME  
+
+           GO TO 2500-OPTION-DATE-CALCED.   
+
+       1800-REGULAR-OPTION-DATE.
+190530     IF RSP22-I-RATE-CHG-IND = 'Y'
+190530        AND WS-AUTO-CXF-IND = 'Y' 
+190530        AND RSP22-I-NEW-OPTION-DATE <= WS-BASE-SYS-DATE   
+
+190530        ACCEPT WS-SYS-DATE FROM DATE YYYYMMDD 
+190530        ACCEPT WS-SYS-TIME FROM TIME  
+
+190530        MOVE WS-SYS-HH TO WS-TIME-HOURS   
+190530        MOVE WS-SYS-MN TO WS-TIME-MINUTE  
+
+190530        COMPUTE WS-CURRENT-TOTAL-MINUTES =
+190530                    (WS-TIME-HOURS * 60) + WS-TIME-MINUTE 
+
+190530        MOVE RSP22-I-NEW-OPTION-TIME(1:2) TO WS-HOUR1 
+190530        MOVE RSP22-I-NEW-OPTION-TIME(4:2) TO WS-MINUTE1   
+
+190530        COMPUTE WS-OPTION-TOTAL-MINUTES = 
+190530                    (WS-HOUR1 * 60) + WS-MINUTE1  
+
+190530         IF WS-OPTION-TOTAL-MINUTES <=
+190530                    WS-CURRENT-TOTAL-MINUTES + 15 
+190530           ADD 15 TO WS-TIME-MINUTE   
+
+190530           IF WS-TIME-MINUTE >= 60
+190530              SUBTRACT 60 FROM WS-TIME-MINUTE 
+190530              ADD 1 TO WS-TIME-HOURS  
+190530              IF WS-TIME-HOURS >= 24  
+190530                 MOVE WS-SYS-DATE          TO DPP02-YYYYMMDD-DATE 
+190530                 MOVE 1                    TO DPP02-NUMBER-DAYS   
+190530                 PERFORM DPP10-ADVANCE-YYYYMMDD-DATE  
+190530                 MOVE DPP02-YYYYMMDD-DATE     TO DPP02-DMS-DATE   
+190530                 PERFORM DPP10-DMS-TO-RDMS-DATETIME   
+190530                 MOVE DPP02-RDMS-DATE TO WS-NEW-OPTION-DATE   
+190530                 MOVE WS-NEW-OPTION-DATE TO   
+190530                                  RSP22-I-NEW-OPTION-DATE 
+190530              END-IF  
+190530           END-IF 
+190530           MOVE WS-TIME-MINUTE TO 
+190530                RSP22-I-NEW-OPTION-TIME(4:2)  
+190530           MOVE WS-TIME-HOURS TO  
+190530                RSP22-I-NEW-OPTION-TIME(1:2)  
+190530         END-IF   
+190530     END-IF.  
+
+           IF WS-ALLOW-FOR-MAIL-IND = 'N'   
+              GO TO 1900-USE-OPTION-SETTING.
+
+           IF TDP01-BTH-MAIL-DAYS NOT < TDP01-BTH-OPTION-DAYS   
+              MOVE TDP01-BTH-MAIL-DAYS   TO WS-OPTION-DAYS  
+              MOVE ZEROES                  TO WS-OPTION-HOURS   
+              MOVE WS-SYS-DATETIME-1       TO WS-BOOK-DATETIME  
+              GO TO 2000-ADUJUST-OPTION-DATE.   
+
+       1900-USE-OPTION-SETTING. 
+           IF WS-ALLOW-FOR-MAIL-IND = 'N' AND   
+              RSP22-I-EXTEND-CODE NOT = 'Y' 
+              GO TO 2000-ADUJUST-OPTION-DATE.   
+
+           IF  RSP22-I-EXTEND-CODE = 'Y'
+             IF RSP22-O-BASE-DATE-CODE (WS-D-IDX) NOT = 'I' 
+               MOVE TDP01-BTH-EXTENSION-DAYS  TO WS-OPTION-DAYS 
+               MOVE TDP01-BTH-EXTENSION-HOURS TO WS-OPTION-HOURS
+             ELSE   
+               MOVE ZEROES                TO WS-OPTION-DAYS 
+                                             WS-OPTION-HOURS
+               MOVE TDP01-OPTION-IMMEDIATE-MINUTES    TO WS-OPTION-MINS 
+             END-IF 
+           ELSE 
+             IF RSP22-O-BASE-DATE-CODE (WS-D-IDX) NOT = 'I' 
+                MOVE TDP01-BTH-OPTION-DAYS TO WS-OPTION-DAYS
+                MOVE TDP01-BTH-OPTION-HOURS     TO WS-OPTION-HOURS  
+             ELSE   
+               MOVE ZEROES                TO WS-OPTION-DAYS 
+                                             WS-OPTION-HOURS
+               MOVE TDP01-OPTION-IMMEDIATE-MINUTES    TO WS-OPTION-MINS 
+             END-IF 
+           END-IF.  
+           MOVE WS-SYS-DATETIME-1         TO WS-BOOK-DATETIME.  
+
+       2000-ADUJUST-OPTION-DATE.
+
+           MOVE WS-SYS-DATE              TO DPP02-SYSTEM-DATE.  
+           MOVE DPP02-SYSTEM-DATE        TO DPP02-YYYYMMDD-DATE.
+
+           PERFORM DPP10-YYYYMMDD-WEEK-DAY. 
+
+           MOVE DPP02-WEEKDAY-NUM        TO WS-TODAYS-SUB.  
+
+           IF RSP22-I-CUSTOMER-CODE NOT = 'C'   
+              GO TO 2000-ADVANCE-DATE.  
+
+           IF WS-ALLOW-FOR-MAIL-IND = 'Y'   
+              MOVE 0                     TO WS-OPTION-DAYS  
+              MOVE 48                    TO WS-OPTION-HOURS 
+              GO TO 2000-ADVANCE-DATE   
+           ELSE 
+              IF (RSP22-I-COURTESY-HOLD-FLG = 0)  AND   
+                                 (RSP22-I-OVR-ONE-HR-RULE NOT = 1)  
+                 MOVE 0                  TO WS-OPTION-DAYS  
+                 MOVE 1                  TO WS-OPTION-HOURS 
+                 GO TO 2000-ADVANCE-DATE
+              END-IF
+           END-IF.  
+
+           IF SSP05-O-CMP-MAX-CH-OPT-HRS > 0
+              MOVE 0 TO WS-OPTION-DAYS  
+              MOVE 1 TO WS-OPTION-HOURS 
+              IF TDP01-BTH-OPTION-DAYS >= 1  OR 
+                 TDP01-BTH-OPTION-HOURS >= 24   
+                 IF ( WS-COURTSEY-OPT-DAYS <= 0  AND
+                      WS-COURTSEY-OPT-HRS  <= 0  AND
+                      WS-COURTSEY-OPT-MIN <= 0) OR  
+                    ( WS-COURTSEY-OPT-DAYS >= 1  OR 
+                      WS-COURTSEY-OPT-HRS >= 24 )   
+                     MOVE 0 TO WS-OPTION-DAYS   
+                     MOVE SSP05-O-CMP-MAX-CH-OPT-HRS TO 
+                                 WS-OPTION-HOURS
+                     MOVE 1 TO RSP22-O-ALLOW-COURTESY-HOLD  
+                 END-IF 
+              END-IF
+           ELSE 
+             IF (WS-COURTSEY-OPT-DAYS > 0  OR   
+                 WS-COURTSEY-OPT-HRS  > 0  OR   
+                 WS-COURTSEY-OPT-MIN > 0)   
+                 MOVE WS-COURTSEY-OPT-DAYS TO WS-OPTION-DAYS
+                 MOVE WS-COURTSEY-OPT-HRS TO WS-OPTION-HOURS
+                 MOVE WS-COURTSEY-OPT-MIN TO WS-OPTION-MINS 
+                 MOVE 1 TO RSP22-O-ALLOW-COURTESY-HOLD  
+             ELSE   
+                IF TDP01-BTH-OPTION-DAYS  > 0 OR
+                   TDP01-BTH-OPTION-HOURS > 0   
+                   MOVE TDP01-BTH-OPTION-DAYS TO WS-OPTION-DAYS 
+                   MOVE TDP01-BTH-OPTION-HOURS TO WS-OPTION-HOURS   
+                   MOVE 1 TO RSP22-O-ALLOW-COURTESY-HOLD
+                ELSE
+                   MOVE 0 TO WS-OPTION-DAYS 
+                   MOVE 1 TO WS-OPTION-HOURS
+                END-IF  
+             END-IF 
+           END-IF.  
+
+       2000-ADVANCE-DATE.   
+
+           MOVE WS-BOOK-DATETIME         TO WS-MISC-DATETIME-1  
+           MOVE RSP22-O-PMT-DATETIME (WS-D-IDX) 
+                                         TO WS-EXT-DATETIME 
+                                            WS-PMT-DATETIME.
+
+           IF WS-OPTION-DAYS = ZERO 
+              GO TO 2000-OPTION-TIME.   
+
+           MOVE '00:00:00'               TO WS-MISC-TIME-1. 
+
+           MOVE WS-OPTION-DAYS           TO DPP02-NUMBER-DAYS.  
+           EXEC SQL 
+                SELECT DATEADD('DAY',:DPP02-NUMBER-DAYS 
+                               ,:WS-MISC-DATETIME-1)
+                  INTO :WS-EXT-DATETIME 
+                  FROM RDMS.RDMS_DUMMY  
+                 WHERE KEY_COL = 1  
+                 FETCH FIRST 1 ROW ONLY 
+           END-EXEC.
+
+           MOVE WS-EXT-DATETIME         TO WS-PMT-DATETIME. 
+
+           GO TO 2500-OPTION-DATE-CALCED.   
+
+       2000-OPTION-TIME.
+           IF RSP22-O-BASE-DATE-CODE (WS-D-IDX) = 'I' AND   
+              WS-OPTION-MINS <= 0   
+              GO TO 2500-OPTION-DATE-CALCED.
+
+           IF WS-OPTION-HOURS = ZERO AND WS-OPTION-MINS <= 0
+              GO TO 2500-OPTION-DATE-CALCED.
+
+           IF WS-OPTION-MINS <= 0   
+              EXEC SQL  
+                   SELECT DATEADD('HOUR',MOD(:WS-OPTION-HOURS,24),  
+                             DATEADD('DAY',INT(:WS-OPTION-HOURS/24) 
+                                  ,:WS-MISC-DATETIME-1))
+                     INTO :WS-EXT-DATETIME  
+                     FROM RDMS.RDMS_DUMMY   
+                    WHERE KEY_COL = 1   
+                    FETCH FIRST 1 ROW ONLY  
+              END-EXEC  
+            ELSE
+               EXEC SQL 
+                   SELECT DATEADD('MINUTE',:WS-OPTION-MINS  
+                                  ,:WS-MISC-DATETIME-1) 
+                     INTO :WS-EXT-DATETIME  
+                     FROM RDMS.RDMS_DUMMY   
+                    WHERE KEY_COL = 1   
+                    FETCH FIRST 1 ROW ONLY  
+              END-EXEC  
+           END-IF.  
+
+           MOVE WS-EXT-DATETIME          TO WS-PMT-DATETIME.
+
+           MOVE 'N'                      TO WS-SET-MORNING-OPTION.  
+           MOVE WS-EXT-TIME (1:2)        TO WS-TEMP-TIME-1(1:2).
+           MOVE WS-EXT-TIME (4:2)        TO WS-TEMP-TIME-1(3:2).
+           IF WS-EXT-DATE = WS-SYS-DATE-1   
+              MOVE WS-SYS-DATE           TO DPP02-YYYYMMDD-DATE 
+              PERFORM DPP10-YYYYMMDD-WEEK-DAY   
+              MOVE DPP02-WEEKDAY-NUM     TO WS-TODAYS-SUB   
+              IF WS-TEMP-TIME-1 > DPP02-END-OFFICE-HOUR (WS-TODAYS-SUB) 
+                 MOVE 1                  TO DPP02-NUMBER-DAYS   
+                 MOVE WS-EXT-DATETIME    TO WS-MISC-DATETIME-1  
+                 EXEC SQL   
+                    SELECT DATEADD('DAY',:DPP02-NUMBER-DAYS 
+                                   ,:WS-MISC-DATETIME-1)
+                      INTO :WS-EXT-DATETIME 
+                      FROM RDMS.RDMS_DUMMY  
+                     WHERE KEY_COL = 1  
+                     FETCH FIRST 1 ROW ONLY 
+                 END-EXEC   
+                 MOVE 'Y'                 TO WS-SET-MORNING-OPTION  
+              END-IF
+           ELSE 
+              IF WS-TODAYS-SUB > 6  
+                 MOVE 1 TO SUB  
+              ELSE  
+                 ADD 1 TO WS-TODAYS-SUB GIVING SUB  
+              END-IF
+              IF WS-TEMP-TIME-1 <   
+                    DPP02-BEGIN-OFFICE-HOUR (SUB)   
+                 MOVE 'Y'                 TO WS-SET-MORNING-OPTION. 
+
+       2000-CHECK-BOOK-TYPE.
+
+           IF WS-SET-MORNING-OPTION = 'N'   
+              GO TO 2500-OPTION-DATE-CALCED.
+
+           IF RSP22-I-AGT-COUNTRY-CODE NOT = 'CA'   
+              GO TO 2000-TIME-STATE-TABLE.  
+
+           SET CAN-NDX TO 1.
+
+           SEARCH MKP01-CAN-PROV-TABLE VARYING CAN-NDX  
+               AT END GO TO 2000-TIME-STATE-TABLE   
+               WHEN MKP01-PROV-CODE (CAN-NDX) = RSP22-I-AGT-STATE-CODE  
+                   MOVE MKP01-CN-TIME-DIFF (CAN-NDX) TO MKP01-TIME-DIFF.
+
+           GO TO 2000-SET-TIME-OPTION-TIME. 
+
+       2000-TIME-STATE-TABLE.   
+           SEARCH ALL MKP01-STATE-TABLE 
+               AT END GO TO 2000-TIME-INVALID-STATE-CODE
+               WHEN MKP01-STATE1 (STATE-NDX) = RSP22-I-AGT-STATE-CODE   
+                 MOVE MKP01-ST-TIME-DIFF (STATE-NDX) TO MKP01-TIME-DIFF.
+
+           GO TO 2000-SET-TIME-OPTION-TIME. 
+
+       2000-TIME-INVALID-STATE-CODE.
+           MOVE ZERO TO MKP01-TIME-DIFF.
+
+       2000-SET-TIME-OPTION-TIME.   
+
+           MOVE '10:00:00'               TO WS-EXT-TIME.
+           MOVE WS-EXT-DATETIME          TO WS-MISC-DATETIME-1. 
+           EXEC SQL 
+                SELECT DATEADD('HOUR',MOD(:MKP01-TIME-DIFF,24), 
+                          DATEADD('DAY',INT(:MKP01-TIME-DIFF/24)
+                               ,:WS-MISC-DATETIME-1))   
+                  INTO :WS-EXT-DATETIME 
+                  FROM RDMS.RDMS_DUMMY  
+                 WHERE KEY_COL = 1  
+                 FETCH FIRST 1 ROW ONLY 
+           END-EXEC.
+
+           MOVE WS-EXT-DATETIME         TO WS-PMT-DATETIME. 
+
+       2500-OPTION-DATE-CALCED. 
+
+           IF WS-ALLOW-FOR-MAIL-IND = 'N'   
+              GO TO 2700-UPDATE-BOOKING.
+
+           IF DPP02-DAY-ABBV (WS-TODAYS-SUB) = 'SAT' OR 'SUN' OR 'FRI'  
+              NEXT SENTENCE 
+           ELSE 
+              GO TO 2700-UPDATE-BOOKING.
+
+           EXEC SQL 
+              SELECT DATEPART ('Weekday',:WS-PMT-DATETIME)  
+                 INTO :DPP02-WEEKDAY-NUM
+              FROM RDMS.RDMS_DUMMY  
+                     WHERE KEY_COL = 1  
+                     FETCH FIRST 1 ROW ONLY 
+           END-EXEC.
+
+
+           IF DPP02-DAY-ABBV (DPP02-WEEKDAY-NUM) = 'FRI'
+              MOVE 4 TO DPP02-NUMBER-DAYS   
+           ELSE 
+              IF DPP02-DAY-ABBV (DPP02-WEEKDAY-NUM) = 'SAT' 
+                 MOVE 3 TO DPP02-NUMBER-DAYS
+              ELSE  
+                 IF DPP02-DAY-ABBV (DPP02-WEEKDAY-NUM) = 'SUN'  
+                    MOVE 2 TO DPP02-NUMBER-DAYS 
+                 ELSE   
+                    IF DPP02-DAY-ABBV (DPP02-WEEKDAY-NUM) = 'MON'   
+                       MOVE 1 TO DPP02-NUMBER-DAYS  
+                    ELSE
+                       GO TO 2700-UPDATE-BOOKING.   
+
+           EXEC SQL 
+                SELECT DATEADD('DAY',:DPP02-NUMBER-DAYS 
+                               ,:WS-PMT-DATETIME)   
+                  INTO :WS-MISC-DATETIME-1  
+                  FROM RDMS.RDMS_DUMMY  
+                 WHERE KEY_COL = 1  
+                 FETCH FIRST 1 ROW ONLY 
+           END-EXEC.
+
+           MOVE WS-MISC-DATETIME-1       TO WS-PMT-DATETIME.
+           MOVE '00:00:00'               TO WS-PMT-TIME.
+
+       2700-UPDATE-BOOKING. 
+
+           IF WS-PMT-DATE NOT < WS-SAIL-DATE
+              MOVE WS-SAIL-DATE          TO WS-PMT-DATE 
+              MOVE '00:00:00'            TO WS-PMT-TIME.
+
+           IF WS-PMT-DATETIME > RSP22-O-PMT-DATETIME(WS-F-IDX)  
+              MOVE WS-PMT-DATETIME       TO RSP22-O-PMT-DATETIME
+                                                        (WS-F-IDX). 
+
+           IF RSP86-O-TIME-ZONE-CODE = 'AET'
+             PERFORM DPP10-INIT-TMZ-VARS THRU   
+                      DPP10-INIT-TMZ-VARS-EXIT  
+              MOVE 'AUD'               TO DPP02-TMZ-FRM-BASE-CURRENCY   
+              MOVE 'USD'               TO DPP02-TMZ-TO-BASE-CURRENCY
+              MOVE WS-PMT-DATETIME     TO DPP02-RDMS-DATETIME   
+              MOVE ZEROES              TO DPP02-RDMS-TIME-HS
+              PERFORM DPP10-RDMS-TO-DMS-DATETIME
+              MOVE DPP02-DMS-DATETIME  TO DPP02-TMZ-INP-DATETIME
+              PERFORM DPP10-CHANGE-TIMEZONE THRU
+                      DPP10-CHANGE-TIMEZONE-EXIT
+              IF DPP02-TMZ-ERROR-NUM > 0
+                 MOVE DPP02-TMZ-ERROR-NUM   
+                                       TO DPP42-HOLD-MSG-INDEX  
+                 MOVE 'DPP10TMZ'       TO DPP42-HOLD-MSG-SOURCE 
+                 GO TO 9200-EDIT-ERROR-MSG  
+              END-IF
+              MOVE DPP02-TMZ-OUT-RDMS-DATETIME (1:19)   
+                                       TO WS-PMT-DATETIME   
+                                          RSP22-O-PMT-DATETIME(WS-D-IDX)
+              PERFORM DPP10-INIT-TMZ-VARS THRU  
+                      DPP10-INIT-TMZ-VARS-EXIT  
+              MOVE 'AUD'               TO DPP02-TMZ-FRM-BASE-CURRENCY   
+              MOVE 'USD'               TO DPP02-TMZ-TO-BASE-CURRENCY
+              MOVE RSP22-O-PMT-DATETIME(WS-F-IDX)   
+                                       TO DPP02-RDMS-DATETIME   
+              MOVE ZEROES              TO DPP02-RDMS-TIME-HS
+              PERFORM DPP10-RDMS-TO-DMS-DATETIME
+              MOVE DPP02-DMS-DATETIME  TO DPP02-TMZ-INP-DATETIME
+              PERFORM DPP10-CHANGE-TIMEZONE THRU
+                      DPP10-CHANGE-TIMEZONE-EXIT
+              IF DPP02-TMZ-ERROR-NUM > 0
+                 MOVE DPP02-TMZ-ERROR-NUM   
+                                       TO DPP42-HOLD-MSG-INDEX  
+                 MOVE 'DPP10TMZ'       TO DPP42-HOLD-MSG-SOURCE 
+                 GO TO 9200-EDIT-ERROR-MSG  
+              END-IF
+              MOVE DPP02-TMZ-OUT-RDMS-DATETIME (1:19)   
+                                       TO RSP22-O-PMT-DATETIME(WS-F-IDX)
+           ELSE 
+              MOVE WS-PMT-DATETIME     TO RSP22-O-PMT-DATETIME(WS-D-IDX)
+           END-IF.  
+
+           IF RSP22-I-FORCED-CH-OPT-FLG NOT = 1 
+              IF RSP22-I-OLD-PAX-CNT = ZERO 
+                 MOVE RSP22-O-PMT-DATETIME (WS-D-IDX)   
+                                        TO WS-PMT-DATETIME  
+                 MOVE WS-PMT-DATE-CC    TO RSP22-O-PMT-DATE-N   
+                                                        (WS-D-IDX)(1:2) 
+                 MOVE WS-PMT-DATE-YY    TO RSP22-O-PMT-DATE-N   
+                                                        (WS-D-IDX)(3:2) 
+                 MOVE WS-PMT-DATE-MM    TO RSP22-O-PMT-DATE-N   
+                                                        (WS-D-IDX)(5:2) 
+                 MOVE WS-PMT-DATE-DD    TO RSP22-O-PMT-DATE-N   
+                                                        (WS-D-IDX)(7:2) 
+                 MOVE WS-PMT-TIME-HH    TO RSP22-O-PMT-TIME-N   
+                                                        (WS-D-IDX)(1:2) 
+                 MOVE WS-PMT-TIME-MN    TO RSP22-O-PMT-TIME-N   
+                                                        (WS-D-IDX)(3:2) 
+                 MOVE WS-PMT-TIME-SS    TO RSP22-O-PMT-TIME-N   
+                                                      (WS-D-IDX)(5:2)   
+                 MOVE RSP22-O-PMT-DATETIME (WS-F-IDX)   
+                                        TO WS-PMT-DATETIME  
+                 MOVE WS-PMT-DATE-CC    TO RSP22-O-PMT-DATE-N   
+                                                        (WS-F-IDX)(1:2) 
+                 MOVE WS-PMT-DATE-YY    TO RSP22-O-PMT-DATE-N   
+                                                        (WS-F-IDX)(3:2) 
+                 MOVE WS-PMT-DATE-MM    TO RSP22-O-PMT-DATE-N   
+                                                        (WS-F-IDX)(5:2) 
+                 MOVE WS-PMT-DATE-DD    TO RSP22-O-PMT-DATE-N   
+                                                        (WS-F-IDX)(7:2) 
+                 MOVE WS-PMT-TIME-HH    TO RSP22-O-PMT-TIME-N   
+                                                        (WS-F-IDX)(1:2) 
+                 MOVE WS-PMT-TIME-MN    TO RSP22-O-PMT-TIME-N   
+                                                        (WS-F-IDX)(3:2) 
+                 MOVE WS-PMT-TIME-SS    TO RSP22-O-PMT-TIME-N   
+                                                      (WS-F-IDX)(5:2)   
+                 GO TO 5200-BUILD-CAT-GTT   
+              ELSE  
+                 CONTINUE   
+           ELSE 
+              IF RSP22-I-OLD-PAX-CNT = ZERO 
+                 IF RSP22-O-PMT-DATETIME(WS-D-IDX) <
+                    RSP22-I-NEW-OPTION-DATETIME 
+                    MOVE RSP22-O-PMT-DATETIME (WS-D-IDX)
+                                        TO WS-PMT-DATETIME  
+                    MOVE WS-PMT-DATE-CC TO RSP22-O-PMT-DATE-N   
+                                                        (WS-D-IDX)(1:2) 
+                    MOVE WS-PMT-DATE-YY TO RSP22-O-PMT-DATE-N   
+                                                        (WS-D-IDX)(3:2) 
+                    MOVE WS-PMT-DATE-MM TO RSP22-O-PMT-DATE-N   
+                                                        (WS-D-IDX)(5:2) 
+                    MOVE WS-PMT-DATE-DD TO RSP22-O-PMT-DATE-N   
+                                                        (WS-D-IDX)(7:2) 
+                    MOVE WS-PMT-TIME-HH TO RSP22-O-PMT-TIME-N   
+                                                        (WS-D-IDX)(1:2) 
+                    MOVE WS-PMT-TIME-MN TO RSP22-O-PMT-TIME-N   
+                                                        (WS-D-IDX)(3:2) 
+                    MOVE WS-PMT-TIME-SS TO RSP22-O-PMT-TIME-N   
+                                                      (WS-D-IDX)(5:2)   
+                    MOVE RSP22-O-PMT-DATETIME (WS-F-IDX)
+                                        TO WS-PMT-DATETIME  
+                    MOVE WS-PMT-DATE-CC TO RSP22-O-PMT-DATE-N   
+                                                        (WS-F-IDX)(1:2) 
+                    MOVE WS-PMT-DATE-YY TO RSP22-O-PMT-DATE-N   
+                                                        (WS-F-IDX)(3:2) 
+                    MOVE WS-PMT-DATE-MM TO RSP22-O-PMT-DATE-N   
+                                                        (WS-F-IDX)(5:2) 
+                    MOVE WS-PMT-DATE-DD TO RSP22-O-PMT-DATE-N   
+                                                        (WS-F-IDX)(7:2) 
+                    MOVE WS-PMT-TIME-HH TO RSP22-O-PMT-TIME-N   
+                                                        (WS-F-IDX)(1:2) 
+                    MOVE WS-PMT-TIME-MN TO RSP22-O-PMT-TIME-N   
+                                                        (WS-F-IDX)(3:2) 
+                    MOVE WS-PMT-TIME-SS TO RSP22-O-PMT-TIME-N   
+                                                   (WS-F-IDX)(5:2)  
+                    GO TO 5200-BUILD-CAT-GTT
+                 ELSE   
+                    MOVE RSP22-I-NEW-OPTION-DATETIME TO 
+                         RSP22-O-PMT-DATETIME (WS-D-IDX)
+                    MOVE RSP22-O-PMT-DATETIME (WS-D-IDX)
+                                        TO WS-PMT-DATETIME  
+                    MOVE WS-PMT-DATE-CC TO RSP22-O-PMT-DATE-N   
+                                                        (WS-D-IDX)(1:2) 
+                    MOVE WS-PMT-DATE-YY TO RSP22-O-PMT-DATE-N   
+                                                        (WS-D-IDX)(3:2) 
+                    MOVE WS-PMT-DATE-MM TO RSP22-O-PMT-DATE-N   
+                                                        (WS-D-IDX)(5:2) 
+                    MOVE WS-PMT-DATE-DD TO RSP22-O-PMT-DATE-N   
+                                                        (WS-D-IDX)(7:2) 
+                    MOVE WS-PMT-TIME-HH TO RSP22-O-PMT-TIME-N   
+                                                        (WS-D-IDX)(1:2) 
+                    MOVE WS-PMT-TIME-MN TO RSP22-O-PMT-TIME-N   
+                                                        (WS-D-IDX)(3:2) 
+                    MOVE WS-PMT-TIME-SS TO RSP22-O-PMT-TIME-N   
+                                                      (WS-D-IDX)(5:2)   
+                    MOVE RSP22-O-PMT-DATETIME (WS-F-IDX)
+                                        TO WS-PMT-DATETIME  
+                    MOVE WS-PMT-DATE-CC TO RSP22-O-PMT-DATE-N   
+                                                        (WS-F-IDX)(1:2) 
+                    MOVE WS-PMT-DATE-YY TO RSP22-O-PMT-DATE-N   
+                                                        (WS-F-IDX)(3:2) 
+                    MOVE WS-PMT-DATE-MM TO RSP22-O-PMT-DATE-N   
+                                                        (WS-F-IDX)(5:2) 
+                    MOVE WS-PMT-DATE-DD TO RSP22-O-PMT-DATE-N   
+                                                        (WS-F-IDX)(7:2) 
+                    MOVE WS-PMT-TIME-HH TO RSP22-O-PMT-TIME-N   
+                                                        (WS-F-IDX)(1:2) 
+                    MOVE WS-PMT-TIME-MN TO RSP22-O-PMT-TIME-N   
+                                                        (WS-F-IDX)(3:2) 
+                    MOVE WS-PMT-TIME-SS TO RSP22-O-PMT-TIME-N   
+                                                   (WS-F-IDX)(5:2)  
+                    GO TO 5200-BUILD-CAT-GTT
+                 END-IF 
+              ELSE  
+                 CONTINUE   
+              END-IF.   
+
+           IF RSP22-I-RATE-CHG-IND = 'N'
+              GO TO 2750-CONTINUE-PROCESS.  
+
+           IF RSP22-I-NEW-OPTION-DATETIME < 
+              RSP22-O-PMT-DATETIME (WS-D-IDX)   
+              MOVE RSP22-I-NEW-OPTION-DATETIME TO   
+                                     RSP22-O-PMT-DATETIME (WS-D-IDX)
+              GO TO 2900-CHECK-FINAL-DATE.  
+
+       2750-CONTINUE-PROCESS.   
+           IF RSP22-I-EXTEND-CODE = 'N' AND WS-ALLOW-FOR-MAIL-IND = 'N' 
+              GO TO 2800-CHECK-TO-UPDATE.   
+
+           IF RSP22-I-NEW-OPTION-DATETIME < 
+              RSP22-O-PMT-DATETIME (WS-D-IDX)   
+              ADD 1                      TO RSP22-O-NUM-OPT-EXT 
+              GO TO 2850-CHECK-OPT-RESTRICTION  
+           ELSE 
+              MOVE RSP22-I-NEW-OPTION-DATETIME TO   
+                                     RSP22-O-PMT-DATETIME (WS-D-IDX)
+           END-IF.  
+
+       2800-CHECK-TO-UPDATE.
+           IF RSP22-I-OLD-OPTION-DATETIME = RSP22-I-NEW-OPTION-DATETIME 
+               AND RSP22-I-FROM-CCR06SSR = ZERO 
+              GO TO 2900-CHECK-FINAL-DATE.  
+
+           IF RSP22-I-NEW-OPTION-DATE > WS-BASE-SAIL-DATE   
+              MOVE 36                    TO DPP42-HOLD-MSG-INDEX
+              GO TO 9200-EDIT-ERROR-MSG 
+           END-IF.  
+
+           IF RSP22-I-NEW-OPTION-DATETIME > 
+              RSP22-O-PMT-DATETIME (WS-D-IDX)   
+              IF RSP22-I-ALLOW-EXTENSION-FLG = 0
+                 MOVE 35 TO DPP42-HOLD-MSG-INDEX
+                 GO TO 9200-EDIT-ERROR-MSG  
+              ELSE  
+                 MOVE 1 TO RSP90-ALLOW-EXTENSION-FLG
+                           RSP90-OVR-OPTION-FLG 
+              END-IF
+           END-IF.  
+
+           MOVE RSP22-I-NEW-OPTION-DATETIME TO WS-EXT-DATETIME. 
+           PERFORM 7100-CONVERT-DATE.   
+           PERFORM 8000-VALIDATE-DATE THRU 8099-EXIT.   
+
+           IF TDP01-SAIL-DATE-YYYYMMDD >= DPP02-SYSTEM-DATE 
+              IF RSP22-I-NEW-OPTION-DATE = WS-BASE-SYS-DATE 
+                 IF RSP22-I-NEW-OPTION-TIME NOT = '00:00:00'
+                    EXEC SQL
+                      SELECT  DATEDIFF('MINUTE',:WS-BASE-SYS-DATETIME,  
+                                       :RSP22-I-NEW-OPTION-DATETIME)
+                        INTO :WS-TIME-DIFF  
+                        FROM  RDMS.RDMS_DUMMY   
+                       WHERE KEY_COL = 1
+                       FETCH FIRST 1 ROW ONLY   
+                    END-EXEC
+                    IF  SQLCODE < 0 
+                        GO TO 9150-RDMS-ERROR   
+                    END-IF  
+                    IF WS-TIME-DIFF < 1 
+                       MOVE 37              TO DPP42-HOLD-MSG-INDEX 
+                       GO TO 9200-EDIT-ERROR-MSG
+                    END-IF  
+                 END-IF 
+              ELSE  
+                 IF RSP22-I-NEW-OPTION-DATE < WS-BASE-SYS-DATE  
+                    MOVE 37                 TO DPP42-HOLD-MSG-INDEX 
+                    GO TO 9200-EDIT-ERROR-MSG   
+                 END-IF 
+              END-IF
+           END-IF.  
+
+           IF FUNCTION NUMVAL(RSP22-I-NEW-OPTION-TIME(1:2)) > 24
+              MOVE 38 TO DPP42-HOLD-MSG-INDEX   
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           IF FUNCTION NUMVAL(RSP22-I-NEW-OPTION-TIME(4:2)) > 59
+              MOVE 39 TO DPP42-HOLD-MSG-INDEX   
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           MOVE RSP22-I-NEW-OPTION-DATETIME TO  
+                                     RSP22-O-PMT-DATETIME (WS-D-IDX).   
+
+           IF RSP22-O-PMT-DATETIME (WS-D-IDX) > 
+                                     RSP22-I-OLD-OPTION-DATETIME
+              ADD 1 TO RSP22-O-NUM-OPT-EXT  
+              GO TO 2850-CHECK-OPT-RESTRICTION  
+           END-IF.  
+
+            MOVE RSP22-I-NEW-OPTION-DATETIME TO 
+                                     RSP22-O-PMT-DATETIME (WS-D-IDX).   
+
+           GO TO 2900-CHECK-FINAL-DATE. 
+
+       2850-CHECK-OPT-RESTRICTION.  
+
+           IF RSP22-I-OLD-PAX-CNT <= 0  
+              OR RSP22-I-BOOK-TYPE NOT = 'I'
+              GO TO 2900-CHECK-FINAL-DATE   
+           END-IF.  
+
+           IF RSP22-I-ADM-OVERRIDE-IND = 0  
+              GO TO 2900-CHECK-FINAL-DATE   
+           END-IF.  
+
+           MOVE SSP05-O-AGENT-OPTION-DAYS   
+                                         TO DPP02-NUMBER-DAYS.  
+           EXEC SQL 
+                SELECT DATEADD('DAY',:DPP02-NUMBER-DAYS 
+                               ,:WS-BASE-SYS-DATETIME)  
+                  INTO :WS-EXT-DATETIME 
+                  FROM RDMS.RDMS_DUMMY  
+                 WHERE KEY_COL = 1  
+                 FETCH FIRST 1 ROW ONLY 
+           END-EXEC.
+
+           IF WS-EXT-DATE > WS-BASE-SAIL-DATE   
+              IF RSP22-I-EXTEND-CODE = 'N'  
+                 IF RSP22-I-OVR-OPT-REST-FLG = 1
+                    MOVE 1               TO RSP90-OVR-OPT-RESTRICT-FLG  
+                    GO TO 2900-CHECK-FINAL-DATE 
+                 ELSE   
+                    MOVE 40              TO DPP42-HOLD-MSG-INDEX
+                    GO TO 9200-EDIT-ERROR-MSG   
+                 END-IF 
+              ELSE  
+                 IF RSP22-O-NUM-OPT-EXT > TDP01-BTH-MAX-EXTENSIONS  
+                    IF RSP22-I-OVR-OPT-REST-FLG = 1 
+                       MOVE 1            TO RSP90-OVR-OPT-RESTRICT-FLG  
+                       GO TO 2900-CHECK-FINAL-DATE  
+                    ELSE
+                       MOVE 40           TO DPP42-HOLD-MSG-INDEX
+                       GO TO 9200-EDIT-ERROR-MSG
+                    END-IF  
+                 ELSE   
+                    GO TO 2900-CHECK-FINAL-DATE 
+                 END-IF 
+              END-IF
+           END-IF.  
+
+           IF RSP22-O-BASE-DATE-CODE (WS-D-IDX) = 'S'   
+              IF RSP22-O-NUM-DAYS (WS-D-IDX) > 0
+                 MOVE  RSP22-O-NUM-DAYS (WS-D-IDX) TO DPP02-NUMBER-DAYS 
+                 EXEC SQL   
+                      SELECT DATEADD('DAY',-1 * :DPP02-NUMBER-DAYS  
+                                     ,:WS-BASE-SAIL-DATE)   
+                        INTO :WS-EXT-DATE   
+                        FROM RDMS.RDMS_DUMMY
+                       WHERE KEY_COL = 1
+                       FETCH FIRST 1 ROW ONLY   
+                 END-EXEC   
+                 MOVE '00:00:00' TO WS-EXT-TIME 
+                 IF WS-EXT-DATE < WS-BASE-SYS-DATE  
+                    EXEC SQL
+                         SELECT DATEADD('MINUTE',   
+                                        :TDP01-OPTION-IMMEDIATE-MINUTES 
+                                        ,:WS-BASE-SYS-DATETIME) 
+                           INTO :WS-EXT-DATE
+                           FROM RDMS.RDMS_DUMMY 
+                          WHERE KEY_COL = 1 
+                          FETCH FIRST 1 ROW ONLY
+                    END-EXEC
+                 END-IF 
+                 MOVE WS-EXT-DATETIME TO WS-AGT-OPT-DATETIME
+              ELSE  
+                 MOVE RSP22-O-NUM-HOURS (WS-D-IDX) TO WS-NUM-HOURS  
+                 EXEC SQL   
+                      SELECT DATEADD('HOUR',-1 * MOD(:WS-NUM-HOURS,24), 
+                               DATEADD('DAY',-1 * INT(:WS-NUM-HOURS/24) 
+                                     ,:WS-BASE-SAIL-DATETIME))  
+                        INTO :WS-EXT-DATETIME   
+                        FROM RDMS.RDMS_DUMMY
+                       WHERE KEY_COL = 1
+                       FETCH FIRST 1 ROW ONLY   
+                 END-EXEC   
+                 IF WS-EXT-DATE < WS-BASE-SYS-DATE  
+                    EXEC SQL
+                         SELECT DATEADD('MINUTE',   
+                                        :TDP01-OPTION-IMMEDIATE-MINUTES 
+                                        ,:WS-BASE-SYS-DATETIME) 
+                           INTO :WS-EXT-DATETIME
+                           FROM RDMS.RDMS_DUMMY 
+                          WHERE KEY_COL = 1 
+                          FETCH FIRST 1 ROW ONLY
+                    END-EXEC
+                 END-IF 
+                 MOVE WS-EXT-DATETIME TO WS-AGT-OPT-DATETIME
+              END-IF
+           ELSE 
+              IF RSP22-O-BASE-DATE-CODE (WS-D-IDX) = 'I'
+                 EXEC SQL   
+                      SELECT DATEADD('MINUTE',  
+                                     :TDP01-OPTION-IMMEDIATE-MINUTES
+                                     ,:WS-BASE-SYS-DATETIME)
+                        INTO :WS-EXT-DATETIME   
+                        FROM RDMS.RDMS_DUMMY
+                       WHERE KEY_COL = 1
+                       FETCH FIRST 1 ROW ONLY   
+                 END-EXEC   
+                 MOVE WS-EXT-DATETIME TO WS-AGT-OPT-DATETIME
+              ELSE  
+                 IF RSP22-O-NUM-DAYS (WS-D-IDX) > 0 
+                    MOVE  RSP22-O-NUM-DAYS (WS-D-IDX)   
+                                                 TO DPP02-NUMBER-DAYS   
+                    EXEC SQL
+                         SELECT DATEADD('DAY',:DPP02-NUMBER-DAYS
+                                        ,:WS-BASE-SYS-DATE) 
+                           INTO :WS-EXT-DATE
+                           FROM RDMS.RDMS_DUMMY 
+                          WHERE KEY_COL = 1 
+                          FETCH FIRST 1 ROW ONLY
+                    END-EXEC
+                    MOVE '00:00:00' TO WS-EXT-TIME  
+                    MOVE WS-EXT-DATETIME TO WS-AGT-OPT-DATETIME 
+                 ELSE   
+                    MOVE RSP22-O-NUM-HOURS (WS-D-IDX) TO WS-NUM-HOURS   
+                    EXEC SQL
+                         SELECT DATEADD('HOUR',MOD(:WS-NUM-HOURS,24),   
+                                  DATEADD('DAY',INT(:WS-NUM-HOURS/24)   
+                                        ,:WS-BASE-SYS-DATETIME))
+                           INTO :WS-EXT-DATETIME
+                           FROM RDMS.RDMS_DUMMY 
+                          WHERE KEY_COL = 1 
+                          FETCH FIRST 1 ROW ONLY
+                    END-EXEC
+                    MOVE WS-EXT-DATETIME TO WS-AGT-OPT-DATETIME 
+                 END-IF 
+
+           EXEC SQL 
+               SELECT DATEADD('HOUR',MOD(:SSP05-O-AGENT-OPTION-HOURS,24)
+                        ,DATEADD('DAY', 
+                                  INT(:SSP05-O-AGENT-OPTION-HOURS/24)   
+                        ,:WS-BASE-SYS-DATE))
+                 INTO :WS-EXT-DATE  
+                 FROM RDMS.RDMS_DUMMY   
+                WHERE KEY_COL = 1   
+                FETCH FIRST 1 ROW ONLY  
+           END-EXEC 
+
+           MOVE WS-EXT-DATETIME      TO WS-REST-OPT-DATETIME.   
+
+           IF WS-REST-OPT-DATETIME > WS-AGT-OPT-DATETIME
+              IF RSP22-I-EXTEND-CODE = 'N' AND  
+                       WS-CHG-OPTION = 'Y'  
+                 IF RSP22-I-OVR-OPT-REST-FLG = 1
+                    MOVE 1            TO RSP90-OVR-OPT-RESTRICT-FLG 
+                    GO TO 2900-CHECK-FINAL-DATE 
+                 ELSE   
+                    MOVE 44           TO DPP42-HOLD-MSG-INDEX   
+                    GO TO 9200-EDIT-ERROR-MSG   
+                 END-IF 
+              ELSE  
+                 IF RSP22-O-NUM-OPT-EXT > TDP01-BTH-MAX-EXTENSIONS  
+                    IF RSP22-I-OVR-OPT-REST-FLG = 1 
+                       MOVE 1            TO RSP90-OVR-OPT-RESTRICT-FLG  
+                       GO TO 2900-CHECK-FINAL-DATE  
+                    ELSE
+                       MOVE 44              TO DPP42-HOLD-MSG-INDEX 
+                       GO TO 9200-EDIT-ERROR-MSG
+                    END-IF  
+                 ELSE   
+                    GO TO 2900-CHECK-FINAL-DATE 
+                 END-IF 
+              END-IF
+           END-IF.  
+
+       2900-CHECK-FINAL-DATE.   
+           IF (RSP22-I-NEW-FINAL-DATETIME < 
+               RSP22-O-PMT-DATETIME (WS-D-IDX)) AND 
+              (RSP22-I-OLD-OPTION-DATETIME = RSP22-O-PMT-DATETIME   
+                                                     (WS-D-IDX)) AND
+              (RSP22-I-EXTEND-CODE = 'N')   
+              MOVE 41                    TO DPP42-HOLD-MSG-INDEX
+              GO TO 9200-EDIT-ERROR-MSG 
+           END-IF.  
+
+           IF RSP22-O-PMT-DATETIME (WS-D-IDX) > 
+              RSP22-I-NEW-FINAL-DATETIME
+              MOVE RSP22-O-PMT-DATETIME (WS-D-IDX)   TO 
+                   RSP22-O-PMT-DATETIME (WS-F-IDX)  
+              MOVE RSP22-O-PMT-DATETIME (WS-D-IDX)  
+                                        TO WS-PMT-DATETIME  
+              MOVE WS-PMT-DATE-CC       TO RSP22-O-PMT-DATE-N   
+                                                  (WS-D-IDX)(1:2)   
+              MOVE WS-PMT-DATE-YY       TO RSP22-O-PMT-DATE-N   
+                                                  (WS-D-IDX)(3:2)   
+              MOVE WS-PMT-DATE-MM       TO RSP22-O-PMT-DATE-N   
+                                                  (WS-D-IDX)(5:2)   
+              MOVE WS-PMT-DATE-DD       TO RSP22-O-PMT-DATE-N   
+                                                  (WS-D-IDX)(7:2)   
+              MOVE WS-PMT-TIME-HH       TO RSP22-O-PMT-TIME-N   
+                                                  (WS-D-IDX)(1:2)   
+              MOVE WS-PMT-TIME-MN       TO RSP22-O-PMT-TIME-N   
+                                                  (WS-D-IDX)(3:2)   
+              MOVE WS-PMT-TIME-SS       TO RSP22-O-PMT-TIME-N   
+                                                (WS-D-IDX)(5:2) 
+              MOVE RSP22-O-PMT-DATETIME (WS-F-IDX)  
+                                        TO WS-PMT-DATETIME  
+              MOVE WS-PMT-DATE-CC       TO RSP22-O-PMT-DATE-N   
+                                                        (WS-F-IDX)(1:2) 
+              MOVE WS-PMT-DATE-YY       TO RSP22-O-PMT-DATE-N   
+                                                        (WS-F-IDX)(3:2) 
+              MOVE WS-PMT-DATE-MM       TO RSP22-O-PMT-DATE-N   
+                                                        (WS-F-IDX)(5:2) 
+              MOVE WS-PMT-DATE-DD       TO RSP22-O-PMT-DATE-N   
+                                                        (WS-F-IDX)(7:2) 
+              MOVE WS-PMT-TIME-HH       TO RSP22-O-PMT-TIME-N   
+                                                        (WS-F-IDX)(1:2) 
+              MOVE WS-PMT-TIME-MN       TO RSP22-O-PMT-TIME-N   
+                                                        (WS-F-IDX)(3:2) 
+              MOVE WS-PMT-TIME-SS       TO RSP22-O-PMT-TIME-N   
+                                                   (WS-F-IDX)(5:2)  
+              GO TO 5200-BUILD-CAT-GTT. 
+
+           IF RSP22-I-OLD-FINAL-DATETIME = RSP22-I-NEW-FINAL-DATETIME   
+              IF RSP22-I-RATE-CHG-IND = 'N' 
+                 MOVE RSP22-I-NEW-FINAL-DATETIME TO 
+                               RSP22-O-PMT-DATETIME (WS-F-IDX)  
+              END-IF
+              MOVE RSP22-O-PMT-DATETIME (WS-D-IDX)  
+                                        TO WS-PMT-DATETIME  
+              MOVE WS-PMT-DATE-CC       TO RSP22-O-PMT-DATE-N   
+                                                  (WS-D-IDX)(1:2)   
+              MOVE WS-PMT-DATE-YY       TO RSP22-O-PMT-DATE-N   
+                                                  (WS-D-IDX)(3:2)   
+              MOVE WS-PMT-DATE-MM       TO RSP22-O-PMT-DATE-N   
+                                                  (WS-D-IDX)(5:2)   
+              MOVE WS-PMT-DATE-DD       TO RSP22-O-PMT-DATE-N   
+                                                  (WS-D-IDX)(7:2)   
+              MOVE WS-PMT-TIME-HH       TO RSP22-O-PMT-TIME-N   
+                                                  (WS-D-IDX)(1:2)   
+              MOVE WS-PMT-TIME-MN       TO RSP22-O-PMT-TIME-N   
+                                                  (WS-D-IDX)(3:2)   
+              MOVE WS-PMT-TIME-SS       TO RSP22-O-PMT-TIME-N   
+                                                (WS-D-IDX)(5:2) 
+              MOVE RSP22-O-PMT-DATETIME (WS-F-IDX)  
+                                        TO WS-PMT-DATETIME  
+              MOVE WS-PMT-DATE-CC       TO RSP22-O-PMT-DATE-N   
+                                                        (WS-F-IDX)(1:2) 
+              MOVE WS-PMT-DATE-YY       TO RSP22-O-PMT-DATE-N   
+                                                        (WS-F-IDX)(3:2) 
+              MOVE WS-PMT-DATE-MM       TO RSP22-O-PMT-DATE-N   
+                                                        (WS-F-IDX)(5:2) 
+              MOVE WS-PMT-DATE-DD       TO RSP22-O-PMT-DATE-N   
+                                                        (WS-F-IDX)(7:2) 
+              MOVE WS-PMT-TIME-HH       TO RSP22-O-PMT-TIME-N   
+                                                        (WS-F-IDX)(1:2) 
+              MOVE WS-PMT-TIME-MN       TO RSP22-O-PMT-TIME-N   
+                                                        (WS-F-IDX)(3:2) 
+              MOVE WS-PMT-TIME-SS       TO RSP22-O-PMT-TIME-N   
+                                                   (WS-F-IDX)(5:2)  
+              GO TO 5200-BUILD-CAT-GTT. 
+
+           IF RSP22-I-NEW-FINAL-DATE > WS-BASE-SAIL-DATE
+              MOVE 42                    TO DPP42-HOLD-MSG-INDEX
+              GO TO 9200-EDIT-ERROR-MSG 
+           END-IF.  
+
+           IF RSP22-I-NEW-FINAL-DATETIME >  
+               RSP22-O-PMT-DATETIME (WS-F-IDX)  
+              IF RSP22-I-ALLOW-EXTENSION-FLG = 0
+                 MOVE 43 TO DPP42-HOLD-MSG-INDEX
+                 GO TO 9200-EDIT-ERROR-MSG  
+              ELSE  
+                 MOVE 1 TO RSP90-ALLOW-EXTENSION-FLG
+                           RSP90-OVR-OPTION-FLG 
+              END-IF
+           END-IF.  
+
+           MOVE RSP22-I-NEW-FINAL-DATETIME TO   
+                               RSP22-O-PMT-DATETIME (WS-F-IDX). 
+           MOVE RSP22-I-NEW-FINAL-DATETIME TO WS-EXT-DATETIME.  
+           PERFORM 7100-CONVERT-DATE.   
+           PERFORM 8000-VALIDATE-DATE THRU 8099-EXIT.   
+
+           IF TDP01-SAIL-DATE-YYYYMMDD >= DPP02-SYSTEM-DATE 
+              IF RSP22-I-NEW-FINAL-DATE = WS-BASE-SYS-DATE  
+                 IF RSP22-I-NEW-FINAL-TIME NOT = '00:00:00' 
+                    EXEC SQL
+                       SELECT  DATEDIFF('MINUTE',:WS-BASE-SYS-DATETIME, 
+                                        :RSP22-I-NEW-FINAL-DATETIME)
+                         INTO :WS-TIME-DIFF 
+                         FROM  RDMS.RDMS_DUMMY  
+                        WHERE KEY_COL = 1   
+                        FETCH FIRST 1 ROW ONLY  
+                    END-EXEC
+                    IF  SQLCODE < 0 
+                        GO TO 9150-RDMS-ERROR   
+                    END-IF  
+                    IF WS-TIME-DIFF < 1 
+                       MOVE 37              TO DPP42-HOLD-MSG-INDEX 
+                       GO TO 9200-EDIT-ERROR-MSG
+                    END-IF  
+                 END-IF 
+              ELSE  
+                 IF RSP22-I-NEW-FINAL-DATE < WS-BASE-SYS-DATE   
+                    MOVE 37                 TO DPP42-HOLD-MSG-INDEX 
+                    GO TO 9200-EDIT-ERROR-MSG   
+                 END-IF 
+              END-IF
+           END-IF.  
+
+
+           IF FUNCTION NUMVAL(RSP22-I-NEW-FINAL-TIME (1:2)) > 24
+              MOVE 38 TO DPP42-HOLD-MSG-INDEX   
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           IF FUNCTION NUMVAL(RSP22-I-NEW-FINAL-TIME (4:2)) > 59
+              MOVE 39 TO DPP42-HOLD-MSG-INDEX   
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           IF FUNCTION NUMVAL(RSP22-I-NEW-FINAL-TIME (7:2)) > 59
+              MOVE 39 TO DPP42-HOLD-MSG-INDEX   
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           MOVE RSP22-O-PMT-DATETIME (WS-D-IDX) 
+                                        TO WS-PMT-DATETIME  
+           MOVE WS-PMT-DATE-CC          TO RSP22-O-PMT-DATE-N   
+                                                  (WS-D-IDX)(1:2)   
+           MOVE WS-PMT-DATE-YY          TO RSP22-O-PMT-DATE-N   
+                                                  (WS-D-IDX)(3:2)   
+           MOVE WS-PMT-DATE-MM          TO RSP22-O-PMT-DATE-N   
+                                                  (WS-D-IDX)(5:2)   
+           MOVE WS-PMT-DATE-DD          TO RSP22-O-PMT-DATE-N   
+                                                  (WS-D-IDX)(7:2)   
+           MOVE WS-PMT-TIME-HH          TO RSP22-O-PMT-TIME-N   
+                                                  (WS-D-IDX)(1:2)   
+           MOVE WS-PMT-TIME-MN          TO RSP22-O-PMT-TIME-N   
+                                                  (WS-D-IDX)(3:2)   
+           MOVE WS-PMT-TIME-SS          TO RSP22-O-PMT-TIME-N   
+                                                (WS-D-IDX)(5:2) 
+           MOVE RSP22-O-PMT-DATETIME (WS-F-IDX) 
+                                        TO WS-PMT-DATETIME  
+           MOVE WS-PMT-DATE-CC          TO RSP22-O-PMT-DATE-N   
+                                                        (WS-F-IDX)(1:2) 
+           MOVE WS-PMT-DATE-YY          TO RSP22-O-PMT-DATE-N   
+                                                        (WS-F-IDX)(3:2) 
+           MOVE WS-PMT-DATE-MM          TO RSP22-O-PMT-DATE-N   
+                                                        (WS-F-IDX)(5:2) 
+           MOVE WS-PMT-DATE-DD          TO RSP22-O-PMT-DATE-N   
+                                                        (WS-F-IDX)(7:2) 
+           MOVE WS-PMT-TIME-HH          TO RSP22-O-PMT-TIME-N   
+                                                        (WS-F-IDX)(1:2) 
+           MOVE WS-PMT-TIME-MN          TO RSP22-O-PMT-TIME-N   
+                                                        (WS-F-IDX)(3:2) 
+           MOVE WS-PMT-TIME-SS          TO RSP22-O-PMT-TIME-N   
+                                                   (WS-F-IDX)(5:2). 
+
+       5200-BUILD-CAT-GTT.  
+
+           IF (TDP01-SCAT-SAIL-ID NOT = RSP22-I-SAIL-ID) OR 
+               TDP01-SAIL-CAT-CNT <= 1  
+               MOVE RSP22-I-SHIP-CODE   TO TDP01-I-SHIP-CODE
+               MOVE RSP22-I-SAIL-ID     TO TDP01-I-SAIL-ID  
+               PERFORM TDP01-RET-ALL-SCAT THRU  
+                       TDP01-RET-ALL-SCAT-EXIT  
+               IF TDP01-SCAT-SQLERR 
+                  GO TO 9150-RDMS-ERROR 
+               END-IF   
+           END-IF.  
+
+           IF RSP22-I-CATEGORY-CNT > 0  
+              GO TO 5600-BUILD-CAT-GTT-FROM-INPUT   
+           END-IF.  
+
+           MOVE ZEROES                  TO WS-SCSUB.
+           MOVE ZEROES                  TO WS-POS-CRU-AMT(1)
+                                           WS-POS-CRU-AMT(2)
+                                           WS-POS-CRU-AMT(3)
+                                           WS-POS-CRU-AMT(4)
+                                           WS-POS-CRU-AMT(5)
+CALFEE*                                    WS-POS-NCF-AMT(1)
+CALFEE*                                    WS-POS-NCF-AMT(2)
+CALFEE*                                    WS-POS-NCF-AMT(3)
+CALFEE*                                    WS-POS-NCF-AMT(4)
+CALFEE*                                    WS-POS-NCF-AMT(5).   
+CALFEE                                     WS-POS-OTHER-FEE-AMT(1)  
+CALFEE                                     WS-POS-OTHER-FEE-AMT(2)  
+CALFEE                                     WS-POS-OTHER-FEE-AMT(3)  
+CALFEE                                     WS-POS-OTHER-FEE-AMT(4)  
+CALFEE                                     WS-POS-OTHER-FEE-AMT(5). 
+
+       5210-NEXT-SAIL-CAT.  
+
+           ADD 1 TO WS-SCSUB.   
+
+           IF WS-SCSUB > TDP01-SAIL-CAT-CNT 
+              GO TO 5700-ITM-PAYMENT-TERM-CAT-CUR   
+           END-IF.  
+
+           IF  RSP22-I-CATEGORY-CODE > SPACES   
+               IF  RSP22-I-CATEGORY-CODE NOT =  
+                                   TDP01-CATEGORY-CODE (WS-SCSUB)   
+                   GO TO 5210-NEXT-SAIL-CAT 
+               END-IF   
+           END-IF.  
+
+           MOVE TDP01-CATEGORY-CODE (WS-SCSUB)  
+                                        TO WS-CATEGORY-CODE.
+           MOVE TDP01-META-CODE (WS-SCSUB)  
+                                        TO WS-META-CODE.
+
+           MOVE RSP22-I-FARE-AMT (1)    TO WS-POS-CRU-AMT (1).  
+           MOVE RSP22-I-FARE-AMT (2)    TO WS-POS-CRU-AMT (2).  
+           MOVE RSP22-I-FARE-AMT (3)    TO WS-POS-CRU-AMT (3).  
+           MOVE RSP22-I-FARE-AMT (4)    TO WS-POS-CRU-AMT (4).  
+           MOVE RSP22-I-FARE-AMT (5)    TO WS-POS-CRU-AMT (5).  
+
+CALFEE*    MOVE ZEROES                  TO WS-POS-NCF-AMT (1)   
+CALFEE*                                    WS-POS-NCF-AMT (2)   
+CALFEE*                                    WS-POS-NCF-AMT (3)   
+CALFEE*                                    WS-POS-NCF-AMT (4)   
+CALFEE*                                    WS-POS-NCF-AMT (5).  
+
+
+           IF RSP22-I-OFFER-ID <= ZEROES  OR
+              RSP22-I-PAYMENT-ITEM-CODE  > SPACES OR
+              RSP22-I-OVR-FARE-AMT = 1  
+             CONTINUE   
+           ELSE 
+CALFEE*      EXEC SQL   
+CALFEE*         SELECT  SINGLES_PCT,
+CALFEE*                 DECODE(:RSP22-I-OCCUPANCY,1,SNG_CRUISE_AMT, 
+CALFEE*                        POS_1_CRUISE_AMT),   
+CALFEE*                 POS_2_CRUISE_AMT,   
+CALFEE*                 POS_3_CRUISE_AMT,   
+CALFEE*                 POS_4_CRUISE_AMT,   
+CALFEE*                 POS_5_CRUISE_AMT,   
+CALFEE*                 DECODE(:RSP22-I-OCCUPANCY,1,
+CALFEE*                        SNG_NON_COMM_AMT,POS_1_NON_COMM_AMT),
+CALFEE*                 POS_2_NON_COMM_AMT, 
+CALFEE*                 POS_3_NON_COMM_AMT, 
+CALFEE*                 POS_4_NON_COMM_AMT, 
+CALFEE*                 POS_5_NON_COMM_AMT  
+CALFEE*           INTO :WS-SINGLES-PCT, 
+CALFEE*                :WS-POS-CRU-AMT(1),  
+CALFEE*                :WS-POS-CRU-AMT(2),  
+CALFEE*                :WS-POS-CRU-AMT(3),  
+CALFEE*                :WS-POS-CRU-AMT(4),  
+CALFEE*                :WS-POS-CRU-AMT(5),  
+CALFEE*                :WS-POS-NCF-AMT(1),  
+CALFEE*                :WS-POS-NCF-AMT(2),  
+CALFEE*                :WS-POS-NCF-AMT(3),  
+CALFEE*                :WS-POS-NCF-AMT(4),  
+CALFEE*                :WS-POS-NCF-AMT(5)   
+CALFEE*           FROM  SAIL_OFFER_PRICE
+CALFEE*          WHERE SHIP_CODE = :RSP22-I-SHIP-CODE   
+CALFEE*            AND SAIL_ID = :RSP22-I-SAIL-ID   
+CALFEE*            AND ACTIVE_IND = 'Y' 
+CALFEE*            AND OFFER_CODE = :WS-OFFER-CODE  
+CALFEE*            AND OFFER_ID = :RSP22-I-OFFER-ID 
+CALFEE*            AND CPA_CATEGORY_CODE = :WS-CATEGORY-CODE
+CALFEE*          FETCH  FIRST 1 ROW ONLY
+CALFEE*      END-EXEC   
+CALFEE       EXEC SQL   
+CALFEE         SELECT SOFF.SINGLES_PCT  
+CALFEE               ,SOFF.POS_1_CRUISE_AMT + SOFF.POS_1_NON_COMM_AMT   
+CALFEE               ,SOFF.POS_2_CRUISE_AMT + SOFF.POS_2_NON_COMM_AMT   
+CALFEE               ,SOFF.POS_3_CRUISE_AMT + SOFF.POS_3_NON_COMM_AMT   
+CALFEE               ,SOFF.POS_4_CRUISE_AMT + SOFF.POS_4_NON_COMM_AMT   
+CALFEE               ,SOFF.POS_5_CRUISE_AMT + SOFF.POS_5_NON_COMM_AMT   
+PRCCMB*              ,((SFC.FULL_OTHER_AMT) *   
+PRCCMB*                (1 - SOFF.POS_1_FEE_ADJUST_PCT)) 
+PRCCMB*              ,((SFC.FULL_OTHER_AMT)*
+PRCCMB*                (1 - SOFF.POS_2_FEE_ADJUST_PCT)) 
+PRCCMB*              ,((SFC.FULL_OTHER_AMT) *   
+PRCCMB*                (1 - SOFF.POS_3_FEE_ADJUST_PCT)) 
+PRCCMB*              ,((SFC.FULL_OTHER_AMT) *   
+PRCCMB*                (1 - SOFF.POS_4_FEE_ADJUST_PCT)) 
+PRCCMB*              ,((SFC.FULL_OTHER_AMT) *   
+PRCCMB*                (1 - SOFF.POS_5_FEE_ADJUST_PCT)) 
+303734*              ,DECODE(OFF.FULL_CHARGE_OTH_FEE_IND,'Y',   
+303734*               (DECODE(:RSP22-I-OCCUPANCY,1, 
+303734*                  (SFC.FULL_OTHER_AMT *  
+303734*                   (1 - SOFF.SNG_FEE_ADJUST_PCT) *   
+303734*                                    SOFF.SINGLES_PCT),   
+303734*                  (SFC.FULL_OTHER_AMT *  
+303734*                   (1 - SOFF.POS_1_FEE_ADJUST_PCT)))),0) 
+303734               ,OFF.FULL_CHARGE_OTH_FEE_IND   
+303734               ,SFC.FULL_OTHER_AMT
+303734               ,SOFF.SNG_FEE_ADJUST_PCT   
+303734               ,SOFF.POS_1_FEE_ADJUST_PCT 
+PRCCMB               ,DECODE(OFF.FULL_CHARGE_OTH_FEE_IND,'Y',   
+PRCCMB                (SFC.FULL_OTHER_AMT * 
+PRCCMB                 (1 - SOFF.POS_2_FEE_ADJUST_PCT)),0)  
+PRCCMB               ,DECODE(OFF.EXTRA_CHARGE_OTH_FEE_IND,'Y',  
+PRCCMB                (SFC.EXTRA_OTHER_AMT *
+PRCCMB                 (1 - SOFF.POS_3_FEE_ADJUST_PCT)),0)  
+PRCCMB               ,DECODE(OFF.EXTRA_CHARGE_OTH_FEE_IND,'Y',  
+PRCCMB                (SFC.EXTRA_OTHER_AMT *
+PRCCMB                 (1 - SOFF.POS_4_FEE_ADJUST_PCT)),0)  
+PRCCMB               ,DECODE(OFF.EXTRA_CHARGE_OTH_FEE_IND,'Y',  
+PRCCMB                (SFC.EXTRA_OTHER_AMT *
+PRCCMB                 (1 - SOFF.POS_5_FEE_ADJUST_PCT)),0)  
+CALFEE            INTO :WS-SINGLES-PCT, 
+CALFEE                 :WS-POS-CRU-AMT(1),  
+CALFEE                 :WS-POS-CRU-AMT(2),  
+CALFEE                 :WS-POS-CRU-AMT(3),  
+CALFEE                 :WS-POS-CRU-AMT(4),  
+CALFEE                 :WS-POS-CRU-AMT(5),  
+303734*                :WS-POS-OTHER-FEE-AMT (1),   
+303734                 :WS-FULL-CHARGE-OTH-FEE-IND, 
+303734                 :WS-FULL-OTHER-AMT,  
+303734                 :WS-SNG-FEE-ADJUST-PCT,  
+303734                 :WS-POS-1-FEE-ADJUST-PCT,
+CALFEE                 :WS-POS-OTHER-FEE-AMT (2),   
+CALFEE                 :WS-POS-OTHER-FEE-AMT (3),   
+CALFEE                 :WS-POS-OTHER-FEE-AMT (4),   
+CALFEE                 :WS-POS-OTHER-FEE-AMT (5)
+CALFEE         FROM SAIL_OFFER_PRICE SOFF   
+CALFEE             ,OFFER_ID_STATIC_INFO OFF
+CALFEE                                   ,SAIL_FEE_COMBO SFC
+CALFEE         WHERE  SOFF.SHIP_CODE = :RSP22-I-SHIP-CODE   
+CALFEE           AND  SOFF.SAIL_ID  = :RSP22-I-SAIL-ID  
+CALFEE           AND  SOFF.ACTIVE_IND = 'Y' 
+CALFEE           AND  SOFF.OFFER_CODE        = :WS-OFFER-CODE   
+CALFEE           AND  SOFF.OFFER_ID          = :RSP22-I-OFFER-ID
+CALFEE           AND  SOFF.CPA_CATEGORY_CODE = :WS-CATEGORY-CODE
+CALFEE           AND SFC.SHIP_CODE = SOFF.SHIP_CODE 
+CALFEE           AND SFC.SAIL_ID = SOFF.SAIL_ID 
+CALFEE           AND SFC.EFFECTIVE_DATETIME IN  
+CALFEE           (SELECT MAX(EFFECTIVE_DATETIME)
+CALFEE             FROM SAIL_FEE_COMBO SFC1 
+CALFEE             WHERE SFC1.SHIP_CODE = SOFF.SHIP_CODE
+CALFEE               AND SFC1.SAIL_ID = SOFF.SAIL_ID)   
+PRCCMB           AND OFF.OFFER_ID = SOFF.OFFER_ID   
+CALFEE          FETCH FIRST 1 ROW ONLY  
+CALFEE       END-EXEC   
+             IF  SQLCODE < 0
+                 GO TO 7800-FETCH-SAIL-CAT-ERROR
+             ELSE   
+                 IF  SQLCODE = 100  
+                     MOVE ZEROES        TO WS-POS-CRU-AMT(1)
+                                           WS-POS-CRU-AMT(2)
+                                           WS-POS-CRU-AMT(3)
+                                           WS-POS-CRU-AMT(4)
+                                           WS-POS-CRU-AMT(5)
+CALFEE*                                    WS-POS-NCF-AMT(1)
+CALFEE*                                    WS-POS-NCF-AMT(2)
+CALFEE*                                    WS-POS-NCF-AMT(3)
+CALFEE*                                    WS-POS-NCF-AMT(4)
+CALFEE*                                    WS-POS-NCF-AMT(5)
+CALFEE                                     WS-POS-OTHER-FEE-AMT(1)  
+CALFEE                                     WS-POS-OTHER-FEE-AMT(2)  
+CALFEE                                     WS-POS-OTHER-FEE-AMT(3)  
+CALFEE                                     WS-POS-OTHER-FEE-AMT(4)  
+CALFEE                                     WS-POS-OTHER-FEE-AMT(5)  
+                 END-IF 
+             END-IF 
+           END-IF.  
+
+303734     IF WS-FULL-CHARGE-OTH-FEE-IND = 'Y'  
+303734         IF RSP22-I-OCCUPANCY = 1 
+303734             COMPUTE  WS-POS-OTHER-FEE-AMT (1) =  
+303734                    (WS-FULL-OTHER-AMT * WS-SINGLES-PCT)  
+303734                  * (1 - WS-SNG-FEE-ADJUST-PCT)   
+303734         ELSE 
+303734             COMPUTE WS-POS-OTHER-FEE-AMT (1) =   
+303734                    WS-FULL-OTHER-AMT 
+303734                  * (1 - WS-POS-1-FEE-ADJUST-PCT) 
+303734         END-IF   
+303734     ELSE 
+303734         MOVE 0 TO WS-POS-OTHER-FEE-AMT (1)   
+303734     END-IF.  
+
+CALFEE     IF RSP22-I-CURRENCY-CODE NOT = WS-PRICE-CURRENCY-CODE
+CALFEE        COMPUTE WS-POS-CRU-AMT(1) ROUNDED = WS-POS-CRU-AMT(1) *   
+CALFEE                                          RSP22-I-PRC-XCHG-RATE   
+CALFEE        COMPUTE WS-POS-CRU-AMT(2) ROUNDED = WS-POS-CRU-AMT(2) *   
+CALFEE                                          RSP22-I-PRC-XCHG-RATE   
+CALFEE        COMPUTE WS-POS-CRU-AMT(3) ROUNDED = WS-POS-CRU-AMT(3) *   
+CALFEE                                          RSP22-I-PRC-XCHG-RATE   
+CALFEE        COMPUTE WS-POS-CRU-AMT(4) ROUNDED = WS-POS-CRU-AMT(4) *   
+CALFEE                                          RSP22-I-PRC-XCHG-RATE   
+CALFEE        COMPUTE WS-POS-CRU-AMT(5) ROUNDED = WS-POS-CRU-AMT(5) *   
+CALFEE                                          RSP22-I-PRC-XCHG-RATE   
+CALFEE     END-IF.  
+
+CALFEE     IF RSP22-I-CURRENCY-CODE NOT = WS-PRICE-CURRENCY-CODE OR 
+CALFEE        RSP22-I-CURRENCY-CODE NOT = TDP01-BASE-CURRENCY-CODE  
+CALFEE        COMPUTE WS-POS-OTHER-FEE-AMT (1) ROUNDED =
+CALFEE                WS-POS-OTHER-FEE-AMT (1) * RSP22-I-PRC-XCHG-RATE  
+CALFEE        COMPUTE WS-POS-OTHER-FEE-AMT (2) ROUNDED =
+CALFEE                WS-POS-OTHER-FEE-AMT (2) * RSP22-I-PRC-XCHG-RATE  
+CALFEE        COMPUTE WS-POS-OTHER-FEE-AMT (3) ROUNDED =
+CALFEE                WS-POS-OTHER-FEE-AMT (3) * RSP22-I-PRC-XCHG-RATE  
+CALFEE        COMPUTE WS-POS-OTHER-FEE-AMT (4) ROUNDED =
+CALFEE                WS-POS-OTHER-FEE-AMT (4) * RSP22-I-PRC-XCHG-RATE  
+CALFEE        COMPUTE WS-POS-OTHER-FEE-AMT (5) ROUNDED =
+CALFEE                WS-POS-OTHER-FEE-AMT (5) * RSP22-I-PRC-XCHG-RATE  
+CALFEE     END-IF.  
+
+       5400-INSERT-CAT-GTT. 
+
+           MOVE 0                       TO WS-TOT-FARE-AMT. 
+
+           PERFORM VARYING WS-OCC-IDX FROM 1 BY 1   
+               UNTIL WS-OCC-IDX > RSP22-I-OCCUPANCY 
+               ADD WS-POS-CRU-AMT (WS-OCC-IDX)  
+                                        TO WS-TOT-FARE-AMT  
+CALFEE*        ADD WS-POS-NCF-AMT (WS-OCC-IDX)  
+CALFEE         ADD WS-POS-OTHER-FEE-AMT (WS-OCC-IDX)
+                                        TO WS-TOT-FARE-AMT  
+           END-PERFORM. 
+
+           ADD 1                        TO WS-C-IDX 
+                                           RSP22-O-CATEGORY-CNT.
+           MOVE LOW-VALUES              TO RSP22-O-CATEGORY-LIST
+                                                     (WS-C-IDX).
+           PERFORM VARYING WS-CSUB FROM 1 BY 1  
+                     UNTIL WS-CSUB > WS-PMT-SAIL-CAT-CNT
+                        OR WS-PMT-CATEGORY-CODE (WS-CSUB) = 
+                                                    WS-CATEGORY-CODE
+              CONTINUE  
+           END-PERFORM. 
+
+           IF WS-CSUB > WS-PMT-SAIL-CAT-CNT 
+              ADD 1                     TO WS-PMT-SAIL-CAT-CNT  
+              MOVE WS-PMT-SAIL-CAT-CNT  TO WS-CSUB  
+           END-IF.  
+
+           MOVE WS-CATEGORY-CODE        TO WS-PMT-CATEGORY-CODE 
+                                                              (WS-CSUB).
+           MOVE WS-META-CODE            TO WS-PMT-META-CODE   (WS-CSUB).
+           MOVE WS-C-IDX                TO WS-PMT-CAT-IDX     (WS-CSUB).
+           MOVE WS-TOT-FARE-AMT         TO WS-PMT-TOTAL-FARE-AMT
+                                                              (WS-CSUB).
+
+           MOVE WS-CATEGORY-CODE        TO RSP22-O-CATEGORY-CODE
+                                                 (RSP22-O-CATEGORY-CNT).
+CALFEE     MOVE WS-SINGLES-PCT          TO WS-CAT-SINGLES-PCT(WS-C-IDX).
+           COMPUTE WS-CAT-FARE-AMT (WS-C-IDX 1) =   
+CALFEE*                               WS-POS-NCF-AMT (1) +  
+CALFEE                                WS-POS-OTHER-FEE-AMT (1) +
+                                      WS-POS-CRU-AMT (1).   
+           COMPUTE WS-CAT-FARE-AMT (WS-C-IDX 2) =   
+CALFEE*                               WS-POS-NCF-AMT (2) +  
+CALFEE                                WS-POS-OTHER-FEE-AMT (2) +
+                                      WS-POS-CRU-AMT (2).   
+           COMPUTE WS-CAT-FARE-AMT (WS-C-IDX 3) =   
+CALFEE*                               WS-POS-NCF-AMT (3) +  
+CALFEE                                WS-POS-OTHER-FEE-AMT (3) +
+                                      WS-POS-CRU-AMT (3).   
+           COMPUTE WS-CAT-FARE-AMT (WS-C-IDX 4) =   
+CALFEE*                               WS-POS-NCF-AMT (4) +  
+CALFEE                                WS-POS-OTHER-FEE-AMT (4) +
+                                      WS-POS-CRU-AMT (4).   
+           COMPUTE WS-CAT-FARE-AMT (WS-C-IDX 5) =   
+CALFEE*                               WS-POS-NCF-AMT (5) +  
+CALFEE                                WS-POS-OTHER-FEE-AMT (5) +
+                                      WS-POS-CRU-AMT (5).   
+
+           GO TO 5210-NEXT-SAIL-CAT.
+
+       5600-BUILD-CAT-GTT-FROM-INPUT.   
+
+           MOVE ZEROES TO WS-C-IDX  
+                          RSP22-O-CATEGORY-CNT  
+           PERFORM VARYING WS-CAT-SUB FROM 1 BY 1   
+                     UNTIL WS-CAT-SUB > RSP22-I-CATEGORY-CNT
+              ADD 1                     TO WS-C-IDX 
+                                           RSP22-O-CATEGORY-CNT 
+              MOVE LOW-VALUES           TO RSP22-O-CATEGORY-LIST
+                                                        (WS-C-IDX)  
+CALFEE        IF RSP22-I-CAT-SINGLES-PCT (WS-CAT-SUB) > 0   
+CALFEE           MOVE RSP22-I-CAT-SINGLES-PCT (WS-CAT-SUB)  
+CALFEE                                  TO WS-CAT-SINGLES-PCT (WS-C-IDX)
+CALFEE        ELSE  
+CALFEE           MOVE WS-SINGLES-PCT    TO WS-CAT-SINGLES-PCT (WS-C-IDX)
+CALFEE        END-IF
+              MOVE 0                    TO WS-TOT-FARE-AMT  
+              PERFORM VARYING WS-OCC-IDX FROM 1 BY 1
+                  UNTIL WS-OCC-IDX > RSP22-I-OCCUPANCY  
+                  ADD RSP22-I-TOTAL-FARE-AMT (WS-CAT-SUB WS-OCC-IDX)
+                                        TO WS-TOT-FARE-AMT  
+                  MOVE RSP22-I-TOTAL-FARE-AMT (WS-CAT-SUB WS-OCC-IDX)   
+                                        TO WS-CAT-FARE-AMT  
+                                                  (WS-C-IDX WS-OCC-IDX) 
+              END-PERFORM   
+
+              PERFORM VARYING WS-CSUB FROM 1 BY 1   
+                        UNTIL WS-CSUB > WS-PMT-SAIL-CAT-CNT 
+                           OR WS-PMT-CATEGORY-CODE (WS-CSUB) =  
+                                      RSP22-I-CPA-CAT-CODE (WS-CAT-SUB) 
+                 CONTINUE   
+              END-PERFORM   
+              IF WS-CSUB > WS-PMT-SAIL-CAT-CNT  
+                 ADD 1                  TO WS-PMT-SAIL-CAT-CNT  
+                 MOVE WS-PMT-SAIL-CAT-CNT TO WS-CSUB
+              END-IF
+              MOVE RSP22-I-CPA-CAT-CODE (WS-CAT-SUB)
+                                        TO WS-PMT-CATEGORY-CODE 
+                                                              (WS-CSUB) 
+              MOVE RSP22-I-META-CODE (WS-CAT-SUB)   
+                                        TO WS-PMT-META-CODE   (WS-CSUB) 
+              MOVE WS-C-IDX             TO WS-PMT-CAT-IDX     (WS-CSUB) 
+              MOVE WS-TOT-FARE-AMT      TO WS-PMT-TOTAL-FARE-AMT
+                                                              (WS-CSUB) 
+              MOVE RSP22-I-CPA-CAT-CODE (WS-CAT-SUB)
+                                        TO RSP22-O-CATEGORY-CODE
+                                                 (RSP22-O-CATEGORY-CNT) 
+           END-PERFORM. 
+
+       5700-ITM-PAYMENT-TERM-CAT-CUR.   
+
+           IF RSP22-I-OFFER-ID > ZEROES 
+               MOVE 'N' TO WS-OFFER-PMT-ADJ-EXIST-IND   
+               EXEC SQL 
+                    SELECT  'Y' 
+                      INTO :WS-OFFER-PMT-ADJ-EXIST-IND  
+                      FROM  SAIL_OFFER_PMT_ADJUST   
+                     WHERE (SHIP_CODE = :RSP22-I-SHIP-CODE) 
+                       AND (SAIL_ID = :RSP22-I-SAIL-ID) 
+                       AND (OFFER_ID = :RSP22-I-OFFER-ID)   
+                     FETCH FIRST 1 ROW ONLY 
+               END-EXEC 
+               IF SQLCODE < 0   
+                  GO TO 9150-RDMS-ERROR 
+               ELSE 
+                  IF SQLCODE = 100  
+                     MOVE 'N' TO WS-OFFER-PMT-ADJ-EXIST-IND 
+                  END-IF
+               END-IF   
+           END-IF.  
+
+       5750-INIT-ITEM-CAT-DATA. 
+
+           MOVE 'N'                   TO WS-FIRST-ITEM-RUN-IND. 
+           MOVE ZEROES                TO WS-RSP22-PMT-ITM-CAT-IDX   
+                                         WS-SAIL-PMT-ITM-CAT-IDX.   
+
+           PERFORM VARYING WS-ISUB FROM 1 BY 1  
+                    UNTIL WS-ISUB > WS-ITM-PMT-CNT  
+                        OR (WS-ITM-PMT-ITEM-TYPE (WS-ISUB) =
+                                                  RSP22-O-ITEM-TYPE AND 
+                            WS-ITM-PMT-ITEM-CODE (WS-ISUB) =
+                                                  RSP22-O-ITEM-CODE)
+              CONTINUE  
+           END-PERFORM. 
+
+           IF WS-ISUB NOT > WS-ITM-PMT-CNT  
+              MOVE WS-ISUB TO WS-RSP22-PMT-ITM-CAT-IDX  
+           END-IF.  
+
+           PERFORM VARYING WS-ISUB FROM 1 BY 1  
+                    UNTIL WS-ISUB > WS-ITM-PMT-CNT  
+                        OR (WS-ITM-PMT-ITEM-TYPE (WS-ISUB) =
+                                              WS-SM-ITEM-TYPE AND   
+                            WS-ITM-PMT-ITEM-CODE (WS-ISUB) =
+                                              WS-SM-ITEM-CODE)  
+              CONTINUE  
+           END-PERFORM. 
+
+           IF WS-ISUB NOT > WS-ITM-PMT-CNT  
+              MOVE WS-ISUB TO WS-SAIL-PMT-ITM-CAT-IDX   
+           END-IF.  
+
+           IF WS-SAIL-PMT-ITM-CAT-IDX NOT  > 0 AND  
+              WS-RSP22-PMT-ITM-CAT-IDX NOT > 0  
+              MOVE ZEROES             TO WS-ITM-PMT-CNT 
+              GO TO 5750-CHECK-ITEM-CODE
+           END-IF.  
+
+           IF WS-SAIL-PMT-ITM-CAT-IDX  > 0 AND  
+              WS-RSP22-PMT-ITM-CAT-IDX > 0  
+              GO TO 5750-CHECK-TERM-TABLE   
+           END-IF.  
+
+           IF (WS-SAIL-PMT-ITM-CAT-IDX > 0  AND 
+                                       WS-SAIL-PMT-ITM-CAT-IDX = 2) OR  
+              (WS-RSP22-PMT-ITM-CAT-IDX > 0 AND 
+                                       WS-RSP22-PMT-ITM-CAT-IDX = 2)
+              MOVE WS-ITM-PMT-TBL (2) TO WS-ITM-PMT-TBL(1)  
+           END-IF.  
+
+           MOVE 1                     TO WS-ITM-PMT-CNT.
+
+       5750-CHECK-ITEM-CODE.
+           IF WS-FIRST-ITEM-RUN-IND = 'N'   
+              MOVE RSP22-O-ITEM-TYPE  TO WS-PMT-ITEM-TYPE   
+              MOVE RSP22-O-ITEM-CODE  TO WS-PMT-ITEM-CODE   
+           ELSE 
+              MOVE WS-SM-ITEM-TYPE    TO WS-PMT-ITEM-TYPE   
+              MOVE WS-SM-ITEM-CODE    TO WS-PMT-ITEM-CODE   
+           END-IF.  
+
+           IF WS-PMT-ITEM-TYPE <= ' ' OR
+              WS-PMT-ITEM-CODE <= ' '   
+              GO TO 5750-CHECK-RUN-IND  
+           END-IF.  
+
+           PERFORM VARYING WS-ISUB FROM 1 BY 1  
+                     UNTIL WS-ISUB > WS-ITM-PMT-CNT 
+                        OR (WS-ITM-PMT-ITEM-TYPE (WS-ISUB) =
+                                                  WS-PMT-ITEM-TYPE AND  
+                            WS-ITM-PMT-ITEM-CODE (WS-ISUB) =
+                                                  WS-PMT-ITEM-CODE) 
+              CONTINUE  
+           END-PERFORM  
+
+           IF WS-ISUB NOT > WS-ITM-PMT-CNT  
+              GO TO 5750-CHECK-RUN-IND  
+           END-IF.  
+
+           ADD 1                 TO WS-ITM-PMT-CNT  
+
+           IF WS-ITM-PMT-CNT > 2
+              MOVE 45            TO DPP42-HOLD-MSG-INDEX
+              GO TO 9200-EDIT-ERROR-MSG 
+           END-IF.  
+
+           MOVE WS-ITM-PMT-CNT   TO WS-ISUB.
+           MOVE WS-PMT-ITEM-TYPE TO WS-ITM-PMT-ITEM-TYPE (WS-ISUB). 
+           MOVE WS-PMT-ITEM-CODE TO WS-ITM-PMT-ITEM-CODE (WS-ISUB). 
+           MOVE ZEROES           TO WS-ITM-PMT-TERM-CNT  (WS-ISUB). 
+
+           EXEC SQL 
+              DECLARE ITM_PMT_CAT CURSOR FOR RETENTION  
+                SELECT TERM_CODE
+                      ,CATEGORY_CODE
+                      ,META_CODE
+                      ,AMOUNT   
+                  FROM ITM_PAYMENT_TERM_CAT 
+                 WHERE ITEM_TYPE     = :WS-PMT-ITEM-TYPE
+                   AND ITEM_CODE     = :WS-PMT-ITEM-CODE
+           END-EXEC.
+
+           EXEC SQL 
+              OPEN ITM_PMT_CAT  
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR 
+           END-IF.  
+
+       5750-GET-NEXT-ITEM-CAT.  
+
+           EXEC SQL 
+              FETCH NEXT ITM_PMT_CAT
+                    INTO :WS-GET-ITM-PMT-TERM-CODE  
+                        ,:WS-GET-ITM-PMT-CAT-CODE   
+                        ,:WS-GET-ITM-PMT-META-CODE  
+                        ,:WS-GET-ITM-PMT-CAT-AMT
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR 
+           ELSE 
+              IF SQLCODE = 100  
+                 GO TO 5750-CLOSE-ITEM-CAT-CURSOR   
+              END-IF
+           END-IF.  
+
+           PERFORM VARYING WS-ITSUB FROM 1 BY 1 
+                     UNTIL WS-ITSUB > WS-ITM-PMT-TERM-CNT (WS-ISUB) 
+                        OR WS-GET-ITM-PMT-TERM-CODE =   
+                                               WS-ITM-PMT-TERM-CODE 
+                                                     (WS-ISUB WS-ITSUB) 
+              CONTINUE  
+           END-PERFORM. 
+
+           IF WS-ITSUB > WS-ITM-PMT-TERM-CNT (WS-ISUB)  
+              ADD 1                    TO WS-ITM-PMT-TERM-CNT (WS-ISUB) 
+              MOVE WS-ITM-PMT-TERM-CNT (WS-ISUB)
+                                       TO WS-ITSUB  
+              MOVE WS-GET-ITM-PMT-TERM-CODE 
+                                       TO WS-ITM-PMT-TERM-CODE  
+                                                     (WS-ISUB WS-ITSUB) 
+              MOVE ZEROES              TO WS-ITM-PMT-TRM-CAT-CNT
+                                                     (WS-ISUB WS-ITSUB) 
+           END-IF.  
+
+           PERFORM VARYING WS-ICSUB FROM 1 BY 1 
+                     UNTIL WS-ICSUB > WS-ITM-PMT-TRM-CAT-CNT
+                                                     (WS-ISUB WS-ITSUB) 
+                        OR (WS-GET-ITM-PMT-META-CODE =  
+                                     WS-ITM-PMT-META-CODE   
+                                        (WS-ISUB WS-ITSUB WS-ICSUB) AND 
+                            WS-GET-ITM-PMT-CAT-CODE =   
+                                     WS-ITM-PMT-CAT-CODE
+                                        (WS-ISUB WS-ITSUB WS-ICSUB))
+              CONTINUE  
+           END-PERFORM. 
+
+           IF WS-ICSUB > WS-ITM-PMT-TRM-CAT-CNT (WS-ISUB WS-ITSUB)  
+              ADD 1                    TO WS-ITM-PMT-TRM-CAT-CNT
+                                                     (WS-ISUB WS-ITSUB) 
+              MOVE WS-ITM-PMT-TRM-CAT-CNT (WS-ISUB WS-ITSUB)
+                                       TO WS-ICSUB  
+              MOVE WS-GET-ITM-PMT-META-CODE 
+                                       TO WS-ITM-PMT-META-CODE  
+                                            (WS-ISUB WS-ITSUB WS-ICSUB) 
+              MOVE WS-GET-ITM-PMT-CAT-CODE  
+                                       TO WS-ITM-PMT-CAT-CODE   
+                                            (WS-ISUB WS-ITSUB WS-ICSUB) 
+           END-IF.  
+
+           MOVE WS-GET-ITM-PMT-CAT-AMT TO WS-ITM-PMT-CAT-AMT
+                                            (WS-ISUB WS-ITSUB WS-ICSUB).
+
+           GO TO 5750-GET-NEXT-ITEM-CAT.
+
+       5750-CLOSE-ITEM-CAT-CURSOR.  
+           EXEC SQL 
+              CLOSE ITM_PMT_CAT 
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR 
+           END-IF.  
+
+       5750-CHECK-RUN-IND.  
+
+           IF WS-FIRST-ITEM-RUN-IND = 'Y'   
+              GO TO 5750-CHECK-TERM-TABLE   
+            END-IF. 
+
+           MOVE 'Y'   TO WS-FIRST-ITEM-RUN-IND. 
+
+           GO TO 5750-CHECK-ITEM-CODE.  
+
+       5750-CHECK-TERM-TABLE.   
+           MOVE ZEROES TO WS-TSUB.  
+
+       5750-TERM-TABLE. 
+           ADD 1 TO WS-TSUB.
+
+           IF WS-TSUB > WS-PMT-TERM-CNT 
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+           MOVE ZEROES TO WS-CSUB.  
+
+       5800-NEXT-PAYMENT-CAT.   
+
+           ADD 1 TO WS-CSUB.
+
+           IF WS-CSUB > WS-PMT-SAIL-CAT-CNT 
+              GO TO 5750-TERM-TABLE 
+           END-IF.  
+
+           MOVE WS-PMT-CATEGORY-CODE (WS-CSUB)  TO WS-CATEGORY-CODE.
+           MOVE WS-PMT-CAT-IDX (WS-CSUB)        TO WS-C-IDX.
+           MOVE WS-PMT-TOTAL-FARE-AMT (WS-CSUB) TO WS-TOT-FARE-AMT. 
+           MOVE WS-PMT-TERM-IDX (WS-TSUB)       TO WS-T-IDX.
+           MOVE WS-PMT-USE-STRICT-IND (WS-TSUB) TO WS-USE-STRICT-IND.   
+           MOVE ZEROES                          TO WS-CAT-PMT-AMT   
+                                                   WS-SAIL-CAT-PMT-AMT. 
+
+       5800-GET-CAT-PMT-AMT.
+
+           PERFORM VARYING WS-ISUB FROM 1 BY 1  
+                    UNTIL WS-ISUB > WS-ITM-PMT-CNT  
+                        OR (WS-ITM-PMT-ITEM-TYPE (WS-ISUB) =
+                                                  RSP22-O-ITEM-TYPE AND 
+                            WS-ITM-PMT-ITEM-CODE (WS-ISUB) =
+                                                  RSP22-O-ITEM-CODE)
+              CONTINUE  
+           END-PERFORM. 
+
+           IF WS-ISUB > WS-ITM-PMT-CNT  
+              GO TO 5800-GET-SAIL-CAT-PMT-AMT   
+           END-IF.  
+
+           PERFORM VARYING WS-ITSUB FROM 1 BY 1 
+                     UNTIL WS-ITSUB > WS-ITM-PMT-TERM-CNT (WS-ISUB) 
+                        OR WS-PMT-TERM-CODE (WS-TSUB) = 
+                                                WS-ITM-PMT-TERM-CODE
+                                                     (WS-ISUB WS-ITSUB) 
+              CONTINUE  
+           END-PERFORM. 
+
+           IF WS-ITSUB > WS-ITM-PMT-TERM-CNT (WS-ISUB)  
+              GO TO 5800-NEXT-PAYMENT-CAT   
+           END-IF.  
+
+           PERFORM VARYING WS-ICSUB FROM 1 BY 1 
+                     UNTIL WS-ICSUB > WS-ITM-PMT-TRM-CAT-CNT
+                                                      (WS-ISUB WS-ITSUB)
+                        OR (WS-PMT-META-CODE (WS-CSUB) =
+                                     WS-ITM-PMT-META-CODE   
+                                        (WS-ISUB WS-ITSUB WS-ICSUB) AND 
+                            WS-PMT-CATEGORY-CODE (WS-CSUB) =
+                                     WS-ITM-PMT-CAT-CODE
+                                        (WS-ISUB WS-ITSUB WS-ICSUB))
+              CONTINUE  
+           END-PERFORM. 
+
+           IF WS-ICSUB > WS-ITM-PMT-TRM-CAT-CNT (WS-ISUB WS-ITSUB)  
+              PERFORM VARYING WS-ICSUB FROM 1 BY 1  
+                        UNTIL WS-ICSUB > WS-ITM-PMT-TRM-CAT-CNT 
+                                                     (WS-ISUB WS-ITSUB) 
+                           OR (WS-PMT-META-CODE (WS-CSUB) = 
+                                    WS-ITM-PMT-META-CODE
+                                        (WS-ISUB WS-ITSUB WS-ICSUB) AND 
+                               WS-ITM-PMT-CAT-CODE  
+                                    (WS-ISUB WS-ITSUB WS-ICSUB) = '~~~')
+                 CONTINUE   
+              END-PERFORM   
+              IF WS-ICSUB > WS-ITM-PMT-TRM-CAT-CNT (WS-ISUB WS-ITSUB)   
+                 PERFORM VARYING WS-ICSUB FROM 1 BY 1   
+                           UNTIL WS-ICSUB > WS-ITM-PMT-TRM-CAT-CNT  
+                                                     (WS-ISUB WS-ITSUB) 
+                              OR (WS-ITM-PMT-META-CODE  
+                                 (WS-ISUB WS-ITSUB WS-ICSUB) = '~~' AND 
+                                  WS-ITM-PMT-CAT-CODE   
+                                    (WS-ISUB WS-ITSUB WS-ICSUB) = '~~~')
+                    CONTINUE
+                 END-PERFORM
+                 IF WS-ICSUB > WS-ITM-PMT-TRM-CAT-CNT (WS-ISUB WS-ITSUB)
+                    GO TO 5800-NEXT-PAYMENT-CAT 
+                 END-IF 
+              END-IF
+           END-IF.  
+
+           MOVE WS-ITM-PMT-CAT-AMT (WS-ISUB WS-ITSUB WS-ICSUB)  
+                                TO WS-CAT-PMT-AMT.  
+
+       5800-GET-SAIL-CAT-PMT-AMT.   
+
+           IF WS-USE-STRICT-IND = 'Y' OR 'E'
+              IF RSP22-O-ITEM-TYPE = WS-PMT-SAIL-ITEM-TYPE (WS-TSUB) AND
+                 RSP22-O-ITEM-CODE = WS-PMT-SAIL-ITEM-CODE (WS-TSUB)
+                 MOVE WS-CAT-PMT-AMT TO WS-SAIL-CAT-PMT-AMT 
+                 GO TO 5800-CHECK-CAT-CODE  
+              END-IF
+           ELSE 
+              GO TO 5800-CHECK-CAT-CODE 
+           END-IF.  
+
+           PERFORM VARYING WS-ISUB FROM 1 BY 1  
+                    UNTIL WS-ISUB > WS-ITM-PMT-CNT  
+                        OR (WS-ITM-PMT-ITEM-TYPE (WS-ISUB) =
+                                              WS-SM-ITEM-TYPE AND   
+                            WS-ITM-PMT-ITEM-CODE (WS-ISUB) =
+                                              WS-SM-ITEM-CODE)  
+              CONTINUE  
+           END-PERFORM. 
+
+           IF WS-ISUB > WS-ITM-PMT-CNT  
+              GO TO 5800-CHECK-CAT-CODE 
+           END-IF.  
+
+           PERFORM VARYING WS-ITSUB FROM 1 BY 1 
+                     UNTIL WS-ITSUB > WS-ITM-PMT-TERM-CNT (WS-ISUB) 
+                        OR WS-PMT-TERM-CODE (WS-TSUB) = 
+                                                WS-ITM-PMT-TERM-CODE
+                                                     (WS-ISUB WS-ITSUB) 
+              CONTINUE  
+           END-PERFORM. 
+
+           IF WS-ITSUB > WS-ITM-PMT-TERM-CNT (WS-ISUB)  
+              GO TO 5800-NEXT-PAYMENT-CAT   
+           END-IF.  
+
+           PERFORM VARYING WS-ICSUB FROM 1 BY 1 
+                     UNTIL WS-ICSUB > WS-ITM-PMT-TRM-CAT-CNT
+                                                      (WS-ISUB WS-ITSUB)
+                        OR (WS-PMT-META-CODE (WS-CSUB) =
+                                     WS-ITM-PMT-META-CODE   
+                                        (WS-ISUB WS-ITSUB WS-ICSUB) AND 
+                            WS-PMT-CATEGORY-CODE (WS-CSUB) =
+                                     WS-ITM-PMT-CAT-CODE
+                                        (WS-ISUB WS-ITSUB WS-ICSUB))
+              CONTINUE  
+           END-PERFORM. 
+
+           IF WS-ICSUB > WS-ITM-PMT-TRM-CAT-CNT (WS-ISUB WS-ITSUB)  
+              PERFORM VARYING WS-ICSUB FROM 1 BY 1  
+                        UNTIL WS-ICSUB > WS-ITM-PMT-TRM-CAT-CNT 
+                                                     (WS-ISUB WS-ITSUB) 
+                           OR (WS-PMT-META-CODE (WS-CSUB) = 
+                                    WS-ITM-PMT-META-CODE
+                                        (WS-ISUB WS-ITSUB WS-ICSUB) AND 
+                               WS-ITM-PMT-CAT-CODE  
+                                    (WS-ISUB WS-ITSUB WS-ICSUB) = '~~~')
+                 CONTINUE   
+              END-PERFORM   
+              IF WS-ICSUB > WS-ITM-PMT-TRM-CAT-CNT (WS-ISUB WS-ITSUB)   
+                 PERFORM VARYING WS-ICSUB FROM 1 BY 1   
+                           UNTIL WS-ICSUB > WS-ITM-PMT-TRM-CAT-CNT  
+                                                     (WS-ISUB WS-ITSUB) 
+                              OR (WS-ITM-PMT-META-CODE  
+                                 (WS-ISUB WS-ITSUB WS-ICSUB) = '~~' AND 
+                                  WS-ITM-PMT-CAT-CODE   
+                                    (WS-ISUB WS-ITSUB WS-ICSUB) = '~~~')
+                    CONTINUE
+                 END-PERFORM
+                 IF WS-ICSUB > WS-ITM-PMT-TRM-CAT-CNT (WS-ISUB WS-ITSUB)
+                    GO TO 5800-NEXT-PAYMENT-CAT 
+                 END-IF 
+              END-IF
+           END-IF.  
+
+           MOVE WS-ITM-PMT-CAT-AMT (WS-ISUB WS-ITSUB WS-ICSUB)  
+                                TO WS-SAIL-CAT-PMT-AMT. 
+
+       5800-CHECK-CAT-CODE. 
+
+           IF  WS-CATEGORY-CODE = RSP22-O-CATEGORY-CODE (WS-C-IDX)  
+               CONTINUE 
+           ELSE 
+               GO TO 5800-NEXT-PAYMENT-CAT  
+           END-IF.  
+
+189399*    Strictest will be applicable only for date time not for  
+189399*    the payment amount. It will always be followed from the item 
+189399*    on the offer 
+189399*    IF WS-USE-STRICT-IND = 'Y'   
+189399*       MOVE WS-SAIL-CAT-PMT-AMT TO WS-CAT-PMT-AMT
+189399*    ELSE 
+189399*       IF WS-USE-STRICT-IND = 'E'
+189399*          IF WS-SAIL-CAT-PMT-AMT > 0 AND 
+189399*             WS-SAIL-CAT-PMT-AMT < WS-CAT-PMT-AMT
+189399*             MOVE  WS-SAIL-CAT-PMT-AMT TO WS-CAT-PMT-AMT 
+189399*          END-IF 
+189399*       END-IF
+189399*    END-IF.  
+
+           IF RSP22-O-AMT-PCT-CODE (WS-T-IDX) = 'P' 
+              COMPUTE WS-NONADJ-PMT-AMT = WS-CAT-PMT-AMT
+                                        * WS-TOT-FARE-AMT   
+              PERFORM VARYING WS-SUB FROM 1 BY 1
+                 UNTIL WS-SUB > RSP22-I-OCCUPANCY   
+                 COMPUTE WS-CAT-DEP-AMT (WS-C-IDX WS-SUB) = 
+                                            WS-CAT-PMT-AMT *
+                                    WS-CAT-FARE-AMT (WS-C-IDX WS-SUB)   
+              END-PERFORM   
+           ELSE 
+              IF  RSP22-O-CURRENCY-CODE NOT = '~~~' AND 
+                  (RSP22-O-CURRENCY-CODE NOT = RSP22-I-CURRENCY-CODE)   
+                  IF ( RSP22-I-CURRENCY-CODE NOT = 'NZD' OR 
+PRCCMB*              WS-BASE-CURRENCY-CODE NOT = 'AUD' )
+PRCCMB               TDP01-BASE-CURRENCY-CODE NOT = 'AUD' ) 
+                     COMPUTE WS-CAT-PMT-AMT ROUNDED = WS-CAT-PMT-AMT
+                                              * RSP22-I-PRC-XCHG-RATE   
+                  END-IF
+              END-IF
+              MOVE ZEROES TO WS-NONADJ-PMT-AMT  
+              MOVE WS-CAT-PMT-AMT       TO WS-CAT-PMT-AMT-EFF   
+              IF RSP22-I-OCCUPANCY = 1  
+CALFEE*          COMPUTE WS-CAT-PMT-AMT-EFF = WS-CAT-PMT-AMT-EFF
+CALFEE*                                     * WS-SINGLES-PCT
+CALFEE           COMPUTE WS-CAT-PMT-AMT-EFF ROUNDED =   
+CALFEE                                    WS-CAT-PMT-AMT-EFF
+CALFEE                                  * WS-CAT-SINGLES-PCT (WS-C-IDX) 
+              END-IF
+              PERFORM VARYING WS-SUB FROM 1 BY 1
+                 UNTIL WS-SUB > RSP22-I-OCCUPANCY   
+                 IF WS-CAT-PMT-AMT-EFF < WS-CAT-FARE-AMT
+                                                     (WS-C-IDX WS-SUB)  
+                    COMPUTE WS-NONADJ-PMT-AMT = WS-CAT-PMT-AMT-EFF +
+                                                WS-NONADJ-PMT-AMT   
+                    MOVE WS-CAT-PMT-AMT-EFF TO  
+                                  WS-CAT-DEP-AMT (WS-C-IDX WS-SUB)  
+                 ELSE   
+                    COMPUTE WS-NONADJ-PMT-AMT = WS-NONADJ-PMT-AMT + 
+                                     WS-CAT-FARE-AMT (WS-C-IDX WS-SUB)  
+                    MOVE WS-CAT-FARE-AMT (WS-C-IDX WS-SUB) TO   
+                            WS-CAT-DEP-AMT (WS-C-IDX WS-SUB)
+                 END-IF 
+              END-PERFORM   
+           END-IF.  
+
+           MOVE WS-CAT-PMT-AMT          TO RSP22-O-CAT-PMT-AMT  
+                                           (WS-C-IDX WS-T-IDX). 
+
+           IF  RSP22-I-OFFER-ID <= ZEROES   
+               MOVE RSP22-O-CAT-PMT-AMT (WS-C-IDX WS-T-IDX) TO  
+                    RSP22-O-CAT-EFF-PMT-AMT (WS-C-IDX WS-T-IDX) 
+               GO TO 5900-OFFER-PMT-ADJUST-CURSOR   
+           END-IF.  
+
+           MOVE WS-NONADJ-PMT-AMT       TO WS-EFF-PMT-AMT.  
+
+           IF  WS-TOT-FARE-AMT < WS-EFF-PMT-AMT 
+               MOVE WS-TOT-FARE-AMT     TO WS-EFF-PMT-AMT   
+           END-IF.  
+           IF  WS-EFF-PMT-AMT < 0   
+               MOVE 0                   TO WS-EFF-PMT-AMT   
+           END-IF.  
+
+           MOVE WS-EFF-PMT-AMT          TO RSP22-O-CAT-EFF-PMT-AMT  
+                                               (WS-C-IDX WS-T-IDX). 
+
+           MOVE RSP22-O-AMT-PCT-CODE (WS-T-IDX) 
+                                        TO RSP22-O-CAT-PEN-AMT-PCT  
+                                               (WS-C-IDX WS-T-IDX). 
+
+           IF RSP22-O-CAT-PEN-AMT-PCT (WS-C-IDX WS-T-IDX) = 'P' 
+              MOVE RSP22-O-CAT-PMT-AMT (WS-C-IDX WS-T-IDX)  
+                                        TO RSP22-O-CAT-EFF-PEN-AMT  
+                                               (WS-C-IDX WS-T-IDX)  
+           ELSE 
+              MOVE WS-CAT-DEP-AMT (WS-C-IDX 1)  
+                                        TO RSP22-O-CAT-EFF-PEN-AMT  
+                                               (WS-C-IDX WS-T-IDX)  
+           END-IF.  
+
+       5900-OFFER-PMT-ADJUST-CURSOR.
+           MOVE WS-CAT-PMT-AMT          TO WS-BEST-DISC-AMT.
+
+           IF RSP22-I-BOOK-NUM > SPACES AND RSP22-I-RT-OVR-OFFER-FLG = 0
+              EXEC SQL  
+                 SELECT IFNULL(PMT_DISCOUNT_AMT_PCT_CODE,' '),  
+                        IFNULL(PMT_DISCOUNT_AMT,0.0)
+                 INTO   :WS-CAT-ADJ-AMT-PCT,
+                        :WS-CAT-ADJ-AMT 
+                 FROM CABIN_OFFER   
+                 WHERE SHIP_CODE = :RSP22-I-SHIP-CODE AND   
+                       BOOK_NUM = :RSP22-I-BOOK-NUM AND 
+                       PMT_DISCOUNT_TERM_CODE = :RSP22-O-TERM-CODE  
+                                                (WS-T-IDX)  
+                 FETCH FIRST 1 ROW ONLY 
+              END-EXEC  
+              IF SQLCODE < 0
+                 GO TO 9150-RDMS-ERROR  
+              ELSE  
+                  IF SQLCODE NOT = 100  
+                     IF WS-CAT-ADJ-AMT-PCT = 'P'
+                        MOVE WS-CAT-ADJ-AMT 
+                          TO RSP22-O-CAT-ADJ-PCT (WS-C-IDX WS-T-IDX)
+                     ELSE   
+                        MOVE WS-CAT-ADJ-AMT 
+                          TO RSP22-O-CAT-ADJ-AMT (WS-C-IDX WS-T-IDX)
+                     END-IF 
+                     GO TO 6200-PROMO-PMT-ADJUST-CURSOR 
+                  END-IF
+              END-IF
+           END-IF.  
+
+           IF   RSP22-I-OFFER-ID <= ZEROES OR   
+                WS-OFFER-PMT-ADJ-EXIST-IND NOT = 'Y'
+                GO TO 6200-PROMO-PMT-ADJUST-CURSOR  
+           END-IF.  
+
+           EXEC SQL DECLARE PMT_ADJ_CUR CURSOR  
+              SELECT PRP_OWNER_CODE,PRP_OWNER_ID,ITEM_TYPE,ITEM_CODE,   
+                     IPA.AMT_PCT_CODE   
+                 FROM SAIL_OFFER_PMT_ADJUST SOPA
+                 JOIN SAIL_PAYMENT_ADJUST SPA   
+                   ON SPA.SHIP_CODE = SOPA.SHIP_CODE
+                  AND SPA.SAIL_ID = SOPA.SAIL_ID
+                  AND SPA.PRP_OWNER_CODE = SOPA.PRP_OWNER_CODE  
+                  AND SPA.PRP_OWNER_ID = SOPA.PRP_OWNER_ID  
+                  AND (SPA.REQUEST_CABIN_CODE = '~' OR  
+                       SPA.REQUEST_CABIN_CODE = :RSP22-I-REQ-CAB-CODE)  
+                  AND (SPA.CURRENCY_CODE = '~' OR   
+                       SPA.CURRENCY_CODE = :RSP22-I-CURRENCY-CODE)  
+                 JOIN ITM_PAYMENT_ADJUST IPA
+                   ON IPA.ITEM_TYPE = SPA.ITEM_TYPE 
+                  AND IPA.ITEM_CODE = SPA.ITEM_CODE 
+                  AND IPA.TERM_CODE = :RSP22-O-TERM-CODE (WS-T-IDX) 
+                 WHERE SHIP_CODE = :RSP22-I-SHIP-CODE   
+                   AND SAIL_ID = :RSP22-I-SAIL-ID   
+                   AND OFFER_ID = :RSP22-I-OFFER-ID 
+216688             AND OFFER_CODE = :WS-OFFER-CODE  
+                 ORDER BY PRP_OWNER_CODE,PRP_OWNER_ID,  
+                          REQUEST_CABIN_CODE,CURRENCY_CODE  
+           END-EXEC.
+
+           EXEC SQL OPEN PMT_ADJ_CUR END-EXEC.  
+
+           IF SQLCODE < 0   
+              GO TO 8100-FETCH-OFFER-CAT-ADJ-ERR.   
+
+           MOVE ZERO   TO WS-CAT-ADJ-PCT
+                          WS-LAST-PRP-OWNER-ID. 
+           MOVE 99999  TO WS-CAT-ADJ-AMT
+           MOVE SPACES TO WS-LAST-PRP-OWNER-CODE.   
+
+       6000-NEXT-PMT-ADJUST.
+           EXEC SQL FETCH NEXT PMT_ADJ_CUR  
+              INTO WS-PRP-OWNER-CODE,WS-PRP-OWNER-ID,   
+                   WS-ITEM-TYPE,WS-ITEM-CODE,WS-AMT-PCT-CODE
+           END-EXEC.
+
+           IF  SQLCODE < 0  
+               GO TO 9150-RDMS-ERROR
+           ELSE 
+              IF SQLCODE = 100  
+                 GO TO 6100-CLOSE-PMT-ADJ   
+              END-IF
+           END-IF.  
+
+           IF WS-PRP-OWNER-CODE = WS-LAST-PRP-OWNER-CODE AND
+                 WS-PRP-OWNER-ID = WS-LAST-PRP-OWNER-ID 
+              GO TO 6000-NEXT-PMT-ADJUST.   
+
+           MOVE WS-PRP-OWNER-CODE TO WS-LAST-PRP-OWNER-CODE.
+           MOVE WS-PRP-OWNER-ID   TO WS-LAST-PRP-OWNER-ID.  
+
+           EXEC SQL DECLARE ITM_PMT_ADJUST_CUR CURSOR   
+                SELECT AMOUNT   
+                   FROM ITM_PAYMENT_ADJUST_CAT  
+                   WHERE ITEM_TYPE = :WS-ITEM-TYPE  
+                     AND ITEM_CODE = :WS-ITEM-CODE  
+                     AND META_CODE IN ('~~',:WS-PMT-META-CODE (WS-CSUB))
+                     AND CATEGORY_CODE IN   
+                         ('~~~',:WS-PMT-CATEGORY-CODE(WS-CSUB)) 
+                ORDER BY META_CODE,CATEGORY_CODE
+           END-EXEC.
+
+           EXEC SQL OPEN ITM_PMT_ADJUST_CUR END-EXEC.   
+
+           IF SQLCODE < 0   
+              MOVE 6001 TO DPP42-HOLD-MSG-INDEX 
+              GO TO 9150-RDMS-ERROR.
+
+           EXEC SQL FETCH FIRST ITM_PMT_ADJUST_CUR  
+                INTO WS-PMT-ADJ-AMT 
+           END-EXEC.
+
+           IF SQLCODE < 0 OR SQLCODE = 100  
+              MOVE 6002 TO DPP42-HOLD-MSG-INDEX 
+              GO TO 9150-RDMS-ERROR.
+
+           EXEC SQL CLOSE ITM_PMT_ADJUST_CUR END-EXEC.  
+
+           IF SQLCODE < 0   
+              MOVE 6003 TO DPP42-HOLD-MSG-INDEX 
+              GO TO 9150-RDMS-ERROR.
+
+           IF WS-AMT-PCT-CODE = 'A' 
+              IF WS-PMT-ADJ-AMT < WS-CAT-ADJ-AMT
+                 MOVE WS-PMT-ADJ-AMT TO WS-CAT-ADJ-AMT  
+              END-IF
+           ELSE 
+              IF WS-PMT-ADJ-AMT > WS-CAT-ADJ-PCT
+                 MOVE WS-PMT-ADJ-AMT TO WS-CAT-ADJ-PCT. 
+
+           GO TO 6000-NEXT-PMT-ADJUST.  
+
+       6100-CLOSE-PMT-ADJ.  
+           EXEC SQL CLOSE PMT_ADJ_CUR END-EXEC. 
+
+           IF SQLCODE < 0   
+              GO TO 8100-FETCH-OFFER-CAT-ADJ-ERR.   
+
+           IF WS-CAT-ADJ-AMT = 99999
+              MOVE ZERO TO WS-CAT-ADJ-AMT.  
+
+           IF WS-CAT-ADJ-AMT = 0 AND WS-CAT-ADJ-PCT = 0 
+PRCCMB*       GO TO 8100-FETCH-OFFER-CAT-ADJ-ERR.   
+PRCCMB        GO TO 6200-PROMO-PMT-ADJUST-CURSOR.   
+
+           IF  WS-CAT-ADJ-AMT > ZERO AND
+                (WS-PRICE-CURRENCY-CODE > SPACES ) AND  
+                   (WS-PRICE-CURRENCY-CODE NOT = RSP22-I-CURRENCY-CODE) 
+                   IF ( RSP22-I-CURRENCY-CODE NOT = 'NZD' OR
+PRCCMB*               WS-BASE-CURRENCY-CODE NOT = 'AUD' )   
+PRCCMB                TDP01-BASE-CURRENCY-CODE NOT = 'AUD' )
+                      COMPUTE WS-CAT-ADJ-AMT ROUNDED
+                                           = WS-CAT-ADJ-AMT 
+                                           * RSP22-I-PRC-XCHG-RATE  
+                   END-IF   
+           END-IF.  
+
+           IF  WS-CAT-ADJ-PCT > ZEROES AND  
+              ((RSP22-O-CAT-ADJ-PCT (WS-C-IDX WS-T-IDX) <= 0) OR
+               (RSP22-O-CAT-ADJ-PCT (WS-C-IDX WS-T-IDX) <   
+                 WS-CAT-ADJ-PCT))   
+               MOVE WS-CAT-ADJ-PCT TO RSP22-O-CAT-ADJ-PCT   
+                                         (WS-C-IDX WS-T-IDX)
+           END-IF.  
+
+           IF  WS-CAT-ADJ-AMT > ZEROES AND  
+              ((RSP22-O-CAT-ADJ-AMT (WS-C-IDX WS-T-IDX) <= 0) OR
+               (RSP22-O-CAT-ADJ-AMT (WS-C-IDX WS-T-IDX) >   
+                 WS-CAT-ADJ-AMT))   
+               MOVE WS-CAT-ADJ-AMT TO RSP22-O-CAT-ADJ-AMT   
+                                         (WS-C-IDX WS-T-IDX)
+           END-IF.  
+
+       6200-PROMO-PMT-ADJUST-CURSOR.
+           IF  RSP22-I-POLICY-PROMO-CODE <= SPACES  
+               GO TO 6450-CALCULATE-EFFECTIVE   
+           END-IF.  
+
+           IF ((RSP22-I-REQ-CAB-CODE = '~' ) OR 
+               (RSP22-I-REQ-CAB-CODE = 'B')) AND
+               RSP22-I-BERTH-BY-DATE-IND = 'N' AND  
+               RSP22-I-BERTH-BY-DATE < WS-SYS-DATETIME-1
+               GO TO 6450-CALCULATE-EFFECTIVE   
+           END-IF.  
+
+           IF RSP22-I-POLICY-PROMO-OWNER-ID <= ZEROES   
+190403*       EXEC SQL SELECT PRP_OWNER_ID  
+190403        EXEC SQL SELECT IFNULL(PRP_OWNER_ID,0)
+                 INTO RSP22-I-POLICY-PROMO-OWNER-ID 
+                 FROM SAIL_POLICY_PROMO 
+                 WHERE SHIP_CODE = :RSP22-I-SHIP-CODE   
+                   AND SAIL_ID = :RSP22-I-SAIL-ID   
+                   AND PROMOTION_CODE = :RSP22-I-POLICY-PROMO-CODE  
+              END-EXEC  
+              IF SQLCODE < 0 OR SQLCODE = 100   
+                 MOVE 6201 TO DPP42-HOLD-MSG-INDEX  
+                 GO TO 9150-RDMS-ERROR. 
+
+           MOVE 'POP'                         TO WS-PRP-OWNER-CODE. 
+           MOVE RSP22-I-POLICY-PROMO-OWNER-ID TO WS-PRP-OWNER-ID.   
+
+           EXEC SQL DECLARE PROMO_PMT_ADJUST_CUR CURSOR FOR RETENTION   
+              SELECT ITEM_TYPE,ITEM_CODE,IPA.AMT_PCT_CODE   
+                 FROM SAIL_PAYMENT_ADJUST SPA   
+                 JOIN ITM_PAYMENT_ADJUST IPA
+                   ON IPA.ITEM_TYPE = SPA.ITEM_TYPE 
+                  AND IPA.ITEM_CODE = SPA.ITEM_CODE 
+                  AND IPA.TERM_CODE = :RSP22-O-TERM-CODE (WS-T-IDX) 
+                 WHERE SHIP_CODE = :RSP22-I-SHIP-CODE   
+                   AND SAIL_ID = :RSP22-I-SAIL-ID   
+                   AND PRP_OWNER_CODE = :WS-PRP-OWNER-CODE  
+                   AND PRP_OWNER_ID = :WS-PRP-OWNER-ID  
+                   AND (REQUEST_CABIN_CODE = '~' OR 
+                        REQUEST_CABIN_CODE = :RSP22-I-REQ-CAB-CODE) 
+                   AND (CURRENCY_CODE IS NULL OR
+                        CURRENCY_CODE = :RSP22-I-CURRENCY-CODE) 
+              ORDER BY REQUEST_CABIN_CODE,CURRENCY_CODE 
+           END-EXEC.
+
+           EXEC SQL OPEN PROMO_PMT_ADJUST_CUR END-EXEC. 
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR.
+
+           EXEC SQL FETCH FIRST PROMO_PMT_ADJUST_CUR
+              INTO WS-ITEM-TYPE,WS-ITEM-CODE,WS-CAT-ADJ-AMT-PCT 
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR.
+
+           IF SQLCODE = 100 
+              GO TO 6400-CLOSE-PROMO-PMT-ADJ-CUR.   
+
+           EXEC SQL OPEN ITM_PMT_ADJUST_CUR END-EXEC.   
+
+           IF SQLCODE < 0   
+              MOVE 6001 TO DPP42-HOLD-MSG-INDEX 
+              GO TO 9150-RDMS-ERROR.
+
+           EXEC SQL FETCH FIRST ITM_PMT_ADJUST_CUR  
+                INTO WS-CAT-ADJ-AMT 
+           END-EXEC.
+
+
+           IF SQLCODE < 0 OR SQLCODE = 100  
+              MOVE 6002 TO DPP42-HOLD-MSG-INDEX 
+              GO TO 9150-RDMS-ERROR.
+
+           EXEC SQL CLOSE ITM_PMT_ADJUST_CUR END-EXEC.  
+
+           IF SQLCODE < 0   
+              MOVE 6003 TO DPP42-HOLD-MSG-INDEX 
+              GO TO 9150-RDMS-ERROR.
+
+           IF  WS-CAT-ADJ-AMT-PCT NOT = 'P' 
+PRCCMB*        IF  RSP22-I-CURRENCY-CODE NOT = WS-BASE-CURRENCY-CODE
+PRCCMB         IF  RSP22-I-CURRENCY-CODE NOT = TDP01-BASE-CURRENCY-CODE 
+                   IF ( RSP22-I-CURRENCY-CODE NOT = 'NZD' OR
+PRCCMB*               WS-BASE-CURRENCY-CODE NOT = 'AUD' )   
+PRCCMB                TDP01-BASE-CURRENCY-CODE NOT = 'AUD' )
+                      COMPUTE WS-CAT-ADJ-AMT ROUNDED
+                                           = WS-CAT-ADJ-AMT 
+                                           * RSP22-I-PRC-XCHG-RATE  
+                    END-IF  
+               END-IF   
+           END-IF.  
+
+           IF  WS-CAT-ADJ-AMT-PCT = 'P' AND 
+              ((RSP22-O-CAT-ADJ-PCT (WS-C-IDX WS-T-IDX) <= 0) OR
+               (RSP22-O-CAT-ADJ-PCT (WS-C-IDX WS-T-IDX) <   
+                 WS-CAT-ADJ-AMT))   
+               MOVE WS-CAT-ADJ-AMT TO RSP22-O-CAT-ADJ-PCT   
+                                         (WS-C-IDX WS-T-IDX)
+           END-IF.  
+
+           IF  WS-CAT-ADJ-AMT-PCT NOT  = 'P' AND
+              ((RSP22-O-CAT-ADJ-AMT (WS-C-IDX WS-T-IDX) <= 0) OR
+               (RSP22-O-CAT-ADJ-AMT (WS-C-IDX WS-T-IDX) >   
+                 WS-CAT-ADJ-AMT))   
+               MOVE WS-CAT-ADJ-AMT TO RSP22-O-CAT-ADJ-AMT   
+                                         (WS-C-IDX WS-T-IDX)
+           END-IF.  
+
+       6400-CLOSE-PROMO-PMT-ADJ-CUR.
+           EXEC SQL CLOSE PROMO_PMT_ADJUST_CUR END-EXEC.
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR.
+
+       6450-CALCULATE-EFFECTIVE.
+
+           IF  RSP22-O-CAT-ADJ-AMT (WS-C-IDX WS-T-IDX) <= ZEROES AND
+               (RSP22-O-CAT-ADJ-PCT (WS-C-IDX WS-T-IDX) <= ZEROES)  
+               GO TO 5800-NEXT-PAYMENT-CAT  
+           END-IF.  
+
+           MOVE RSP22-O-CAT-EFF-PMT-AMT (WS-C-IDX WS-T-IDX) TO  
+                    WS-BEST-DISC-AMT.   
+
+           IF  RSP22-O-CAT-ADJ-AMT (WS-C-IDX WS-T-IDX) > ZEROES 
+               MOVE ZEROES TO WS-NEW-DISC-AMT   
+               PERFORM VARYING WS-SUB FROM 1 BY 1   
+                  UNTIL WS-SUB > RSP22-I-OCCUPANCY  
+                  MOVE RSP22-O-CAT-ADJ-AMT (WS-C-IDX WS-T-IDX)  
+                    TO WS-CAT-ADJ-AMT-EFF   
+                  IF RSP22-I-OCCUPANCY = 1  
+CALFEE*              COMPUTE WS-CAT-ADJ-AMT-EFF =   
+CALFEE*                      WS-CAT-ADJ-AMT-EFF * WS-SINGLES-PCT
+CALFEE               COMPUTE WS-CAT-ADJ-AMT-EFF ROUNDED =   
+CALFEE                       WS-CAT-ADJ-AMT-EFF *   
+CALFEE                       WS-CAT-SINGLES-PCT (WS-C-IDX)  
+                  END-IF
+                  IF WS-CAT-ADJ-AMT-EFF <   
+                                    WS-CAT-DEP-AMT (WS-C-IDX WS-SUB)
+                     ADD WS-CAT-ADJ-AMT-EFF 
+                         TO WS-NEW-DISC-AMT 
+                     IF WS-SUB = 1  
+                        MOVE WS-CAT-ADJ-AMT-EFF 
+                          TO WS-CAT-PEN-AMT 
+                     END-IF 
+                  ELSE  
+                     ADD WS-CAT-DEP-AMT (WS-C-IDX WS-SUB)   
+                         TO WS-NEW-DISC-AMT 
+                     IF WS-SUB = 1  
+                        MOVE WS-CAT-DEP-AMT (WS-C-IDX WS-SUB)   
+                          TO WS-CAT-PEN-AMT 
+                     END-IF 
+                  END-IF
+               END-PERFORM  
+               IF WS-NEW-DISC-AMT < WS-BEST-DISC-AMT
+                  MOVE WS-NEW-DISC-AMT TO WS-BEST-DISC-AMT  
+                  IF RSP22-O-CAT-PEN-AMT-PCT (WS-C-IDX WS-T-IDX) = 'P'  
+                     MOVE 'A'          TO RSP22-O-CAT-PEN-AMT-PCT   
+                                              (WS-C-IDX WS-T-IDX)   
+                     MOVE WS-CAT-PEN-AMT
+                                       TO RSP22-O-CAT-EFF-PEN-AMT   
+                                              (WS-C-IDX WS-T-IDX)   
+                  ELSE  
+                     IF WS-CAT-PEN-AMT < RSP22-O-CAT-EFF-PEN-AMT
+                                              (WS-C-IDX WS-T-IDX)   
+                        MOVE WS-CAT-PEN-AMT 
+                                       TO RSP22-O-CAT-EFF-PEN-AMT   
+                                              (WS-C-IDX WS-T-IDX)   
+                     END-IF 
+                  END-IF
+               END-IF   
+               MOVE WS-CAT-ADJ-AMT-EFF  
+                    TO RSP22-O-CAT-EFF-ADJ-AMT (WS-C-IDX WS-T-IDX)  
+               MOVE 'A'             TO RSP22-O-CAT-ADJ-AMT-PCT  
+                                           (WS-C-IDX WS-T-IDX)  
+           END-IF.  
+
+
+           IF  RSP22-O-CAT-ADJ-PCT (WS-C-IDX WS-T-IDX) > ZEROES 
+               COMPUTE WS-NEW-DISC-AMT ROUNDED  
+                       = RSP22-O-CAT-EFF-PMT-AMT (WS-C-IDX WS-T-IDX)
+                        * (1 - RSP22-O-CAT-ADJ-PCT (WS-C-IDX WS-T-IDX)) 
+               IF WS-NEW-DISC-AMT < WS-BEST-DISC-AMT
+                  MOVE WS-NEW-DISC-AMT TO WS-BEST-DISC-AMT  
+                  MOVE RSP22-O-CAT-ADJ-PCT (WS-C-IDX WS-T-IDX)  
+                    TO RSP22-O-CAT-EFF-ADJ-AMT (WS-C-IDX WS-T-IDX)  
+                  MOVE 'P'             TO RSP22-O-CAT-ADJ-AMT-PCT   
+                                           (WS-C-IDX WS-T-IDX)  
+               END-IF   
+               IF RSP22-O-CAT-PEN-AMT-PCT (WS-C-IDX WS-T-IDX) = 'P' 
+                  COMPUTE RSP22-O-CAT-EFF-PEN-AMT (WS-C-IDX WS-T-IDX) = 
+                         (RSP22-O-CAT-EFF-PEN-AMT (WS-C-IDX WS-T-IDX) - 
+                       (((RSP22-O-CAT-ADJ-PCT (WS-C-IDX WS-T-IDX) * 
+                          100) * RSP22-O-CAT-EFF-PEN-AMT
+                                        (WS-C-IDX WS-T-IDX)) / 100))
+               ELSE 
+                  COMPUTE WS-CAT-PEN-AMT =  
+                          RSP22-O-CAT-EFF-PEN-AMT   
+                                           (WS-C-IDX WS-T-IDX) *
+                          (1 - RSP22-O-CAT-ADJ-PCT (WS-C-IDX WS-T-IDX)) 
+                  IF WS-CAT-PEN-AMT  <  
+                            RSP22-O-CAT-EFF-PEN-AMT (WS-C-IDX WS-T-IDX) 
+                     MOVE WS-CAT-PEN-AMT TO RSP22-O-CAT-EFF-PEN-AMT 
+                                                    (WS-C-IDX WS-T-IDX) 
+                  END-IF
+               END-IF   
+           END-IF.  
+
+           MOVE WS-BEST-DISC-AMT TO 
+                 RSP22-O-CAT-EFF-PMT-AMT (WS-C-IDX WS-T-IDX).   
+
+           GO TO 5800-NEXT-PAYMENT-CAT. 
+
+       6600-CHECK-TERM-MIN. 
+
+           EXEC SQL 
+                 SELECT  IFNULL(MINIMUM_DAYS,0),
+                         IFNULL(MINIMUM_HOURS,0),   
+                         IFNULL(EXTEND_TIME,'00:00:00') 
+                   INTO :WS-MINIMUM-DAYS,   
+                        :WS-MINIMUM-HOURS,  
+                        :WS-EXTEND-TIME 
+                   FROM  ITM_PAYMENT_TERM_MIN   
+                  WHERE (ITEM_TYPE = :WS-ITEM-TYPE1)
+                    AND (ITEM_CODE = :WS-ITEM-CODE1)
+                    AND (TERM_CODE = :WS-TERM-CODE1)
+                    AND ((LOCALITY_CODE IS NULL)            OR  
+                         (LOCALITY_CODE = :RSP22-I-LOCALITY-CODE))  
+                    AND ((AGENT_CONSUMER_CODE = '~') OR 
+                        (AGENT_CONSUMER_CODE= :RSP22-I-CUSTOMER-CODE))  
+                    AND (DAYS_PRIOR <= DATEDIFF('DAY',:WS-BOOK-DATETIME,
+                                                     :WS-SAIL-DATETIME))
+                    AND (DAY_OF_WEEK IS NULL)   
+                 FETCH FIRST 1 ROW ONLY 
+           END-EXEC.
+
+           IF  SQLCODE < 0  
+               GO TO 9150-RDMS-ERROR
+           ELSE 
+              IF SQLCODE = 100  
+                 GO TO 6700-CHECK-WEEKEND-DATE  
+              END-IF
+           END-IF.  
+
+           MOVE 'N'                     TO WS-DATE-EXTEND-IND.  
+
+           IF  WS-MINIMUM-DAYS > 0  
+               MOVE WS-MINIMUM-DAYS     TO DPP02-NUMBER-DAYS
+               EXEC SQL 
+                    SELECT DATEADD('DAY',:DPP02-NUMBER-DAYS 
+                                   ,:WS-BOOK-DATETIME)  
+                      INTO :WS-EXT-DATETIME 
+                      FROM RDMS.RDMS_DUMMY  
+                     WHERE KEY_COL = 1  
+                     FETCH FIRST 1 ROW ONLY 
+               END-EXEC 
+               IF  SQLCODE < 0  
+                   GO TO 9150-RDMS-ERROR
+               END-IF   
+
+               MOVE WS-EXTEND-TIME      TO WS-EXT-TIME  
+               MOVE 'Y'                 TO WS-DATE-EXTEND-IND   
+           END-IF.  
+
+           IF  WS-MINIMUM-HOURS > 0 AND 
+               WS-DATE-EXTEND-IND = 'N' 
+               EXEC SQL 
+                    SELECT DATEADD('HOUR',MOD(:WS-MINIMUM-HOURS,24),
+                             DATEADD('DAY',INT(:WS-MINIMUM-HOURS/24)
+                                   ,:WS-BOOK-DATETIME)) 
+                      INTO :WS-EXT-DATETIME 
+                      FROM RDMS.RDMS_DUMMY  
+                     WHERE KEY_COL = 1  
+                     FETCH FIRST 1 ROW ONLY 
+               END-EXEC 
+               IF  SQLCODE < 0  
+                   GO TO 9150-RDMS-ERROR
+               END-IF   
+
+               MOVE 'Y'                 TO WS-DATE-EXTEND-IND   
+           END-IF.  
+
+           IF  WS-DATE-EXTEND-IND = 'Y' 
+               IF  WS-EXT-DATE > WS-SAIL-DATE   
+                   MOVE WS-SAIL-DATE       TO WS-EXT-DATE   
+                   MOVE '00:00:00'      TO WS-EXT-TIME  
+               END-IF   
+               IF  WS-EXT-DATETIME > WS-ORG-DATETIME
+                   MOVE WS-EXT-DATETIME TO WS-ORG-DATETIME  
+               END-IF   
+           END-IF.  
+
+       6700-CHECK-WEEKEND-DATE. 
+           EXEC SQL 
+                 SELECT  DAYS_PRIOR,
+                         IFNULL(DAY_OF_WEEK,0), 
+                         IFNULL(EXTEND_DAY_WEEK,0), 
+                         IFNULL(EXTEND_TIME,'00:00:00') 
+                   INTO :WS-DAYS-PRIOR, 
+                        :WS-DAY-OF-WEEK,
+                        :WS-EXTEND-DAY-WEEK,
+                        :WS-EXTEND-TIME 
+                   FROM  ITM_PAYMENT_TERM_MIN   
+                  WHERE (ITEM_TYPE = :WS-ITEM-TYPE1)
+                    AND (ITEM_CODE = :WS-ITEM-CODE1)
+                    AND (TERM_CODE = :WS-TERM-CODE1)
+                    AND ((LOCALITY_CODE IS NULL)            OR  
+                         (LOCALITY_CODE = :RSP22-I-LOCALITY-CODE))  
+                    AND ((AGENT_CONSUMER_CODE = '~') OR 
+                        (AGENT_CONSUMER_CODE= :RSP22-I-CUSTOMER-CODE))  
+                    AND (DAYS_PRIOR <= DATEDIFF('DAY',:WS-BOOK-DATETIME,
+                                                     :WS-SAIL-DATETIME))
+                    AND (DAY_OF_WEEK = DAYOFWEEK(:WS-ORG-DATETIME)) 
+                 FETCH FIRST 1 ROW ONLY 
+           END-EXEC.
+
+           IF  SQLCODE < 0  
+               GO TO 9150-RDMS-ERROR
+           ELSE 
+              IF SQLCODE = 100  
+                 GO TO 6900-EXIT
+              END-IF
+           END-IF.  
+
+           MOVE 'N'                     TO WS-DATE-EXTEND-IND.  
+
+           IF  WS-EXTEND-DAY-WEEK > 0 AND   
+               WS-DAY-OF-WEEK > 0   
+               IF  WS-DAY-OF-WEEK >= WS-EXTEND-DAY-WEEK 
+                   COMPUTE DPP02-NUMBER-DAYS = 7
+                                             + WS-EXTEND-DAY-WEEK   
+                                             - WS-DAY-OF-WEEK   
+                   EXEC SQL 
+                        SELECT DATEADD('DAY',:DPP02-NUMBER-DAYS 
+                                       ,:WS-ORG-DATETIME)   
+                          INTO :WS-EXT-DATETIME 
+                          FROM RDMS.RDMS_DUMMY  
+                         WHERE KEY_COL = 1  
+                         FETCH FIRST 1 ROW ONLY 
+                   END-EXEC 
+                   IF  SQLCODE < 0  
+                       GO TO 9150-RDMS-ERROR
+                   END-IF   
+
+               ELSE 
+                   COMPUTE DPP02-NUMBER-DAYS = WS-EXTEND-DAY-WEEK   
+                                             - WS-DAY-OF-WEEK   
+                   EXEC SQL 
+                        SELECT DATEADD('DAY',:DPP02-NUMBER-DAYS 
+                                       ,:WS-ORG-DATETIME)   
+                          INTO :WS-EXT-DATETIME 
+                          FROM RDMS.RDMS_DUMMY  
+                         WHERE KEY_COL = 1  
+                         FETCH FIRST 1 ROW ONLY 
+                   END-EXEC 
+                   IF  SQLCODE < 0  
+                       GO TO 9150-RDMS-ERROR
+                   END-IF   
+
+               END-IF   
+               MOVE WS-EXTEND-TIME      TO WS-EXT-TIME  
+               MOVE 'Y'                 TO WS-DATE-EXTEND-IND   
+           END-IF.  
+
+           IF  WS-DATE-EXTEND-IND = 'Y' 
+               IF  WS-EXT-DATE > WS-SAIL-DATE   
+                   MOVE WS-SAIL-DATE       TO WS-EXT-DATE   
+                   MOVE '00:00:00'      TO WS-EXT-TIME  
+               END-IF   
+               IF  WS-EXT-DATETIME > WS-ORG-DATETIME
+                   MOVE WS-EXT-DATETIME 
+                                        TO WS-ORG-DATETIME  
+               END-IF   
+           END-IF.  
+
+       6900-EXIT.   
+           EXIT.
+
+       7100-CONVERT-DATE.   
+
+           MOVE WS-EXT-DATE (1:4)       TO WS-TEMP-DATE(1:4).   
+           MOVE WS-EXT-DATE (6:2)       TO WS-TEMP-DATE(5:2).   
+           MOVE WS-EXT-DATE (9:2)       TO WS-TEMP-DATE(7:2).   
+           MOVE WS-TEMP-DATE            TO DPP02-YYYYMMDD-DATE. 
+
+       7200-TIME-RDMS-TO-DMS.   
+
+           MOVE WS-EXT-TIME(1:2)        TO WS-TEMP-TIME(1:2).   
+           MOVE WS-EXT-TIME(4:2)        TO WS-TEMP-TIME(3:2).   
+           MOVE WS-EXT-TIME(7:2)        TO WS-TEMP-TIME(5:2).   
+
+       7300-TIME-DMS-TO-RDMS.   
+
+           MOVE WS-TEMP-TIME(1:2)       TO WS-EXT-TIME(1:2).
+           MOVE WS-TEMP-TIME(3:2)       TO WS-EXT-TIME(4:2).
+           MOVE WS-TEMP-TIME(5:2)       TO WS-EXT-TIME(7:2).
+
+       7400-FETCH-SAILING-ERROR.
+
+           MOVE  19                     TO DPP42-HOLD-MSG-INDEX 
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+       7500-GTT-DELETE-ERROR.   
+
+           MOVE 20                      TO DPP42-HOLD-MSG-INDEX 
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+       7600-INVALID-OFFER-ID.   
+
+           MOVE 21                      TO DPP42-HOLD-MSG-INDEX 
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+       7700-ITEM-PAYMENT-FETCH-ERROR.   
+
+           MOVE 22                      TO DPP42-HOLD-MSG-INDEX 
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+       7800-FETCH-SAIL-CAT-ERROR.   
+
+           MOVE 23                      TO DPP42-HOLD-MSG-INDEX 
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+       7800-CAT-INSERT-GTT-ERROR.   
+
+           MOVE 24                      TO DPP42-HOLD-MSG-INDEX 
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+       7900-INSERT-TERM-GTT-ERROR.  
+
+           MOVE 25                      TO DPP42-HOLD-MSG-INDEX 
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+       8000-FETCH-TERM-MIN-ERROR.   
+
+           MOVE 26                      TO DPP42-HOLD-MSG-INDEX 
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+       8000-VALIDATE-DATE.  
+           IF DPP02-YYYYMMDD-MM < 1 OR > 12 
+              MOVE 32 TO DPP42-HOLD-MSG-INDEX   
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           IF DPP02-YYYYMMDD-MM = 2 
+              MOVE DPP02-YYYYMMDD-YYYY   TO DPP02-JD-YYYY   
+              PERFORM DPP10-LEAP-YEAR-TEST. 
+
+           IF DPP02-YYYYMMDD-DD >   
+                 DPP02-DAYS-IN-MONTH (DPP02-YYYYMMDD-MM)
+              MOVE 33 TO DPP42-HOLD-MSG-INDEX   
+              GO TO 9200-EDIT-ERROR-MSG.
+
+           IF TDP01-SAIL-DATE-YYYYMMDD >= DPP02-SYSTEM-DATE AND 
+              DPP02-YYYYMMDD-DATE < WS-BASE-SYSTEM-DATE 
+              MOVE 34 TO DPP42-HOLD-MSG-INDEX   
+              GO TO 9200-EDIT-ERROR-MSG.
+
+       8099-EXIT.   
+           EXIT.
+
+       8100-FETCH-OFFER-CAT-ADJ-ERR.
+
+           MOVE 27                      TO DPP42-HOLD-MSG-INDEX 
+PRCCMB*    GO TO 9200-EDIT-ERROR-MSG.   
+PRCCMB     GO TO 9150-RDMS-ERROR.   
+
+       8200-FETCH-PROMO-CAT-ADJ-ERR.
+
+           MOVE 28                      TO DPP42-HOLD-MSG-INDEX 
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+       9000-END-OF-JOB. 
+           GO TO DPP42-END-OF-JOB.  
+
+       9100-DATABASE-ERROR. 
+
+           GO TO DPP42-DATABASE-ERROR.  
+
+       9150-RDMS-ERROR. 
+
+           GO TO DPP42-RDMS-ERROR.  
+
+       9200-EDIT-ERROR-MSG. 
+
+           PERFORM DPP42-EDIT-ERROR-MSG THRU
+                   DPP42-EDIT-ERROR-MSG-EXIT.   
+
+           GO TO DPP42-END-OF-JOB.  
+
+       9210-EDIT-CONTINUE-MSG.  
+
+           PERFORM DPP42-EDIT-ERROR-MSG THRU
+                   DPP42-EDIT-ERROR-MSG-EXIT.   
+
+       9300-SEVERE-ERROR-MSG.   
+
+           GO TO DPP42-SEVERE-ERROR-MSG.
+
+       9400-INFO-MSG.   
+
+           PERFORM DPP42-INFO-MSG THRU  
+                   DPP42-INFO-MSG-EXIT. 
+
+       9500-RETURN-SUBROUTINE-ERROR.
+
+           GO TO DPP42-RETURN-SUBROUTINE-ERROR. 
+
+       9600-SAVE-SUBROUTINE-ERRORS. 
+
+           PERFORM DPP42-SAVE-SUBROUTINE-MSGS THRU  
+                   DPP42-SAVE-SUBROUTINE-MSGS-X.
+
+       COPY DPP02ADP.   
+       COPY DPP10Y2K.   
+       COPY DPP42SER.   
+       COPY DPP42WDB.   
+       COPY DPP10TMZ.   
+       COPY TDP01SAP.   
+       COPY TDP01SCP.   

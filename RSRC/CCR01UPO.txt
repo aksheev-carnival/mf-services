@@ -1,0 +1,2573 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.    CCR01UPO. 
+       AUTHOR.        TATA CONSULTANCY SERVICES LTD.
+       DATE-WRITTEN.  FEB, 2024.
+       DATE-COMPILED.   
+************************************************************************
+190115* 29-MAY-24     1HP     TCS LTD.               ADO 1901156       *
+190115* CHANGES ARE DONE TO ADD GST OF COURTESY ORDER AT GROUP LEVEL   *
+************************************************************************
+215015* 08-AUG-25     TUX     TCS LTD.               ADO 2150158       *
+215015* CHANGES DONE TO ACCEPT ORDER TOTAL AMOUNT AS ZEROES            *
+************************************************************************
+203526* 04-AUG-25     HYY     TCS LTD.              ADO2035264         *
+203526* Changes done for Statement & Invoice Areas/Records DMS to RDMS* 
+************************************************************************
+228336* 24-FEB-26     P9X     TCS LTD.              ADO2283368         *
+228336* INCREASE OCCURS LIMIT TO 999 IN WS TABLE FOR ITEM_OBC_MAP_TBL. *
+************************************************************************
+CCLCOM* 25-MAR-26     TEK     TCS LTD.               CCLCOM            *
+CCLCOM* HYBRIS COMBINED ORDER MODEL CHANGES                            *
+************************************************************************
+LOYLTY* 23-JUN-26     8XF     TCS LTD.               LOYLTY            *
+LOYLTY* ADDED MMISC-AMT AND MMISC-AMTX AS PART OF LOYLTY PROGRAM       *
+************************************************************************
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER. UNISYS. 
+       OBJECT-COMPUTER. UNISYS  MEMORY SIZE 3 MODULES.  
+       SPECIAL-NAMES.   
+           PRINTER IS PRT   
+           PRINTER IS PRINTER.  
+
+       DATA DIVISION.   
+       SUBSCHEMA SECTION.   
+       INVOKE SUBSCHEMA PST100UCOBSU
+           IN FILE SUBSCHEMAS OF SCHEMA PST100SCHEMA
+           COPYING RECORDS    INTO COMMON   
+           COPYING DATA-NAMES INTO COMMON   
+           OVERLAY PAX-REC WITH PAX-CXF-REC 
+                                PAX-VI-REC  
+           SAVE DATA INCLUDES DEFERRED-UPDATES  
+           DMCA COMMON  
+           ERROR RECOVERY IS 9100-DATABASE-ERROR
+           ROLLBACK       IS 9100-DATABASE-ERROR.   
+
+       WORKING-STORAGE SECTION. 
+       01  WS-PROG-ID                    PIC X(08) VALUE 'CCR01UPO'.
+       01  MCFLAG                        PIC 9(10) BINARY.  
+       01  WS-TOT-OBC-AMT                PIC S9(8)V99 USAGE COMP.   
+       01  WS-SEQ-NUM                    PIC 9(03). 
+       01  WS-OBC-MATCH                  PIC X(01). 
+
+       01  WS-NUMERIC.  
+           03  SUB1                      PIC 9(4) USAGE COMP.   
+           03  SUB2                      PIC 9(3) USAGE COMP.   
+           03  WS-B                      PIC 9(02). 
+           03  SUB                       PIC 9(05)     BINARY.  
+           03  OSUB                      PIC S9(5)     BINARY.  
+           03  WS-POBC-SUB               PIC 9(05)     BINARY.  
+           03  WS-QUAL-OBC-AMT           PIC S9(05)V99 BINARY.  
+           03  WS-APPLIED-OBC-AMOUNT     PIC S9(05)V99 BINARY.  
+           03  WS-REMAINING-OBC-AMT      PIC S9(05)V99 BINARY.  
+           03  POBC-SUB                  PIC 9(05)     BINARY.  
+           03  WS-ORDER-CNT              PIC 9(02). 
+           03  MAP-SUB                   PIC S9(5) BINARY.  
+           03  WS-NUMRTN-TYPE            PIC 9(10) BINARY VALUE ZERO.   
+           03  WS-ORD-SEQ                PIC 9(03). 
+           03  WS-HYB-ORD-ID             PIC 9(11). 
+           03  WS-SAIL-ID                PIC S9(11).
+           03  WS-ORD-TOT-AMT            PIC S9(8)V99 USAGE COMP.   
+           03  WS-ORD-TOT-OBC-AMT        PIC S9(8)V99 USAGE COMP.   
+           03  WS-TOTAL-OBC              PIC S9(8)V99 USAGE COMP.   
+           03  WS-OLD-OBC-AMT            PIC S9(8)V99 USAGE COMP.   
+           03  WS-OBC-DEL-AMT            PIC S9(8)V99 USAGE COMP.   
+           03  WS-OBC-REC-CNT            PIC 9(05). 
+           03  WS-BOOK-REC-CNT           PIC 9(05). 
+           03  WS-SAIL-DATE              PIC 9(08). 
+           03  WS-DUR-DAYS               PIC 9(3).  
+           03  WS-ITEM-AMT-DIFF          PIC S9(8)V99 USAGE COMP.   
+           03  WS-SURCHARGE-AMT-DIFF     PIC S9(8)V99 USAGE COMP.   
+           03  WS-ITEM-OBC-AMT           PIC S9(8)V99 USAGE COMP.   
+           03  WS-CO-AMT                 PIC S9(8)V99 USAGE COMP.   
+           03  WS-TRF-AMT                PIC S9(8)V99 USAGE COMP.   
+           03  WS-PAYMENT-AMT            PIC S9(8)V99 USAGE COMP.   
+           03  WS-PRC-XCHG-RATE          PIC S9(8)V99 USAGE COMP.   
+           03  WS-CLSD-XCHG-RATE         PIC S9(8)V99 USAGE COMP.   
+           03  WS-OBC-REQUIRED           PIC S9(8)V99.  
+           03  WS-HYB-ORD-ID-Z           PIC Z(11). 
+           03  WS-HSUB                   PIC 9(02). 
+           03  WS-SUB                    PIC 9(02). 
+           03  WS-BOOKING-OBC-AMT        PIC S9(08)V99 USAGE COMP.  
+
+       01  WS-ALPHA.
+           03  WS-OBC-CODE               PIC X(04). 
+           03  WS-VALID-OBC              PIC X(01). 
+           03  WS-TNAME                  PIC X(08). 
+           03  WS-ENTRY-FOUND            PIC X(01). 
+           03  WS-TRANS-NAME             PIC X(08). 
+           03  WS-NUMRTN-COMMAND         PIC X(05). 
+           03  WS-NUMRTN-ORDER-NUM       PIC X(10). 
+           03  WS-OBC-TYP-FND            PIC X(01). 
+           03  WS-SHIP-CODE              PIC X(02). 
+           03  WS-ORD-TYPE               PIC X(01). 
+           03  WS-CURR-CODE              PIC X(03). 
+           03  WS-UPD-ORD-MAS-TBL        PIC X(01). 
+           03  WS-ORD-STATUS             PIC X(01). 
+           03  WS-USER-INFO              PIC X(3).  
+CCLCOM     03  WS-USER-FIRST-NAME        PIC X(30). 
+CCLCOM     03  WS-USER-LAST-NAME         PIC X(30). 
+CCLCOM     03  WS-APPR-ID                PIC X(03). 
+           03  WS-BOOK-NUM               PIC X(06). 
+           03  WS-GRP-BOOK-IND           PIC X(02) VALUE 'N'.   
+           03  WS-IBR-CABIN-NUM          PIC X(05). 
+           03  WS-TIME-HH-MM             PIC X(5).  
+           03  WS-HIST-DONE-IND          PIC X(01). 
+           03  WS-HIST-UPDATE-IND        PIC X(01). 
+           03  WS-GROUP-BOOK-NUM         PIC X(06). 
+
+       01  WS-GL-ACCT-NUM.  
+           03 WS-HYB-SHIP-NUM            PIC X(2).  
+           03 WS-HYB-CENTER-NUM          PIC X(5).  
+           03 WS-HYB-GL-ACCT-NUM         PIC X(6).  
+           03 WS-HYB-SUB-ACCT-NUM        PIC X(3).  
+
+       01  WS-HYB-SR-GL-ACCT-NUM.   
+           03 WS-HYB-SRVCH-SHIP-NUM      PIC X(2).  
+           03 WS-HYB-SRVCH-CENTER-NUM    PIC X(5).  
+           03 WS-HYB-SRVCH-GL-ACCT-NUM   PIC X(6).  
+           03 WS-HYB-SRVCH-SUB-ACCT-NUM  PIC X(3).  
+
+       01  WS-UPDATE-DATETIME.  
+           03  WS-UPDATE-YEAR           PIC 9(04) VALUE ZEROES. 
+           03  WS-UPDATE-HYPHEN-1       PIC X(01) VALUE '-'.
+           03  WS-UPDATE-MONTH          PIC 9(02) VALUE ZEROES. 
+           03  WS-UPDATE-HYPHEN-2       PIC X(01) VALUE '-'.
+           03  WS-UPDATE-DAY-DATE       PIC 9(02) VALUE ZEROES. 
+           03  WS-UPDATE-SPACE-1        PIC X(01) VALUE ' '.
+           03  WS-UPDATE-HOUR           PIC 9(02) VALUE ZEROES. 
+           03  WS-UPDATE-COLON-1        PIC X(01) VALUE ':'.
+           03  WS-UPDATE-MINUTE         PIC 9(02) VALUE ZEROES. 
+           03  WS-UPDATE-COLON-2        PIC X(01) VALUE ':'.
+           03  WS-UPDATE-SECOND         PIC 9(02) VALUE ZEROES. 
+           03  WS-UPDATE-DOT            PIC X(01) VALUE '.'.
+           03  WS-UPDATE-MILISEC        PIC 9(06) VALUE ZEROES. 
+       01  WS-SYS-DATETIME              PIC 9(16).  
+       01  WS-SYSTEM-DATE               PIC 9(08).  
+
+
+       01  WS-ITM-OBC-MAP-TBL.  
+           03  MAP-ITEM-TYPE            PIC X(05).  
+           03  MAP-OBC-TYPE-1           PIC X(08).  
+           03  MAP-OBC-TYPE-2           PIC X(08).  
+           03  MAP-OBC-TYPE-3           PIC X(08).  
+           03  MAP-TRANSLATED-NAME      PIC X(08).  
+           03  FILLER                   PIC X(03).  
+
+       01  WS-MAPPING-TABLE.
+228336*    03 WS-MAPPING-ENTRY OCCURS 20 TIMES. 
+228336     03 WS-MAPPING-ENTRY OCCURS 999 TIMES.
+              05 WS-ITEM-TYPE           PIC X(05).  
+              05 WS-OBC-TYPE-1          PIC X(08).  
+              05 WS-OBC-TYPE-2          PIC X(08).  
+              05 WS-OBC-TYPE-3          PIC X(08).  
+              05 WS-TRANSLATED-NAME     PIC X(08).  
+              05 FILLER                 PIC X(03).  
+
+       01  WS-MISC. 
+           03 WS-OBC-TYPE2-NI          PIC S9 SIGN LEADING SEPARATE.
+           03 WS-OBC-TYPE3-NI          PIC S9 SIGN LEADING SEPARATE.
+
+       01  WS-NULL-IND                 PIC S9 SIGN LEADING SEPARATE 
+                                              VALUE -1. 
+190115 01  WS-EFF-INCL-GST-PCT              PIC 9V9(6) BINARY.  
+190115 01  WS-GBR1-COURTESY-GST-AMT         PIC S9(08)V99.  
+
+CCLCOM 01  WS-ORD-SAIL-DATE-X.  
+CCLCOM     03 WS-ORD-SAIL-DATE           PIC 9(08). 
+
+       01  WS-O-DATA.   
+           03 WS-O-BOOK-NUM              PIC X(06). 
+           03 WS-O-OBC-ENTRY-CNT         PIC 9(02)     USAGE BINARY.
+           03 WS-O-OBC-ENTRY OCCURS 20 TIMES.   
+              05 WS-O-OBC-DEPT-CODE      PIC X(08). 
+              05 WS-O-TRANSLATED-NAME    PIC X(08). 
+              05 WS-O-OBC-REFUNDABLE-IND PIC X(01). 
+              05 WS-O-OFFERED-OBC-AMT    PIC 9(05)V99   USAGE BINARY.   
+              05 WS-O-APPLIED-OBC-AMT    PIC 9(05)V99   USAGE BINARY.   
+              05 WS-O-REMAINING-OBC-AMT  PIC 9(05)V99   USAGE BINARY.   
+           03 WS-ORDER-DETAILS. 
+              05 WS-ORDER-ENTRY-CNT      PIC 9(02)     USAGE BINARY.
+              05 WS-ORDER-ENTRY OCCURS 99 TIMES.
+                 07 WS-O-ORDER-NUM       PIC X(12). 
+                 07 WS-O-ITEM-TYPE       PIC X(05). 
+                 07 WS-O-DEFICIT-OBC-AMT PIC 9(05)V99   USAGE BINARY.   
+
+       01  WS-ORDERS-TABLE. 
+           03 WS-ENTRY-CNT                  PIC 9(02)      USAGE BINARY.
+           03 WS-ORDERS-ENTRY OCCURS 0 TO 99 TIMES  
+                                   DEPENDING ON WS-ENTRY-CNT.   
+              05 WS-ORDER-NUM               PIC X(12).  
+              05 WS-ORDER-CREATE-DATETIME.  
+                 07 WS-ORDER-CREATE-DATE    PIC 9(08).  
+                 07 WS-ORDER-CREATE-TIME.   
+                    09 WS-TIME-HHMM         PIC 9(04).  
+                    09 WS-TIME-SSMM         PIC 9(04).  
+              05 WS-ORDER-ITEM-TYPE         PIC X(05).  
+              05 WS-OBC-AMT                 PIC 9(05)V99   USAGE BINARY.
+
+       01 WS-HOLD-TABLE.
+          03 WS-HCNT                        PIC 9(02)     USAGE BINARY. 
+          03 WS-HOLD-ENTRY OCCURS 0 TO 20 TIMES 
+                                 DEPENDING ON WS-HCNT.  
+             05 WS-HOLD-OBC-DEPT-CODE       PIC X(08).  
+             05 WS-HOLD-TRANSLATED-NAME     PIC X(08).  
+             05 WS-HOLD-OBC-REFUNDABLE-IND  PIC X(01).  
+             05 WS-HOLD-OFFERED-OBC-AMT     PIC 9(05)V99   USAGE BINARY.
+             05 WS-HOLD-APPLIED-OBC-AMT     PIC 9(05)V99   USAGE BINARY.
+             05 WS-HOLD-REMAINING-OBC-AMT   PIC 9(05)V99   USAGE BINARY.
+
+       01 WS-TABLE. 
+          03 WS-ORD-NUM                     PIC X(12).  
+          03 WS-ORD-CREATE-DATETIME.
+             05 WS-ORD-CREATE-DATE          PIC X(08).  
+             05 WS-ORD-CREATE-TIME. 
+                07 WS-ORD-TIME-HHMM         PIC 9(04).  
+                07 WS-ORD-TIME-SSMM         PIC 9(04).  
+          03 WS-ORD-ITEM-TYPE               PIC X(05).  
+          03 WS-ORD-OBC-AMT                 PIC 9(05)V99   USAGE BINARY.
+
+       01 WS-TIME.  
+          03 WS-TIME-HH                     PIC X(02).  
+          03 FILLER                         PIC X(01).  
+          03 WS-TIME-MM                     PIC X(02).  
+          03 FILLER                         PIC X(01).  
+          03 WS-TIME-SS                     PIC X(02).  
+
+       01  WS-HOLD-TBL. 
+           03 WS-H-ORDER-NUM                PIC X(12).  
+           03 WS-H-ORDER-CREATE-DATETIME    PIC 9(16).  
+           03 WS-H-ORDER-ITEM-TYPE          PIC X(05).  
+           03 WS-H-USED-OBC-AMT             PIC 9(05)V99   USAGE BINARY.
+
+       01  WS-QUAL-OBC-TYPE-1               PIC X(08).  
+       01  WS-QUAL-OBC-TYPE-2               PIC X(08).  
+       01  WS-QUAL-OBC-TYPE-3               PIC X(08).  
+
+       01  WS-DOLAR-AMT                 PIC --------9.99   VALUE ZEROES.
+       01  WS-COMMENT-TXT                   PIC X(5).   
+       01  WS-TALLY                         PIC 9(5)  USAGE BINARY. 
+       01  WS-LENGTH                        PIC 9(5)  USAGE BINARY. 
+       01  WS-MF-ORDER-NUM                  PIC X(12).  
+
+       01  INFO-USERID                      PIC X(12) VALUE SPACES. 
+
+       01  INFO-PROGRAM-ID. 
+           03 INFO-PROG-APP                 PIC X(02) VALUE SPACES. 
+           03 INFO-PROG-ID                  PIC X(03) VALUE SPACES. 
+           03 INFO-PROG-SEQ                 PIC X(01) VALUE SPACES. 
+
+       COPY CCP00CTW.   
+       COPY CCP00SWS.   
+       COPY CCP45AAW.   
+       COPY DPP01CIW.   
+       COPY DPP01DTA.   
+       COPY DPP01DWS.   
+       COPY DPP01ERR.   
+       COPY DPP01MCB.   
+       COPY DPP01SCO.   
+       COPY DPP02Y2K.   
+       COPY DPP03PWS.   
+       COPY DPP04BHS.   
+       COPY DPP12SCO.   
+       COPY DPP20DWS.   
+       COPY DPP66PWS.   
+       COPY DPP42ERR.   
+       COPY RSP00DMS.   
+       COPY RSP32DMS.   
+       COPY RSP50INP.   
+       COPY RSP50OUT.   
+       COPY RSP49INP.   
+       COPY RSP49OUT.   
+       COPY RSP64DMS.   
+       COPY RSP77GMD.   
+       COPY SSP03GAD.   
+       COPY SSP05GCD.   
+       COPY RSP68GGC.   
+       COPY RSP86GLD.   
+       COPY RSP90OVW.   
+       COPY IRP66IBR.   
+       COPY CCP01UPW.   
+       COPY TDP01SAW.   
+       COPY RSP23RGC.   
+CCLCOM*COPY SXP03ORD.   
+       COPY RSP06BLK.   
+       COPY RSP06GCI.   
+       COPY RSP06CON.   
+       COPY SSP18GUD.   
+       COPY DPP16SBW.   
+       COPY GRP15BHW.   
+       COPY DPP15ACW.   
+       COPY ARP01CDR.   
+       COPY SSP20GSD.   
+       COPY SSP70TSR.   
+       COPY RSP70NCK.   
+       COPY ARP06ACW.   
+       COPY IRP48CNW.   
+       COPY ARP79SIW.   
+       COPY ARP90PWS.   
+       COPY ARP15ATW.   
+
+       COMMON-STORAGE SECTION.  
+
+       PROCEDURE DIVISION.  
+       0000-MAIN-LINE.  
+
+       COPY DPP01INT.   
+       COPY TDP01INT.   
+       COPY GRP15INT.   
+
+           PERFORM DPP12-MCB-INIT     THRU DPP12-MCB-INIT-EXIT. 
+           PERFORM DPP12-BEGIN-THREAD THRU DPP12-BEGIN-THREAD-EXIT. 
+
+           IF  DPP01-SQL-ERROR-IND = 'Y'
+               GO TO DPP12-THREAD-ERROR-EXIT
+           END-IF.  
+
+           EXEC SQL USE DEFAULT SCHEMA PSTRDMS END-EXEC.
+
+           EXEC SQL WHENEVER SQLERROR   
+                GO TO 9150-RDMS-ERROR   
+           END-EXEC.
+
+           EXEC SQL WHENEVER NOT FOUND  
+                CONTINUE
+           END-EXEC.
+
+       0100-INIT-DATABASE.  
+           MOVE 2 TO FETCH-WITH-LOCK
+           IMPART.  
+           MOVE 0 TO FETCH-WITH-LOCK
+           OPEN ERROR-DESC  
+                AGENT-PHONE 
+                AGNT-PHO-IDX
+                AGENT-COMP  
+                AGENCY-ASSOC
+                AGENT   
+                AGENT-IDX   
+                GRP1-CITY   
+                AGENCY-RATE 
+                AGENT-TERMS 
+                PORT-NAME   
+                OBCMASTER   
+                WAITLIST
+                INDV-FEE
+                IBRPROMO
+                PAX-PKG 
+                CABIN   
+203526*         STATMNT-IDX 
+                CABIN-IDX.  
+
+           OPEN GRP1-BOOK    USAGE-MODE IS UPDATE   
+                GTRF         USAGE-MODE IS UPDATE   
+                ITRF         USAGE-MODE IS UPDATE   
+                GRP1-REPRI   USAGE-MODE IS UPDATE   
+                GRP1-CAT     USAGE-MODE IS UPDATE   
+203526*         STATEMENT    USAGE-MODE IS UPDATE   
+                ACCTSTXREF   USAGE-MODE IS UPDATE   
+                ATRF         USAGE-MODE IS UPDATE   
+                PAX-SEQ 
+LOYLTY          MMISC-AMT   
+LOYLTY          MMISC-AMTX. 
+
+           MOVE 'U' TO DPP03-OPEN-FLAG. 
+           PERFORM DPP11-OPEN-PAX-AREAS 
+              THRU DPP11-EXIT.  
+
+           PERFORM GRP15-OPEN-HISTORY-UPDATE
+              THRU GRP15-OPEN-EXIT. 
+
+           PERFORM DPP15-OPEN-ASTRF-AREA THRU   
+                   DPP15-ASTRF-OPEN-EXIT.   
+
+           MOVE 'GTRF'   TO GTRF1-CALCAREA. 
+
+           PERFORM IRP14-OPEN-HISTORY-UPDATE
+              THRU IRP14-EXIT.  
+
+           PERFORM IRP66-OPEN-IBR-UPDATE
+              THRU IRP66-OPEN-IBR-AREAS-EXIT.   
+
+           PERFORM ARP06-OPEN-PMT-DUE-UPDATE
+              THRU ARP06-OPEN-PMT-DUE-AREAS-EXIT.   
+           PERFORM ARP90-OPEN-PAYMENT-UPDATE THRU   
+                   ARP90-OPEN-PAYMENT-EXIT. 
+203526*    PERFORM ARP79-OPEN-INVOICE-UPDATE THRU   
+203526*            ARP79-OPEN-INVOICE-EXIT. 
+           PERFORM ARP10-OPEN-CASH-DET-UPDATE THRU  
+                   ARP10-OPEN-CASH-DET-EXIT.
+
+       0200-NEXT-MESSAGE.   
+           COPY CCP00INT.   
+           COPY CCP45INT.   
+
+           MOVE 0                        TO CCMV-ADV-SUB
+                                            DPP01-ERROR-NUMBER  
+                                            CCP00-ADVISE-CODE   
+                                            MSGHDR-ADVISE-CODE (1). 
+
+           MOVE 'CCR01UPO'               TO CCP00-MESSAGE-SOURCE
+                                            MSGHDR-ADVISE-SOURCE (1).   
+
+           MOVE 0                        TO UPOBK1-SUB  
+                                            UPOOB1-SUB. 
+
+           MOVE LOW-VALUES               TO CCP00-CHANNEL-TABLE 
+                                            CCP45-SEGMENT.  
+
+           PERFORM DPP12-GET-NEXT-MESSAGE   
+              THRU DPP12-GET-NEXT-MESSAGE-EXIT. 
+
+           COPY DPP03INT.   
+           COPY RSP06INT.   
+
+           MOVE ZEROES                   TO SUB1
+                                            SUB2
+                                            WS-TOT-OBC-AMT  
+                                            WS-SEQ-NUM  
+                                            WS-NUMERIC  
+                                            WS-NUMRTN-TYPE  
+                                            WS-SAIL-DATE
+                                            WS-DUR-DAYS.
+
+           MOVE SPACES                   TO WS-ALPHA
+                                            WS-ITM-OBC-MAP-TBL  
+                                            WS-MAPPING-TABLE
+                                            WS-SHIP-CODE.   
+
+           MOVE MSGHDR-USER-ID           TO INFO-USERID.
+           MOVE P-TC                     TO INFO-PROGRAM-ID.
+
+           IF  CCMV-ERROR-SUB > ZERO
+               ADD 1                     TO CCMV-ADV-SUB
+               MOVE 0001                 TO MSGHDR-ADVISE-CODE  
+                                            (CCMV-ADV-SUB)  
+               MOVE 'CCR01UPO'           TO MSGHDR-ADVISE-SOURCE
+                                            (CCMV-ADV-SUB)  
+               PERFORM CCP75-OUTPUT-CCERRMSG
+                  THRU CCP75-OUTPUT-CCERRMSG-EXIT   
+               GO TO 9000-END-OF-JOB
+           END-IF.  
+
+       COPY RSP90INT.   
+
+           IF  CCMH-MESSAGE-ID NOT = 'CCUPORD1' 
+               ADD 1                     TO CCMV-ADV-SUB
+               MOVE 0002                 TO MSGHDR-ADVISE-CODE  
+                                            (CCMV-ADV-SUB)  
+               MOVE 'CCR01UPO'           TO MSGHDR-ADVISE-SOURCE
+                                            (CCMV-ADV-SUB)  
+               PERFORM CCP75-OUTPUT-CCERRMSG
+                  THRU CCP75-OUTPUT-CCERRMSG-EXIT   
+               GO TO 9000-END-OF-JOB
+           END-IF.  
+
+       0300-VALIDATE-INPUT. 
+
+           EVALUATE FUNCTION UPPER-CASE (UPORD1-DEPT-CODE)  
+              WHEN 'ZERO'   
+                 MOVE '0' TO UPORD1-DEPT-CODE   
+              WHEN 'ONE'
+                 MOVE '1' TO UPORD1-DEPT-CODE   
+              WHEN 'TWO'
+                 MOVE '2' TO UPORD1-DEPT-CODE   
+              WHEN 'THREE'  
+                 MOVE '3' TO UPORD1-DEPT-CODE   
+              WHEN 'FOUR'   
+                 MOVE '4' TO UPORD1-DEPT-CODE   
+              WHEN 'FIVE'   
+                 MOVE '5' TO UPORD1-DEPT-CODE   
+              WHEN 'SIX'
+                 MOVE '6' TO UPORD1-DEPT-CODE   
+              WHEN 'SEVEN'  
+                 MOVE '7' TO UPORD1-DEPT-CODE   
+              WHEN 'EIGHT'  
+                 MOVE '8' TO UPORD1-DEPT-CODE   
+              WHEN 'NINE'   
+                 MOVE '9' TO UPORD1-DEPT-CODE   
+              WHEN OTHER
+                 CONTINUE   
+           END-EVALUATE.
+
+           IF  UPORD1-ORDER-NUM NOT > ZEROES
+               ADD 1                     TO CCMV-ADV-SUB
+               MOVE 0003                 TO MSGHDR-ADVISE-CODE  
+                                            (CCMV-ADV-SUB)  
+               MOVE 'CCR01UPO'           TO MSGHDR-ADVISE-SOURCE
+                                            (CCMV-ADV-SUB)  
+               PERFORM CCP75-OUTPUT-CCERRMSG
+                  THRU CCP75-OUTPUT-CCERRMSG-EXIT   
+               GO TO 9000-END-OF-JOB
+           END-IF.  
+
+           IF  UPORD1-HYBRIS-ORDER-ID NOT > ZEROS   
+           AND UPORD1-UPDATE-HYBRIS-ID = 'Y'
+               ADD 1                     TO CCMV-ADV-SUB
+               MOVE 0024                 TO MSGHDR-ADVISE-CODE  
+                                            (CCMV-ADV-SUB)  
+               MOVE 'CCR01UPO'           TO MSGHDR-ADVISE-SOURCE
+                                            (CCMV-ADV-SUB)  
+               PERFORM CCP75-OUTPUT-CCERRMSG
+                  THRU CCP75-OUTPUT-CCERRMSG-EXIT   
+               GO TO 9000-END-OF-JOB
+           END-IF.  
+
+CCLCOM*    IF UPORD1-UPDATE-HYBRIS-ID = 'Y' 
+CCLCOM*       GO TO 0350-UPDATE-HYB-ID  
+CCLCOM*    END-IF.  
+
+           IF  UPORD1-SHIP-CODE NOT > SPACES
+               ADD 1                     TO CCMV-ADV-SUB
+               MOVE 0004                 TO MSGHDR-ADVISE-CODE  
+                                            (CCMV-ADV-SUB)  
+               MOVE 'CCR01UPO'           TO MSGHDR-ADVISE-SOURCE
+                                            (CCMV-ADV-SUB)  
+               PERFORM CCP75-OUTPUT-CCERRMSG
+                  THRU CCP75-OUTPUT-CCERRMSG-EXIT   
+               GO TO 9000-END-OF-JOB
+           END-IF.  
+
+           IF  UPORD1-SAIL-DATE NOT > ZEROES
+               ADD 1                     TO CCMV-ADV-SUB
+               MOVE 0005                 TO MSGHDR-ADVISE-CODE  
+                                            (CCMV-ADV-SUB)  
+               MOVE 'CCR01UPO'           TO MSGHDR-ADVISE-SOURCE
+                                            (CCMV-ADV-SUB)  
+               PERFORM CCP75-OUTPUT-CCERRMSG
+                  THRU CCP75-OUTPUT-CCERRMSG-EXIT   
+               GO TO 9000-END-OF-JOB
+           END-IF.  
+
+           IF  UPORD1-DURATION-DAYS NOT > ZEROES
+               ADD 1                     TO CCMV-ADV-SUB
+               MOVE 0006                 TO MSGHDR-ADVISE-CODE  
+                                            (CCMV-ADV-SUB)  
+               MOVE 'CCR01UPO'           TO MSGHDR-ADVISE-SOURCE
+                                            (CCMV-ADV-SUB)  
+               PERFORM CCP75-OUTPUT-CCERRMSG
+                  THRU CCP75-OUTPUT-CCERRMSG-EXIT   
+               GO TO 9000-END-OF-JOB
+           END-IF.  
+
+215015*    IF  UPORD1-ORDER-TOTAL-AMT NOT > ZEROES  
+215015*        ADD 1                     TO CCMV-ADV-SUB
+215015*        MOVE 0007                 TO MSGHDR-ADVISE-CODE  
+215015*                                     (CCMV-ADV-SUB)  
+215015*        MOVE 'CCR01UPO'           TO MSGHDR-ADVISE-SOURCE
+215015*                                     (CCMV-ADV-SUB)  
+215015*        PERFORM CCP75-OUTPUT-CCERRMSG
+215015*           THRU CCP75-OUTPUT-CCERRMSG-EXIT   
+215015*        GO TO 9000-END-OF-JOB
+215015*    END-IF.  
+
+           IF  UPORD1-ORDER-TYPE NOT > SPACES   
+               ADD 1                     TO CCMV-ADV-SUB
+               MOVE 0008                 TO MSGHDR-ADVISE-CODE  
+                                            (CCMV-ADV-SUB)  
+               MOVE 'CCR01UPO'           TO MSGHDR-ADVISE-SOURCE
+                                            (CCMV-ADV-SUB)  
+               PERFORM CCP75-OUTPUT-CCERRMSG
+                  THRU CCP75-OUTPUT-CCERRMSG-EXIT   
+               GO TO 9000-END-OF-JOB
+           END-IF.  
+
+           IF  UPORD1-CURRENCY-CODE NOT > SPACES
+               ADD 1                     TO CCMV-ADV-SUB
+               MOVE 0009                 TO MSGHDR-ADVISE-CODE  
+                                            (CCMV-ADV-SUB)  
+               MOVE 'CCR01UPO'           TO MSGHDR-ADVISE-SOURCE
+                                            (CCMV-ADV-SUB)  
+               PERFORM CCP75-OUTPUT-CCERRMSG
+                  THRU CCP75-OUTPUT-CCERRMSG-EXIT   
+               GO TO 9000-END-OF-JOB
+           END-IF.  
+
+           IF MSGHDR-USER-ID (1:1) = '@'
+               MOVE MSGHDR-USER-ID    TO WS-USER-INFO   
+           ELSE 
+               MOVE FUNCTION UPPER-CASE (MSGHDR-USER-ID)
+                                           TO SSP18-I-NT-UID
+
+               CALL 'SSC18GUD' USING DPP01-COMMON-DATA-FIELDS   
+                                            DPP01-COMMON-INFO   
+                                            SSP18-INPUT-PARAMS  
+                                            SSP18-OUTPUT-PARAMS 
+
+               IF DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1
+      *                             GO TO 9500-RETURN-SUBROUTINE-ERROR  
+                   MOVE '@ER' TO SSP18-O-NTUR-MAPPER-UID
+               END-IF   
+               MOVE SSP18-O-NTUR-MAPPER-UID  TO WS-USER-INFO
+CCLCOM         MOVE SSP18-O-NTUR-FIRST-NAME  TO WS-USER-FIRST-NAME  
+CCLCOM         MOVE SSP18-O-NTUR-LAST-NAME   TO WS-USER-LAST-NAME   
+           END-IF.  
+
+CCLCOM     IF WS-USER-FIRST-NAME < SPACES   
+CCLCOM        MOVE SPACES      TO WS-USER-FIRST-NAME
+CCLCOM     END-IF.  
+CCLCOM  
+CCLCOM     IF WS-USER-LAST-NAME < SPACES
+CCLCOM        MOVE SPACES      TO WS-USER-LAST-NAME 
+CCLCOM     END-IF.  
+
+           MOVE FUNCTION CURRENT-DATE(1:16)  TO WS-SYS-DATETIME.
+           MOVE WS-SYS-DATETIME (1:8)        TO WS-SYSTEM-DATE. 
+
+           MOVE WS-SYS-DATETIME(1:4)   TO WS-UPDATE-YEAR.   
+           MOVE WS-SYS-DATETIME(5:2)   TO WS-UPDATE-MONTH.  
+           MOVE WS-SYS-DATETIME(7:2)   TO WS-UPDATE-DAY-DATE.   
+           MOVE WS-SYS-DATETIME(9:2)   TO WS-UPDATE-HOUR.   
+           MOVE WS-SYS-DATETIME(11:2)  TO WS-UPDATE-MINUTE. 
+           MOVE WS-SYS-DATETIME(13:2)  TO WS-UPDATE-SECOND. 
+           MOVE WS-SYS-DATETIME(15:2)  TO WS-UPDATE-MILISEC.
+
+       0350-UPDATE-HYB-ID.  
+
+           IF UPORD1-UPDATE-HYBRIS-ID NOT = 'Y' 
+              GO TO 0350-EXIT   
+           END-IF.  
+
+           EXEC SQL 
+             UPDATE ORDER_MASTER
+                SET (HYBRIS_ORDER_ID  = :UPORD1-HYBRIS-ORDER-ID )   
+             WHERE  ORDER_NUM         = :UPORD1-ORDER-NUM   
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              ADD 1                       TO CCMV-ADV-SUB   
+              MOVE 0021                   TO MSGHDR-ADVISE-CODE 
+                                             (CCMV-ADV-SUB) 
+              MOVE 'CCR01UPO'             TO MSGHDR-ADVISE-SOURCE   
+                                             (CCMV-ADV-SUB) 
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+
+              GO TO DPP12-RDMS-ERROR
+           END-IF.  
+
+           IF SQLCODE = 100 
+              GO TO 8000-REC-NOT-FOUND-ERR  
+           END-IF.  
+
+CCLCOM  
+CCLCOM     EXEC SQL 
+CCLCOM       UPDATE ORDER_PAYMENT_DETAIL
+CCLCOM          SET (HYBRIS_ORDER_ID  = :UPORD1-HYBRIS-ORDER-ID )   
+CCLCOM       WHERE  MF_ORDER_NUM    = :UPORD1-ORDER-NUM 
+CCLCOM     END-EXEC.
+CCLCOM  
+CCLCOM     IF SQLCODE < 0   
+CCLCOM        ADD 1                       TO CCMV-ADV-SUB   
+CCLCOM        MOVE 0038                   TO MSGHDR-ADVISE-CODE 
+CCLCOM                                       (CCMV-ADV-SUB) 
+CCLCOM        MOVE 'CCR01UPO'             TO MSGHDR-ADVISE-SOURCE   
+CCLCOM                                       (CCMV-ADV-SUB) 
+CCLCOM        PERFORM CCP75-OUTPUT-CCERRMSG 
+CCLCOM           THRU CCP75-OUTPUT-CCERRMSG-EXIT
+CCLCOM  
+CCLCOM        GO TO DPP12-RDMS-ERROR
+CCLCOM     END-IF.  
+CCLCOM  
+CCLCOM     IF SQLCODE = 100 
+CCLCOM  
+CCLCOM        IF UPORD1-ORDER-TYPE = 'C' OR 'A' 
+CCLCOM           MOVE WS-USER-INFO         TO WS-APPR-ID
+CCLCOM        ELSE  
+CCLCOM             MOVE SPACES             TO WS-APPR-ID
+CCLCOM        END-IF
+CCLCOM  
+CCLCOM        MOVE UPORD1-SAIL-DATE       TO WS-ORD-SAIL-DATE   
+CCLCOM  
+CCLCOM        EXEC SQL  
+CCLCOM             INSERT INTO ORDER_PAYMENT_DETAIL 
+CCLCOM                (MF_ORDER_NUM,
+CCLCOM                HYBRIS_ORDER_ID,  
+CCLCOM                SHIP_CODE,
+CCLCOM                SAIL_DATE,
+CCLCOM                DURATION_DAYS,
+CCLCOM                ORDER_PAYMENT_AMT,
+CCLCOM                ORDER_REFUND_AMT, 
+CCLCOM                CC_PAYMENT_TYPE,  
+CCLCOM                CC_NUM_LAST4, 
+CCLCOM                CC_EXP_MMYY,  
+CCLCOM                APPR_ID,  
+CCLCOM                USER_FIRST_NAME,  
+CCLCOM                USER_LAST_NAME,   
+CCLCOM                USER_ID)  
+CCLCOM              VALUES  
+CCLCOM              (:UPORD1-ORDER-NUM, 
+CCLCOM               :UPORD1-HYBRIS-ORDER-ID,   
+CCLCOM               :UPORD1-SHIP-CODE, 
+CCLCOM               DATE(STRPTIME(:WS-ORD-SAIL-DATE-X,'%Y%m%d')),  
+CCLCOM               :UPORD1-DURATION-DAYS, 
+CCLCOM               NULL,  
+CCLCOM               NULL,  
+CCLCOM               NULL,  
+CCLCOM               NULL,  
+CCLCOM               NULL,  
+CCLCOM               NULLIF(:WS-APPR-ID,' '),   
+CCLCOM               NULLIF(:WS-USER-FIRST-NAME, ' '),  
+CCLCOM               NULLIF(:WS-USER-LAST-NAME, ' '),   
+CCLCOM               NULLIF(:WS-USER-INFO,' ')) 
+CCLCOM        END-EXEC  
+CCLCOM  
+CCLCOM        IF SQLCODE < 0
+CCLCOM           GO TO 9150-RDMS-ERROR  
+CCLCOM        END-IF
+CCLCOM     END-IF.  
+
+           EXEC SQL 
+              SELECT OM.ORDER_TYPE, 
+                     OM.SHIP_CODE,  
+                     BO.BOOK_NUM
+               INTO  :WS-ORD-TYPE,  
+                     :WS-SHIP-CODE, 
+                     :WS-BOOK-NUM   
+               FROM  ORDER_MASTER OM
+               JOIN  BOOKING_ORDER BO   
+                 ON  BO.ORDER_NUM = OM.ORDER_NUM
+              WHERE  OM.ORDER_NUM = :UPORD1-ORDER-NUM   
+              FETCH FIRST 1 ROW ONLY
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              ADD 1                       TO CCMV-ADV-SUB   
+              MOVE 0022                   TO MSGHDR-ADVISE-CODE 
+                                             (CCMV-ADV-SUB) 
+              MOVE 'CCR01UPO'             TO MSGHDR-ADVISE-SOURCE   
+                                             (CCMV-ADV-SUB) 
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+
+              GO TO DPP12-RDMS-ERROR
+           END-IF.  
+
+           IF SQLCODE = 100 
+              GO TO 5000-SEND-RESPONSE  
+           END-IF.  
+           IF (WS-ORD-TYPE = 'P')  OR   
+              ((UPORD1-DEPT-CODE = '5') AND (WS-ORD-TYPE = 'C' OR 'A')) 
+              PERFORM 4500-UPDATE-HISTORY   
+                 THRU 4500-EXIT 
+           END-IF.  
+
+           GO TO 5000-SEND-RESPONSE.
+
+       0350-EXIT.   
+            EXIT.   
+
+       0400-VALIDATE-SAIL.  
+
+           MOVE UPORD1-SAIL-DATE         TO TDP01-I-SAIL-DATE-YYYYMMDD. 
+           MOVE UPORD1-SHIP-CODE         TO TDP01-I-SHIP-CODE.  
+           MOVE UPORD1-DURATION-DAYS     TO TDP01-I-DUR-DAYS.   
+
+           PERFORM TDP01-RET-SAIL-DETAILS   
+              THRU TDP01-RET-SAIL-DETAILS-EXIT. 
+
+           IF TDP01-SAIL-SQLERR 
+              ADD 1                       TO CCMV-ADV-SUB   
+              MOVE 0023                   TO MSGHDR-ADVISE-CODE 
+                                             (CCMV-ADV-SUB) 
+              MOVE 'CCR01UPO'             TO MSGHDR-ADVISE-SOURCE   
+                                             (CCMV-ADV-SUB) 
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+
+              GO TO DPP12-RDMS-ERROR
+           END-IF.  
+
+           IF TDP01-SAIL-NOTFND OR  
+              TDP01-PROC-ERROR > ZEROES 
+              ADD  1                     TO CCMV-ADV-SUB
+              MOVE 0010                  TO MSGHDR-ADVISE-CODE  
+                                            (CCMV-ADV-SUB)  
+              MOVE 'CCR01UPO'            TO MSGHDR-ADVISE-SOURCE
+                                            (CCMV-ADV-SUB)  
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+       0500-VALIDATE-CURR.  
+
+            IF TDP01-BASE-CURRENCY-CODE NOT = UPORD1-CURRENCY-CODE  
+               ADD  1                     TO CCMV-ADV-SUB   
+               MOVE 0011                  TO MSGHDR-ADVISE-CODE 
+                                             (CCMV-ADV-SUB) 
+               MOVE 'CCR01UPO'            TO MSGHDR-ADVISE-SOURCE   
+                                             (CCMV-ADV-SUB) 
+               PERFORM CCP75-OUTPUT-CCERRMSG
+                  THRU CCP75-OUTPUT-CCERRMSG-EXIT   
+               GO TO 9000-END-OF-JOB
+           END-IF.  
+
+       0600-CHK-ORDER.  
+
+           EXEC SQL 
+                SELECT IFNULL(HYBRIS_ORDER_ID,0),   
+                       SHIP_CODE,   
+                       SAIL_ID, 
+                       ORDER_TOTAL_AMT, 
+                       OBC_AMT, 
+                       ORDER_STATUS,
+                       ORDER_TYPE,  
+                       CURRENCY_CODE
+                  INTO WS-HYB-ORD-ID,   
+                       WS-SHIP-CODE,
+                       WS-SAIL-ID,  
+                       WS-ORD-TOT-AMT,  
+                       WS-ORD-TOT-OBC-AMT,  
+                       WS-ORD-STATUS,   
+                       WS-ORD-TYPE, 
+                       WS-CURR-CODE 
+                  FROM ORDER_MASTER 
+                 WHERE ORDER_NUM = :UPORD1-ORDER-NUM
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              ADD 1                       TO CCMV-ADV-SUB   
+              MOVE 0024                   TO MSGHDR-ADVISE-CODE 
+                                             (CCMV-ADV-SUB) 
+              MOVE 'CCR01UPO'             TO MSGHDR-ADVISE-SOURCE   
+                                             (CCMV-ADV-SUB) 
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+
+              GO TO DPP12-RDMS-ERROR
+           END-IF.  
+
+           IF SQLCODE = 100 
+              ADD  1                     TO CCMV-ADV-SUB
+              MOVE 0012                  TO MSGHDR-ADVISE-CODE  
+                                            (CCMV-ADV-SUB)  
+              MOVE 'CCR01UPO'            TO MSGHDR-ADVISE-SOURCE
+                                            (CCMV-ADV-SUB)  
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+      *    IF WS-ORD-STATUS = 'C'   
+      *       ADD  1                     TO CCMV-ADV-SUB
+      *       MOVE 0022                  TO MSGHDR-ADVISE-CODE  
+      *                                     (CCMV-ADV-SUB)  
+      *       MOVE 'CCR01UPO'            TO MSGHDR-ADVISE-SOURCE
+      *                                     (CCMV-ADV-SUB)  
+      *       PERFORM CCP75-OUTPUT-CCERRMSG 
+      *          THRU CCP75-OUTPUT-CCERRMSG-EXIT
+      *       GO TO 9000-END-OF-JOB 
+      *    END-IF.  
+
+           IF WS-ORD-STATUS = 'H'   
+              ADD  1                     TO CCMV-ADV-SUB
+              MOVE 0023                  TO MSGHDR-ADVISE-CODE  
+                                            (CCMV-ADV-SUB)  
+              MOVE 'CCR01UPO'            TO MSGHDR-ADVISE-SOURCE
+                                            (CCMV-ADV-SUB)  
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+           MOVE WS-ORD-TOT-OBC-AMT        TO WS-TOTAL-OBC   
+                                             WS-TOT-OBC-AMT.
+
+           MOVE 'N'       TO WS-UPD-ORD-MAS-TBL.
+
+           IF WS-SAIL-ID = TDP01-SAIL-ID
+              CONTINUE  
+           ELSE 
+              MOVE 'Y'      TO WS-UPD-ORD-MAS-TBL   
+              GO TO 0700-UPD-ORD-MASTER 
+           END-IF.  
+
+           IF WS-ORD-TOT-AMT = UPORD1-ORDER-TOTAL-AMT   
+              CONTINUE  
+           ELSE 
+              MOVE 'Y'      TO WS-UPD-ORD-MAS-TBL   
+              GO TO 0700-UPD-ORD-MASTER 
+           END-IF.  
+
+           IF WS-ORD-TYPE = UPORD1-ORDER-TYPE   
+              CONTINUE  
+           ELSE 
+              MOVE 'Y'      TO WS-UPD-ORD-MAS-TBL   
+              GO TO 0700-UPD-ORD-MASTER 
+           END-IF.  
+
+           IF WS-CURR-CODE = UPORD1-CURRENCY-CODE   
+              CONTINUE  
+           ELSE 
+              MOVE 'Y'      TO WS-UPD-ORD-MAS-TBL   
+              GO TO 0700-UPD-ORD-MASTER 
+           END-IF.  
+
+       0700-UPD-ORD-MASTER. 
+
+           IF WS-UPD-ORD-MAS-TBL = 'Y'  
+              EXEC SQL  
+                   UPDATE ORDER_MASTER  
+                      SET (SHIP_CODE       = :UPORD1-SHIP-CODE  
+                          ,SAIL_ID         = :TDP01-SAIL-ID 
+                          ,ORDER_TOTAL_AMT = :UPORD1-ORDER-TOTAL-AMT
+                          ,ORDER_TYPE      = :UPORD1-ORDER-TYPE 
+                          ,CURRENCY_CODE   = :UPORD1-CURRENCY-CODE) 
+                    WHERE  ORDER_NUM       = :UPORD1-ORDER-NUM  
+              END-EXEC  
+
+              IF SQLCODE < 0
+                 ADD 1                       TO CCMV-ADV-SUB
+                 MOVE 0025                   TO MSGHDR-ADVISE-CODE  
+                                                (CCMV-ADV-SUB)  
+                 MOVE 'CCR01UPO'             TO MSGHDR-ADVISE-SOURCE
+                                                (CCMV-ADV-SUB)  
+                 PERFORM CCP75-OUTPUT-CCERRMSG  
+                    THRU CCP75-OUTPUT-CCERRMSG-EXIT 
+
+                 GO TO DPP12-RDMS-ERROR 
+              END-IF
+
+              IF SQLCODE = 100  
+                 GO TO 8000-REC-NOT-FOUND-ERR   
+              END-IF
+           END-IF.  
+
+           MOVE ZEROES                    TO MAP-SUB.   
+
+       0800-GET-MAPPING-DATA.   
+
+           EXEC SQL DECLARE MAPPING_DATA CURSOR 
+                SELECT ITEM_TYPE,   
+                       OBC_TYPE_1,  
+                       OBC_TYPE_2,  
+                       OBC_TYPE_3,  
+                       TRANSLATED_NAME  
+                FROM ITEM_OBC_MAP_TBL   
+           END-EXEC.
+
+           EXEC SQL OPEN MAPPING_DATA END-EXEC. 
+
+       0810-READ-NEXT-MAPPING-DATA. 
+
+           EXEC SQL FETCH NEXT FROM MAPPING_DATA
+                INTO :MAP-ITEM-TYPE  ,  
+                     :MAP-OBC-TYPE-1 ,  
+                     :MAP-OBC-TYPE-2            :WS-OBC-TYPE2-NI ,  
+                     :MAP-OBC-TYPE-3            :WS-OBC-TYPE3-NI ,  
+                     :MAP-TRANSLATED-NAME   
+           END-EXEC.
+
+           IF SQLCODE = 100 
+              GO TO 0820-CLOSE-MAPPING-CURSOR   
+           END-IF.  
+
+           IF SQLCODE < 0   
+              ADD 1                       TO CCMV-ADV-SUB   
+              MOVE 0026                   TO MSGHDR-ADVISE-CODE 
+                                             (CCMV-ADV-SUB) 
+              MOVE 'CCR01UPO'             TO MSGHDR-ADVISE-SOURCE   
+                                             (CCMV-ADV-SUB) 
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+
+              GO TO DPP12-RDMS-ERROR
+           END-IF.  
+
+           IF  WS-OBC-TYPE2-NI = WS-NULL-IND
+               MOVE SPACES   TO MAP-OBC-TYPE-2  
+           END-IF.  
+
+           IF  WS-OBC-TYPE3-NI = WS-NULL-IND
+               MOVE SPACES   TO MAP-OBC-TYPE-3  
+           END-IF.  
+
+           ADD 1 TO MAP-SUB.
+
+           MOVE MAP-ITEM-TYPE          TO WS-ITEM-TYPE        (MAP-SUB).
+           MOVE MAP-OBC-TYPE-1         TO WS-OBC-TYPE-1       (MAP-SUB).
+           MOVE MAP-OBC-TYPE-2         TO WS-OBC-TYPE-2       (MAP-SUB).
+           MOVE MAP-OBC-TYPE-3         TO WS-OBC-TYPE-3       (MAP-SUB).
+           MOVE MAP-TRANSLATED-NAME    TO WS-TRANSLATED-NAME  (MAP-SUB).
+
+           GO TO 0810-READ-NEXT-MAPPING-DATA.   
+
+       0820-CLOSE-MAPPING-CURSOR.   
+
+           EXEC SQL 
+              CLOSE MAPPING_DATA
+           END-EXEC.
+
+           MOVE 0 TO SUB1   
+                     WS-SEQ-NUM.
+
+       0900-PROCESS-BOOKING-DETAILS.
+
+           ADD 1     TO SUB1.   
+
+           IF SUB1 > UPOBK1-SUB 
+              IF WS-TOT-OBC-AMT NOT = WS-ORD-TOT-OBC-AMT
+                 IF WS-TOT-OBC-AMT > UPORD1-ORDER-TOTAL-AMT 
+                    ADD  1                     TO CCMV-ADV-SUB  
+                    MOVE 0021                  TO MSGHDR-ADVISE-CODE
+                                                  (CCMV-ADV-SUB)
+                    MOVE 'CCR01UPO'            TO MSGHDR-ADVISE-SOURCE  
+                                                  (CCMV-ADV-SUB)
+                    PERFORM CCP75-OUTPUT-CCERRMSG   
+                       THRU CCP75-OUTPUT-CCERRMSG-EXIT  
+                    GO TO 9000-END-OF-JOB   
+                 END-IF 
+                 EXEC SQL   
+                    UPDATE ORDER_MASTER 
+                       SET (OBC_AMT       = :WS-TOT-OBC-AMT)
+                       WHERE  ORDER_NUM   = :UPORD1-ORDER-NUM   
+                 END-EXEC   
+                 IF SQLCODE < 0 
+                    ADD 1                       TO CCMV-ADV-SUB 
+                    MOVE 0027                   TO MSGHDR-ADVISE-CODE   
+                                                   (CCMV-ADV-SUB)   
+                    MOVE 'CCR01UPO'             TO MSGHDR-ADVISE-SOURCE 
+                                                   (CCMV-ADV-SUB)   
+                    PERFORM CCP75-OUTPUT-CCERRMSG   
+                       THRU CCP75-OUTPUT-CCERRMSG-EXIT  
+
+                    GO TO DPP12-RDMS-ERROR  
+                 END-IF 
+              END-IF
+              GO TO 5000-SEND-RESPONSE  
+           END-IF.  
+
+           IF UPOBK1-BOOK-NUM (SUB1) NOT > SPACES   
+              ADD  1                      TO CCMV-ADV-SUB   
+              MOVE 0014                   TO MSGHDR-ADVISE-CODE 
+                                             (CCMV-ADV-SUB) 
+              MOVE 'CCR01UPO'             TO MSGHDR-ADVISE-SOURCE   
+                                             (CCMV-ADV-SUB) 
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+           MOVE UPOBK1-BOOK-NUM (SUB1)    TO GBR1-BOOK-NUM  
+                                             WS-BOOK-NUM.   
+           MOVE 'N'                       TO WS-GRP-BOOK-IND.   
+           FETCH GRP1-BOOKING-REC RECORD
+                 ON ERROR GO TO 0900-FETCH-INDV.
+
+           MOVE GBR1-SHIP-CODE            TO WS-SHIP-CODE.  
+           MOVE GBR1-SAIL-DATE            TO WS-SAIL-DATE.  
+           MOVE GBR1-DURATION-DAYS        TO WS-DUR-DAYS.   
+           MOVE 'Y'                       TO WS-GRP-BOOK-IND.   
+           MOVE SPACES                    TO WS-IBR-CABIN-NUM.  
+
+           GO TO 0900-ADD-BOOKING-REC.  
+
+       0900-FETCH-INDV. 
+
+           IF ERROR-NUM NOT = '0007' AND '0013' 
+              ADD  1                      TO CCMV-ADV-SUB   
+              MOVE 0016                   TO MSGHDR-ADVISE-CODE 
+                                             (CCMV-ADV-SUB) 
+              MOVE 'CCR01UPO'             TO MSGHDR-ADVISE-SOURCE   
+                                             (CCMV-ADV-SUB) 
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+           PERFORM 3000-CALL-RSO23  
+              THRU 3000-CALL-RSO23-EXIT.
+
+           IF RSP06-IBR-BOOK-TYPE = 'G' 
+              MOVE RSP06-IBR-GROUP-BOOK-NUM TO WS-BOOK-NUM  
+           END-IF.  
+
+       0900-ADD-BOOKING-REC.
+           IF (WS-ORD-TYPE = 'P')  OR   
+              ((UPORD1-DEPT-CODE = '5') AND (WS-ORD-TYPE = 'C' OR 'A')) 
+              PERFORM 4000-PROCESS-BOOKING-DETAILS  
+                 THRU 4000-BOOKING-DETAILS-EXIT 
+           END-IF.  
+           IF UPOBK1-BKG-ACTION-CODE (SUB1) = 'A'   
+              EXEC SQL  
+                    INSERT INTO BOOKING_ORDER   
+                           (BOOK_NUM
+                           ,ORDER_NUM)  
+                    VALUES (:UPOBK1-BOOK-NUM (SUB1) 
+                           ,:UPORD1-ORDER-NUM)  
+              END-EXEC  
+           END-IF.  
+
+       0900-UPD-BOOKING-REC.
+
+           IF UPOBK1-BKG-ACTION-CODE (SUB1) = 'U'   
+              MOVE 0    TO WS-BOOK-REC-CNT  
+              EXEC SQL  
+                   SELECT COUNT(*)  
+                     INTO :WS-BOOK-REC-CNT  
+                     FROM BOOKING_ORDER 
+                    WHERE  ORDER_NUM  = :UPORD1-ORDER-NUM AND   
+                           BOOK_NUM   = :UPOBK1-BOOK-NUM (SUB1) 
+              END-EXEC  
+
+              IF SQLCODE = 100 OR WS-BOOK-REC-CNT NOT > 0   
+                 ADD 1                TO CCMV-ADV-SUB   
+                 MOVE 0020            TO MSGHDR-ADVISE-CODE 
+                                         (CCMV-ADV-SUB) 
+                 MOVE 'CCR01UPO'      TO MSGHDR-ADVISE-SOURCE   
+                                         (CCMV-ADV-SUB) 
+                 PERFORM CCP75-OUTPUT-CCERRMSG  
+                    THRU CCP75-OUTPUT-CCERRMSG-EXIT 
+                 GO TO 9000-END-OF-JOB  
+              END-IF
+           END-IF.  
+
+       0900-DELETE-BOOKING-REC. 
+
+           IF UPOBK1-BKG-ACTION-CODE (SUB1) = 'D'   
+      *       EXEC SQL  
+      *             DELETE BOOKING_ORDER
+      *             WHERE  ORDER_NUM  = :UPORD1-ORDER-NUM AND   
+      *                    BOOK_NUM   = :UPOBK1-BOOK-NUM (SUB1) 
+      *       END-EXEC  
+      * 
+      *       IF SQLCODE < 0
+      *          ADD 1                       TO CCMV-ADV-SUB
+      *          MOVE 0028                   TO MSGHDR-ADVISE-CODE  
+      *                                         (CCMV-ADV-SUB)  
+      *          MOVE 'CCR01UPO'             TO MSGHDR-ADVISE-SOURCE
+      *                                         (CCMV-ADV-SUB)  
+      *          PERFORM CCP75-OUTPUT-CCERRMSG  
+      *             THRU CCP75-OUTPUT-CCERRMSG-EXIT 
+      * 
+      *          GO TO DPP12-RDMS-ERROR 
+      *       END-IF
+      * 
+      *       IF SQLCODE = 100  
+      *          GO TO 8000-REC-NOT-FOUND-ERR   
+      *       END-IF
+
+              MOVE 0    TO WS-OBC-REC-CNT   
+                           WS-OBC-DEL-AMT   
+              EXEC SQL  
+                   SELECT COUNT(*),IFNULL(SUM(IFNULL(OBC_AMT,0)),0) 
+                     INTO :WS-OBC-REC-CNT,  
+                          :WS-OBC-DEL-AMT   
+                     FROM ORDER_OBC_DETAIL  
+                   WHERE ORDER_NUM  = :UPORD1-ORDER-NUM AND 
+                         BOOK_NUM   = :UPOBK1-BOOK-NUM (SUB1)   
+              END-EXEC  
+
+              IF SQLCODE = 100  
+                 GO TO 8000-REC-NOT-FOUND-ERR   
+              END-IF
+
+              IF SQLCODE < 0
+                 ADD 1                       TO CCMV-ADV-SUB
+                 MOVE 0034                   TO MSGHDR-ADVISE-CODE  
+                                                (CCMV-ADV-SUB)  
+                 MOVE 'CCR01UPO'             TO MSGHDR-ADVISE-SOURCE
+                                                (CCMV-ADV-SUB)  
+                 PERFORM CCP75-OUTPUT-CCERRMSG  
+                    THRU CCP75-OUTPUT-CCERRMSG-EXIT 
+
+                 GO TO DPP12-RDMS-ERROR 
+              END-IF
+
+              IF WS-OBC-REC-CNT > 0 
+
+                 EXEC SQL   
+                      DELETE ORDER_OBC_DETAIL   
+                       WHERE ORDER_NUM      = :UPORD1-ORDER-NUM AND 
+                             BOOK_NUM       = :UPOBK1-BOOK-NUM (SUB1)   
+                 END-EXEC   
+
+                 COMPUTE WS-TOT-OBC-AMT  = WS-TOT-OBC-AMT - 
+                                           WS-OBC-DEL-AMT   
+                 GO TO 0900-PROCESS-BOOKING-DETAILS 
+              END-IF
+           END-IF.  
+
+           IF WS-TOT-OBC-AMT NOT > ZEROES   
+              GO TO 0900-PROCESS-BOOKING-DETAILS
+           END-IF.  
+
+           MOVE 0   TO SUB2.
+           MOVE ZERO TO WS-BOOKING-OBC-AMT. 
+
+       1000-PROCESS-BOOKING-OBC.
+
+           ADD 1    TO SUB2.
+
+           IF SUB2 > UPOOB1-CNT (SUB1)  
+              IF WS-BOOKING-OBC-AMT > 0 
+                 GO TO 1000-CHK-OBC-ELIGIBILITY 
+              ELSE  
+                 GO TO 0900-PROCESS-BOOKING-DETAILS 
+              END-IF
+           END-IF.  
+
+           IF (UPOOB1-OBC-ACTION-CODE (SUB1 SUB2) = 'U' OR 'A') OR  
+              (UPOOB1-OBC-ACTION-CODE (SUB1 SUB2) <= SPACES)
+              ADD UPOOB1-OBC-AMT (SUB1 SUB2) TO WS-BOOKING-OBC-AMT  
+           END-IF.  
+
+
+       1000-DELETE-OBC-REC. 
+
+           IF UPOOB1-OBC-ACTION-CODE (SUB1 SUB2) = 'D'  
+              PERFORM 1200-GET-OBC-AMT  
+                 THRU 1200-GET-OBC-AMT-EXIT 
+
+              EXEC SQL  
+                   DELETE ORDER_OBC_DETAIL  
+                    WHERE ORDER_NUM      = :UPORD1-ORDER-NUM AND
+                          BOOK_NUM       = :UPOBK1-BOOK-NUM (SUB1) AND  
+                       PRESALE_ITEM_TYPE = :UPOOB1-ITEM-TYPE (SUB1 SUB2)
+              END-EXEC  
+
+              COMPUTE WS-TOT-OBC-AMT  = WS-TOT-OBC-AMT -
+                                           WS-OLD-OBC-AMT   
+
+           END-IF.  
+
+           IF UPOOB1-OBC-ACTION-CODE (SUB1 SUB2) = 'U'  
+              PERFORM 1200-GET-OBC-AMT  
+                 THRU 1200-GET-OBC-AMT-EXIT 
+
+              COMPUTE  WS-TOTAL-OBC = UPOOB1-OBC-AMT (SUB1 SUB2) -  
+                                  WS-OLD-OBC-AMT
+
+              IF WS-TOTAL-OBC > 0   
+                 GO TO 1000-PROCESS-BOOKING-OBC 
+              END-IF
+
+              COMPUTE WS-TOT-OBC-AMT = WS-TOT-OBC-AMT + WS-TOTAL-OBC
+
+              EXEC SQL UPDATE   
+                   ORDER_OBC_DETAIL 
+                   SET (OBC_AMT = NULLIF(:UPOOB1-OBC-AMT (SUB1 SUB2),0))
+                   WHERE ORDER_NUM      = :UPORD1-ORDER-NUM AND 
+                         BOOK_NUM       = :UPOBK1-BOOK-NUM (SUB1) AND   
+                      PRESALE_ITEM_TYPE = :UPOOB1-ITEM-TYPE (SUB1 SUB2) 
+              END-EXEC  
+           END-IF.  
+
+
+           GO TO 1000-PROCESS-BOOKING-OBC.  
+
+       1000-CHK-OBC-ELIGIBILITY.
+
+           IF (RSP06-IBR-OBC-SAILING-AMT NOT > 0)   
+              ADD 1                TO CCMV-ADV-SUB  
+              MOVE 0015            TO MSGHDR-ADVISE-CODE
+                                      (CCMV-ADV-SUB)
+              MOVE 'CCR01UPO'      TO MSGHDR-ADVISE-SOURCE  
+                                      (CCMV-ADV-SUB)
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+           MOVE 0                  TO WS-O-OBC-ENTRY-CNT
+                                      WS-ORDER-ENTRY-CNT
+                                      WS-ENTRY-CNT. 
+           PERFORM 3200-GET-OFFERED-OBC THRU 3200-EXIT  
+             VARYING RSP06-PAX-SUB FROM 1 BY 1  
+               UNTIL RSP06-PAX-SUB > RSP06-PAX-CNT. 
+           IF (WS-O-OBC-ENTRY-CNT NOT > 0)  
+              ADD 1                TO CCMV-ADV-SUB  
+              MOVE 0015            TO MSGHDR-ADVISE-CODE
+                                      (CCMV-ADV-SUB)
+              MOVE 'CCR01UPO'      TO MSGHDR-ADVISE-SOURCE  
+                                      (CCMV-ADV-SUB)
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+           PERFORM 3700-REARRANGE-OUTPUT
+              THRU 3700-EXIT.   
+
+           PERFORM 3800-FIND-ORDERS 
+              THRU 3800-EXIT.   
+
+           PERFORM 3900-APPLY-OBC   
+              THRU 3900-EXIT.   
+
+           MOVE 0   TO SUB2.
+
+       1000-ADD-BOOKING-OBC.
+
+           ADD 1    TO SUB2.
+
+           IF SUB2 > UPOOB1-CNT (SUB1)  
+              GO TO 0900-PROCESS-BOOKING-DETAILS
+           END-IF.  
+
+           MOVE 'N'         TO WS-OBC-MATCH.
+           EXEC SQL 
+                SELECT TRANSLATED_NAME  
+                  FROM ITEM_OBC_MAP_TBL 
+                 WHERE ITEM_TYPE = :UPOOB1-ITEM-TYPE (SUB1 SUB2)
+                  INTO WS-TRANS-NAME
+           END-EXEC.
+
+       1000-UPD-OBC-REC.
+
+           IF UPOOB1-OBC-ACTION-CODE (SUB1 SUB2) = 'U'  
+              PERFORM 1200-GET-OBC-AMT  
+                 THRU 1200-GET-OBC-AMT-EXIT 
+
+              COMPUTE  WS-TOTAL-OBC = UPOOB1-OBC-AMT (SUB1 SUB2) -  
+                                  WS-OLD-OBC-AMT
+
+              IF WS-TOTAL-OBC > 0   
+                 PERFORM 1100-GET-AVAIL-OBC THRU 1100-EXIT  
+              ELSE  
+                 GO TO 1000-ADD-BOOKING-OBC 
+              END-IF
+
+              COMPUTE WS-TOT-OBC-AMT = WS-TOT-OBC-AMT + WS-TOTAL-OBC
+
+              EXEC SQL UPDATE   
+                   ORDER_OBC_DETAIL 
+                   SET (OBC_AMT = NULLIF(:UPOOB1-OBC-AMT (SUB1 SUB2),0))
+                   WHERE ORDER_NUM      = :UPORD1-ORDER-NUM AND 
+                         BOOK_NUM       = :UPOBK1-BOOK-NUM (SUB1) AND   
+                      PRESALE_ITEM_TYPE = :UPOOB1-ITEM-TYPE (SUB1 SUB2) 
+              END-EXEC  
+
+              GO TO 1000-ADD-BOOKING-OBC
+           END-IF.  
+
+       1000-INSERT-OBC-REC. 
+
+           IF UPOOB1-OBC-ACTION-CODE (SUB1 SUB2) NOT = 'A'  
+              GO TO 1000-ADD-BOOKING-OBC
+           END-IF.  
+
+           MOVE 'N'   TO  WS-OBC-TYP-FND.   
+
+           MOVE UPOOB1-OBC-AMT (SUB1 SUB2)  TO  WS-TOTAL-OBC.   
+
+           IF WS-TOTAL-OBC > 0  
+              PERFORM 1100-GET-AVAIL-OBC THRU 1100-EXIT 
+           END-IF.  
+
+           COMPUTE WS-TOT-OBC-AMT = WS-TOT-OBC-AMT + WS-TOTAL-OBC.  
+
+           EXEC SQL 
+                SELECT SEQ_NUM  
+                  INTO :WS-ORD-SEQ  
+                  FROM ORDER_OBC_DETAIL 
+                 WHERE ORDER_NUM         = :UPORD1-ORDER-NUM AND
+                       BOOK_NUM          = :UPOBK1-BOOK-NUM (SUB1) AND  
+                       PRESALE_ITEM_TYPE = :UPOOB1-ITEM-TYPE (SUB1 SUB2)
+                 FETCH FIRST 1 ROW ONLY 
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              ADD 1                       TO CCMV-ADV-SUB   
+              MOVE 0029                   TO MSGHDR-ADVISE-CODE 
+                                             (CCMV-ADV-SUB) 
+              MOVE 'CCR01UPO'             TO MSGHDR-ADVISE-SOURCE   
+                                             (CCMV-ADV-SUB) 
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+
+              GO TO DPP12-RDMS-ERROR
+           END-IF.  
+
+           IF SQLCODE = 100 
+              CONTINUE  
+           ELSE 
+              MOVE 'Y'         TO WS-OBC-TYP-FND
+           END-IF.  
+
+           IF WS-OBC-TYP-FND = 'N'  
+              MOVE 0    TO WS-SEQ-NUM   
+                           WS-OBC-REC-CNT   
+
+              EXEC SQL  
+                   SELECT MAX(SEQ_NUM)  
+                     INTO :WS-SEQ-NUM   
+                     FROM ORDER_OBC_DETAIL  
+                    WHERE ORDER_NUM  = :UPORD1-ORDER-NUM
+              END-EXEC  
+
+              ADD 1         TO WS-SEQ-NUM   
+              EXEC SQL  
+                   INSERT INTO ORDER_OBC_DETAIL 
+                          (ORDER_NUM
+                          ,SEQ_NUM  
+                          ,BOOK_NUM 
+                          ,OBC_AMT  
+                          ,PRESALE_ITEM_TYPE)   
+                    VALUES (:UPORD1-ORDER-NUM   
+                          ,:WS-SEQ-NUM  
+                          ,:UPOBK1-BOOK-NUM (SUB1)  
+                          ,NULLIF(:UPOOB1-OBC-AMT (SUB1 SUB2),0)
+                          ,NULLIF(:UPOOB1-ITEM-TYPE (SUB1 SUB2),' '))   
+              END-EXEC  
+           ELSE 
+              EXEC SQL  
+                   UPDATE ORDER_OBC_DETAIL  
+                      SET   OBC_AMT = IFNULL(OBC_AMT,0) +   
+                                      :UPOOB1-OBC-AMT (SUB1 SUB2)   
+                    WHERE ORDER_NUM = :UPORD1-ORDER-NUM AND 
+                            SEQ_NUM = :WS-ORD-SEQ   
+              END-EXEC  
+           END-IF.  
+
+           GO TO  1000-ADD-BOOKING-OBC. 
+
+       1100-GET-AVAIL-OBC.  
+            MOVE WS-TOTAL-OBC TO WS-OBC-REQUIRED.   
+            PERFORM VARYING SUB FROM 1 BY 1 
+             UNTIL SUB > WS-O-OBC-ENTRY-CNT 
+                IF WS-O-TRANSLATED-NAME (SUB) = 
+                                         WS-TRANS-NAME OR   
+                   WS-O-TRANSLATED-NAME (SUB) = 'GENERAL'   
+                   IF WS-O-REMAINING-OBC-AMT (SUB)  >= WS-OBC-REQUIRED  
+                      SUBTRACT WS-OBC-REQUIRED FROM 
+                                WS-O-REMAINING-OBC-AMT (SUB)
+                      MOVE ZERO TO WS-OBC-REQUIRED  
+                      MOVE WS-O-OBC-ENTRY-CNT  TO SUB   
+                   ELSE 
+                      SUBTRACT WS-O-REMAINING-OBC-AMT (SUB) FROM
+                               WS-OBC-REQUIRED  
+                      MOVE ZERO TO WS-O-REMAINING-OBC-AMT (SUB) 
+                   END-IF   
+                END-IF  
+           END-PERFORM. 
+
+           IF WS-OBC-REQUIRED > 0   
+              ADD 1                TO CCMV-ADV-SUB  
+              MOVE 0016            TO MSGHDR-ADVISE-CODE
+                                      (CCMV-ADV-SUB)
+              MOVE 'CCR01UPO'      TO MSGHDR-ADVISE-SOURCE  
+                                      (CCMV-ADV-SUB)
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+       1100-EXIT.   
+           EXIT.
+
+       1200-GET-OBC-AMT.
+           EXEC SQL 
+                SELECT IFNULL(OBC_AMT,0)
+                  INTO :WS-OLD-OBC-AMT  
+                  FROM ORDER_OBC_DETAIL 
+                  WHERE    ORDER_NUM  = :UPORD1-ORDER-NUM AND   
+                           BOOK_NUM   = :UPOBK1-BOOK-NUM (SUB1) AND 
+                    PRESALE_ITEM_TYPE = :UPOOB1-ITEM-TYPE (SUB1 SUB2)   
+                    FETCH FIRST 1 ROW ONLY  
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              ADD 1                       TO CCMV-ADV-SUB   
+              MOVE 0030                   TO MSGHDR-ADVISE-CODE 
+                                             (CCMV-ADV-SUB) 
+              MOVE 'CCR01UPO'             TO MSGHDR-ADVISE-SOURCE   
+                                             (CCMV-ADV-SUB) 
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+
+              GO TO DPP12-RDMS-ERROR
+           END-IF.  
+
+           IF SQLCODE = 100 
+              MOVE 0 TO WS-OLD-OBC-AMT  
+           END-IF.  
+
+       1200-GET-OBC-AMT-EXIT.   
+           EXIT.
+
+       3000-CALL-RSO23. 
+           COPY RSP23INT.   
+
+           MOVE WS-BOOK-NUM            TO RSP23-I-INDV-BOOK-NUM.
+           MOVE 'A'                    TO RSP23-I-BOOK-TYPE.
+           MOVE ZERO                   TO DPP01-SUB-MSG-CTR.
+
+           MOVE 'Y'                    TO RSP23-I-READ-POBC-IND 
+                                          RSP23-I-READ-PAX-IND  
+                                          RSP23-I-READ-IFR-IND  
+                                          RSP23-I-READ-PICF-IND 
+                                          RSP23-I-READ-PXFR-IND 
+                                          RSP23-I-READ-PTFR-IND 
+                                          RSP23-I-READ-PPR-IND  
+                                          RSP23-I-READ-TIR-IND  
+                                          RSP23-I-READ-CXP-GUEST-IND
+                                          RSP23-I-READ-PPIR-IND 
+                                          RSP23-I-READ-WAITLIST-IND 
+                                          RSP23-I-READ-CIF-IND  
+                                          RSP23-I-READ-IBPIR-IND
+                                          RSP23-I-READ-I-TOAR-IND   
+                                          RSP23-I-READ-PPHOR-IND
+                                          RSP23-I-READ-POBC-IND 
+                                          RSP23-I-READ-GST-OFR-IND  
+                                          RSP23-I-READ-GST-OFR-QUL-IND  
+                                          RSP23-I-READ-IBR-IND. 
+
+           CALL 'RSO23RGC' USING DPP01-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 RSP23-RGC-INPUT
+                                 RSP06-GUEST-CABIN-INFO.
+
+           IF  DPP01-SUB-MSG-CTR > 0 AND
+               DPP01-SUB-MSG-STATUS (1) > 1 
+               GO TO DPP12-RETURN-SUBROUTINE-ERROR  
+           END-IF.  
+
+       3000-CALL-RSO23-EXIT.
+           EXIT.
+
+       3200-GET-OFFERED-OBC.
+
+           IF  RSP06-POBC-EXIST-IND (RSP06-PAX-SUB) = 'Y'   
+               PERFORM VARYING POBC-SUB FROM 1 BY 1 
+                   UNTIL POBC-SUB > RSP06-POBC-ENTRY-CNT
+                                       (RSP06-PAX-SUB)  
+                   PERFORM 3400-CHECK-VALID-FOR-PRESALES THRU 3400-EXIT 
+                   IF WS-VALID-OBC = 'Y'
+                      PERFORM 3600-ADD-TO-OFFERED-OBC THRU 3600-EXIT
+                   END-IF   
+                END-PERFORM 
+           END-IF.  
+
+       3200-EXIT.   
+           EXIT.
+
+       3400-CHECK-VALID-FOR-PRESALES.   
+
+           MOVE RSP06-POBC-OBC-CODE (RSP06-PAX-SUB POBC-SUB)
+                                    TO OBC-CODE.
+
+           FETCH OBC-MASTER-REC RECORD  
+                 ON ERROR GO TO 9100-DATABASE-ERROR.
+
+           MOVE 'N'                 TO WS-VALID-OBC 
+           MOVE SPACES              TO WS-TNAME.
+
+           IF OBC-DEPT-CODE(1) NOT > SPACES 
+              MOVE 'Y'              TO WS-VALID-OBC 
+              MOVE 'GENERAL'        TO OBC-DEPT-CODE(1) 
+                                       WS-TNAME 
+              GO TO 3400-EXIT   
+           END-IF.  
+
+           PERFORM VARYING SUB FROM 1 BY 1 UNTIL SUB > MAP-SUB  
+              IF (OBC-DEPT-CODE(1) = WS-OBC-TYPE-1 (SUB)) OR
+                 (OBC-DEPT-CODE(1) = WS-OBC-TYPE-2 (SUB)) OR
+                 (OBC-DEPT-CODE(1) = WS-OBC-TYPE-3 (SUB))   
+                 MOVE 'Y'           TO WS-VALID-OBC 
+                 MOVE WS-TRANSLATED-NAME (SUB)  
+                                    TO WS-TNAME 
+                 MOVE MAP-SUB       TO SUB  
+              END-IF
+           END-PERFORM. 
+
+       3400-EXIT.   
+           EXIT.
+
+       3600-ADD-TO-OFFERED-OBC. 
+
+           IF WS-O-OBC-ENTRY-CNT NOT > 0
+              MOVE 1                   TO WS-O-OBC-ENTRY-CNT
+              MOVE OBC-DEPT-CODE(1) TO WS-O-OBC-DEPT-CODE   
+                                          (WS-O-OBC-ENTRY-CNT)  
+              MOVE WS-TNAME            TO WS-O-TRANSLATED-NAME  
+                                          (WS-O-OBC-ENTRY-CNT)  
+              MOVE OBC-REFUND-IND      TO WS-O-OBC-REFUNDABLE-IND   
+                                          (WS-O-OBC-ENTRY-CNT)  
+              MOVE RSP06-POBC-SAILING-AMT (RSP06-PAX-SUB POBC-SUB)  
+                                       TO WS-O-OFFERED-OBC-AMT  
+                                          (WS-O-OBC-ENTRY-CNT)  
+                                          WS-O-REMAINING-OBC-AMT
+                                          (WS-O-OBC-ENTRY-CNT)  
+              MOVE ZEROS               TO WS-O-APPLIED-OBC-AMT  
+                                          (WS-O-OBC-ENTRY-CNT)  
+              GO TO 3600-EXIT   
+           ELSE 
+              MOVE 'N'                 TO WS-ENTRY-FOUND
+              PERFORM VARYING SUB FROM 1 BY 1   
+                  UNTIL SUB > WS-O-OBC-ENTRY-CNT
+                  IF (OBC-DEPT-CODE(1) = WS-O-OBC-DEPT-CODE (SUB)) AND  
+                     (OBC-REFUND-IND = WS-O-OBC-REFUNDABLE-IND (SUB))   
+                     MOVE 'Y'          TO WS-ENTRY-FOUND
+                     ADD RSP06-POBC-SAILING-AMT (RSP06-PAX-SUB POBC-SUB)
+                                       TO WS-O-OFFERED-OBC-AMT  (SUB)   
+                                          WS-O-REMAINING-OBC-AMT (SUB)  
+                     MOVE WS-O-OBC-ENTRY-CNT
+                                       TO SUB   
+                  END-IF
+               END-PERFORM  
+
+               IF WS-ENTRY-FOUND = 'N'  
+                  ADD 1                  TO WS-O-OBC-ENTRY-CNT  
+                  MOVE OBC-DEPT-CODE(1)  TO WS-O-OBC-DEPT-CODE  
+                                            (WS-O-OBC-ENTRY-CNT)
+                  MOVE WS-TNAME          TO WS-O-TRANSLATED-NAME
+                                            (WS-O-OBC-ENTRY-CNT)
+                  MOVE OBC-REFUND-IND    TO WS-O-OBC-REFUNDABLE-IND 
+                                            (WS-O-OBC-ENTRY-CNT)
+                  MOVE RSP06-POBC-SAILING-AMT (RSP06-PAX-SUB POBC-SUB)  
+                                         TO WS-O-OFFERED-OBC-AMT
+                                            (WS-O-OBC-ENTRY-CNT)
+                                            WS-O-REMAINING-OBC-AMT  
+                                            (WS-O-OBC-ENTRY-CNT)
+                  MOVE ZEROS             TO WS-O-APPLIED-OBC-AMT
+                                            (WS-O-OBC-ENTRY-CNT)
+               ELSE 
+                  GO TO 3600-EXIT   
+               END-IF   
+           END-IF.  
+
+       3600-EXIT.   
+           EXIT.
+
+       3700-REARRANGE-OUTPUT.   
+           MOVE ZEROS               TO WS-HCNT. 
+
+      *Grouping non-refundable entries first.   
+
+           PERFORM VARYING SUB FROM 1 BY 1  
+               UNTIL SUB > WS-O-OBC-ENTRY-CNT   
+               IF WS-O-OBC-REFUNDABLE-IND (SUB) = 'N'   
+                  ADD 1             TO WS-HCNT  
+                  IF WS-HCNT > 1
+                     IF WS-O-OBC-DEPT-CODE (SUB) NOT = 'GENERAL' AND
+                        WS-HOLD-OBC-DEPT-CODE (WS-HCNT - 1) = 'GENERAL' 
+                        MOVE WS-HOLD-ENTRY (WS-HCNT - 1)
+                                    TO WS-HOLD-ENTRY (WS-HCNT)  
+                        MOVE WS-O-OBC-ENTRY (SUB)   
+                                    TO WS-HOLD-ENTRY (WS-HCNT - 1)  
+                     ELSE   
+                        MOVE WS-O-OBC-ENTRY (SUB)   
+                                    TO WS-HOLD-ENTRY (WS-HCNT)  
+                     END-IF 
+                  ELSE  
+                     MOVE WS-O-OBC-ENTRY (SUB)  
+                                   TO WS-HOLD-ENTRY (WS-HCNT)   
+                  END-IF
+               END-IF   
+           END-PERFORM. 
+
+      *Grouping refundable entries. 
+
+           PERFORM VARYING SUB FROM 1 BY 1  
+               UNTIL SUB > WS-O-OBC-ENTRY-CNT   
+               IF WS-O-OBC-REFUNDABLE-IND (SUB) = 'Y'   
+                  ADD 1             TO WS-HCNT  
+                  IF WS-HCNT > 1
+                     IF WS-O-OBC-DEPT-CODE (SUB) NOT = 'GENERAL' AND
+                        (WS-HOLD-OBC-DEPT-CODE (WS-HCNT - 1) = 'GENERAL'
+                                         AND
+                        WS-HOLD-OBC-REFUNDABLE-IND (WS-HCNT - 1) = 'Y') 
+                        MOVE WS-HOLD-ENTRY (WS-HCNT - 1)
+                                    TO WS-HOLD-ENTRY (WS-HCNT)  
+                        MOVE WS-O-OBC-ENTRY (SUB)   
+                                    TO WS-HOLD-ENTRY (WS-HCNT - 1)  
+                     ELSE   
+                        MOVE WS-O-OBC-ENTRY (SUB)   
+                                    TO WS-HOLD-ENTRY (WS-HCNT)  
+                     END-IF 
+                  ELSE  
+                     MOVE WS-O-OBC-ENTRY (SUB)  
+                                    TO WS-HOLD-ENTRY (WS-HCNT)  
+                  END-IF
+               END-IF   
+           END-PERFORM. 
+
+           IF WS-HCNT NOT = WS-O-OBC-ENTRY-CNT  
+              ADD 1                     TO CCMV-ADV-SUB 
+              MOVE 0016                 TO MSGHDR-ADVISE-CODE   
+                                           (CCMV-ADV-SUB)   
+              MOVE 'CCR01UPO'           TO MSGHDR-ADVISE-SOURCE 
+                                           (CCMV-ADV-SUB)   
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+           PERFORM VARYING SUB FROM 1 BY 1  
+               UNTIL SUB > WS-HCNT  
+               MOVE WS-HOLD-ENTRY (SUB) 
+                                    TO WS-O-OBC-ENTRY (SUB) 
+           END-PERFORM. 
+
+       3700-EXIT.   
+           EXIT.
+
+       3800-FIND-ORDERS.
+
+CCLCOM**Finding EXC orders first.   
+CCLCOM*     MOVE SPACES   TO SXP03-INPUT-DATA   
+CCLCOM*                      SXP03-OUTPUT-DATA. 
+CCLCOM*     MOVE ZEROES   TO SXP03-EXC-EOR-REC-COUNT
+CCLCOM*                      SXP03-EXC-EGOR-REC-COUNT.  
+CCLCOM*     MOVE RSP06-IBR-BOOK-NUM 
+CCLCOM*                    TO SXP03-EOR-IBR-BOOK-NUM.   
+CCLCOM*     MOVE RSP06-IBR-SHORE-EXC-SEQ-NUM
+CCLCOM*                                 TO  
+CCLCOM*                   SXP03-EOR-IBR-SHORE-EXC-SEQ-NM.   
+CCLCOM* 
+CCLCOM*     IF  SXP03-EOR-IBR-SHORE-EXC-SEQ-NM > 0  
+CCLCOM*         CALL 'SXC03ORD' USING DPP01-COMMON-DATA-FIELDS  
+CCLCOM*                               DPP01-COMMON-INFO 
+CCLCOM*                               SXP03-INPUT-DATA  
+CCLCOM*                               SXP03-OUTPUT-DATA 
+CCLCOM* 
+CCLCOM*         IF  SXP03-EXC-EOR-REC-COUNT > 0 
+CCLCOM*             PERFORM VARYING SUB FROM 1 BY 1 
+CCLCOM*               UNTIL SUB > SXP03-EXC-EOR-REC-COUNT   
+CCLCOM*               IF SXP03-EOR-ORDER-STATUS (SUB) = 
+CCLCOM*                                'A' AND  
+CCLCOM*                  SXP03-EOR-OBC-AMOUNT (SUB) > 0 
+CCLCOM*                  ADD 1        TO WS-ENTRY-CNT   
+CCLCOM*                  MOVE SPACES  TO
+CCLCOM*                         WS-ORDER-NUM (WS-ENTRY-CNT) 
+CCLCOM*                         WS-ORDER-ITEM-TYPE   (WS-ENTRY-CNT) 
+CCLCOM*                  MOVE SXP03-EOR-CALC-KEY (SUB)  
+CCLCOM*                        TO WS-ORDER-NUM (WS-ENTRY-CNT)   
+CCLCOM*                  MOVE SXP03-EOR-ORDER-DATE (SUB)   TO   
+CCLCOM*                       WS-ORDER-CREATE-DATE (WS-ENTRY-CNT)   
+CCLCOM*                  MOVE SXP03-EOR-ORDER-TIME (SUB) TO 
+CCLCOM*                          WS-TIME-HHMM         (WS-ENTRY-CNT)
+CCLCOM*                  MOVE ZEROS    TO   
+CCLCOM*                           WS-TIME-SSMM         (WS-ENTRY-CNT)   
+CCLCOM*                  MOVE SXP03-EOR-EXC-TYPE (SUB)    TO
+CCLCOM*                   WS-ORDER-ITEM-TYPE   (WS-ENTRY-CNT)   
+CCLCOM*                  MOVE SXP03-EOR-OBC-AMOUNT (SUB)  TO
+CCLCOM*                     WS-OBC-AMT           (WS-ENTRY-CNT) 
+CCLCOM*               END-IF
+CCLCOM*             END-PERFORM 
+CCLCOM*         END-IF  
+CCLCOM*     END-IF. 
+
+
+       3800-FIND-BV-ORDERS. 
+
+            EXEC SQL
+                DECLARE ORDER_OBC_CUR CURSOR
+                FOR RETENTION   
+                SELECT OOD.ORDER_NUM,   
+                       IFNULL(OOD.OBC_AMT,0),   
+                       IFNULL (OOD.PRESALE_ITEM_TYPE,' '),  
+                       CONVERT(OMS.CREATION_DATETIME, 112), 
+                       CONVERT(OMS.CREATION_DATETIME, 108)  
+                  FROM ORDER_OBC_DETAIL OOD 
+                  JOIN ORDER_MASTER OMS 
+                       ON OOD.ORDER_NUM = OMS.ORDER_NUM 
+                  WHERE (OOD.BOOK_NUM = :RSP23-I-INDV-BOOK-NUM) 
+                      AND (OMS.ORDER_STATUS <> 'C') 
+
+            END-EXEC.   
+
+            EXEC SQL
+                 OPEN ORDER_OBC_CUR 
+            END-EXEC.   
+
+            IF SQLCODE < 0  
+               ADD 1                       TO CCMV-ADV-SUB  
+              MOVE 0031                   TO MSGHDR-ADVISE-CODE 
+                                             (CCMV-ADV-SUB) 
+              MOVE 'CCR01UPO'             TO MSGHDR-ADVISE-SOURCE   
+                                             (CCMV-ADV-SUB) 
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+
+              GO TO DPP12-RDMS-ERROR
+            END-IF. 
+
+       3800-PROCESS-BV. 
+
+            EXEC SQL
+                 FETCH ORDER_OBC_CUR
+                 INTO :WS-ORD-NUM,  
+                      :WS-ORD-OBC-AMT,  
+                      :WS-ORD-ITEM-TYPE,
+                      :WS-ORD-CREATE-DATE,  
+                      :WS-TIME  
+            END-EXEC.   
+
+            IF SQLCODE < 0 OR SQLCODE = 100 
+               GO TO 3800-ORDER-OBC-ERROR   
+            END-IF. 
+            IF WS-ORD-OBC-AMT > 0   
+               ADD 1                       TO WS-ENTRY-CNT  
+               MOVE WS-ORD-NUM TO  WS-ORDER-NUM (WS-ENTRY-CNT)  
+               MOVE WS-ORD-OBC-AMT TO WS-OBC-AMT(WS-ENTRY-CNT)  
+               MOVE WS-ORD-ITEM-TYPE TO WS-ORDER-ITEM-TYPE  
+                                              (WS-ENTRY-CNT)
+               MOVE WS-ORD-CREATE-DATE TO WS-ORDER-CREATE-DATE  
+                                              (WS-ENTRY-CNT)
+               STRING WS-TIME-HH WS-TIME-MM 
+               DELIMITED BY SIZE INTO WS-TIME-HHMM (WS-ENTRY-CNT)   
+               MOVE ZEROS      TO WS-TIME-SSMM (WS-ENTRY-CNT)   
+            END-IF. 
+            GO TO 3800-PROCESS-BV.  
+
+       3800-ORDER-OBC-ERROR.
+
+            EXEC SQL
+               CLOSE ORDER_OBC_CUR  
+            END-EXEC.   
+
+       3800-SORT-ORDERS.
+
+            IF WS-ENTRY-CNT NOT > 1 
+               GO TO 3800-EXIT  
+            END-IF. 
+
+            PERFORM WS-ENTRY-CNT TIMES  
+               PERFORM VARYING SUB FROM 1 BY 1  
+                   UNTIL SUB > (WS-ENTRY-CNT - 1)   
+                   IF WS-ORDER-CREATE-DATETIME (SUB) >  
+                      WS-ORDER-CREATE-DATETIME (SUB + 1)
+                      MOVE WS-ORDER-ENTRY (SUB) 
+                                     TO WS-HOLD-TBL 
+                      MOVE WS-ORDER-ENTRY (SUB + 1) 
+                              TO WS-ORDER-ENTRY (SUB)   
+                      MOVE WS-HOLD-TBL TO   
+                       WS-ORDER-ENTRY (SUB + 1) 
+                   END-IF   
+               END-PERFORM  
+            END-PERFORM.
+
+       3800-EXIT.   
+            EXIT.   
+
+       3900-APPLY-OBC.  
+
+           IF WS-ENTRY-CNT = ZEROS  
+              GO TO 3900-EXIT   
+           END-IF.  
+
+           MOVE 0                   TO OSUB.
+
+       3900-PROCESS-ORDER-TBL.  
+           ADD 1                    TO OSUB.
+
+           IF OSUB > WS-ENTRY-CNT   
+              GO TO 3900-EXIT   
+           END-IF.  
+
+           MOVE SPACES              TO WS-QUAL-OBC-TYPE-1   
+                                       WS-QUAL-OBC-TYPE-2   
+                                       WS-QUAL-OBC-TYPE-3.  
+
+           IF WS-ORDER-ITEM-TYPE (OSUB) = 'TR'  
+              MOVE 'GENERAL'        TO WS-QUAL-OBC-TYPE-1   
+                                       WS-TNAME 
+           ELSE 
+              PERFORM VARYING SUB FROM 1 BY 1 UNTIL SUB > MAP-SUB   
+                 IF WS-ORDER-ITEM-TYPE (OSUB) = WS-ITEM-TYPE (SUB)  
+                    MOVE WS-OBC-TYPE-1 (SUB) TO WS-QUAL-OBC-TYPE-1  
+                    MOVE WS-OBC-TYPE-2 (SUB) TO WS-QUAL-OBC-TYPE-2  
+                    MOVE WS-OBC-TYPE-3 (SUB) TO WS-QUAL-OBC-TYPE-3  
+                    MOVE WS-TRANSLATED-NAME (SUB)   
+                                             TO WS-TNAME
+                    MOVE MAP-SUB             TO SUB 
+                 END-IF 
+              END-PERFORM   
+           END-IF.  
+
+CCLHP2*    IF WS-QUAL-OBC-TYPE-1 NOT > SPACES   
+CCLHP2*       ADD 1                      TO CCMV-ADV-SUB
+CCLHP2*       MOVE 0017                  TO MSGHDR-ADVISE-CODE  
+CCLHP2*                                     (CCMV-ADV-SUB)  
+CCLHP2*       MOVE 'CCR01UPO'            TO MSGHDR-ADVISE-SOURCE
+CCLHP2*                                     (CCMV-ADV-SUB)  
+CCLHP2*       PERFORM CCP75-OUTPUT-CCERRMSG 
+CCLHP2*          THRU CCP75-OUTPUT-CCERRMSG-EXIT
+CCLHP2*       GO TO 9000-END-OF-JOB 
+CCLHP2*    END-IF.  
+
+           PERFORM VARYING SUB FROM 1 BY 1  
+              UNTIL SUB > WS-O-OBC-ENTRY-CNT
+              IF ((WS-O-OBC-DEPT-CODE (SUB) = WS-QUAL-OBC-TYPE-1   OR   
+                                                 WS-QUAL-OBC-TYPE-2   OR
+                                                 WS-QUAL-OBC-TYPE-3   OR
+                                                 'GENERAL')          AND
+                  (WS-O-REMAINING-OBC-AMT (SUB)  > 0))  
+                 IF WS-O-REMAINING-OBC-AMT (SUB) >= WS-OBC-AMT (OSUB)   
+                    ADD WS-OBC-AMT (OSUB)   
+                                    TO WS-O-APPLIED-OBC-AMT (SUB)   
+                    SUBTRACT WS-OBC-AMT (OSUB)  
+                        FROM WS-O-REMAINING-OBC-AMT (SUB)   
+                    MOVE ZEROS      TO WS-OBC-AMT (OSUB)
+                    MOVE WS-O-OBC-ENTRY-CNT TO SUB  
+                 ELSE   
+                    ADD WS-O-REMAINING-OBC-AMT (SUB)
+                                    TO WS-O-APPLIED-OBC-AMT (SUB)   
+                    SUBTRACT WS-O-REMAINING-OBC-AMT (SUB)   
+                        FROM WS-OBC-AMT (OSUB)  
+                    MOVE ZEROS      TO WS-O-REMAINING-OBC-AMT (SUB) 
+                 END-IF 
+              END-IF
+           END-PERFORM. 
+
+           IF (WS-OBC-AMT (OSUB) NOT = 0)   
+              ADD 1                           TO WS-ORDER-ENTRY-CNT 
+              MOVE WS-ORDER-NUM (OSUB)        TO WS-O-ORDER-NUM 
+                                                 (WS-ORDER-ENTRY-CNT)   
+              MOVE WS-ORDER-ITEM-TYPE (OSUB)  TO WS-O-ITEM-TYPE 
+                                                 (WS-ORDER-ENTRY-CNT)   
+
+              MOVE WS-OBC-AMT (OSUB)          TO WS-O-DEFICIT-OBC-AMT   
+                                                 (WS-ORDER-ENTRY-CNT)   
+           END-IF.  
+
+           GO TO 3900-PROCESS-ORDER-TBL.
+
+       3900-EXIT.   
+           EXIT.
+
+       4000-PROCESS-BOOKING-DETAILS.
+           MOVE ZEROES TO WS-ITEM-AMT-DIFF WS-SURCHARGE-AMT-DIFF.   
+
+           PERFORM VARYING SUB2 FROM 1 BY 1 
+               UNTIL SUB2 > UPOOB1-CNT (SUB1)   
+
+               COMPUTE WS-ITEM-AMT-DIFF = WS-ITEM-AMT-DIFF +
+                                 UPOOB1-ITEM-TOTAL-AMT-NEW (SUB1 SUB2) -
+                                 UPOOB1-ITEM-TOTAL-AMT-OLD (SUB1 SUB2)  
+
+               COMPUTE WS-SURCHARGE-AMT-DIFF =  WS-SURCHARGE-AMT-DIFF + 
+                             UPOOB1-ITEM-SURCHARGE-AMT-NEW (SUB1 SUB2) -
+                             UPOOB1-ITEM-SURCHARGE-AMT-OLD (SUB1 SUB2)  
+           END-PERFORM. 
+
+           IF WS-ITEM-AMT-DIFF = ZEROES 
+              GO TO 4000-BOOKING-DETAILS-EXIT   
+           END-IF.  
+
+           IF WS-GRP-BOOK-IND NOT = 'Y' AND RSP06-IBR-BOOK-TYPE = 'I'   
+              MOVE RSP06-IBR-BOOK-NUM       TO IBR-BOOK-NUM 
+              MOVE RSP06-IBR-BOOK-TYPE      TO IBR-BOOK-TYPE
+              MOVE RSP06-IBR-CABIN-NUM      TO WS-IBR-CABIN-NUM 
+              PERFORM IRP66-FETCH-IBR THRU IRP66-FETCH-IBR-EXIT 
+              MOVE IBR-SHIP-CODE            TO WS-SHIP-CODE 
+              MOVE IBR-SAIL-DATE            TO WS-SAIL-DATE 
+              MOVE IBR-DURATION-DAYS        TO WS-DUR-DAYS  
+              IF WS-ORD-TYPE = 'P'  
+                 IF NOT (IBR-COURTESY-ORDER-AMT = 0 
+                         AND WS-ITEM-AMT-DIFF < 0)  
+                    ADD WS-ITEM-AMT-DIFF       TO IBR-COURTESY-ORDER-AMT
+                    COMPUTE WS-CO-AMT ROUNDED   
+                                 = WS-ITEM-AMT-DIFF * IBR-PRC-XCHG-RATE 
+                    ADD WS-CO-AMT              TO IBR-NET-FARE-AMT  
+                    MOVE WS-SYS-DATETIME       TO IBR-UPDATE-DATETIME   
+
+                    FIND CURRENT INDV-BOOKING-REC RECORD
+                    PERFORM IRP66-MODIFY-IBR
+                       THRU IRP66-MODIFY-IBR-EXIT   
+                    PERFORM DPP16-MODIFY-SAIL-INDIVIDUAL
+                       THRU DPP16-EXIT  
+                 END-IF 
+              END-IF
+              MOVE 'SSC'            TO DPP04-HIST-ACTIVITY-TYPE 
+              IF WS-ORD-TYPE = 'P'  
+                  MOVE WS-ITEM-AMT-DIFF TO DPP04-HIST-AMT   
+                  MOVE 'Y'              TO DPP04-OVERRIDE-HIST-AMT-IND  
+                  COMPUTE WS-TRF-AMT ROUNDED
+                        = WS-ITEM-AMT-DIFF * IBR-PRC-XCHG-RATE  
+                  MOVE WS-TRF-AMT       TO DPP04-TRF-AMT
+              ELSE  
+                  MOVE 0                  TO DPP04-HIST-AMT 
+                                             DPP04-TRF-AMT  
+                  MOVE 'N'                TO DPP04-OVERRIDE-HIST-AMT-IND
+              END-IF
+              MOVE SPACE              TO DPP04-HIST-COMMENT 
+              MOVE WS-HYB-ORD-ID      TO WS-HYB-ORD-ID-Z
+              STRING IBR-CABIN-NUM DELIMITED BY SPACES  
+               ' CHANGE ORDER: ' WS-HYB-ORD-ID-Z
+                    DELIMITED BY SIZE INTO DPP04-HIST-COMMENT   
+
+              IF WS-ORD-TYPE = 'P'  
+                 MOVE IBR-AGENT-CONTACT  TO DPP04-HIST-CONTACT  
+              ELSE  
+                 MOVE SPACE TO WS-COMMENT-TXT   
+                 IF UPORD1-ORDER-TYPE = 'C' 
+                    MOVE 'CMP' TO WS-COMMENT-TXT
+                 ELSE   
+                    IF UPORD1-ORDER-TYPE = 'A'  
+                       MOVE 'AME' TO WS-COMMENT-TXT 
+                    END-IF  
+                 END-IF 
+                 MOVE SPACE TO DPP04-HIST-CONTACT   
+                 MOVE WS-ITEM-AMT-DIFF TO WS-DOLAR-AMT  
+                 MOVE 0 TO WS-TALLY 
+                 INSPECT WS-DOLAR-AMT TALLYING  
+                 WS-TALLY FOR LEADING SPACES
+                 COMPUTE WS-LENGTH =
+                     FUNCTION LENGTH (WS-DOLAR-AMT) - WS-TALLY  
+                 STRING WS-DOLAR-AMT (WS-TALLY + 1 : WS-LENGTH) ' ' 
+                 DELIMITED BY SIZE  
+                 WS-COMMENT-TXT DELIMITED BY SPACE  
+                 INTO DPP04-HIST-CONTACT
+              END-IF
+              MOVE WS-USER-INFO       TO DPP04-HIST-OPER-INITIAL
+              MOVE 0                  TO DPP04-HIST-PAX-SEQ-NUM 
+              MOVE SPACE              TO DPP04-HIST-TYPE
+              MOVE DPP04-HIST-COMMENT TO DPP04-TRF-COMMENT1 
+              MOVE IBR-SAIL-DATE      TO DPP04-TRF-SAIL-DATE
+              MOVE IBR-SHIP-CODE      TO DPP04-TRF-SHIP-CODE
+              MOVE IBR-DURATION-DAYS  TO DPP04-TRF-DURATION-DAYS
+              MOVE IBR-CABIN-NUM      TO DPP04-TRF-CABIN-NUM
+              MOVE 0                 TO DPP04-TRF-PAX-SEQ-NUM   
+              MOVE SSP18-O-NTUR-LOC-CODE
+                                      TO DPP04-TRF-LOCATION-CODE
+              MOVE 'IR'               TO DPP04-HIST-AGENCY-CONN-CODE
+              MOVE 15                 TO DPP42-HOLD-MSG-INDEX   
+              PERFORM IRP15-CREATE-BOOKING-HISTORY  
+                 THRU IRP15-TRF-EXIT
+              MOVE IBR-CABIN-NUM         TO WS-IBR-CABIN-NUM
+              IF WS-ORD-TYPE = 'P'  
+                  PERFORM 4000-GET-SAILING-INFO 
+                      THRU 4000-SAILING-INFO-EXIT   
+                  PERFORM 4000-CREATE-GML-ENTRY 
+                      THRU 4000-GML-ENTRY-EXIT  
+              END-IF
+           ELSE 
+              MOVE SPACES              TO WS-IBR-CABIN-NUM  
+              IF WS-GRP-BOOK-IND NOT = 'Y' AND  
+                   RSP06-IBR-BOOK-TYPE = 'G'
+                   MOVE RSP06-IBR-GROUP-BOOK-NUM TO GBR1-BOOK-NUM   
+                   FETCH GRP1-BOOKING-REC RECORD
+                   MOVE GBR1-BOOK-NUM TO WS-BOOK-NUM
+                   MOVE RSP06-IBR-CABIN-NUM   TO WS-IBR-CABIN-NUM   
+              END-IF
+              IF WS-ORD-TYPE = 'P'  
+                 IF NOT (GBR1-COURTESY-ORDER-AMT = 0
+                         AND WS-ITEM-AMT-DIFF < 0)  
+                    ADD WS-ITEM-AMT-DIFF    TO GBR1-COURTESY-ORDER-AMT  
+                    COMPUTE WS-CO-AMT ROUNDED   
+                          = WS-ITEM-AMT-DIFF * GBR1-PRC-XCHG-RATE   
+                    ADD WS-CO-AMT           TO GBR1-NET-FARE-AMT
+190115              IF GBR1-FINANCIAL-COMPANY-CODE = 'A'
+190115                 COMPUTE WS-EFF-INCL-GST-PCT =
+190115                             ((GBR1-12NM-PCT * GBR1-GST-PCT)  
+190115                          / (1 + (GBR1-12NM-PCT * GBR1-GST-PCT))) 
+190115                 COMPUTE WS-GBR1-COURTESY-GST-AMT =   
+190115                         WS-CO-AMT  * WS-EFF-INCL-GST-PCT 
+190115                 ADD WS-GBR1-COURTESY-GST-AMT TO  
+190115                                      GBR1-TOTAL-GST-AMT  
+190115              END-IF  
+                    MOVE WS-SYS-DATETIME    TO GBR1-UPDATE-DATETIME 
+                    FIND CURRENT GRP1-BOOKING-REC RECORD
+                    MODIFY GRP1-BOOKING-REC RECORD  
+                    MOVE GBR1-UPDATE-DATETIME   TO WS-SYS-DATETIME  
+                    MOVE WS-SYS-DATETIME(1:4)   TO WS-UPDATE-YEAR   
+                    MOVE WS-SYS-DATETIME(5:2)   TO WS-UPDATE-MONTH  
+                    MOVE WS-SYS-DATETIME(7:2)   TO WS-UPDATE-DAY-DATE   
+                    MOVE WS-SYS-DATETIME(9:2)   TO WS-UPDATE-HOUR   
+                    MOVE WS-SYS-DATETIME(11:2)  TO WS-UPDATE-MINUTE 
+                    MOVE WS-SYS-DATETIME(13:2)  TO WS-UPDATE-SECOND 
+                    MOVE WS-SYS-DATETIME(15:2)  TO WS-UPDATE-MILISEC
+                    MOVE WS-SYS-DATETIME(9:5)   TO WS-TIME-HH-MM
+                    EXEC SQL UPDATE GROUP_SUMMARY   
+                       SET GSR_UPDATE_DATETIME = :WS-UPDATE-DATETIME
+                        WHERE (GSR_BOOK_NUM = :GBR1-BOOK-NUM AND
+                            GSR_UPDATE_DATETIME <> :WS-UPDATE-DATETIME) 
+                    END-EXEC
+
+                    IF  SQLCODE < 0 
+                        ADD 1                    TO CCMV-ADV-SUB
+                        MOVE 0035                TO MSGHDR-ADVISE-CODE  
+                                                    (CCMV-ADV-SUB)  
+                        MOVE 'CCR01UPO'          TO MSGHDR-ADVISE-SOURCE
+                                                       (CCMV-ADV-SUB)   
+                        PERFORM CCP75-OUTPUT-CCERRMSG   
+                           THRU CCP75-OUTPUT-CCERRMSG-EXIT  
+
+                        GO TO DPP12-RDMS-ERROR  
+                    END-IF  
+
+                    IF  SQLCODE = 100   
+                        CONTINUE
+                    END-IF  
+                 END-IF 
+              END-IF
+              MOVE 'SSC'                 TO GRP15-ACTIVITY-CODE 
+              IF WS-ORD-TYPE = 'P'  
+                 MOVE WS-ITEM-AMT-DIFF      TO GRP15-AMT
+                 MOVE 'Y'                   TO GRP15-OVERRIDE-HIST-AMT  
+                 COMPUTE WS-TRF-AMT ROUNDED 
+                       = WS-ITEM-AMT-DIFF * GBR1-PRC-XCHG-RATE  
+                 MOVE WS-TRF-AMT            TO GRP15-TRF-AMT
+              ELSE  
+                 MOVE 0                     TO GRP15-AMT
+                                               GRP15-TRF-AMT
+                 MOVE 'N'                   TO GRP15-OVERRIDE-HIST-AMT  
+              END-IF
+              MOVE WS-USER-INFO          TO GRP15-USERID
+              MOVE SPACE                 TO GRP15-COMMENT   
+              MOVE WS-HYB-ORD-ID      TO WS-HYB-ORD-ID-Z
+              STRING WS-IBR-CABIN-NUM DELIMITED BY SPACES   
+              ' CHANGE ORDER : ' WS-HYB-ORD-ID-Z
+              DELIMITED BY SIZE INTO GRP15-COMMENT  
+
+              IF WS-ORD-TYPE = 'P'  
+                 MOVE GBR1-AGENT-CONTACT    TO GRP15-AGENCY-CONTACT 
+              ELSE  
+                 MOVE SPACE TO WS-COMMENT-TXT   
+                 IF UPORD1-ORDER-TYPE = 'C' 
+                    MOVE 'CMP' TO WS-COMMENT-TXT
+                 ELSE   
+                    IF UPORD1-ORDER-TYPE = 'A'  
+                       MOVE 'AME' TO WS-COMMENT-TXT 
+                    END-IF  
+                 END-IF 
+                 MOVE SPACE TO GRP15-AGENCY-CONTACT 
+                 MOVE WS-ITEM-AMT-DIFF TO WS-DOLAR-AMT  
+                 MOVE 0 TO WS-TALLY 
+                 INSPECT WS-DOLAR-AMT TALLYING  
+                 WS-TALLY FOR LEADING SPACES
+                 COMPUTE WS-LENGTH =
+                     FUNCTION LENGTH (WS-DOLAR-AMT) - WS-TALLY  
+                 STRING WS-DOLAR-AMT (WS-TALLY + 1 : WS-LENGTH) ' ' 
+                 DELIMITED BY SIZE  
+                 WS-COMMENT-TXT DELIMITED BY SPACE  
+                 INTO GRP15-AGENCY-CONTACT  
+              END-IF
+              MOVE 0                     TO GRP15-PAX-SEQ-NUM   
+              MOVE SPACE                 TO GRP15-TYPE  
+              MOVE GRP15-COMMENT         TO GRP15-TRF-COMMENT1  
+              MOVE WS-IBR-CABIN-NUM      TO GRP15-CABIN-NUM 
+              MOVE SSP18-O-NTUR-LOC-CODE TO GRP15-LOCATION-CODE 
+              MOVE 'ER'                  TO GRP15-AGENCY-CONNECT-CODE   
+              PERFORM GRP15-CREATE-BOOKING-HISTORY  
+                 THRU GRP15-GTRF-EXIT   
+              MOVE GBR1-SHIP-CODE        TO WS-SHIP-CODE
+              MOVE GBR1-SAIL-DATE        TO WS-SAIL-DATE
+              MOVE GBR1-DURATION-DAYS    TO WS-DUR-DAYS 
+              IF WS-ORD-TYPE = 'P'  
+                 PERFORM 4000-GET-SAILING-INFO  
+                    THRU 4000-SAILING-INFO-EXIT 
+                 PERFORM 4000-CREATE-GML-ENTRY  
+                    THRU 4000-GML-ENTRY-EXIT
+              END-IF
+           END-IF.  
+
+       4000-BOOKING-DETAILS-EXIT.   
+           EXIT.
+
+       4000-GET-SAILING-INFO.   
+           MOVE WS-SHIP-CODE       TO TDP01-I-SHIP-CODE 
+           MOVE WS-SAIL-DATE       TO TDP01-I-SAIL-DATE-YYYYMMDD
+           MOVE WS-DUR-DAYS        TO TDP01-I-DUR-DAYS  
+
+           PERFORM TDP01-RET-SAIL-DETAILS   
+              THRU TDP01-RET-SAIL-DETAILS-EXIT. 
+
+           IF TDP01-SAIL-SQLERR 
+              ADD 1                       TO CCMV-ADV-SUB   
+              MOVE 0032                   TO MSGHDR-ADVISE-CODE 
+                                             (CCMV-ADV-SUB) 
+              MOVE 'CCR01UPO'             TO MSGHDR-ADVISE-SOURCE   
+                                             (CCMV-ADV-SUB) 
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+
+              GO TO DPP12-RDMS-ERROR
+           END-IF.  
+
+           IF TDP01-SAIL-NOTFND OR  
+              TDP01-PROC-ERROR > ZEROES 
+              ADD  1                     TO CCMV-ADV-SUB
+              MOVE 0010                  TO MSGHDR-ADVISE-CODE  
+                                            (CCMV-ADV-SUB)  
+              MOVE 'CCR01UPO'            TO MSGHDR-ADVISE-SOURCE
+                                            (CCMV-ADV-SUB)  
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+       4000-SAILING-INFO-EXIT.  
+            EXIT.   
+       4000-CREATE-GML-ENTRY.   
+
+           IF TDP01-STATUS-CODE = 'V' OR 'T'
+              CONTINUE  
+           ELSE 
+              GO TO 4000-GML-ENTRY-EXIT 
+           END-IF.  
+
+           MOVE SPACES                        TO ARP01-CASH-DETAILS-REC 
+           MOVE TDP01-FINANCIAL-COMPANY-CODE  TO ARP01-DB-COMPANY-CODE  
+                                                 ARP01-CR-COMPANY-CODE. 
+       COPY SSP20INT.   
+           MOVE TDP01-SHIP-CODE     TO SSP20-I-SHIP-CODE.   
+
+           CALL 'SSC20GSD' USING DPP01-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 SSP20-INPUT-PARAMS 
+                                 SSP20-OUTPUT-PARAMS.   
+
+           IF DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1
+              GO TO 9500-RETURN-SUBROUTINE-ERROR.   
+
+           MOVE FUNCTION CURRENT-DATE   TO DPP01-SYSTEM-DATE-TIME.  
+           MOVE DPP01-SYSTEM-DATE       TO ARP01-DEPOSIT-DATE.  
+           MOVE 961                     TO ARP01-BATCH-NUM. 
+           MOVE 'SSC'                   TO ARP01-PAYMENT-TYPE.  
+           MOVE WS-USER-INFO            TO ARP01-OPER-INITIALS. 
+           MOVE 'SPC SERVE ADJSTMT'     TO ARP01-PAYMENT-ID.
+           MOVE '0000207'               TO ARP01-CUST-NUM2. 
+           MOVE '0000001220007000'      TO ARP01-GLDB-NUM.  
+
+           IF WS-GRP-BOOK-IND = 'Y' OR RSP06-IBR-BOOK-TYPE = 'G'
+              MOVE '0000203'            TO ARP01-CUST-NUM2  
+              MOVE '0000001130071000'   TO ARP01-GLDB-NUM   
+              MOVE GBR1-CUSTOMER-NUM    TO ARP01-CUST-NUM1  
+              MOVE 'G'                  TO ARP01-BOOK-TYPE  
+           ELSE 
+              MOVE IBR-CUSTOMER-NUM     TO ARP01-CUST-NUM1  
+              MOVE IBR-BOOK-TYPE        TO ARP01-BOOK-TYPE  
+           END-IF.  
+
+           MOVE WS-BOOK-NUM             TO ARP01-INVOICE-NUM
+                                           ARP01-BOOK-NUM.  
+           MOVE DPP01-SYSTEM-DATE       TO ARP01-ORIG-TRANSACTION-DATE. 
+           MOVE DPP01-SYSTEM-TIME-HHMM  TO ARP01-ORIG-TRAN-TIME.
+
+           IF WS-GRP-BOOK-IND NOT = 'Y' AND RSP06-IBR-BOOK-TYPE = 'G'   
+              MOVE RSP06-IBR-BOOK-NUM TO ARP01-IBR-BOOK-NUM 
+           ELSE 
+              MOVE SPACES TO ARP01-IBR-BOOK-NUM 
+           END-IF.  
+
+       4000-CONTINUE-AFTER-GROUP.   
+
+           MOVE ZEROS                       TO WS-PRC-XCHG-RATE 
+                                               WS-CLSD-XCHG-RATE.   
+
+           IF  WS-BOOK-NUM = GBR1-BOOK-NUM  
+               MOVE GBR1-PRC-XCHG-RATE      TO WS-PRC-XCHG-RATE 
+               MOVE GBR1-CLSD-XCHG-RATE     TO WS-CLSD-XCHG-RATE
+               MOVE GBR1-CURRENCY-CODE      TO ARP01-CURRENCY-CODE  
+               GO TO 4000-GET-BOOKING-EXIT  
+           ELSE 
+               IF  WS-BOOK-NUM = IBR-BOOK-NUM   
+                   MOVE IBR-PRC-XCHG-RATE   TO WS-PRC-XCHG-RATE 
+                   MOVE IBR-CLSD-XCHG-RATE  TO WS-CLSD-XCHG-RATE
+                   MOVE IBR-CURRENCY-CODE   TO ARP01-CURRENCY-CODE  
+               END-IF   
+               GO TO 4000-GET-BOOKING-EXIT  
+           END-IF.  
+
+       4000-GET-INDV-BOOKING.   
+           MOVE 'A'                         TO  IBR-BOOK-TYPE.  
+           MOVE WS-BOOK-NUM                 TO  IBR-BOOK-NUM.   
+
+           PERFORM IRP66-FETCH-IBR-SUPPRESS THRU
+                   IRP66-FETCH-IBR-SUP-EXIT.
+
+           IF IRP66-ERROR-NUM > 0   
+               GO TO 4000-GET-GRP-BOOKING   
+           END-IF.  
+
+           MOVE IBR-PRC-XCHG-RATE           TO WS-PRC-XCHG-RATE.
+           MOVE IBR-CLSD-XCHG-RATE          TO WS-CLSD-XCHG-RATE.   
+           MOVE IBR-CURRENCY-CODE           TO ARP01-CURRENCY-CODE. 
+
+           GO TO 4000-GET-BOOKING-EXIT. 
+
+       4000-GET-GRP-BOOKING.
+           MOVE WS-BOOK-NUM                 TO  GBR1-BOOK-NUM.  
+
+           FETCH GRP1-BOOKING-REC RECORD
+                 SUPPRESS ALL CURRENCY UPDATES  
+                 ON ERROR   
+                    GO TO 9100-DATABASE-ERROR.  
+
+           MOVE GBR1-PRC-XCHG-RATE          TO WS-PRC-XCHG-RATE.
+           MOVE GBR1-CLSD-XCHG-RATE         TO WS-CLSD-XCHG-RATE.   
+           MOVE GBR1-CURRENCY-CODE          TO ARP01-CURRENCY-CODE. 
+
+       4000-GET-BOOKING-EXIT.   
+
+           PERFORM VARYING SUB2 FROM 1 BY 1 
+              UNTIL SUB2 > UPOOB1-CNT (SUB1)
+
+               COMPUTE WS-ITEM-AMT-DIFF =   
+                                 UPOOB1-ITEM-TOTAL-AMT-NEW (SUB1 SUB2) -
+                                 UPOOB1-ITEM-TOTAL-AMT-OLD (SUB1 SUB2)  
+
+               COMPUTE WS-SURCHARGE-AMT-DIFF =  
+                             UPOOB1-ITEM-SURCHARGE-AMT-NEW (SUB1 SUB2) -
+                             UPOOB1-ITEM-SURCHARGE-AMT-OLD (SUB1 SUB2)  
+               COMPUTE WS-PAYMENT-AMT =  WS-ITEM-AMT-DIFF - 
+                                          WS-SURCHARGE-AMT-DIFF 
+              PERFORM 4200-CREATE-GL-ENTRIES THRU 4200-EXIT 
+           END-PERFORM. 
+
+           GO TO 4000-GML-ENTRY-EXIT.   
+
+       4200-CREATE-GL-ENTRIES.  
+
+           EXEC SQL 
+              SELECT  IFNULL (ITEM_LEGCY_SHIP_NUM, ' '),
+                      IFNULL (ITEM_LEGCY_CENTER_NUM, ' '),  
+                      IFNULL (ITEM_LEGCY_ACCT_NUM, ' '),
+                      IFNULL (ITEM_LEGCY_SUB_ACCT_NUM,' ')  
+               INTO  :WS-HYB-SHIP-NUM,  
+                     :WS-HYB-CENTER-NUM,
+                     :WS-HYB-GL-ACCT-NUM,   
+                     :WS-HYB-SUB-ACCT-NUM   
+              FROM    BV_ITEM_TYPE_CGFS_ACCTS   
+              WHERE   ITEM_TYPE = :UPOOB1-ITEM-TYPE (SUB1 SUB2) 
+                AND   COMP_IND = 'N'
+              FETCH FIRST 1 ROW ONLY
+           END-EXEC.
+
+           IF SQLCODE = 100 
+              CONTINUE  
+           END-IF.  
+
+           MOVE WS-GL-ACCT-NUM      TO ARP01-GLCR-NUM.  
+           MOVE SSP20-O-SHIP-NUM    TO ARP01-GLCR-SHIP-NUM. 
+           MOVE WS-PAYMENT-AMT      TO ARP01-ORIG-TRANSACTION-AMT.  
+
+           COMPUTE ARP01-PAYMENT-AMT ROUNDED =  
+                   WS-PAYMENT-AMT / WS-PRC-XCHG-RATE
+           COMPUTE ARP01-USD-EQUIVALENT-AMT ROUNDED =   
+                   ARP01-PAYMENT-AMT / WS-CLSD-XCHG-RATE
+           IF ARP01-PAYMENT-AMT NOT = 0 
+              PERFORM ARP10-STORE-CASH-ENTRIES THRU ARP10-EXIT  
+           END-IF.  
+           IF WS-SURCHARGE-AMT-DIFF NOT = 0 
+              EXEC SQL  
+                 SELECT  IFNULL (ITEM_LEGCY_SHIP_NUM, ' '), 
+                         IFNULL (ITEM_LEGCY_CENTER_NUM, ' '),   
+                         IFNULL (ITEM_LEGCY_ACCT_NUM, ' '), 
+                         IFNULL (ITEM_LEGCY_SUB_ACCT_NUM,' ')   
+                  INTO  :WS-HYB-SRVCH-SHIP-NUM, 
+                        :WS-HYB-SRVCH-CENTER-NUM,   
+                        :WS-HYB-SRVCH-GL-ACCT-NUM,  
+                        :WS-HYB-SRVCH-SUB-ACCT-NUM  
+                 FROM    BV_ITEM_TYPE_CGFS_ACCTS
+                 WHERE   ITEM_TYPE =  'SRVCH'   
+                   AND   COMP_IND = 'N' 
+                 FETCH FIRST 1 ROW ONLY 
+              END-EXEC  
+
+              IF SQLCODE = 100  
+                 CONTINUE   
+              END-IF
+
+              MOVE WS-HYB-SR-GL-ACCT-NUM   TO ARP01-GLCR-NUM
+              MOVE SSP20-O-SHIP-NUM        TO ARP01-GLCR-SHIP-NUM   
+              MOVE WS-SURCHARGE-AMT-DIFF   TO ARP01-ORIG-TRANSACTION-AMT
+              COMPUTE ARP01-PAYMENT-AMT ROUNDED =   
+                      WS-SURCHARGE-AMT-DIFF / WS-PRC-XCHG-RATE  
+              COMPUTE ARP01-USD-EQUIVALENT-AMT ROUNDED =
+                      ARP01-PAYMENT-AMT / WS-CLSD-XCHG-RATE 
+              PERFORM ARP10-STORE-CASH-ENTRIES THRU ARP10-EXIT  
+           END-IF.  
+
+       4200-EXIT.   
+           EXIT.
+
+       4000-GML-ENTRY-EXIT. 
+            EXIT.   
+
+       4500-UPDATE-HISTORY. 
+           MOVE SPACES TO WS-GROUP-BOOK-NUM.
+
+           EXEC SQL 
+              SELECT IFNULL(GROUP_BOOK_NUM,' ') 
+               INTO  WS-GROUP-BOOK-NUM  
+               FROM  CABIN_BOOK 
+              WHERE  SHIP_CODE = :WS-SHIP-CODE AND  
+                     BOOK_NUM = :WS-BOOK-NUM
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              ADD 1                       TO CCMV-ADV-SUB   
+              MOVE 0033                   TO MSGHDR-ADVISE-CODE 
+                                             (CCMV-ADV-SUB) 
+              MOVE 'CCR01UPO'             TO MSGHDR-ADVISE-SOURCE   
+                                             (CCMV-ADV-SUB) 
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+
+              GO TO DPP12-RDMS-ERROR
+           END-IF.  
+
+           IF SQLCODE = 100 
+              MOVE WS-BOOK-NUM  TO WS-GROUP-BOOK-NUM
+           END-IF.  
+
+           MOVE WS-GROUP-BOOK-NUM TO GBR1-BOOK-NUM  
+
+           FETCH GRP1-BOOKING-REC RECORD
+               ON ERROR GO TO 4500-CHECK-GBR1-ERROR.
+
+           FETCH LAST GRP1-BOOK-HISTORY-REC 
+                    WITHIN GRP1-BOOK-HISTORY-SET SET
+               ON ERROR GO TO 4500-CHECK-GBHR-ERROR.
+
+           GO TO 4500-PROCESS-GBHR. 
+
+       4500-CHECK-GBR1-ERROR.   
+
+           IF ERROR-NUM = '0007' OR '0013'  
+              GO TO 4500-EXIT   
+           END-IF.  
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       4500-CHECK-GBHR-ERROR.   
+
+           IF ERROR-NUM = '0007' OR '0013'  
+              GO TO 4500-EXIT   
+           END-IF.  
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       4500-PROCESS-GBHR.   
+
+           MOVE 'N'  TO WS-HIST-UPDATE-IND WS-HIST-DONE-IND.
+
+           PERFORM VARYING WS-HSUB FROM GBHR1-ENTRY-CNT BY -1   
+               UNTIL WS-HSUB < 1
+               IF GBHR1-DATE (WS-HSUB) < WS-SYSTEM-DATE 
+                  MOVE 'Y'        TO WS-HIST-DONE-IND   
+                  MOVE 1          TO  WS-HSUB   
+               END-IF   
+               IF GBHR1-ACTIVITY-CODE (WS-HSUB) = 'SSA' 
+                  PERFORM VARYING WS-SUB FROM 1 BY 1
+                     UNTIL WS-SUB > 40 OR   
+                           GBHR1-COMMENT (WS-HSUB) (WS-SUB:1) = ':' 
+                     CONTINUE   
+                  END-PERFORM   
+                  IF WS-SUB < 40
+                     ADD 2 TO WS-SUB
+                     IF GBHR1-COMMENT (WS-HSUB) (WS-SUB:12)  =  
+                         UPORD1-ORDER-NUM   
+                        MOVE UPORD1-HYBRIS-ORDER-ID TO WS-HYB-ORD-ID-Z  
+                        MOVE WS-HYB-ORD-ID-Z        TO  
+                                  GBHR1-COMMENT (WS-HSUB) (WS-SUB: 12)  
+                        MOVE 'Y'            TO WS-HIST-UPDATE-IND   
+                     END-IF 
+                  END-IF
+               END-IF   
+           END-PERFORM. 
+
+           IF WS-HIST-UPDATE-IND = 'Y'  
+              MODIFY GRP1-BOOK-HISTORY-REC RECORD   
+           END-IF   
+
+           IF WS-HIST-DONE-IND = 'Y'
+              GO TO 4500-EXIT   
+           END-IF.  
+           FETCH PRIOR GRP1-BOOK-HISTORY-REC
+                    WITHIN GRP1-BOOK-HISTORY-SET SET
+               ON ERROR GO TO 4500-CHECK-GBHR-ERROR.
+
+           GO TO 4500-PROCESS-GBHR. 
+
+       4500-EXIT.   
+           EXIT.
+
+       5000-SEND-RESPONSE.  
+
+           PERFORM CCP01-OUTPUT-CCUPORD2
+              THRU CCP01-OUTPUT-CCUPORD2-EXIT.  
+           GO TO 9000-END-OF-JOB.   
+
+       8000-REC-NOT-FOUND-ERR.  
+
+           ADD  1                      TO CCMV-ADV-SUB  
+           MOVE 0018                   TO MSGHDR-ADVISE-CODE
+                                          (CCMV-ADV-SUB)
+           MOVE 'CCR01UPO'             TO MSGHDR-ADVISE-SOURCE  
+                                          (CCMV-ADV-SUB)
+           PERFORM CCP75-OUTPUT-CCERRMSG
+              THRU CCP75-OUTPUT-CCERRMSG-EXIT   
+             GO TO 9000-END-OF-JOB. 
+
+       9000-END-OF-JOB. 
+           GO TO DPP12-END-OF-JOB.  
+
+       9100-DATABASE-ERROR. 
+           GO TO DPP12-DATABASE-ERROR.  
+
+       9150-RDMS-ERROR. 
+
+           ADD 1                       TO CCMV-ADV-SUB. 
+           MOVE 0019                   TO MSGHDR-ADVISE-CODE
+                                          (CCMV-ADV-SUB).   
+           MOVE 'CCR01UPO'             TO MSGHDR-ADVISE-SOURCE  
+                                          (CCMV-ADV-SUB).   
+           PERFORM CCP75-OUTPUT-CCERRMSG
+              THRU CCP75-OUTPUT-CCERRMSG-EXIT.  
+
+           GO TO DPP12-RDMS-ERROR.  
+
+       9200-EDIT-ERROR-MSG. 
+           PERFORM DPP12-EDIT-ERROR-MSG 
+              THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+
+           GO TO 9000-END-OF-JOB.   
+
+       9210-EDIT-CONTINUE-MSG.  
+           PERFORM DPP12-EDIT-ERROR-MSG 
+              THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+
+       9300-SEVERE-ERROR-MSG.   
+           GO TO DPP12-SEVERE-ERROR-MSG.
+
+       9400-INFO-MSG.   
+           PERFORM DPP12-INFO-MSG   
+              THRU DPP12-INFO-MSG-EXIT. 
+
+       9500-RETURN-SUBROUTINE-ERROR.
+           GO TO DPP12-RETURN-SUBROUTINE-ERROR. 
+
+       9600-SAVE-SUBROUTINE-ERRORS. 
+           PERFORM DPP12-SAVE-SUBROUTINE-MSGS   
+              THRU DPP12-SAVE-SUBROUTINE-MSGS-X.
+
+       COPY CCP10CCS.   
+       COPY CCP50P02.   
+       COPY CCP01UPU.   
+       COPY CCP75P02.   
+       COPY CCP01UPS.   
+       COPY DPP12API.   
+       COPY DPP12AMI.   
+       COPY DPP12ERR.   
+       COPY DPP12WDB.   
+       COPY RSP50INT.   
+       COPY RSP49INT.   
+       COPY IRP66OIB.   
+       COPY IRP66RIB.   
+       COPY IRP66UIB.   
+       COPY DPP04PIR.   
+       COPY DPP10Y2K.   
+       COPY DPP11POP.   
+       COPY DPP45AOP.   
+       COPY DPP17PFR.   
+       COPY DPP20Y2K.   
+       COPY TDP01SAP.   
+       COPY DPP16SBR.   
+       COPY IRP15BHS.   
+       COPY GRP15BHP.   
+       COPY DPP15OAS.   
+       COPY IRP14OHS.   
+       COPY ARP10CDS.   
+       COPY IRP48CNP.   
+       COPY ARP06ACH.   
+203526*COPY ARP79SIP.   
+203526 COPY ARP79SIP-SI.
+       COPY ARP90SPR.   
+       COPY ARP15ATP.   

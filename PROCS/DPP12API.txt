@@ -1,0 +1,204 @@
+DPP12API PROC   
+       DPP12-MCB-INIT.  
+           MOVE LOW-VALUES TO P-MCB-PACKET  
+                              P-MCB-STATUS. 
+           MOVE 8          TO P-AUX.
+           MOVE 95064      TO P-LENGTH. 
+           MOVE P-TRINIT   TO P-FUNC.   
+           MOVE 1          TO P-VER 
+                              P-LVL 
+                              P-BIT2.   
+
+           CALL 'MCB$ENT' USING P-MCB-PACKET P-MCB-STATUS   
+                                CCL-CORP-MESSAGE.   
+
+           IF MCB-ERROR 
+              IF NO-INPUT-MESSAGE   
+                 MOVE 'Y' TO DPP01-STOP-MULTI-INIT-IND  
+                             DPP01-MCB-CONNECT-IND  
+                 GO TO DPP12-END-OF-JOB 
+              ELSE  
+                 DISPLAY 'MCB CONNECT ERROR : ' P-ERRCODE-DIGIT1
+                         P-ERRCODE-DIGIT2 P-ERRCODE-DIGIT3  
+                         P-ERRCODE-DIGIT4 P-ERRCODE-DIGIT5  
+                         P-ERRCODE-DIGIT6  UPON PRINTER 
+                 PERFORM DPP12-PRINT-DEBUG-INFO 
+                    THRU DPP12-PRINT-DEBUG-INFO-EXIT
+                 MOVE 'Y' TO DPP01-TERM-RUN-IND 
+                 GO TO DPP12-ERROR-TERMINATE.   
+
+           MOVE 'Y' TO DPP01-MCB-CONNECT-IND
+           MOVE 'N' TO DPP01-MSG-SENT-IND.  
+
+       DPP12-MCB-INIT-EXIT. 
+           EXIT.
+
+       DPP12-NEXT-MSG-INIT. 
+              MOVE 'N'        TO DPP01-ROLLBACK-IND 
+                                 DPP01-SQL-ERROR-IND
+                                 DPP01-ROLLBACK-RESTART-IND 
+              MOVE ZERO       TO DPP42-SEV-MSG-PTR  
+              MOVE SPACES     TO DPP01-PROC-ERROR-LOCATION  
+                                 DPP42-INPUT-AN-PARAMS  
+              MOVE LOW-VALUES TO DPP01-ERROR-ROUTINE-N-VARS 
+                                 DPP42-INPUT-N-PARAMS   
+                                 DPP42-OUTPUT-N-PARAMS. 
+              MOVE ZERO        TO DPP01-SUB-MSG-CTR 
+                                  DPP12-SUB-MSG-CTR.
+
+       DPP12-NEXT-MSG-INIT-EXIT.
+           EXIT.
+
+       DPP12-GET-NEXT-MESSAGE.  
+           MOVE ZERO         TO DPP01-SUB-MSG-CTR   
+                                DPP12-SUB-MSG-CTR.  
+
+           IF DPP01-NEXT-MSG-INIT-IND = 'Y' 
+              IF DPP01-ROLLBACK-RESTART-IND = 'N'   
+                 PERFORM DPP12-NEXT-MSG-INIT
+                    THRU DPP12-NEXT-MSG-INIT-EXIT   
+                 MOVE 'N' TO DPP01-ROLLED-BACK-IND  
+                 PERFORM DPP12-MCB-INIT THRU DPP12-MCB-INIT-EXIT
+              ELSE  
+                 MOVE 'N' TO DPP01-ROLLBACK-RESTART-IND 
+                             DPP01-ROLLED-BACK-IND  
+              END-IF
+              CALL 'SSO00MEM' USING DPP01-COMMON-INFO.  
+
+           MOVE 'Y' TO DPP01-NEXT-MSG-INIT-IND. 
+
+           PERFORM CCP50-GET-INPUT-MESSAGE THRU CCP75-EXIT. 
+
+       DPP12-GET-NEXT-MESSAGE-EXIT. 
+           EXIT.
+
+       DPP12-OUTPUT-ERROR-TABLE.
+           PERFORM DPP12-STORE-PARA-NAME THRU DPP12-STORE-PARA-NAME-X.  
+
+           MOVE 'DPP12-OUTPUT-ERROR-TABLE' TO DPP01-PROCEDURE-NAME. 
+
+           IF DPP01-MSG-SENT-IND = 'Y'  
+              GO TO DPP12-OUTPUT-ERROR-TABLE-X. 
+
+           IF DPP42-SEV-MSG-PTR = 0 AND 
+                 DPP42-EDIT-MSG-CTR = 0 AND 
+                 DPP42-INFO-MSG-CTR = 0 
+              GO TO DPP12-OUTPUT-ERROR-TABLE-X. 
+
+           MOVE 1 TO DPP01-SUB. 
+
+           IF DPP42-SEV-MSG-PTR > ZERO  
+              MOVE DPP42-SEV-MSG-PTR TO DPP01-MESSAGE-DTA-PTR   
+              MOVE 'Y'               TO DPP01-ROLLBACK-IND  
+           ELSE 
+              IF DPP42-EDIT-MSG-CTR > ZERO  
+                 MOVE DPP42-EDIT-MSG-PTR (1) TO DPP01-MESSAGE-DTA-PTR   
+                 MOVE 'Y'                    TO DPP01-ROLLBACK-IND  
+              ELSE  
+                 MOVE DPP42-INFO-MSG-PTR (1) TO DPP01-MESSAGE-DTA-PTR.  
+
+       DPP12-PROCESS-OUTPUT-MSG.
+           IF DPP01-PRINT-RESPONSE-IND = 'Y'
+              PERFORM DPP12-DUMP-ERROR-MSG  
+                 THRU DPP12-DUMP-ERROR-MSG-EXIT 
+              GO TO DPP12-OUTPUT-ERROR-TABLE-X. 
+
+           IF DPP01-MSG-DEF-MSG-DESC > SPACES   
+              MOVE DPP01-MSG-DEF-MSG-DESC TO
+                   MSGHDR-ADVISE-TEXT (DPP01-SUB)   
+           ELSE 
+              MOVE DPP01-MSG-DEF-MSG-SOURCE TO  
+                   MSGHDR-ADVISE-SOURCE (DPP01-SUB) 
+              MOVE DPP01-MSG-DEF-MSG-INDEX TO DPP01-SIGNED  
+              MOVE DPP01-UNSIGNED          TO   
+                   MSGHDR-ADVISE-NUM (DPP01-SUB).   
+
+           IF DPP42-SEV-MSG-PTR = ZERO  
+              IF DPP01-SUB < 5  
+                 ADD 1 TO DPP01-SUB 
+                 IF DPP42-EDIT-MSG-CTR > ZERO   
+                    IF DPP01-SUB <= DPP42-EDIT-MSG-CTR  
+                       MOVE DPP42-EDIT-MSG-PTR (DPP01-SUB) TO   
+                            DPP01-MESSAGE-DTA-PTR   
+                       GO TO DPP12-PROCESS-OUTPUT-MSG   
+                    END-IF  
+                 ELSE   
+                    IF DPP01-SUB <= DPP42-INFO-MSG-CTR  
+                       MOVE DPP42-INFO-MSG-PTR (DPP01-SUB) TO   
+                            DPP01-MESSAGE-DTA-PTR   
+                       GO TO DPP12-PROCESS-OUTPUT-MSG.  
+
+           PERFORM CCP75-OUTPUT-CCERRMSG
+              THRU CCP75-OUTPUT-CCERRMSG-EXIT.  
+
+       DPP12-OUTPUT-ERROR-TABLE-X.  
+           EXIT.
+
+       DPP12-SPEC-DATABASE-ERROR.   
+           PERFORM DPP12-DML-DISPLAY THRU DPP12-DML-DISPLAY-EXIT.   
+
+           IF ERROR-FUNCTION OF DMCA = '09' OR '15' 
+              MOVE 'Y' TO DPP01-ROLLBACK-IND
+                          DPP01-STOP-MULTI-INIT-IND 
+              IF ERROR-FUNCTION OF DMCA = '15'  
+                 MOVE '*** Database Impart Error -- Contact Support ***'
+                   TO DPP42-HOLD-MSG-DESC   
+              ELSE  
+                 MOVE '*** Database Open Error -- Contact Support ***'  
+                   TO DPP42-HOLD-MSG-DESC.  
+
+       DPP12-SPEC-DATABASE-ERROR-EXIT.  
+           EXIT.
+
+       DPP12-RETURN-RDMS-ERR.   
+           PERFORM DPP12-STORE-PARA-NAME THRU DPP12-STORE-PARA-NAME-X.  
+
+           MOVE 'DPP12-SPEC-THREAD-ERR' TO DPP01-PROCEDURE-NAME.
+    
+           IF DPP01-PRINT-RESPONSE-IND = 'Y'
+              PERFORM VARYING DPP01-SUB FROM 1 BY 1 UNTIL DPP01-SUB > 12
+                 DISPLAY SQL-ERROR-MSG (DPP01-SUB) UPON PRINTER 
+              END-PERFORM   
+              GO TO DPP12-RETURN-RDMS-ERR-EXIT. 
+
+           PERFORM VARYING DPP01-SUB FROM 1 BY 1 UNTIL DPP01-SUB > 5
+              MOVE SQL-ERROR-MSG (DPP01-SUB) TO 
+                   MSGHDR-ADVISE-TEXT (DPP01-SUB)   
+           END-PERFORM. 
+
+           PERFORM CCP75-OUTPUT-CCERRMSG
+              THRU CCP75-OUTPUT-CCERRMSG-EXIT.  
+
+       DPP12-RETURN-RDMS-ERR-EXIT.  
+           EXIT.
+
+       DPP12-RETURN-DMS-MSG.
+           PERFORM DPP12-STORE-PARA-NAME THRU DPP12-STORE-PARA-NAME-X.  
+
+           MOVE 'DPP12-RETUNR-DMS-MSG' TO DPP01-PROCEDURE-NAME. 
+
+           IF DPP42-HOLD-MSG-DESC > SPACES  
+              MOVE DPP42-HOLD-MSG-DESC TO  MSGHDR-ADVISE-TEXT (1)   
+           ELSE 
+              PERFORM DPP12-DML-DISPLAY THRU DPP12-DML-DISPLAY-EXIT 
+              MOVE SPACES TO MSGHDR-ADVISE-TEXT (1) 
+              STRING 'DMS ERROR: ' DPP42-HOLD-DMS-STATUS ' '
+                     DPP42-HOLD-DMS-NUM ' ' DELIMITED BY SIZE   
+                     DPP42-HOLD-DMS-AREA '/' DPP42-HOLD-ERR-RECORD  
+                     '/' DPP42-HOLD-ERR-SET DELIMITED BY ' '
+                     INTO MSGHDR-ADVISE-TEXT (1)
+
+           IF DPP01-PRINT-RESPONSE-IND = 'N'
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT.   
+
+       DPP12-RETURN-DMS-MSG-EXIT.   
+           EXIT.
+
+       DPP12-SPEC-TERMINATE.
+           CONTINUE.
+
+       DPP12-SPEC-TERMINATE-EXIT.   
+           EXIT.
+
+ END PROC   

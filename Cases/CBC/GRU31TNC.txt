@@ -1,0 +1,1679 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.    GRU31TNC. 
+       DATE-WRITTEN.  April 23, 2019.   
+       DATE-COMPILED.   
+
+************************************************************************
+190631* 24-APR-24     PA8      TCS LTD.            ADO1906317          *
+190631* RUNCHECK ISSUE WHEN RATE HAS MORE THAN 12 OPTIONAL TnC         *
+************************************************************************
+197802* 10-OCT-24     SAI      TCS LTD.             ADO1978022         *
+197802* CHANGES MADE FOR GLOBAL TNC CREATED FOR REQUIRED GRATUITIES    *
+************************************************************************
+PRCCMB* 11-JUN-25     SAI     TCS LTD.              ADO2090490         *
+PRCCMB* Pricing Combinability Changes - CHANGES DONE TO POPULATE THE   *
+PRCCMB* FUN PLAY TNC OWN ID & AMOUNT FIELDS.                           *
+************************************************************************
+PRCCMB* 17-JUN-25     XB1     TCS LTD.              ADO2102369         *
+PRCCMB* PRICING COMBINABILITY CHANGES - CHANGES DONE TO POPULATE THE   *
+PRCCMB* FUN_PLAY_TNC_ID AND FUN_PLAY_AMT.                              *
+************************************************************************
+PRCCMB* 31-JUL-25     VYM     TCS LTD.               ADO2144129        *
+PRCCMB* PRICING COMBINABILITY CHANGES, CHANGES MADE TO POPULATE        *
+PRCCMB* FUN-PLAY AMOUNT, FUNPLAY TNC OWN-ID IN THE CORRECT FRONT-END   *
+PRCCMB* FIELD.                                                         *
+************************************************************************
+285142* 27-FEB-26     SK6     TCS LTD.               ADO2285142        *
+285142* CALL RSO50 WITH PSEUDO AGENCY-ID FOR RATE-RULE OF BOOKING.     *
+285142* CHANGES MADE TO POPULATE OFFER-WITH-TGO-AB.                    *
+************************************************************************
+
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER. UNISYS. 
+       OBJECT-COMPUTER. UNISYS  MEMORY SIZE 3 MODULES.  
+       SPECIAL-NAMES.   
+           PRINTER IS PRT   
+           PRINTER IS PRINTER.  
+
+       DATA DIVISION.   
+       SUBSCHEMA SECTION.   
+       INVOKE SUBSCHEMA PST100UCOBSU
+           IN FILE SUBSCHEMAS OF SCHEMA PST100SCHEMA
+           COPYING RECORDS    INTO COMMON   
+           COPYING DATA-NAMES INTO COMMON   
+           OVERLAY PAX-REC WITH PAX-CXF-REC 
+                                PAX-VI-REC  
+           DMCA COMMON  
+           SAVE DATA INCLUDES DEFERRED-UPDATES  
+           ERROR RECOVERY IS 9100-DATABASE-ERROR
+           ROLLBACK       IS 9100-DATABASE-ERROR.   
+
+       WORKING-STORAGE SECTION. 
+       01  WS-PROG-ID                   PIC X(8) VALUE 'GRU31TNC'.  
+       01  MCFLAG                       PIC 9(10) BINARY VALUE 0.   
+       01  WS-TEMP-COMM-AMT             PIC S9(11)V99 BINARY.   
+       01  WS-SAIL-KEY. 
+           03 WS-SHIP-CODE                     PIC X(2).
+           03 WS-DURATION-DAYS                 PIC 9(3).
+           03 WS-SAIL-DATE                     PIC 9(8).
+
+       01  WS-INPUT-PARMS.  
+           03  WS-VERSION-NUM                  PIC 9(5).
+           03  WS-SAIL-GEN-TNC-OWNER-ID        PIC 9(11).   
+
+       01  WS-MISC. 
+           03 WS-PRIOR-DATE                    PIC 9(08).   
+           03 WS-TEMP-AMT                      PIC S9(08)V99 BINARY.
+           03 FILLER                           PIC X(02).   
+
+       01  WS-TNC-VALUE-TABLE.  
+           03 WS-TNC-VALUE-TBL OCCURS 12 TIMES. 
+              05 WS-ADD-TNC-VALUE1             PIC X(255).  
+              05 WS-ADD-TNC-VALUE2             PIC X(255).  
+
+       01  WS-MISC-VARS.
+           03  WS-EXPECTED-PARAMETERS          PIC 9(04).   
+           03  WS-NO-VERSION-IND               PIC X.   
+           03  WS-PAX-ACTIVE-IND               PIC X.   
+           03  PAX-SUB                         PIC S9(5) BINARY.
+           03  SUB                             PIC S9(5) BINARY.
+           03  PSUB                            PIC S9(5) BINARY.
+           03  ESUB                            PIC S9(5) BINARY.
+           03  RSUB                            PIC S9(5) BINARY.
+           03  OSUB                            PIC S9(5) BINARY.
+           03  SUB1                            PIC S9(5) BINARY.
+           03  OGSUB                           PIC S9(5) BINARY.
+           03  WS-SUB                          PIC S9(5) BINARY.
+           03  WS-VAL-SUB                      PIC S9(5) BINARY.
+           03  WS-IBR-SAIL-DATE-X.  
+               05 WS-IBR-SAIL-DATE             PIC 9(8).
+
+       COPY ARP06ACW.   
+       COPY ARP90PWS.   
+       COPY IRP66IBR.   
+       COPY DPP01CIW.   
+       COPY DPP01DTA.   
+       COPY DPP01ERR.   
+       COPY DPP01MCB.   
+       COPY DPP03PWS.   
+       COPY DPP01SCO.   
+       COPY DPP01UWS.   
+       COPY DPP02Y2K.   
+       COPY DPP12SCO.   
+       COPY DPP34CWS.   
+       COPY DPP15ACW.   
+       COPY IRP48CNW.   
+       COPY DPP42ERR.   
+       COPY RSP00DMS.   
+       COPY GRP00AWS.   
+       COPY GRP15BHW.   
+       COPY RSP32DMS.   
+       COPY RSP50INP.   
+       COPY RSP50OUT.   
+       COPY RSP64DMS.   
+       COPY RSP77GMD.   
+       COPY RSP06CON.   
+       COPY RSP06BLK.   
+       COPY RSP06GCI.   
+       COPY RSP15BLK.   
+       COPY RSP15CON.   
+       COPY RSP15INP.   
+       COPY RSP60INP.   
+       COPY RSP23RGC.   
+       COPY RSP15OUT.   
+       COPY RSP15OWS.   
+       COPY SSP03GAD.   
+       COPY SSP05GCD.   
+       COPY SSP70TSR.   
+       COPY SLCPCOB.
+       COPY UAP01MWS.   
+       COPY TDP01SAW.   
+       COPY RSP90OVW.   
+       COPY BKTCAB-W-1674.  
+       COPY BKTPOF-W-1676.  
+       COPY BKTGRP-W-1679.  
+       COPY BKTGCA-W-1680.  
+       COPY BKTGCM-W-1683.  
+       COPY BKTGOF-W-1682.  
+       COPY BKTGPX-W-1675.  
+       COPY BKTGQL-W-1677.  
+       COPY BKTOCM-W-1678.  
+       COPY BKTOVR-W-1681.  
+       COPY PSRTNC-W-1673.  
+       COPY IRP64MAW.   
+
+       COMMON-STORAGE SECTION.  
+
+       PROCEDURE DIVISION.  
+       0000-MAIN-LINE.  
+       COPY DPP01INT.   
+       COPY UAP05INT.   
+
+           MOVE WS-PROG-ID              TO TDPROGNAME.  
+
+           PERFORM DPP12-TDINIT THRU
+                   DPP12-TDINIT-EXIT.   
+
+           PERFORM DPP12-BEGIN-THREAD THRU  
+                   DPP12-BEGIN-THREAD-EXIT. 
+
+           IF DPP01-SQL-ERROR-IND = 'Y' 
+              GO TO DPP12-THREAD-ERROR-EXIT 
+           END-IF.  
+
+           EXEC SQL 
+                USE DEFAULT SCHEMA PSTRDMS  
+           END-EXEC.
+
+           EXEC SQL WHENEVER NOT FOUND  
+                CONTINUE
+           END-EXEC.
+
+           EXEC SQL WHENEVER SQLERROR   
+                CONTINUE
+           END-EXEC.
+
+       0100-INIT-DATABASE.  
+
+           IMPART.  
+           OPEN GRP1-BOOK   
+                AGENCY-ASSOC
+                AGENT-IDX   
+                AGENT   
+                AGENT-CURR  
+                AGENT-BUS   
+                GRP1-CAT
+                GRP1BKEXT3  
+                ATRF
+                GRP1-REPRI  
+                GRP1-PKG
+                AGENT-COMP  
+                AGENT-TERMS 
+                NATIONAL-IDX
+                NATIONALITY 
+                GRP1BKEXT1  
+                SAIL-PHASE  
+                CONFIRM 
+                PKG-DESC1X  
+                PKG-DESC1   
+                ERROR-DESC  
+                AGNT-PHO-IDX
+
+           OPEN AGENT-PHONE 
+                GRP1-CITY   
+                AGENCY-CONN 
+                FARE
+                ITINERARY   
+                CIF0
+                CIF1
+                CIF2
+                CIF3
+                CIF4
+                CIF5
+                CIF6
+                CIF7
+                CIF8
+                CIF9
+                CABIN-HOLD  
+                GTRF
+                MMISC-AMT   
+                MMISC-AMTX  
+                INDV-FEE
+                REF-REQUEST 
+                OBCDEPT 
+                AGENCY-RATE.
+           OPEN  IBRPROMO.  
+
+           PERFORM ARP06-OPEN-PMT-DUE-UPDATE
+              THRU ARP06-OPEN-PMT-DUE-AREAS-EXIT.   
+
+           PERFORM IRP66-OPEN-IBR-UPDATE
+              THRU IRP66-OPEN-IBR-AREAS-EXIT.   
+
+           PERFORM GRP01-OPEN-RATE-UPDATE THRU GRP01-OPEN-EXIT. 
+
+           MOVE 'U' TO DPP03-OPEN-FLAG. 
+
+           PERFORM DPP11-OPEN-PAX-AREAS THRU DPP11-EXIT.
+
+           PERFORM DPP45-OPEN-AVAIL-UPDATE THRU DPP45-AVAIL-EXIT.   
+
+           OPEN ASTRF-CTL.  
+
+           PERFORM GRP15-OPEN-HISTORY-UPDATE THRU GRP15-OPEN-EXIT.  
+
+           PERFORM ARP90-OPEN-PAYMENT-RETRIEVAL THRU
+                   ARP90-OPEN-PAYMENT-EXIT. 
+
+           PERFORM DPP15-FETCH-ASTRF-RECS   
+              THRU DPP15-FETCH-ASTRF-RECS-EXIT. 
+
+       0200-NEXT-MESSAGE.   
+           PERFORM DPP12-GET-NEXT-MESSAGE   
+              THRU DPP12-GET-NEXT-MESSAGE-EXIT. 
+
+       COPY RSP06INT.   
+       COPY DPP34INT.   
+       COPY RSP60INT.   
+       COPY RSP90INT.   
+       COPY IRP64INT.   
+
+           MOVE FUNCTION CURRENT-DATE TO DPP01-SYSTEM-DATE-TIME.
+
+           PERFORM PSRTNC-RCV-STD-IN-PARAMS.
+
+           EVALUATE U-1673-PI-STORED-PROCEDURE-NAM  
+               WHEN 'SP_R_BK_TNC'   
+                   MOVE C-1673-NUMBER-OF-PARAMETERS 
+                                       TO DPP01-PARAMETERS-EXPECTED 
+               WHEN OTHER   
+                   MOVE 9000           TO DPP42-HOLD-MSG-INDEX  
+                   MOVE 'Wrong RPC Name Sent'   
+                                       TO DPP42-HOLD-MSG-DESC   
+                   GO TO DPP12-SEVERE-ERROR-MSG 
+           END-EVALUATE.
+
+           IF (SL-NUMBER-OF-PARMS NOT = DPP01-PARAMETERS-EXPECTED)  
+              MOVE 9001                TO DPP42-HOLD-MSG-INDEX  
+              MOVE SL-NUMBER-OF-PARMS  TO DPP01-SIGNED  
+              MOVE DPP01-UNSIGNED      TO DPP01-PARAMETERS-RECEIVED 
+              STRING DPP01-PARAMETERS-EXPECTED ' Parameters required - '
+                     DPP01-PARAMETERS-RECEIVED ' Received, '
+                     'contact Help Desk!' DELIMITED BY SIZE 
+                    INTO DPP42-HOLD-MSG-DESC
+              GO TO DPP12-SEVERE-ERROR-MSG  
+           END-IF.  
+
+           MOVE U-1673-PI-APPLICATION-NAME  
+                                        TO GRP00-IN-APPLICATION.
+
+           PERFORM GRP00-GET-SYSTEM THRU
+                   GRP00-EXIT.  
+
+           IF GRP00-ERR-NUM  > 0
+              MOVE GRP00-ERR-NUM        TO DPP42-HOLD-MSG-INDEX 
+              GO TO 9300-SEVERE-ERROR-MSG   
+           END-IF.  
+
+           PERFORM PSRTNC-RCV-PL-R-BK-TNC.  
+           PERFORM PSRTNC-RCV-STD-OUT-PARAMS.   
+           PERFORM PSRTNC-SET-STD-OUT-PARAMS.   
+
+           IF  U-1673-IBR-BOOK-NUM <= SPACES AND
+               U-1673-GBR-BOOK-NUM <= SPACES
+               MOVE 01                  TO  DPP42-HOLD-MSG-INDEX
+               GO TO 9200-EDIT-ERROR-MSG
+           END-IF.  
+
+           IF U-1673-CONNECTION-CODE NOT = 'IC' AND 'ER'
+              IF  U-1673-AGENCY-ID <= SPACES
+                  MOVE 02                  TO DPP42-HOLD-MSG-INDEX  
+                  GO TO 9200-EDIT-ERROR-MSG 
+              END-IF
+           END-IF.  
+
+           IF  U-1673-CONNECTION-CODE <= SPACES 
+               MOVE 03                  TO DPP42-HOLD-MSG-INDEX 
+               GO TO 9200-EDIT-ERROR-MSG
+           END-IF.  
+
+           IF U-1673-GBR-BOOK-NUM > SPACES  
+              IF U-1673-VERSION-NUM <= SPACES OR 'ALL' OR 'N'   
+                 MOVE 0                 TO WS-VERSION-NUM   
+                 MOVE 'N'               TO WS-NO-VERSION-IND
+              ELSE  
+                 IF U-1673-VERSION-NUM IS NUMERIC   
+                    MOVE 'Y'            TO WS-NO-VERSION-IND
+                    MOVE U-1673-VERSION-NUM 
+                                        TO WS-VERSION-NUM   
+                 ELSE   
+                    MOVE 04             TO  DPP42-HOLD-MSG-INDEX
+                    GO TO 9200-EDIT-ERROR-MSG   
+                 END-IF 
+              END-IF
+           END-IF.  
+
+           IF U-1673-GBR-BOOK-NUM > SPACES  
+              GO TO 0400-FETCH-GBR  
+           END-IF.  
+
+
+       0300-FETCH-IBR.  
+           EXEC SQL 
+                DECLARE ADDITIONAL_TNC_CURSOR_1 CURSOR  
+                 SELECT IFNULL(PATC.VALUE_1,' ')
+                       ,IFNULL(PATC.VALUE_2,' ')
+                   FROM PRP_ADD_TERM_COND       PATC
+                   JOIN TERMS_CONDITION_MASTER  TNC 
+                     ON TNC.COMPANY_CODE = :TDP01-COMPANY-CODE  
+                    AND TNC.BASE_CURRENCY_CODE =
+                                              :TDP01-BASE-CURRENCY-CODE 
+                    AND TNC.TERM_COND_CODE =
+                                          PATC.ADDITIONAL_TERM_COND_CODE
+                  WHERE PATC.PRP_OWNER_CODE = :U-1678-ENTITY-TYPE   
+                    AND PATC.PRP_OWNER_ID = :E-1678-ENTITY-OWN-ID   
+                    AND PATC.ADDITIONAL_TERM_COND_CODE > ' '
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR 
+           END-IF.  
+           MOVE U-1673-IBR-BOOK-NUM     TO IBR-BOOK-NUM.
+POAMIG     EVALUATE IBR-BOOK-NUM (6:1)  
+POAMIG        WHEN 'B' WHEN 'C' WHEN '0'
+POAMIG              MOVE '0'  TO INDV-BOOKING-CALCAREA (9:1)
+POAMIG        WHEN 'D' WHEN 'F' WHEN '1'
+POAMIG              MOVE '1'  TO INDV-BOOKING-CALCAREA (9:1)
+POAMIG        WHEN 'G' WHEN 'H' WHEN '2'
+POAMIG              MOVE '2'  TO INDV-BOOKING-CALCAREA (9:1)
+POAMIG        WHEN 'J' WHEN 'K' WHEN '3'
+POAMIG              MOVE '3'  TO INDV-BOOKING-CALCAREA (9:1)
+POAMIG        WHEN 'L' WHEN 'M' WHEN '4'
+POAMIG              MOVE '4'  TO INDV-BOOKING-CALCAREA (9:1)
+POAMIG        WHEN 'N' WHEN 'P' WHEN '5'
+POAMIG              MOVE '5'  TO INDV-BOOKING-CALCAREA (9:1)
+POAMIG        WHEN 'Q' WHEN 'R' WHEN '6'
+POAMIG              MOVE '6'  TO INDV-BOOKING-CALCAREA (9:1)
+POAMIG        WHEN 'S' WHEN 'T' WHEN '7'
+POAMIG              MOVE '7'  TO INDV-BOOKING-CALCAREA (9:1)
+POAMIG        WHEN 'V' WHEN 'W' WHEN '8'
+POAMIG              MOVE '8'  TO INDV-BOOKING-CALCAREA (9:1)
+POAMIG        WHEN 'X' WHEN 'Z' WHEN '9'
+POAMIG              MOVE '9'  TO INDV-BOOKING-CALCAREA (9:1)
+POAMIG     END-EVALUATE.
+           FETCH INDV-BOOKING-REC RECORD
+              ON ERROR GO TO 1900-FETCH-IBR-ERROR.  
+
+           GO TO 0500-AGENT-VALIDATION. 
+
+       0400-FETCH-GBR.  
+           EXEC SQL 
+                DECLARE ADDITIONAL_TNC_CURSOR_2 CURSOR  
+                 SELECT IFNULL(PATC.VALUE_1,' ')
+                       ,IFNULL(PATC.VALUE_2,' ')
+                   FROM PRP_ADD_TERM_COND       PATC
+                   JOIN TERMS_CONDITION_MASTER  TNC 
+                     ON TNC.COMPANY_CODE = :TDP01-COMPANY-CODE  
+                    AND TNC.BASE_CURRENCY_CODE =
+                                              :TDP01-BASE-CURRENCY-CODE 
+                    AND TNC.TERM_COND_CODE =
+                                          PATC.ADDITIONAL_TERM_COND_CODE
+                  WHERE PATC.PRP_OWNER_CODE = :U-1683-ENTITY-TYPE   
+                    AND PATC.PRP_OWNER_ID = :E-1683-ENTITY-OWNER-ID 
+                    AND PATC.ADDITIONAL_TERM_COND_CODE > ' '
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR 
+           END-IF.  
+           MOVE U-1673-GBR-BOOK-NUM     TO GBR1-BOOK-NUM.   
+           FETCH GRP1-BOOKING-REC RECORD
+                 ON ERROR GO TO 1700-CHECK-GBR1-ERROR.  
+
+       0500-AGENT-VALIDATION.   
+
+           IF U-1673-CONNECTION-CODE = 'IC' OR 'ER' 
+              GO TO 0600-START-PROCESS  
+           END-IF.  
+
+           PERFORM RSP50-INIT-INPUTS THRU   
+                   RSP50-INIT-INPUTS-EXIT.  
+           MOVE U-1673-IBR-BOOK-NUM       TO RSP50-I-IBR-BOOK-NUM.  
+           MOVE U-1673-GBR-BOOK-NUM       TO RSP50-I-GRP-BOOK-NUM.  
+           MOVE U-1673-CONNECTION-CODE    TO RSP50-I-CONNECTION-CODE.   
+           MOVE 'C'                       TO RSP50-I-COMPANY-CODE.  
+285142*    MOVE U-1673-AGENCY-ID          TO RSP50-I-CUSTOMER-NUM.  
+285142*    MOVE 'CM'                      TO RSP50-I-AAR-TYPE.  
+
+285142     IF  U-1673-CONNECTION-CODE <= ' ' OR 
+285142         U-1673-CONNECTION-CODE = 'BCL' OR 'BUK' OR 'BAU' 
+285142         MOVE 'CM'                  TO RSP50-I-AAR-TYPE   
+285142         MOVE U-1673-AGENCY-ID      TO RSP50-I-CUSTOMER-NUM   
+285142     ELSE 
+285142         MOVE U-1673-CONNECTION-CODE  
+285142                                    TO RSP50-I-AAR-TYPE   
+285142         MOVE U-1673-AGENCY-ID      TO RSP50-I-AAR-AGENCY-ID  
+285142     END-IF.  
+
+           MOVE 'N'                       TO RSP50-I-CALL-CENTER-IND
+                                             RSP50-I-GROUP-CONTRACT-IND.
+       0550-CALL-AGENCY-VALIDATION. 
+
+           CALL 'RSO50VAA' USING DPP01-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 RSP50-AGENCY-INPUT 
+                                 RSP50-AGENCY-OUTPUT
+                                 RSP90-OVERRIDE-FLAGS-INFO. 
+
+           IF DPP01-SUB-MSG-CTR > ZERO AND  
+              DPP01-SUB-MSG-STATUS(1) > 1   
+              GO TO 9500-RETURN-SUBROUTINE-ERROR
+           END-IF.  
+
+       0600-START-PROCESS.  
+
+           IF U-1673-GBR-BOOK-NUM > SPACES  
+              GO TO 1200-PROCESS-GROUP  
+           END-IF.  
+
+       COPY RSP23INT.   
+
+           MOVE U-1673-IBR-BOOK-NUM     TO RSP23-I-INDV-BOOK-NUM.   
+           MOVE 'A'                     TO RSP23-I-BOOK-TYPE.   
+           MOVE 'Y'                     TO RSP23-I-READ-IBR-IND 
+                                           RSP23-I-READ-CIF-IND 
+                                           RSP23-I-READ-PAX-IND 
+                                           RSP23-I-READ-PPIR-IND
+                                           RSP23-I-READ-GST-OFR-QUL-IND 
+                                           RSP23-I-READ-GST-OFR-IND.
+           MOVE ZERO                    TO DPP01-SUB-MSG-CTR.   
+           MOVE U-1673-PI-USERID        TO DPP01-USERID.
+
+           CALL 'RSO23RGC' USING DPP01-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 RSP23-RGC-INPUT
+                                 RSP06-GUEST-CABIN-INFO.
+
+           IF DPP01-SUB-MSG-CTR > 0 AND 
+              DPP01-SUB-MSG-STATUS (1) > 1  
+              GO TO 9500-RETURN-SUBROUTINE-ERROR
+           END-IF.  
+
+           MOVE RSP06-IBR-SHIP-CODE     TO TDP01-I-SHIP-CODE.   
+           MOVE RSP06-IBR-SAIL-DATE     TO TDP01-I-SAIL-DATE-YYYYMMDD.  
+           MOVE RSP06-IBR-DURATION-DAYS TO TDP01-I-DUR-DAYS.
+
+           PERFORM TDP01-RET-SAIL-DETAILS THRU  
+                   TDP01-RET-SAIL-DETAILS-EXIT. 
+
+           IF TDP01-SAIL-SQLERR OR  
+              TDP01-SAIL-NOTFND OR  
+              TDP01-PROC-ERROR > ZEROES 
+              GO TO 9150-RDMS-ERROR 
+           END-IF.  
+
+           MOVE RSP06-IBR-SHIP-CODE     TO  WS-SHIP-CODE.   
+           MOVE RSP06-IBR-DURATION-DAYS TO  WS-DURATION-DAYS.   
+           MOVE RSP06-IBR-SAIL-DATE     TO  WS-SAIL-DATE.   
+
+           EXEC SQL 
+                SELECT IFNULL(SAILING_GENERAL_TNC_OWNER_ID,0)   
+                  INTO :WS-SAIL-GEN-TNC-OWNER-ID
+                  FROM CABIN_OFFER  
+                 WHERE SHIP_CODE = :WS-SHIP-CODE
+                   AND BOOK_NUM = :U-1673-IBR-BOOK-NUM  
+                FETCH FIRST 1 ROW ONLY  
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR 
+           END-IF.  
+
+       0700-POPULATE-BOOKING-RS.
+
+           PERFORM BKTCAB-DSC-RS-BK-TNC-CABIN.  
+           MOVE RSP06-IBR-BOOK-NUM      TO U-1674-BOOK-NUM. 
+           MOVE RSP06-IBR-CURRENCY-CODE TO U-1674-CURRENCY-CODE.
+           MOVE TDP01-BASE-CURRENCY-CODE
+                                        TO U-1674-SAL-BASE-CURR-CODE.   
+           MOVE WS-SAIL-KEY             TO U-1674-SAIL-KEY. 
+           MOVE RSP06-IBR-BOOK-STATUS   TO U-1674-BOOK-STATUS.  
+           MOVE RSP06-IBR-BOOK-TYPE     TO U-1674-BOOK-TYPE.
+           MOVE RSP06-IBR-SHIP-CODE     TO U-1674-SHIP-CODE.
+           MOVE RSP06-IBR-DURATION-DAYS TO U-1674-DURATION-DAYS.
+           MOVE RSP06-IBR-SAIL-DATE     TO U-1674-SAIL-DATE.
+           MOVE TDP01-EMBARK-PORT-CODE  TO U-1674-EMBARK-PORT-CODE. 
+           MOVE RSP06-IBR-CPA-CATEGORY-CODE 
+                                        TO U-1674-CPA-CATEGORY-CODE.
+           MOVE RSP06-IBR-CATEGORY-CODE TO U-1674-CATEGORY-CODE.
+           MOVE RSP06-IBR-LOCALITY-CODE TO U-1674-LOCALITY-CODE.
+           MOVE RSP06-IBR-CABIN-NUM     TO U-1674-CABIN-NUM.
+           MOVE RSP06-IBR-DIRECT-IND    TO U-1674-DIRECT-IND.   
+           MOVE RSP06-IB-DSP-CABIN-NUM  TO U-1674-DSP-CABIN-NUM.
+           MOVE RSP06-IBR-FINAL-DATE    TO U-1674-FINAL-DATE.   
+           MOVE RSP06-IBR-LANGUAGE-CODE TO U-1674-LANGUAGE-CODE.
+           MOVE RSP06-IBR-OPTION-DATE   TO U-1674-OPTION-DATE . 
+           MOVE RSP06-IBR-DEPOSIT-AMT   TO E-1674-TOTAL-DEPOSIT-AMT.
+           MOVE RSP06-IBR-TOTAL-FEES-AMT
+                                        TO E-1674-TOTAL-FEES-AMT.   
+           MOVE RSP06-IBR-CABIN-COMM-AMT     TO WS-TEMP-COMM-AMT.   
+
+PPC470     MOVE LOW-VALUES TO U-1674-PAX-NON-REFUND-AMT-TBL.
+
+           PERFORM VARYING WS-SUB FROM 1 BY 1   
+                 UNTIL WS-SUB > RSP06-PAX-CNT   
+               COMPUTE WS-TEMP-COMM-AMT =   
+                       WS-TEMP-COMM-AMT +   
+                       RSP06-PAX-BONUS-COMM-AMT (WS-SUB)
+                MOVE  RSP06-PAX-NON-REFUND-AMT (WS-SUB) 
+                                    TO U-1674-PAX-NON-REFUND-AMT(WS-SUB)
+285142         IF WS-SUB = 1
+285142            STRING RSP06-PAX-OFFER-CODE (WS-SUB)  
+285142                   RSP06-IB-TARGETED-AB-CODE  
+285142                   DELIMITED BY SIZE INTO U-1674-OFFER-WITH-TGO-AB
+285142         END-IF   
+           END-PERFORM. 
+           MOVE WS-TEMP-COMM-AMT     TO E-1674-TOT-BONUS-COMM-AMT.  
+           COMPUTE E-1674-TOTAL-COMM-AMT = IBR-CRUISE-COMM-AMT  
+                                         - WS-TEMP-COMM-AMT.
+           MOVE RSP06-IBR-REQ-RATE-VERSION  
+                                        TO U-1674-REQ-RATE-VERSION. 
+           MOVE RSP06-IBR-PAYMENT-ITEM-CODE 
+                                        TO U-1674-PAY-ITEM-CODE.
+           MOVE RSP06-IBR-PENALTY-ITEM-CODE 
+                                        TO U-1674-PENALTY-ITEM-CODE.
+           MOVE RSP06-IBR-FORCE-OCC-REP-IND 
+                                        TO U-1674-FORCE-OCC-REPRICE-IND.
+           MOVE RSP06-IBR-PRICE-PROTECT-IND 
+                                        TO U-1674-PRICE-PROTECTION-IND. 
+           MOVE RSP06-IBR-CHG-SAILING-FEE-AMT   
+                                        TO E-1674-CNG-SALING-FEE-AMT.   
+           MOVE RSP06-IBR-OBC-SAILING-AMT   
+                                        TO E-1674-SAILING-OBC-AMT.  
+
+
+           MOVE RSP06-IBR-CRUO-COMM-PCT TO U-1674-CRUO-COMM-PCT.
+           MOVE RSP06-IBR-PRC-XCHG-RATE TO E-1674-CURR-EXCHANGE-RATE.   
+           IF RSP06-TOTAL-SAIL-DAYS > 0 
+              MOVE RSP06-TOTAL-SAIL-DAYS   TO U-1674-TOTAL-SAIL-DAYS
+           ELSE 
+              MOVE RSP06-IBR-DURATION-DAYS TO U-1674-TOTAL-SAIL-DAYS
+           END-IF.  
+           MOVE RSP06-TC-ELIGILE-IND  TO U-1674-TOUR-CNDR-ELIGBL-IND.   
+           MOVE RSP06-CHG-SAL-OWN-ID  TO E-1674-CNG-SAL-TNC-OWN-ID. 
+           MOVE RSP06-SCHD-OWN-ID     TO E-1674-SCHEDULE-TNC-OWN-ID.
+           MOVE RSP06-REFUND-OWN-ID   TO E-1674-REFUND-TNC-OWN-ID.  
+           MOVE RSP06-FORCE-OCC-REP-OWN-ID  
+                                      TO E-1674-FRC-REPRICE-TNC-OWN-ID. 
+           MOVE RSP06-BONUS-SAL-DAYS-OWN-ID 
+                                     TO E-1674-BONS-SAL-DYS-TNC-OWN-ID. 
+           MOVE RSP06-TC-OWN-ID       TO E-1674-TOUR-CNDR-TNC-OWN-ID.   
+           MOVE RSP06-PRICE-PROT-OWN-ID 
+                                        TO E-1674-PRICE-PROT-TNC-OWN-ID.
+           MOVE RSP06-CAB-ASSIGN-TNC-OWN-ID 
+                                       TO E-1674-CABIN-ASIGN-TNC-OWN-ID.
+
+           MOVE RSP06-PMT-DISC-TNC-OWN-ID   
+                                        TO E-1674-PMT-DIS-TNC-OWN-ID.   
+           MOVE RSP06-CAB-COMM-TNC-OWN-ID   
+                                        TO E-1674-COMM-TNC-OWN-ID.  
+           MOVE RSP06-CABIN-COMMISSION-AMT  
+                                        TO E-1674-CABIN-COMM-AMT.   
+           MOVE RSP06-AMENITY-TNC-OWN-ID
+                                        TO E-1674-AME-TNC-OWN-ID.   
+
+PPC470     MOVE RSP06-MIN-CAT-TNC-OWN-ID
+PPC470                                  TO E-1674-MIN-CAT-TNC-OWN-ID.   
+
+197802     MOVE RSP06-REQ-GRATS-TNC-OWN-ID  
+197802                                  TO E-1674-REQ-GRATS-TNC-OWN-ID. 
+
+PRCCMB     MOVE RSP06-FUN-PLAY-TNC-OWN-ID   
+PRCCMB*                                 TO U-1674-FUNPLAY-TNC-OWN-ID.   
+PRCCMB                                  TO E-1674-FUNPLAY-TNC-OWN-ID.   
+
+           MOVE WS-SAIL-GEN-TNC-OWNER-ID
+                                        TO E-1674-SAIL-GEN-TNC-OWN-ID.  
+
+           MOVE RSP06-NON-REFUND-DEPOSIT-IND
+                                        TO U-1674-NON-REF-DEPOSIT-IND.  
+           MOVE RSP06-NON-REFUND-FARE-IND   
+                                        TO U-1674-NON-REF-FARE-IND. 
+           MOVE RSP06-PMT-DISC-TERM-CODE
+                                        TO U-1674-PMT-DISC-TERM-CODE.   
+           MOVE RSP06-PMT-DISC-AMT-PCT-CODE 
+                                        TO U-1674-PMT-DISC-AMT-PCT-CODE.
+           MOVE RSP06-PMT-DISC-AMT      TO E-1674-PMT-DISCOUNT-AMT. 
+
+           PERFORM BKTCAB-NUL-RS-BK-TNC-CABIN.  
+           PERFORM DPP12-SEND-ROW THRU  
+                   DPP12-SEND-ROW-EXIT. 
+           PERFORM DPP12-SEND-DONE-COUNT.   
+
+           PERFORM BKTGPX-DSC-RS-BK-TNC-GUEST-PAX.  
+
+           MOVE ZERO TO PAX-SUB.
+           MOVE ZERO TO SUB.
+
+       0800-POPULATE-GUEST. 
+
+           ADD 1 TO PAX-SUB.
+           ADD 1 TO SUB.
+           IF PAX-SUB > RSP06-PAX-CNT   
+              GO TO 0900-POPULATE-PAX-OFFER 
+           END-IF.  
+           STRING RSP06-PAX-BOOK-NUM (PAX-SUB)  
+                  RSP06-PAX-SEQ-NUM  (PAX-SUB)  
+                  DELIMITED BY SIZE INTO U-1675-PAX-KEY.
+           MOVE  RSP06-PAX-FIRST-NAME (PAX-SUB)    TO U-1675-FIRST-NAME.
+           MOVE  RSP06-PAX-LAST-NAME (PAX-SUB)     TO U-1675-LAST-NAME .
+           MOVE  RSP06-PAX-BOOK-NUM (PAX-SUB)      TO U-1675-BOOK-NUM  .
+           MOVE  RSP06-PAX-CRUISE-AMT (PAX-SUB)    TO E-1675-CRUISE-AMT.
+           MOVE  RSP06-PAX-CRUISE-COMM-AMT (PAX-SUB)
+                                        TO E-1675-CRUISE-COMM-AMT.  
+           MOVE  RSP06-PAX-CRUISE-CRUO-COMM-PCT (PAX-SUB)   
+                                        TO E-1675-CRUISE-CRUO-COMM-PCT. 
+           MOVE  RSP06-PAX-BONUS-COMM-AMT (PAX-SUB) 
+                                        TO E-1675-BONUS-COMM-AMT.   
+           MOVE  RSP06-PAX-ADMIN-FEE-AMT (PAX-SUB)  
+                                        TO E-1675-FEES-AMT. 
+           MOVE  RSP06-PAX-OFFER-CODE (PAX-SUB) 
+                                        TO U-1675-OFFER-CODE.   
+           MOVE  RSP06-PAX-OFFER-ID (PAX-SUB)   
+                                        TO U-1675-OFFER-ID. 
+           MOVE  RSP06-PAX-SEQ-NUM (PAX-SUB)
+                                        TO U-1675-SEQ-NBR.  
+           MOVE  RSP06-PAX-CABIN-SEQ-NUM (PAX-SUB)  
+                                        TO U-1675-POSITION-NBR. 
+           MOVE  RSP06-PAX-SINGLES-PCT (PAX-SUB)
+                                        TO E-1675-SINGLES-PCT.  
+           MOVE  RSP06-PAX-FIXED-COMM-AMT (PAX-SUB) 
+                                        TO E-1675-FIXED-COMM-AMT.   
+
+           MOVE  RSP06-PAX-TOTAL-OBC-AMT (PAX-SUB)  
+                                        TO E-1675-SAILING-OBC-AMT.  
+
+           MOVE  RSP06-PAX-VPP-INCLUDED-CODE (PAX-SUB)  
+                                      TO U-1675-PP-GRATS-INCLUDED-CODE. 
+           MOVE  RSP06-PAX-INSURANCE-IND (PAX-SUB)  
+                                        TO U-1675-INSURANCE-IND.
+           MOVE  RSP06-PAX-CRUISE-INS-AMT (PAX-SUB) 
+                                        TO E-1675-CRUISE-INS-AMT.   
+           MOVE  RSP06-PAX-TFPE-INCLUDED-CODE (PAX-SUB) 
+                                        TO U-1675-TFPE-INCLUDED-CODE.   
+           MOVE  RSP06-PAX-TOTAL-TAX-FEE-AMT (PAX-SUB)  
+                                        TO E-1675-TOTAL-TAX-FEE-AMT.
+           MOVE  RSP06-PAX-PP-GRATS-INCLUDED-CD (PAX-SUB)   
+                                      TO U-1675-PP-GRATS-INCLUDED-CODE. 
+           MOVE  RSP06-PAX-PP-GRATS-AMT (PAX-SUB)   
+                                        TO E-1675-PP-GRATS-AMT. 
+           MOVE  RSP06-PAX-PP-GRATS-IND (PAX-SUB)   
+                                        TO U-1675-PP-GRATS-IND. 
+PRCCMB     MOVE  RSP06-PDI-FUN-PLAY-AMT (PAX-SUB)   
+PRCCMB*                                 TO U-1675-PAX-FUNPLAY-AMT.  
+PRCCMB                                  TO E-1675-PAX-FUNPLAY-AMT.  
+
+           MOVE 'N'                     TO U-1675-TGO-REDEEM-IND.   
+           IF RSP06-PPIR-EXIST-IND (PAX-SUB) = 'Y' AND  
+              RSP06-PAX-PAST-GUEST-NUM (PAX-SUB) > SPACES   
+              MOVE RSP06-IBR-SAIL-DATE  TO WS-IBR-SAIL-DATE 
+              PERFORM VARYING WS-SUB FROM 1 BY 1
+                        UNTIL WS-SUB >  
+                              RSP06-PPIR-ENTRY-CNT (PAX-SUB) OR 
+                              U-1675-TGO-REDEEM-IND = 'Y'   
+                 IF RSP06-PPIR-PERSON-TYPE (PAX-SUB WS-SUB) = 'P'   
+                    EXEC SQL
+                       SELECT 'Y'   
+                         INTO U-1675-TGO-REDEEM-IND 
+                         FROM RDMS.RDMS_DUMMY   
+                        WHERE KEY_COL = 1   
+                          AND EXISTS
+                            (SELECT * FROM TARGET_REDEMPTION WHERE  
+                                  IDENTIFIER_TYPE = 'PG'
+                              AND IDENTIFIER =  
+                                    :RSP06-PAX-PAST-GUEST-NUM (PAX-SUB) 
+                              AND OFFER_ID = :RSP06-PPIR-OFFER-ID   
+                                                       (PAX-SUB WS-SUB) 
+                              AND SHIP_CODE = :RSP06-IBR-SHIP-CODE  
+                              AND SAIL_DATE = DATE(STRPTIME 
+                                        (:WS-IBR-SAIL-DATE-X, '%Y%m%d'))
+                              AND DURATION_DAYS =   
+                                              :RSP06-IBR-DURATION-DAYS  
+                              AND BOOK_NUM = :RSP06-IBR-BOOK-NUM
+                              AND PAX_SEQ_NUM = :RSP06-PAX-SEQ-NUM  
+                                                              (PAX-SUB))
+                    END-EXEC
+                    IF SQLCODE < 0  
+                       GO TO 9150-RDMS-ERROR
+                    END-IF  
+                 END-IF 
+              END-PERFORM   
+           END-IF.  
+
+           PERFORM BKTGPX-NUL-RS-BK-TNC-GUEST-PAX.  
+           PERFORM DPP12-SEND-ROW THRU  
+                   DPP12-SEND-ROW-EXIT. 
+           GO TO 0800-POPULATE-GUEST.   
+
+       0900-POPULATE-PAX-OFFER. 
+
+           PERFORM DPP12-SEND-DONE-COUNT.   
+           PERFORM BKTPOF-DSC-RS-BK-TNC-PAX-OFF.
+           MOVE ZERO TO PAX-SUB.
+
+       0950-POPULATE-PAX-OFFER-CONTD.   
+
+           ADD 1 TO PAX-SUB.
+           IF PAX-SUB > RSP06-GUEST-OFFER-CNT   
+              GO TO 1000-POPULATE-OFFER-COMPONENT   
+           END-IF.  
+
+           MOVE 'N'                     TO WS-PAX-ACTIVE-IND.   
+           IF RSP06-GUEST-SEQ-NUM (PAX-SUB) = 0 
+              MOVE 'Y'                  TO WS-PAX-ACTIVE-IND
+           ELSE 
+              PERFORM VARYING SUB FROM 1 BY 1   
+                 UNTIL SUB > RSP06-PAX-CNT  
+                IF RSP06-GUEST-SEQ-NUM(PAX-SUB) = RSP06-PAX-SEQ-NUM(SUB)
+                   MOVE 'Y'             TO WS-PAX-ACTIVE-IND
+                   MOVE RSP06-PAX-CNT   TO SUB  
+                END-IF  
+              END-PERFORM   
+           END-IF.  
+
+           IF WS-PAX-ACTIVE-IND = 'N'   
+              GO TO 0950-POPULATE-PAX-OFFER-CONTD   
+           END-IF.  
+
+           MOVE  RSP06-PAX-BOOK-NUM (PAX-SUB)   
+                                        TO U-1676-BOOK-NUM. 
+           MOVE  RSP06-OFFER-ID (PAX-SUB)   
+                                        TO E-1676-OFFER-ID .
+           MOVE  RSP06-GUEST-SEQ-NUM (PAX-SUB)  
+                                        TO U-1676-GUEST-SEQ-NUM.
+           MOVE  RSP06-COUPON-CODE (PAX-SUB)
+                                        TO U-1676-COUPON-CODE.  
+           MOVE  RSP06-TGO-TNC-OWN-ID (PAX-SUB) 
+                                        TO E-1676-TGO-TNC-OWN-ID.   
+           MOVE  RSP06-PAX-INCL-AMENITY-CODE (PAX-SUB)  
+                                        TO U-1676-INCLUDE-AME-CODE. 
+           MOVE  RSP06-INC-VPP-TNC-OWN-ID (PAX-SUB) 
+                                       TO E-1676-INCLUDE-VPP-TNC-OWN-ID.
+           MOVE  RSP06-INC-PPG-TNC-OWN-ID (PAX-SUB) 
+                                       TO E-1676-INCLUDE-PPG-TNC-OWN-ID.
+           MOVE  RSP06-INC-TFPE-TNC-OWN-ID (PAX-SUB)
+                                      TO E-1676-INCLUDE-TEPE-TNC-OWN-ID.
+           MOVE  RSP06-DESCRIPTION (PAX-SUB)
+                                      TO U-1676-OFFER-DESCRIPTION.  
+           PERFORM BKTPOF-NUL-RS-BK-TNC-PAX-OFF.
+           PERFORM DPP12-SEND-ROW THRU  
+                   DPP12-SEND-ROW-EXIT. 
+           GO TO 0950-POPULATE-PAX-OFFER-CONTD. 
+
+       1000-POPULATE-OFFER-COMPONENT.   
+
+           PERFORM DPP12-SEND-DONE-COUNT.   
+
+           PERFORM BKTOCM-DSC-RS-BK-TNC-OFF-COMP.   
+           MOVE ZERO TO PAX-SUB.
+
+       1050-POP-PAX-OFFER-COMP-CONTD.   
+
+           ADD 1 TO PAX-SUB.
+           IF PAX-SUB > RSP06-GUEST-OFFER-CNT   
+              GO TO 1100-POPULATE-GUEST-QUAL
+           END-IF.  
+           MOVE 'N' TO WS-PAX-ACTIVE-IND.   
+           IF RSP06-GUEST-SEQ-NUM (PAX-SUB) = 0 
+              MOVE 'Y' TO WS-PAX-ACTIVE-IND 
+           ELSE 
+              PERFORM VARYING SUB FROM 1 BY 1   
+                 UNTIL SUB > RSP06-PAX-CNT  
+                IF RSP06-GUEST-SEQ-NUM (PAX-SUB) =  
+                   RSP06-PAX-SEQ-NUM (SUB)  
+                   MOVE 'Y' TO WS-PAX-ACTIVE-IND
+                   MOVE RSP06-PAX-CNT TO SUB
+                END-IF  
+              END-PERFORM   
+           END-IF.  
+
+           IF WS-PAX-ACTIVE-IND = 'N'   
+              GO TO 1050-POP-PAX-OFFER-COMP-CONTD.  
+
+            MOVE  RSP06-IBR-BOOK-NUM  TO U-1678-BOOK-NUM
+
+           PERFORM VARYING ESUB FROM 1 BY 1 
+                UNTIL ESUB > RSP06-ENTITY-CNT (PAX-SUB) 
+              MOVE  RSP06-OFFER-ID (PAX-SUB)
+                                        TO U-1678-OFFER-ID  
+              MOVE  RSP06-GUEST-SEQ-NUM (PAX-SUB)   
+                                        TO U-1678-GUEST-SEQ-NUM 
+              MOVE  RSP06-ENTITY-TYPE (PAX-SUB ESUB)
+                                        TO U-1678-ENTITY-TYPE   
+              MOVE  RSP06-ENTITY-CODE (PAX-SUB ESUB)
+                                        TO U-1678-ENTITY-CODE   
+              MOVE  RSP06-ENTITY-OWN-ID (PAX-SUB ESUB)  
+                                        TO E-1678-ENTITY-OWN-ID 
+              MOVE  RSP06-GENERAL-TNC-OWN-ID (PAX-SUB ESUB) 
+                                        TO E-1678-GENERAL-TNC-OWN-ID
+              MOVE  RSP06-BONUS-SAIL-DAYS-PCT (PAX-SUB ESUB)
+                                        TO E-1678-BONUS-SAL-DAYS-PCT
+              MOVE  RSP06-GIFT-ITEM-CODE (PAX-SUB ESUB) 
+                                        TO U-1678-GIFT-ITEM-CODE
+              MOVE  RSP06-GIFT-BUNDLE-CODE (PAX-SUB ESUB)   
+                                        TO U-1678-GIFT-BUNDLE-CODE  
+              MOVE  RSP06-GIFT-TNC-OWN-ID (PAX-SUB ESUB)
+                                        TO E-1678-GIFT-TNC-OWNER-ID 
+              MOVE  RSP06-GIFT-OBC-IND (PAX-SUB ESUB)   
+                                        TO U-1678-GIFT-OBC-IND  
+              MOVE  RSP06-INCLUDE-VPP-CODE (PAX-SUB ESUB)   
+                                        TO U-1678-INCLUDE-VPP-CODE  
+              MOVE  RSP06-INCLUDE-PPG-CODE (PAX-SUB ESUB)   
+                                        TO U-1678-INCLUDE-PPG-CODE  
+              MOVE  RSP06-INCLUDE-TFPE-CODE (PAX-SUB ESUB)  
+                                        TO U-1678-INCLUDE-TFPE-CODE 
+              MOVE  RSP06-OBC-ITEM-CODE (PAX-SUB ESUB)  
+                                        TO U-1678-OBC-ITEM-CODE 
+              MOVE  RSP06-OBC-TNC-OWN-ID (PAX-SUB ESUB) 
+                                        TO E-1678-OBC-TNC-OWNER-ID  
+              MOVE  RSP06-TARGETED-IND (PAX-SUB ESUB)   
+                                        TO U-1678-TARGETED-IND  
+              MOVE  RSP06-CABIN-COMM-AMT (PAX-SUB ESUB) 
+                                        TO E-1678-CABIN-COMM-AMT
+              MOVE  RSP06-FULL-COMM-AMT (PAX-SUB ESUB)  
+                                        TO E-1678-FULL-COMM-AMT 
+              MOVE  RSP06-FULL-COMM-PCT (PAX-SUB ESUB)  
+                                        TO E-1678-FULL-COMM-PCT 
+              MOVE  RSP06-EXT-COMM-AMT (PAX-SUB ESUB)   
+                                        TO E-1678-EXTRA-COMM-AMT
+              MOVE  RSP06-EXT-COMM-PCT (PAX-SUB ESUB)   
+                                        TO E-1678-EXTRA-COMM-PCT
+              MOVE  RSP06-GL-ACCOUNT-NUM (PAX-SUB ESUB) 
+                                        TO U-1678-GL-ACCOUNT-NUM
+              MOVE  RSP06-POS-1-OBC-AMT (PAX-SUB ESUB)  
+                                        TO E-1678-POS-1-OBC-AMT 
+              MOVE  RSP06-POS-2-OBC-AMT (PAX-SUB ESUB)  
+                                        TO E-1678-POS-2-OBC-AMT 
+              MOVE  RSP06-POS-3-OBC-AMT (PAX-SUB ESUB)  
+                                        TO E-1678-POS-3-OBC-AMT 
+              MOVE  RSP06-POS-4-OBC-AMT (PAX-SUB ESUB)  
+                                        TO E-1678-POS-4-OBC-AMT 
+              MOVE  RSP06-POS-5-OBC-AMT (PAX-SUB ESUB)  
+                                        TO E-1678-POS-5-OBC-AMT 
+              IF  RSP06-POS-1-ADJUSTMENT-AMT (PAX-SUB ESUB) < ZERO  
+                  COMPUTE WS-TEMP-AMT = RSP06-POS-1-ADJUSTMENT-AMT  
+                       (PAX-SUB ESUB) * -1 * RSP06-IBR-PRC-XCHG-RATE
+              ELSE  
+                  MOVE ZEROES           TO WS-TEMP-AMT  
+              END-IF
+              MOVE  WS-TEMP-AMT         TO E-1678-POS-1-DISCOUNT-AMT
+              IF  RSP06-POS-2-ADJUSTMENT-AMT (PAX-SUB ESUB) < ZERO  
+                  COMPUTE WS-TEMP-AMT = RSP06-POS-2-ADJUSTMENT-AMT  
+                       (PAX-SUB ESUB) * -1 * RSP06-IBR-PRC-XCHG-RATE
+              ELSE  
+                  MOVE ZEROES           TO WS-TEMP-AMT  
+              END-IF
+              MOVE  WS-TEMP-AMT         TO E-1678-POS-2-DISCOUNT-AMT
+              IF  RSP06-POS-3-ADJUSTMENT-AMT (PAX-SUB ESUB) < ZERO  
+                  COMPUTE WS-TEMP-AMT = RSP06-POS-3-ADJUSTMENT-AMT  
+                       (PAX-SUB ESUB) * -1 * RSP06-IBR-PRC-XCHG-RATE
+              ELSE  
+                  MOVE ZEROES           TO WS-TEMP-AMT  
+              END-IF
+              MOVE  WS-TEMP-AMT         TO E-1678-POS-3-DISCOUNT-AMT
+              IF  RSP06-POS-4-ADJUSTMENT-AMT (PAX-SUB ESUB) < ZERO  
+                  COMPUTE WS-TEMP-AMT = RSP06-POS-4-ADJUSTMENT-AMT  
+                       (PAX-SUB ESUB) * -1 * RSP06-IBR-PRC-XCHG-RATE
+              ELSE  
+                  MOVE ZEROES           TO WS-TEMP-AMT  
+              END-IF
+              MOVE  WS-TEMP-AMT         TO E-1678-POS-4-DISCOUNT-AMT
+              IF  RSP06-POS-5-ADJUSTMENT-AMT (PAX-SUB ESUB) < ZERO  
+                  COMPUTE WS-TEMP-AMT = RSP06-POS-5-ADJUSTMENT-AMT  
+                       (PAX-SUB ESUB) * -1 * RSP06-IBR-PRC-XCHG-RATE
+              ELSE  
+                  MOVE ZEROES           TO WS-TEMP-AMT  
+              END-IF
+              MOVE  WS-TEMP-AMT         TO E-1678-POS-5-DISCOUNT-AMT
+              MOVE  RSP06-ADD-TNC-OWNER-ID-1 (PAX-SUB ESUB) 
+                                        TO U-1678-ADD-TNC-OWNER-ID(1)   
+              MOVE  RSP06-ADD-TNC-OWNER-ID-2 (PAX-SUB ESUB) 
+                                        TO U-1678-ADD-TNC-OWNER-ID(2)   
+              MOVE  RSP06-ADD-TNC-OWNER-ID-3 (PAX-SUB ESUB) 
+                                        TO U-1678-ADD-TNC-OWNER-ID(3)   
+              MOVE  RSP06-ADD-TNC-OWNER-ID-4 (PAX-SUB ESUB) 
+                                        TO U-1678-ADD-TNC-OWNER-ID(4)   
+              MOVE  RSP06-ADD-TNC-OWNER-ID-5 (PAX-SUB ESUB) 
+                                        TO U-1678-ADD-TNC-OWNER-ID(5)   
+              MOVE  RSP06-ADD-TNC-OWNER-ID-6 (PAX-SUB ESUB) 
+                                        TO U-1678-ADD-TNC-OWNER-ID(6)   
+              MOVE  RSP06-ADD-TNC-OWNER-ID-7 (PAX-SUB ESUB) 
+                                        TO U-1678-ADD-TNC-OWNER-ID(7)   
+              MOVE  RSP06-ADD-TNC-OWNER-ID-8 (PAX-SUB ESUB) 
+                                        TO U-1678-ADD-TNC-OWNER-ID(8)   
+              MOVE  RSP06-ADD-TNC-OWNER-ID-9 (PAX-SUB ESUB) 
+                                        TO U-1678-ADD-TNC-OWNER-ID(9)   
+              MOVE  RSP06-ADD-TNC-OWNER-ID-10 (PAX-SUB ESUB)
+                                        TO U-1678-ADD-TNC-OWNER-ID(10)  
+              MOVE  RSP06-ADD-TNC-OWNER-ID-11 (PAX-SUB ESUB)
+                                        TO U-1678-ADD-TNC-OWNER-ID(11)  
+              MOVE  RSP06-ADD-TNC-OWNER-ID-12 (PAX-SUB ESUB)
+                                        TO U-1678-ADD-TNC-OWNER-ID(12)  
+PRCCMB        MOVE  RSP06-FUN-PLAY-AMT (PAX-SUB ESUB)   
+PRCCMB*                                 TO U-1678-FUNPLAY-AMT   
+PRCCMB                                  TO E-1678-FUNPLAY-AMT   
+              PERFORM 1050-POP-PAX-OFFER-VALUE  
+                 THRU 1050-POP-PAX-OFFER-VALUE-EXIT 
+              PERFORM BKTOCM-NUL-RS-BK-TNC-OFF-COMP 
+
+              PERFORM DPP12-SEND-ROW THRU   
+                      DPP12-SEND-ROW-EXIT   
+           END-PERFORM. 
+           GO TO 1050-POP-PAX-OFFER-COMP-CONTD. 
+
+       1050-POP-PAX-OFFER-VALUE.
+           MOVE 0                       TO WS-VAL-SUB.  
+
+           EXEC SQL 
+                OPEN ADDITIONAL_TNC_CURSOR_1
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR 
+           END-IF.  
+
+       1050-FETCH-NEXT-ADD-TNC-1.   
+           ADD 1                        TO WS-VAL-SUB.  
+190631     IF WS-VAL-SUB > 12   
+190631        SUBTRACT 1 FROM WS-VAL-SUB
+190631        GO TO 1050-CLOSE-ADD-TNC-CURSOR-1 
+190631     END-IF.  
+           EXEC SQL 
+                FETCH  NEXT ADDITIONAL_TNC_CURSOR_1 
+                 INTO :WS-ADD-TNC-VALUE1 (WS-VAL-SUB)   
+                     ,:WS-ADD-TNC-VALUE2 (WS-VAL-SUB)   
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR 
+           ELSE 
+              IF SQLCODE = 100  
+                 SUBTRACT 1 FROM WS-VAL-SUB 
+                 GO TO 1050-CLOSE-ADD-TNC-CURSOR-1  
+              END-IF
+           END-IF.  
+           IF WS-VAL-SUB = 1
+              MOVE WS-ADD-TNC-VALUE1 (1) TO U-1678-ADD-TNC-VALUE1-1 
+              MOVE WS-ADD-TNC-VALUE2 (1) TO U-1678-ADD-TNC-VALUE2-1 
+           END-IF.  
+           IF WS-VAL-SUB = 2
+              MOVE WS-ADD-TNC-VALUE1 (2) TO U-1678-ADD-TNC-VALUE1-2 
+              MOVE WS-ADD-TNC-VALUE2 (2) TO U-1678-ADD-TNC-VALUE2-2 
+           END-IF.  
+           IF WS-VAL-SUB = 3
+              MOVE WS-ADD-TNC-VALUE1 (3) TO U-1678-ADD-TNC-VALUE1-3 
+              MOVE WS-ADD-TNC-VALUE2 (3) TO U-1678-ADD-TNC-VALUE2-3 
+           END-IF.  
+           IF WS-VAL-SUB = 4
+              MOVE WS-ADD-TNC-VALUE1 (4) TO U-1678-ADD-TNC-VALUE1-4 
+              MOVE WS-ADD-TNC-VALUE2 (4) TO U-1678-ADD-TNC-VALUE2-4 
+           END-IF.  
+           IF WS-VAL-SUB = 5
+              MOVE WS-ADD-TNC-VALUE1 (5) TO U-1678-ADD-TNC-VALUE1-5 
+              MOVE WS-ADD-TNC-VALUE2 (5) TO U-1678-ADD-TNC-VALUE2-5 
+           END-IF.  
+           IF WS-VAL-SUB = 6
+              MOVE WS-ADD-TNC-VALUE1 (6) TO U-1678-ADD-TNC-VALUE1-6 
+              MOVE WS-ADD-TNC-VALUE2 (6) TO U-1678-ADD-TNC-VALUE2-6 
+           END-IF.  
+           IF WS-VAL-SUB = 7
+              MOVE WS-ADD-TNC-VALUE1 (7) TO U-1678-ADD-TNC-VALUE1-7 
+              MOVE WS-ADD-TNC-VALUE2 (7) TO U-1678-ADD-TNC-VALUE2-7 
+           END-IF.  
+           IF WS-VAL-SUB = 8
+              MOVE WS-ADD-TNC-VALUE1 (8) TO U-1678-ADD-TNC-VALUE1-8 
+              MOVE WS-ADD-TNC-VALUE2 (8) TO U-1678-ADD-TNC-VALUE2-8 
+           END-IF.  
+           IF WS-VAL-SUB = 9
+              MOVE WS-ADD-TNC-VALUE1 (9) TO U-1678-ADD-TNC-VALUE1-9 
+              MOVE WS-ADD-TNC-VALUE2 (9) TO U-1678-ADD-TNC-VALUE2-9 
+           END-IF.  
+           IF WS-VAL-SUB = 10   
+              MOVE WS-ADD-TNC-VALUE1 (10) TO U-1678-ADD-TNC-VALUE1-10   
+              MOVE WS-ADD-TNC-VALUE2 (10) TO U-1678-ADD-TNC-VALUE2-10   
+           END-IF.  
+           IF WS-VAL-SUB = 11   
+              MOVE WS-ADD-TNC-VALUE1 (11) TO U-1678-ADD-TNC-VALUE1-11   
+              MOVE WS-ADD-TNC-VALUE2 (11) TO U-1678-ADD-TNC-VALUE2-11   
+           END-IF.  
+           IF WS-VAL-SUB = 12   
+              MOVE WS-ADD-TNC-VALUE1 (12) TO U-1678-ADD-TNC-VALUE1-12   
+              MOVE WS-ADD-TNC-VALUE2 (12) TO U-1678-ADD-TNC-VALUE2-12   
+           END-IF.  
+
+           GO TO 1050-FETCH-NEXT-ADD-TNC-1. 
+
+       1050-CLOSE-ADD-TNC-CURSOR-1. 
+
+           EXEC SQL 
+                CLOSE ADDITIONAL_TNC_CURSOR_1   
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR 
+           END-IF.  
+
+       1050-POP-PAX-OFFER-VALUE-EXIT.   
+           EXIT.
+
+       1100-POPULATE-GUEST-QUAL.
+
+           PERFORM DPP12-SEND-DONE-COUNT.   
+
+           PERFORM BKTGQL-DSC-RS-BK-TNC-GST-QUAL.   
+
+           MOVE ZERO TO PAX-SUB.
+
+       1150-POPULATE-GUEST-QUAL-CONTD.  
+
+           ADD 1 TO PAX-SUB.
+           IF PAX-SUB > RSP06-GUEST-QUAL-CNT
+              GO TO 1800-FINISH-RS  
+           END-IF.  
+           MOVE 'N' TO WS-PAX-ACTIVE-IND.   
+           IF RSP06-GUEST-QUAL-SEQ-NUM (PAX-SUB) = 0
+              MOVE 'Y' TO WS-PAX-ACTIVE-IND 
+           ELSE 
+              PERFORM VARYING SUB FROM 1 BY 1   
+                UNTIL SUB > RSP06-GUEST-QUAL-INFO-CNT (PAX-SUB) 
+                   MOVE 'Y'             TO WS-PAX-ACTIVE-IND
+                   MOVE  RSP06-IBR-BOOK-NUM 
+                                        TO U-1677-BOOK-NUM  
+                   MOVE  RSP06-GUEST-QUAL-OFFER-ID (PAX-SUB)
+                                        TO U-1677-OFFER-ID  
+                   MOVE  RSP06-GUEST-QUAL-SEQ-NUM (PAX-SUB) 
+                                        TO U-1677-GUEST-SEQ-NUM 
+                   MOVE  RSP06-QUALIFICATION-CODE (PAX-SUB SUB) 
+                                        TO U-1677-QUALIFICATION-CODE
+                   MOVE  RSP06-QUAL-TIER-CODE (PAX-SUB SUB) 
+                                        TO U-1677-TIER-CODE 
+                   MOVE  RSP06-QUAL-STATE-CODE (PAX-SUB SUB)
+                                        TO U-1677-COUNTRY-CODE  
+                   MOVE  RSP06-QUAL-COUNTRY-CODE (PAX-SUB SUB)  
+                                        TO U-1677-STATE-CODE
+                   MOVE  RSP06-QUALIFY-TNC-OWNER-ID (PAX-SUB SUB)   
+                                        TO E-1677-QUALIFY-TNC-OWN-ID
+
+                   PERFORM BKTGQL-NUL-RS-BK-TNC-GST-QUAL
+
+                   PERFORM DPP12-SEND-ROW THRU  
+                           DPP12-SEND-ROW-EXIT  
+              END-PERFORM   
+           END-IF.  
+
+           GO TO 1150-POPULATE-GUEST-QUAL-CONTD.
+
+       1200-PROCESS-GROUP.  
+
+           MOVE GBR1-SHIP-CODE        TO  WS-SHIP-CODE. 
+           MOVE GBR1-DURATION-DAYS    TO  WS-DURATION-DAYS. 
+           MOVE GBR1-SAIL-DATE        TO  WS-SAIL-DATE. 
+
+           PERFORM BKTGRP-DSC-RS-BK-TNC-GRP.
+
+           MOVE  GBR1-BOOK-NUM          TO U-1679-BOOK-NUM. 
+           MOVE  GBR1-CURRENCY-CODE     TO U-1679-CURRENCY-CODE.
+           MOVE  'G'                    TO U-1679-BOOK-TYPE.
+           MOVE  GBR1-SHIP-CODE         TO U-1679-SHIP-CODE.
+           MOVE  GBR1-DURATION-DAYS     TO U-1679-DURATION-DAYS.
+           MOVE  GBR1-SAIL-DATE         TO U-1679-SAIL-DATE.
+           MOVE  WS-SAIL-KEY            TO U-1679-SAIL-KEY. 
+           MOVE  TDP01-EMBARK-PORT-CODE 
+                                        TO U-1679-EMBARK-PORT-CODE. 
+           MOVE  GBR1-LOCALITY-CODE     TO U-1679-LOCALITY-CODE.
+           MOVE  GBR1-STATUS-CODE       TO U-1679-BOOK-STATUS.  
+           MOVE  'N'                    TO U-1679-DIRECT-IND.   
+           MOVE  GBR1-LANGUAGE-CODE     TO U-1679-LANGUAGE-CODE.
+           MOVE  GBR1-SAL-GEN-TNC-OWNER-ID  
+                                        TO E-1679-SAL-GEN-TNC-OWN-ID.   
+           MOVE  GBR1-PAY-ADJ-REQ-TNC-OWNER-ID  
+                                       TO E-1679-PMT-ADJ-REQ-TNC-OWN-ID.
+           MOVE  GBR1-PAY-ADJ-BTH-TNC-OWNER-ID  
+                                       TO E-1679-PMT-ADJ-BTH-TNC-OWN-ID.
+           MOVE  GBR1-STD-TC-TNC-OWNER-ID   
+                                        TO E-1679-STD-TC-TNC-OWN-ID.
+           MOVE  GBR1-ACC-TC-TNC-OWNER-ID   
+                                        TO E-1679-ACC-TC-TNC-OWN-ID.
+           MOVE  GBR1-BON-AMN-TNC-OWNER-ID  
+                                        TO E-1679-BON-AMN-TNC-OWN-ID.   
+           MOVE  GBR1-PAY-SCH-TNC-OWNER-ID  
+                                        TO E-1679-PAY-SCH-TNC-OWNER-ID. 
+           MOVE  GBR1-PAY-REF-TNC-OWNER-ID  
+                                        TO E-1679-PAY-REF-TNC-OWNER-ID. 
+
+197802     MOVE  GBR1-REQ-GRATS-TNC-OWNER-ID
+197802                                  TO E-1679-REQ-GRATS-TNC-OWN-ID. 
+
+           MOVE  GBR1-GROUP-NAME        TO U-1679-GROUP-NAME.   
+           MOVE  TDP01-BASE-CURRENCY-CODE   
+                                        TO U-1679-SAIL-BASE-CURR-CODE . 
+
+           PERFORM BKTGRP-NUL-RS-BK-TNC-GRP.
+
+           PERFORM DPP12-SEND-ROW THRU  
+                   DPP12-SEND-ROW-EXIT. 
+
+           PERFORM DPP12-SEND-DONE-COUNT.   
+
+       1300-POPULATE-GROUP-CATEGORY.
+
+           FETCH FIRST GRP1-BOOK-CAT-REC
+                       WITHIN GRP1-BOOKING-CAT-SET SET  
+                       ON ERROR GO TO 9100-DATABASE-ERROR.  
+           PERFORM BKTGCA-DSC-RS-BK-TNC-GRP-CAT.
+
+           PERFORM VARYING RSUB FROM 1 BY 1 
+                 UNTIL RSUB > GBCR1-CATEGORY-CNT
+
+              MOVE  GBCR1-BOOK-NUM  
+                                        TO U-1680-BOOK-NUM  
+              MOVE  GBCR1-CATEGORY-CODE (RSUB)  
+                                        TO U-1680-CATEGORY-CODE 
+              MOVE  GBR1-BTH-DEPOSIT-AMT
+                                        TO E-1680-BTH-DEP-AMT   
+              MOVE  GBR1-PAY-ADJ-AMT-PCT-CODE   
+                                        TO U-1680-BTH-AMT-PCT-CODE  
+              MOVE  GBCR1-NUM-GUESTS-QUALIFY (RSUB) 
+                                        TO U-1680-NUM-QUALIFY   
+              MOVE  GBCR1-NUM-COMPS (RSUB)  
+                                        TO U-1680-NUM-EARNED
+              MOVE  GBCR1-ACC-NUM-GUESTS-QUALIFY (RSUB) 
+                                        TO U-1680-ACC-NUM-QUALIFY   
+              MOVE  GBCR1-ACC-NUM-COMPS (RSUB)  
+                                        TO U-1680-ACC-NUM-EARNED
+
+              PERFORM BKTGCA-NUL-RS-BK-TNC-GRP-CAT  
+
+              PERFORM DPP12-SEND-ROW THRU   
+                      DPP12-SEND-ROW-EXIT   
+           END-PERFORM. 
+
+           IF WS-NO-VERSION-IND = 'Y'   
+              GO TO 1800-FINISH-RS. 
+
+
+       COPY RSP15INT.   
+
+           MOVE GBR1-BOOK-NUM  TO RSP15-I-GRP-BOOK-NUM. 
+           INITIALIZE            DPP01-COMMON-DATA-FIELDS.  
+
+           CALL 'RSO15BCR' USING DPP01-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 RSP15-CABIN-COUNTS-INPUT   
+                                 RSP15-CABIN-COUNTS-OUTPUT  
+                                 RSP90-OVERRIDE-FLAGS-INFO. 
+
+           PERFORM DPP12-SEND-DONE-COUNT.   
+
+           PERFORM  BKTOVR-DSC-RS-BK-TNC-OFF-VER.   
+
+           MOVE 0                       TO RSUB.
+
+       1400-POP-GROUP-OFFER-VERSION.
+
+           ADD 1                        TO RSUB.
+           IF RSUB > RSP15-O-RATE-CODE-CNT  
+              GO TO 1500-POP-GROUP-OFFER
+           END-IF.  
+           IF WS-VERSION-NUM > 0 AND
+             WS-VERSION-NUM NOT = RSP15-O-RATE-VERSION-NUM(RSUB)
+             GO TO 1400-POP-GROUP-OFFER-VERSION 
+           END-IF.  
+
+           MOVE RSP15-O-OFF-PTR (RSUB)  TO RSP15-O-INT-OFF-PTR. 
+           MOVE U-1673-GBR-BOOK-NUM     TO U-1681-BOOK-NUM. 
+           MOVE RSP15-O-RATE-VERSION-NUM(RSUB) TO U-1681-VERSION-NUM.   
+           MOVE RSP15-OFFER-CODE (RSUB) TO U-1681-OFFER-CODE.   
+           IF RSP15-O-EXTRA-GUEST-CNT (RSUB 1) > ZEROES 
+              MOVE RSP15-O-XTA-ADB-CODE (RSUB 1 1)  
+                                        TO U-1681-EXTRA-AB-CODE 
+           ELSE 
+              MOVE SPACES               TO U-1681-EXTRA-AB-CODE 
+           END-IF.  
+           MOVE RSP15-O-OI-TOTAL-SAIL-DAYS  
+                                        TO U-1681-TOTAL-SAIL-DAYS.  
+           MOVE RSP15-O-CHANGE-SAIL-FEE-AMT (RSUB)  
+                                        TO E-1681-CHNG-SAIL-FEE-AMT.
+           MOVE RSP15-O-OI-CHG-SAIL-TNC-ID  
+                                        TO E-1681-CHNG-SAIL-TNC-OWN-ID. 
+           MOVE RSP15-O-OI-SCHD-TNC-ID  TO E-1681-SCHEDULE-TNC-OWN-ID.  
+           MOVE RSP15-O-OI-REFUND-TNC-ID
+                                        TO E-1681-REFUND-TNC-OWN-ID.
+           MOVE RSP15-O-OI-OCC-REP-TNC-ID   
+                                      TO E-1681-FRC-OCC-REPR-TNC-OWN-ID.
+           MOVE RSP15-O-OI-BONUS-SAIL-TNC-ID
+                                      TO E-1681-BON-SAL-DAYS-TNC-OWN-ID.
+           MOVE RSP15-O-OI-TC-TNC-ID  TO E-1681-TOUR-CONDUCT-TNC-OWN-ID.
+           MOVE RSP15-O-OI-PRICE-PROT-TNC-ID
+                                        TO E-1681-PRICE-PROT-TNC-OWN-ID.
+           MOVE RSP15-O-OI-CAB-ASSG-TNC-ID  
+                                        TO E-1681-CAB-ASSIGN-TNC-OWN-ID.
+           MOVE RSP15-O-OI-COMM-TNC-OWN-ID  
+                                        TO E-1681-COMM-TNC-OWN-ID.  
+           MOVE RSP15-O-INCL-AMENITY-CODE (RSUB)
+                                        TO U-1681-INC-AMENITY-CODE. 
+           MOVE RSP15-O-OI-AME-TNC-ID   TO E-1681-AME-TNC-OWN-ID.   
+
+PPC470     MOVE RSP15-O-OI-MIN-CAT-TNC-ID TO E-1681-MIN-CAT-TNC-OWN-ID. 
+
+197802     MOVE RSP15-O-OI-REQ-GRATS-TNC-ID 
+197802                                  TO E-1681-REQ-GRATS-TNC-OWN-ID. 
+
+PRCCMB     MOVE RSP15-O-OI-FUN-PLAY-TNC-ID  
+PRCCMB                                  TO E-1681-FUNPLAY-TNC-OWN-ID.   
+
+           MOVE RSP15-O-OI-PMT-DISC-TNC-ID  
+                                        TO E-1681-PMT-DISC-OWNER-ID.
+           MOVE ZEROES                  TO E-1681-SAIL-GEN-TNC-OWN-ID.  
+           MOVE RSP15-O-OI-NRD-DEPOSIT-IND  
+                                        TO U-1681-NON-REF-DEPOSIT-IND.  
+           MOVE RSP15-O-OI-NRD-FARE-IND TO U-1681-NON-REF-FARE-IND. 
+           MOVE RSP15-O-OI-PMT-DISC-TERM-CD 
+                                        TO U-1681-PMT-DISC-TERM-CODE.   
+           MOVE RSP15-O-OI-PMT-DISC-A-P-CD  
+                                        TO U-1681-PMT-DISC-AMT-PCT-CODE.
+           MOVE RSP15-O-OI-PMT-DISCOUNT-AMT 
+                                        TO E-1681-PMT-DISCOUNT-AMT. 
+
+           PERFORM VARYING OGSUB FROM 1 BY 1
+              UNTIL OGSUB > RSP15-O-OI-OFF-GUEST-CNT (RSUB) 
+              IF RSP15-O-OG-OFFER-ID (RSUB OGSUB) = 
+                 RSP15-O-OFFER-ID (RSUB)
+                 MOVE  RSP15-O-OG-TGO-TNC-ID (RSUB OGSUB)   
+                                        TO U-1681-TGO-TNC-OWN-ID
+              END-IF
+           END-PERFORM. 
+
+           PERFORM  BKTOVR-NUL-RS-BK-TNC-OFF-VER.   
+
+           PERFORM DPP12-SEND-ROW THRU  
+                   DPP12-SEND-ROW-EXIT. 
+
+           GO TO 1400-POP-GROUP-OFFER-VERSION.  
+
+
+       1500-POP-GROUP-OFFER.
+           PERFORM DPP12-SEND-DONE-COUNT.   
+
+           PERFORM BKTGOF-DSC-RS-BK-TNC-GRP-OFF.
+
+           MOVE 0                      TO RSUB. 
+
+       1550-POPULATE-GROUP-OFFER-CONT.  
+
+           ADD 1                       TO RSUB. 
+           IF RSUB > RSP15-O-RATE-CODE-CNT  
+              GO TO 1600-POP-GROUP-OFFER-COMPONENT  
+           END-IF.  
+
+           IF WS-VERSION-NUM > 0 AND
+              WS-VERSION-NUM NOT = RSP15-O-RATE-VERSION-NUM (RSUB)  
+              GO TO 1550-POPULATE-GROUP-OFFER-CONT  
+           END-IF.  
+
+           MOVE RSP15-O-OFF-PTR (RSUB) TO RSP15-O-INT-OFF-PTR.  
+           MOVE  RSP15-O-OI-AME-TNC-ID TO E-1682-TGO-TNC-OWNER-ID.  
+           MOVE  RSP15-O-OI-CAB-COMM-AMT
+                                       TO U-1682-CABIN-COMM-AMT.
+           PERFORM VARYING PSUB FROM 1 BY 1 
+               UNTIL PSUB > RSP15-O-PRICE-POINT-CNT (RSUB)  
+               PERFORM VARYING OSUB FROM 1 BY 1 
+                 UNTIL OSUB > RSP15-O-OI-OFF-GUEST-CNT (PSUB)   
+                 MOVE  GBR1-BOOK-NUM   TO U-1682-BOOK-NUM   
+
+197802           MOVE  RSP15-O-ADULT-PP-GRATS-AMT (RSUB PSUB)   
+197802                                  TO  E-1683-PP-GRATS-AMT 
+
+                 MOVE  RSP15-O-OI-VERSION-NUM   
+                                       TO U-1682-VERSION-NUM
+                 MOVE  RSP15-O-OG-CATEGORY-CODE(PSUB OSUB)  
+                                       TO U-1682-CATEGORY-CODE  
+                 MOVE  RSP15-O-OG-OFFER-ID (PSUB OSUB)  
+                                       TO E-1682-OFFER-ID   
+                 MOVE  RSP15-O-OG-POSITION-NUM(PSUB OSUB)   
+                                       TO U-1682-POSITION-NUM   
+                 MOVE  RSP15-O-OG-COUPON-CODE(PSUB OSUB)
+                                       TO U-1682-COUPON-CODE
+                 MOVE  RSP15-O-OG-INCL-VPP-TNC-ID(PSUB OSUB)
+                                       TO E-1682-INC-VPP-TNC-OWNER-ID   
+                 MOVE  RSP15-O-OG-INCL-PPG-TNC-ID(PSUB OSUB)
+                                       TO E-1682-INC-PPG-TNC-OWNER-ID   
+                 MOVE  RSP15-O-OG-INCL-TFPE-TNC-ID (PSUB OSUB)  
+                                       TO E-1682-INC-TFPE-TNC-OWNER-ID  
+                 MOVE  RSP15-O-OG-OFFER-DESC (PSUB OSUB)
+                                       TO U-1682-OFFER-DESCRIPTION  
+                 PERFORM BKTGOF-NUL-RS-BK-TNC-GRP-OFF   
+                 PERFORM DPP12-SEND-ROW THRU DPP12-SEND-ROW-EXIT
+              END-PERFORM   
+           END-PERFORM. 
+
+           GO TO 1550-POPULATE-GROUP-OFFER-CONT.
+
+       1600-POP-GROUP-OFFER-COMPONENT.  
+
+           PERFORM DPP12-SEND-DONE-COUNT.   
+
+           PERFORM BKTGCM-DSC-RS-BK-TNC-GRP-CMP.
+
+
+           MOVE 0 TO RSUB.  
+
+       1650-POP-GROUP-OFFER-COMP-CONT.  
+           ADD 1                 TO RSUB.   
+           IF RSUB > RSP15-O-RATE-CODE-CNT  
+              GO TO 1800-FINISH-RS  
+           END-IF.  
+
+           IF WS-VERSION-NUM > 0 AND
+             WS-VERSION-NUM NOT = RSP15-O-RATE-VERSION-NUM(RSUB)
+             GO TO 1550-POPULATE-GROUP-OFFER-CONT   
+           END-IF.  
+
+           MOVE RSP15-O-OFF-PTR (RSUB) TO RSP15-O-INT-OFF-PTR.  
+
+           PERFORM VARYING PSUB FROM 1 BY 1 
+               UNTIL PSUB > RSP15-O-PRICE-POINT-CNT (RSUB)  
+               PERFORM VARYING OSUB FROM 1 BY 1 
+                    UNTIL OSUB > RSP15-O-OI-OFF-GUEST-CNT (PSUB)
+                  PERFORM VARYING ESUB FROM 1 BY 1  
+                    UNTIL ESUB > RSP15-O-OG-OFF-COMP-CNT(PSUB OSUB) 
+                    MOVE  GBR1-BOOK-NUM TO  U-1683-BOOK-NUM 
+
+197802              MOVE  RSP15-O-ADULT-PP-GRATS-AMT (RSUB PSUB)
+197802                                  TO  E-1683-PP-GRATS-AMT 
+
+                    MOVE  RSP15-O-OI-VERSION-NUM
+                                        TO  U-1683-VERSION-NUM  
+                    MOVE  RSP15-O-OG-OFFER-ID (PSUB OSUB)   
+                                        TO  E-1683-OFFER-ID 
+                    MOVE  RSP15-O-OG-CATEGORY-CODE(PSUB OSUB)   
+                                        TO  U-1683-CATEGORY-CODE
+                    MOVE  RSP15-O-OC-ENTITY-TYPE(PSUB OSUB ESUB)
+                                        TO  U-1683-ENTITY-TYPE  
+                    MOVE  RSP15-O-OC-ENTITY-CODE (PSUB OSUB ESUB)   
+                                        TO  U-1683-ENTITY-CODE  
+                    MOVE  RSP15-O-OC-ENTITY-OWNER-ID (PSUB OSUB ESUB)   
+                                        TO  E-1683-ENTITY-OWNER-ID  
+                    MOVE  RSP15-O-OC-GENERAL-TNC-ID (PSUB OSUB ESUB)
+                                        TO  E-1683-GENERAL-TNC-OWNER-ID 
+                    MOVE  RSP15-O-OC-BONUS-SAIL-DAYS-PCT(PSUB OSUB ESUB)
+                                        TO  E-1683-BONUS-SAIL-DAYS-PCT  
+                    MOVE  RSP15-O-OC-GIFT-ITEM-CODE (PSUB OSUB ESUB)
+                                        TO  U-1683-GIFT-ITEM-CODE   
+                    MOVE  RSP15-O-OC-GIFT-BUNDLE-CODE(PSUB OSUB ESUB)   
+                                        TO  U-1683-GIFT-BUNDLE-CODE 
+                    MOVE  RSP15-O-OC-GIFT-TNC-ID (PSUB OSUB ESUB)   
+                                        TO  E-1683-GIFT-TNC-OWNER-ID
+                    MOVE  RSP15-O-OC-GIFT-OBC-IND (PSUB OSUB ESUB)  
+                                        TO  U-1683-GIFT-OBC-IND 
+                    MOVE  RSP15-O-OC-INCL-VPP-CODE (PSUB OSUB ESUB) 
+                                        TO  U-1683-INCLUDE-VPP-CODE 
+                    MOVE  RSP15-O-OC-INCL-PPG-CODE (PSUB OSUB ESUB) 
+                                        TO  U-1683-INCLUDE-PPG-CODE 
+                    MOVE  RSP15-O-OC-INCL-TFPE-CODE(PSUB OSUB ESUB) 
+                                        TO  U-1683-INCLUDE-TFPE-CODE
+                    MOVE  RSP15-O-OC-OBC-ITEM-CODE (PSUB OSUB ESUB) 
+                                        TO  U-1683-OBC-ITEM-CODE
+                    MOVE  RSP15-O-OC-OBC-TNC-ID (PSUB OSUB ESUB)
+                                        TO  E-1683-OBC-TNC-OWNER-ID 
+                    MOVE  RSP15-O-OC-TARGETED-IND (PSUB OSUB ESUB)  
+                                        TO  U-1683-TARGETED-IND 
+                    MOVE  RSP15-O-OC-CABIN-COMM-AMT (PSUB OSUB ESUB)
+                                        TO  E-1683-CABIN-COMM-AMT   
+                    MOVE  RSP15-O-OC-FULL-COMM-AMT (PSUB OSUB ESUB) 
+                                        TO  E-1683-FULL-COMM-AMT
+                    MOVE  RSP15-O-OC-FULL-COMM-PCT (PSUB OSUB ESUB) 
+                                        TO  E-1683-FULL-COMM-PCT
+                    MOVE  RSP15-O-OC-EXTRA-COMM-AMT (PSUB OSUB ESUB)
+                                        TO  E-1683-EXTRA-COMM-AMT   
+                    MOVE  RSP15-O-OC-EXTRA-COMM-PCT (PSUB OSUB ESUB)
+                                        TO  E-1683-EXTRA-COMM-PCT   
+                    MOVE  RSP15-O-OC-GL-ACCOUNT-NUM (PSUB OSUB ESUB)
+                                        TO  U-1683-GL-ACCOUNT-NUM   
+                    MOVE  RSP15-O-OC-POS-1-OBC-AMT (PSUB OSUB ESUB) 
+                                        TO  E-1683-POS-1-OBC-AMT
+                    MOVE  RSP15-O-OC-POS-2-OBC-AMT (PSUB OSUB ESUB) 
+                                        TO  E-1683-POS-2-OBC-AMT
+                    MOVE  RSP15-O-OC-POS-3-OBC-AMT (PSUB OSUB ESUB) 
+                                        TO  E-1683-POS-3-OBC-AMT
+                    MOVE  RSP15-O-OC-POS-4-OBC-AMT (PSUB OSUB ESUB) 
+                                        TO  E-1683-POS-4-OBC-AMT
+                    MOVE  RSP15-O-OC-POS-5-OBC-AMT (PSUB OSUB ESUB) 
+                                        TO  E-1683-POS-5-OBC-AMT
+PRCCMB              MOVE  RSP15-O-OC-FUN-PLAY-AMT (PSUB OSUB ESUB)  
+PRCCMB                                  TO  E-1683-FUNPLAY-AMT  
+                    IF  RSP15-O-OC-POS-1-ADJ-AMT (PSUB OSUB ESUB) < ZERO
+                        COMPUTE WS-TEMP-AMT = RSP15-O-OC-POS-1-ADJ-AMT  
+                             (PSUB OSUB ESUB) * -1 * GBR1-PRC-XCHG-RATE 
+                    ELSE
+                        MOVE ZEROES           TO WS-TEMP-AMT
+                    END-IF  
+                    MOVE  WS-TEMP-AMT   TO  E-1683-POS-1-DISCOUNT-AMT   
+                    IF  RSP15-O-OC-POS-2-ADJ-AMT (PSUB OSUB ESUB) < ZERO
+                        COMPUTE WS-TEMP-AMT = RSP15-O-OC-POS-2-ADJ-AMT  
+                             (PSUB OSUB ESUB) * -1 * GBR1-PRC-XCHG-RATE 
+                    ELSE
+                        MOVE ZEROES           TO WS-TEMP-AMT
+                    END-IF  
+                    MOVE  WS-TEMP-AMT   TO  E-1683-POS-2-DISCOUNT-AMT   
+                    IF  RSP15-O-OC-POS-3-ADJ-AMT (PSUB OSUB ESUB) < ZERO
+                        COMPUTE WS-TEMP-AMT = RSP15-O-OC-POS-3-ADJ-AMT  
+                             (PSUB OSUB ESUB) * -1 * GBR1-PRC-XCHG-RATE 
+                    ELSE
+                        MOVE ZEROES           TO WS-TEMP-AMT
+                    END-IF  
+                    MOVE  WS-TEMP-AMT   TO  E-1683-POS-3-DISCOUNT-AMT   
+                    IF  RSP15-O-OC-POS-4-ADJ-AMT (PSUB OSUB ESUB) < ZERO
+                        COMPUTE WS-TEMP-AMT = RSP15-O-OC-POS-4-ADJ-AMT  
+                             (PSUB OSUB ESUB) * -1 * GBR1-PRC-XCHG-RATE 
+                    ELSE
+                        MOVE ZEROES           TO WS-TEMP-AMT
+                    END-IF  
+                    MOVE  WS-TEMP-AMT   TO  E-1683-POS-4-DISCOUNT-AMT   
+                    IF  RSP15-O-OC-POS-5-ADJ-AMT (PSUB OSUB ESUB) < ZERO
+                        COMPUTE WS-TEMP-AMT = RSP15-O-OC-POS-5-ADJ-AMT  
+                             (PSUB OSUB ESUB) * -1 * GBR1-PRC-XCHG-RATE 
+                    ELSE
+                        MOVE ZEROES           TO WS-TEMP-AMT
+                    END-IF  
+                    MOVE  WS-TEMP-AMT   TO  E-1683-POS-5-DISCOUNT-AMT   
+                    MOVE  RSP15-O-OC-ADD-TNC-ID-1 (PSUB OSUB ESUB)  
+                                        TO  U-1683-ADD-TNC-OWNER-ID(1)  
+                    MOVE  RSP15-O-OC-ADD-TNC-ID-2 (PSUB OSUB ESUB)  
+                                        TO  U-1683-ADD-TNC-OWNER-ID(2)  
+                    MOVE  RSP15-O-OC-ADD-TNC-ID-3 (PSUB OSUB ESUB)  
+                                        TO  U-1683-ADD-TNC-OWNER-ID(3)  
+                    MOVE  RSP15-O-OC-ADD-TNC-ID-4 (PSUB OSUB ESUB)  
+                                        TO  U-1683-ADD-TNC-OWNER-ID(4)  
+                    MOVE  RSP15-O-OC-ADD-TNC-ID-5 (PSUB OSUB ESUB)  
+                                        TO  U-1683-ADD-TNC-OWNER-ID(5)  
+                    MOVE  RSP15-O-OC-ADD-TNC-ID-6 (PSUB OSUB ESUB)  
+                                        TO  U-1683-ADD-TNC-OWNER-ID(6)  
+                    MOVE  RSP15-O-OC-ADD-TNC-ID-7 (PSUB OSUB ESUB)  
+                                        TO  U-1683-ADD-TNC-OWNER-ID(7)  
+                    MOVE  RSP15-O-OC-ADD-TNC-ID-8 (PSUB OSUB ESUB)  
+                                        TO  U-1683-ADD-TNC-OWNER-ID(8)  
+                    MOVE  RSP15-O-OC-ADD-TNC-ID-9 (PSUB OSUB ESUB)  
+                                        TO  U-1683-ADD-TNC-OWNER-ID(9)  
+                    MOVE  RSP15-O-OC-ADD-TNC-ID-10 (PSUB OSUB ESUB) 
+                                        TO  U-1683-ADD-TNC-OWNER-ID(10) 
+                    MOVE  RSP15-O-OC-ADD-TNC-ID-11 (PSUB OSUB ESUB) 
+                                        TO  U-1683-ADD-TNC-OWNER-ID(11) 
+                    MOVE  RSP15-O-OC-ADD-TNC-ID-12 (PSUB OSUB ESUB) 
+                                        TO  U-1683-ADD-TNC-OWNER-ID(12) 
+                    PERFORM 1650-POP-PAX-OFFER-VALUE
+                       THRU 1650-POP-PAX-OFFER-VALUE-EXIT   
+
+                    PERFORM BKTGCM-NUL-RS-BK-TNC-GRP-CMP
+
+                    PERFORM DPP12-SEND-ROW THRU 
+                            DPP12-SEND-ROW-EXIT 
+                  END-PERFORM   
+              END-PERFORM   
+           END-PERFORM. 
+
+           GO TO 1650-POP-GROUP-OFFER-COMP-CONT.
+
+       1650-POP-PAX-OFFER-VALUE.
+           MOVE 0                       TO WS-VAL-SUB.  
+
+           EXEC SQL 
+                OPEN ADDITIONAL_TNC_CURSOR_2
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR 
+           END-IF.  
+
+       1650-FETCH-NEXT-ADD-TNC-2.   
+           ADD 1                        TO WS-VAL-SUB.  
+
+           EXEC SQL 
+                FETCH  NEXT ADDITIONAL_TNC_CURSOR_2 
+                 INTO :WS-ADD-TNC-VALUE1 (WS-VAL-SUB)   
+                     ,:WS-ADD-TNC-VALUE2 (WS-VAL-SUB)   
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR 
+           ELSE 
+              IF SQLCODE = 100  
+                 SUBTRACT 1 FROM WS-VAL-SUB 
+                 GO TO 1650-CLOSE-ADD-TNC-CURSOR-2  
+              END-IF
+           END-IF.  
+           IF WS-VAL-SUB = 1
+              MOVE WS-ADD-TNC-VALUE1 (1) TO U-1683-ADD-TNC-VALUE1-1 
+              MOVE WS-ADD-TNC-VALUE2 (1) TO U-1683-ADD-TNC-VALUE2-1 
+           END-IF.  
+           IF WS-VAL-SUB = 2
+              MOVE WS-ADD-TNC-VALUE1 (2) TO U-1683-ADD-TNC-VALUE1-2 
+              MOVE WS-ADD-TNC-VALUE2 (2) TO U-1683-ADD-TNC-VALUE2-2 
+           END-IF.  
+           IF WS-VAL-SUB = 3
+              MOVE WS-ADD-TNC-VALUE1 (3) TO U-1683-ADD-TNC-VALUE1-3 
+              MOVE WS-ADD-TNC-VALUE2 (3) TO U-1683-ADD-TNC-VALUE2-3 
+           END-IF.  
+           IF WS-VAL-SUB = 4
+              MOVE WS-ADD-TNC-VALUE1 (4) TO U-1683-ADD-TNC-VALUE1-4 
+              MOVE WS-ADD-TNC-VALUE2 (4) TO U-1683-ADD-TNC-VALUE2-4 
+           END-IF.  
+           IF WS-VAL-SUB = 5
+              MOVE WS-ADD-TNC-VALUE1 (5) TO U-1683-ADD-TNC-VALUE1-5 
+              MOVE WS-ADD-TNC-VALUE2 (5) TO U-1683-ADD-TNC-VALUE2-5 
+           END-IF.  
+           IF WS-VAL-SUB = 6
+              MOVE WS-ADD-TNC-VALUE1 (6) TO U-1683-ADD-TNC-VALUE1-6 
+              MOVE WS-ADD-TNC-VALUE2 (6) TO U-1683-ADD-TNC-VALUE2-6 
+           END-IF.  
+           IF WS-VAL-SUB = 7
+              MOVE WS-ADD-TNC-VALUE1 (7) TO U-1683-ADD-TNC-VALUE1-7 
+              MOVE WS-ADD-TNC-VALUE2 (7) TO U-1683-ADD-TNC-VALUE2-7 
+           END-IF.  
+           IF WS-VAL-SUB = 8
+              MOVE WS-ADD-TNC-VALUE1 (8) TO U-1683-ADD-TNC-VALUE1-8 
+              MOVE WS-ADD-TNC-VALUE2 (8) TO U-1683-ADD-TNC-VALUE2-8 
+           END-IF.  
+           IF WS-VAL-SUB = 9
+              MOVE WS-ADD-TNC-VALUE1 (9) TO U-1683-ADD-TNC-VALUE1-9 
+              MOVE WS-ADD-TNC-VALUE2 (9) TO U-1683-ADD-TNC-VALUE2-9 
+           END-IF.  
+           IF WS-VAL-SUB = 10   
+              MOVE WS-ADD-TNC-VALUE1 (10) TO U-1683-ADD-TNC-VALUE1-10   
+              MOVE WS-ADD-TNC-VALUE2 (10) TO U-1683-ADD-TNC-VALUE2-10   
+           END-IF.  
+           IF WS-VAL-SUB = 11   
+              MOVE WS-ADD-TNC-VALUE1 (11) TO U-1683-ADD-TNC-VALUE1-11   
+              MOVE WS-ADD-TNC-VALUE2 (11) TO U-1683-ADD-TNC-VALUE2-11   
+           END-IF.  
+           IF WS-VAL-SUB = 12   
+              MOVE WS-ADD-TNC-VALUE1 (12) TO U-1683-ADD-TNC-VALUE1-12   
+              MOVE WS-ADD-TNC-VALUE2 (12) TO U-1683-ADD-TNC-VALUE2-12   
+           END-IF.  
+
+           GO TO 1650-FETCH-NEXT-ADD-TNC-2. 
+
+       1650-CLOSE-ADD-TNC-CURSOR-2. 
+
+           EXEC SQL 
+                CLOSE ADDITIONAL_TNC_CURSOR_2   
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR 
+           END-IF.  
+
+       1650-POP-PAX-OFFER-VALUE-EXIT.   
+           EXIT.
+
+       1700-CHECK-GBR1-ERROR.   
+           IF ERROR-NUM NOT = '0013'
+              GO TO 9100-DATABASE-ERROR.
+
+       1800-FINISH-RS.  
+           PERFORM DPP12-SEND-DONE-COUNT.   
+           GO TO 9000-END-OF-JOB.   
+
+       1900-FETCH-IBR-ERROR.
+           IF ERROR-NUM NOT = '0013'
+              GO TO 9100-DATABASE-ERROR.
+
+       9000-END-OF-JOB. 
+           GO TO DPP12-END-OF-JOB.  
+
+       9100-DATABASE-ERROR. 
+           GO TO DPP12-DATABASE-ERROR.  
+
+       9200-EDIT-ERROR-MSG. 
+
+           PERFORM DPP12-EDIT-ERROR-MSG 
+              THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+
+           GO TO DPP12-END-OF-JOB.  
+
+       9150-RDMS-ERROR. 
+           GO TO DPP12-RDMS-ERROR.  
+
+       9210-EDIT-CONTINUE-MSG.  
+           PERFORM DPP12-EDIT-ERROR-MSG 
+              THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+
+       9300-UASL-ERROR. 
+           GO TO DPP12-UASL-ERROR.  
+
+       9300-SEVERE-ERROR-MSG.   
+           GO TO DPP12-SEVERE-ERROR-MSG.
+
+       9400-INFO-MSG.   
+           PERFORM DPP12-INFO-MSG   
+              THRU DPP12-INFO-MSG-EXIT. 
+
+       9500-RETURN-SUBROUTINE-ERROR.
+           GO TO DPP12-RETURN-SUBROUTINE-ERROR. 
+
+       9600-SAVE-SUBROUTINE-ERRORS. 
+           PERFORM DPP12-SAVE-SUBROUTINE-MSGS   
+              THRU DPP12-SAVE-SUBROUTINE-MSGS-X.
+
+       COPY DPP10Y2K.   
+       COPY DPP12UER.   
+       COPY DPP12UMI.   
+       COPY DPP12ERR.   
+       COPY DPP12WDB.   
+       COPY DPP15OAS.   
+       COPY ARP06ACH.   
+       COPY IRP66OIB.   
+       COPY GRP00GSA.   
+       COPY GRP01CAT.   
+       COPY GRP01RPR.   
+       COPY DPP45AOP.   
+       COPY GRP15BHP.   
+       COPY DPP11POP.   
+       COPY ARP90SPR.   
+       COPY TDP01SAP.   
+       COPY IRP48CNP.   
+       COPY RSP50INT.   
+       COPY IRP64MAR.   
+       COPY PSRTNC-P-1673.  
+       COPY BKTCAB-R-1674.  
+       COPY BKTGPX-R-1675.  
+       COPY BKTPOF-R-1676.  
+       COPY BKTOCM-R-1678.  
+       COPY BKTGQL-R-1677.  
+       COPY BKTGRP-R-1679.  
+       COPY BKTGCA-R-1680.  
+       COPY BKTOVR-R-1681.  
+       COPY BKTGOF-R-1682.  
+       COPY BKTGCM-R-1683 . 

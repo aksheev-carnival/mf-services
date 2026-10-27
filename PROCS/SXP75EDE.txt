@@ -1,0 +1,138 @@
+SXP-R-SX-DEP1            PROC   
+************************************************************************
+******* Begin INPUT Buffers : SP_R_SX_DEP1  Count: 3
+************************************************************************
+        01 X-INPUT-R-SXRDEP1-BUFFER.
+
+
+************************************************************************
+******* Begin Working Storage : Standard Input Parameters   
+************************************************************************
+           03  X-INPUT-1413-BUFFER. 
+               05  U-1413-PI-APPLICATION-NAME         PIC X(30).
+               05  U-1413-PI-CLIENT-VERSION           PIC X(8). 
+               05  U-1413-PI-DATE-TIME                PIC X(16).
+               05  U-1413-PI-ENV-NAME                 PIC X(06).
+               05  U-1413-PI-EOM-LOCATOR              PIC X(12).
+               05  U-1413-PI-FORM-NAME                PIC X(30).
+               05  U-1413-PI-STORED-PROCEDURE-NAM     PIC X(30).
+               05  U-1413-PI-USERID                   PIC X(15).
+
+******* End Working Storage : Standard Input Parameters 
+
+
+
+************************************************************************
+******* Begin Working Storage : PL_R_SX_DEP1
+************************************************************************
+               05  U-1413-BASE-PRICE                  PIC -9(8).9(2).   
+               05  U-1413-BEGIN-BUFFER                PIC 9(5). 
+               05  U-1413-BEGIN-TIME-BUFF-TYPE        PIC X(1). 
+               05  U-1413-CURRENCY-CODE               PIC X(3). 
+               05  U-1413-DURATION-DAYS               PIC 9(5). 
+               05  U-1413-END-BUFFER                  PIC 9(5). 
+               05  U-1413-END-TIME-BUFF-TYPE          PIC X(1). 
+               05  U-1413-EXC-DATE                    PIC 9(10).
+               05  U-1413-EXC-ID                      PIC X(6). 
+               05  U-1413-EXC-TIME                    PIC 9(5). 
+               05  U-1413-GROUPS-ALLOC                PIC 9(10).
+               05  U-1413-ON-ARRIVAL-IND              PIC X(1). 
+               05  U-1413-OPERATIONAL-LIM             PIC 9(10).
+               05  U-1413-PRESALES-ALLOCATED          PIC 9(10).
+               05  U-1413-PRICE-T-1.
+                07  U-1413-PRICE-TBL.   
+                 09  U-1413-PRICE    OCCURS 5 TIMES 
+                                                      PIC S9(8)V9(2).   
+               05  U-1413-PRICE-AVAIL-T-1.  
+                07  U-1413-PRICE-AVAIL-TBL. 
+                 09  U-1413-PRICE-AVAIL    OCCURS 5 TIMES   
+                                                      PIC X(1). 
+               05  U-1413-PRICE-CODE-T-1.   
+                07  U-1413-PRICE-CODE-TBL.  
+                 09  U-1413-PRICE-CODE    OCCURS 5 TIMES
+                                                      PIC X(1). 
+               05  U-1413-PRICE-MAX-CAPACITY-T-1.   
+                07  U-1413-PRICE-MAX-CAPACITY-TBL.  
+                 09  U-1413-PRICE-MAX-CAPACITY    OCCURS 5 TIMES
+                                                      PIC 9(10).
+               05  U-1413-PROCESS-MODE                PIC X(3). 
+               05  U-1413-SAIL-DATE                   PIC 9(10).
+               05  U-1413-SHIP-CODE                   PIC X(2). 
+               05  U-1413-STATUS                      PIC X(1). 
+               05  U-1413-TOTAL-ALLOCATED             PIC 9(10).
+               05  U-1413-USER-ID                     PIC X(15).
+
+******* End Working Storage : PL_R_SX_DEP1  
+
+
+
+
+******* End INPUT Buffers : EP_R_SX_DEP1
+
+
+
+************************************************************************
+************************************************************************
+******* Begin OUTPUT Buffers : SP_R_SX_DEP1 / EP_R_SX_DEP1  Count: 1
+************************************************************************
+       01 X-OUTPUT-R-SXRDEP1-BUFFER.
+           03 X-OUTPUT-RESP-CODE       PIC X(30) VALUE  
+                                         'SP_R_SX_DEP1'.
+
+
+************************************************************************
+******* Begin Working Storage : RS_R_SX_DEP1
+************************************************************************
+
+           03  X-OUTPUT-1415-BUFFER.
+               05  U-1415-RS-R-SX-DEP1              PIC X(1).   
+               05  U-1415-DURATION-DAYS             PIC 9(5).   
+               05  U-1415-STATUS-CODE               PIC X(10).  
+
+******* End Working Storage : RS_R_SX_DEP1  
+
+
+************************************************************************
+******* Begin Working Storage : Standard Output Parameters  
+************************************************************************
+           03  U-1413-PO-DATE-TIME                PIC X(16).
+           03  U-1413-OUT-EOM-LOCATOR             PIC X(12).
+
+******* End Working Storage : Standard Output Parameters
+
+************************************************************************
+******* Begin Working Storage : EP_R_SX_DEP1_INFMSG (INFO MESSAGES) 
+************************************************************************
+           03  U-1413-OUT-INFMSG-BUFFER.
+              05  U-1413-OUT-INFMSG-BUFFER-TBL OCCURS 8 TIMES.  
+                   07  U-1413-INFMSG-MSG-SOURCE    PIC X(08).   
+                   07  U-1413-INFMSG-MSG-DESC      PIC X(255).  
+                   07  U-1413-INFMSG-MSG-STATUS    PIC 9(01).   
+                   07  U-1413-INFMSG-MSG-NUM       PIC 9(05).   
+                   07  U-1413-INFMSG-BOOK-NUM      PIC X(06).   
+
+******* End Working Storage : EP_R_SX_DEP1_INFMSG   
+
+******* End OUTPUT Buffers : EP_R_SX_DEP1   
+
+       01  U-INT-SUB                           PIC 9(05).   
+ End PROC   
+
+SXP-R-SX-DEP1-INT PROC  
+       SXP00-R-SX-DEP1-INIT.
+            MOVE SPACES               TO U-1415-RS-R-SX-DEP1
+                                         U-1415-STATUS-CODE.
+            MOVE ZEROES               TO U-1415-DURATION-DAYS   
+            PERFORM VARYING U-INT-SUB FROM 1 BY 1   
+                  UNTIL U-INT-SUB > 8   
+                  MOVE SPACES     TO
+                                 U-1413-INFMSG-MSG-SOURCE (U-INT-SUB)   
+                                 U-1413-INFMSG-MSG-DESC (U-INT-SUB) 
+                                 U-1413-INFMSG-BOOK-NUM (U-INT-SUB) 
+                  MOVE ZEROES     TO
+                                 U-1413-INFMSG-MSG-STATUS (U-INT-SUB)   
+                                 U-1413-INFMSG-MSG-NUM (U-INT-SUB)  
+            END-PERFORM.
+       SXP00-R-SX-DEP1-INIT-EXIT.   
+           EXIT.
+ END PROC   

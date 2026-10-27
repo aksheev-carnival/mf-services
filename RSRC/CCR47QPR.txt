@@ -1,0 +1,2506 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.    CCR47QPR. 
+       DATE-WRITTEN.  March, 2018.  
+       DATE-COMPILED.   
+************************************************************************
+      * CCMH-MESSAGE-ID         CORRESPONDS TO:                        *
+      * CCQPRIC1                QUICK PRICING REQUEST                  *
+      * CCQPRIC2                QUICK PRICING RESPONSE                 *
+      * INPUT  DEFINTION PROC   CCP76QPW                               *
+      * UNSTRING PROC           CCP51QP1                               *
+      * OUTPUT DEFINTION PROC   CCP76QPW                               *
+      * STRING PROC             CCP76QP1                               *
+************************************************************************
+CALFEE* 18-APR-24     PY0     TCS LTD.               ADO- 1871081      *
+CALFEE* CHANGES DONE FOR CALIFORNIA LAW PRICE ADVERTISING.             *
+************************************************************************
+PRCCMB* 14-MAY-25     XB1     TCS LTD.               ADO2093741        *
+PRCCMB* PRICING COMBINABILITY PROJECT CHANGES FOR CHARGE-FEE-IND       *
+PRCCMB* REPLACING WITH GOV-FEE AND OTH-FEE                             *
+************************************************************************
+PRCCMB* 5-JUNE-25     SAI     TCS LTD.              ADO2093735         *
+PRCCMB* PRICING COMBINABILITY CHANGES, ADDED NEW FIELDS AND LOGIC TO   *
+PRCCMB* POPULATE FUNPLAY AMOUNT FOR PAST GUEST NUMBER WITH TGO OFFER   *
+************************************************************************
+PRCCMB* 09-JUN-25     XB1     TCS LTD.               ADO-2102364       *
+PRCCMB* PRICING COMBINABILITY CHANGES - CHANGES MADE TO ADD            *
+PRCCMB* QUICK PRICING API MESSAGE – NEWLY ADDED FIELDS.                *
+************************************************************************
+PRCCMB* 24-JUN-25    PGK     TCS LTD.                ADO2PRCCMB        *
+PRCCMB* PRICING COMBINABILITY CHANGES - CHANGES DONE FOR QPR API       *
+PRCCMB* DEPOSITE AMOUNT.                                               *
+************************************************************************
+121413* 24-JUN-25     PGK     TCS LTD.               ADO2121413        *
+121413* CHANGES DONE TO CORRECT THE GRATS AMOUNT.                      *
+************************************************************************
+214442* 07-NOV-25     QG5     TCS LTD.               ADO2144420        *
+214442* ADDED A NEW INPUT FIELD TO FILTER LEAD RATES TO SHOW ONLY      *
+214442* CONNECTING CABINS.                                             *
+************************************************************************
+NEWPEN* 26-OCT-25     1HP                            ADO2199876        *
+NEWPEN* INCLUDE GOVT TAXES AND FEES WHEN CALCULATING BASE AMOUNT FOR   *
+NEWPEN* IDENTIFYING HOW MUCH VPP WILL BE CHARGED.                      *
+************************************************************************
+LOYLTY* 23-JUN-26     8XF     TCS LTD.               LOYLTY            *
+LOYLTY* ADDED MMISC-AMT AND MMISC-AMTX AS PART OF LOYLTY PROGRAM       *
+************************************************************************
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER. UNISYS. 
+       OBJECT-COMPUTER. UNISYS  MEMORY SIZE 3 MODULES.  
+       SPECIAL-NAMES.   
+           PRINTER IS PRT   
+           PRINTER IS PRINTER   
+           CONSOLE IS CONSOLE.  
+
+       DATA DIVISION.   
+       SUBSCHEMA SECTION.   
+       INVOKE SUBSCHEMA PST100UCOBSU
+           IN FILE SUBSCHEMAS OF SCHEMA PST100SCHEMA
+           COPYING RECORDS    INTO COMMON   
+           COPYING DATA-NAMES INTO COMMON   
+           OVERLAY PAX-REC WITH PAX-CXF-REC 
+                                PAX-VI-REC  
+           DMCA COMMON  
+           ERROR RECOVERY IS 9100-DATABASE-ERROR
+           ROLLBACK       IS 9100-DATABASE-ERROR.   
+
+       WORKING-STORAGE SECTION. 
+       01  WS-PROG-ID                         PIC X(8) VALUE 'CCR47QPR'.
+       01  MCFLAG                             PIC 9(10) BINARY. 
+       01 WS-MISC-ALPHA.
+          03 WS-GRATS-REQ-IND                 PIC X(01).
+          03 WS-POLICY-PPG-REQ-IND            PIC X(01).
+          03 WS-PORT-CODE                     PIC X(03).
+          03 WS-COUNTRY-CODE                  PIC X(03).
+          03 WS-INTL-SAIL-IND                 PIC X(01).
+          03 WS-GEO-REGION                    PIC X(30).
+          03 WS-SCHEDULED-PAYMENT-IND         PIC X(01).
+          03 WS-SKIP-META-CODE                PIC X(01).
+PPC470    03 WS-INP-PAST-GUEST-NUM. 
+PPC470       05 WS-INP-PAST-GUEST-DIGIT OCCURS 10 TIMES 
+PPC470                                        PIC X(01).
+PPC470    03 WS-OUT-PAST-GUEST-NUM. 
+PPC470       05 WS-OUT-PAST-GUEST-DIGIT OCCURS 10 TIMES 
+PPC470                                        PIC X(01).
+PRCCMB    03  WS-CHG-PAST-GUEST-NUM.
+PRCCMB        05  WS-CHG-PAST-GUEST-DIGIT OCCURS 10 TIMES   
+PRCCMB                                        PIC X.
+PRCCMB    03  WS-CHG-PAST-GUEST-TEN-NUM.
+PRCCMB        05  WS-CHG-PAST-GUEST-TEN-DIGIT OCCURS 10 TIMES   
+PRCCMB                                        PIC X.
+PRCCMB    03  WS-FUN-PLAY-AMT                 PIC S9(08)V99 BINARY. 
+PRCCMB    03  WS-TARGETED-SEQ-NUM             PIC 9(05).
+
+PRCCMB    03  WS-OLD-PAST-GUEST-NUM.
+PRCCMB        05  WS-OLD-PAST-GUEST-DIGIT OCCURS 10 TIMES   
+PRCCMB                                        PIC X(01).
+PRCCMB    03  WS-NEW-PAST-GUEST-NUM.
+PRCCMB        05  WS-NEW-PAST-GUEST-DIGIT OCCURS 10 TIMES   
+                                              PIC X(01).
+NEWPEN    03 WS-FOLLOW-NEW-GUIDELINE          PIC X(01).
+
+       01 WS-MISC-NUMERIC.  
+          03 D-SUB                            PIC 9(05)     BINARY. 
+          03 V-SUB                            PIC 9(05)     BINARY. 
+          03 WS-SUB                           PIC 9(05)     BINARY. 
+          03 WS-OSUB                          PIC 9(05)     BINARY. 
+          03 WS-CSUB                          PIC 9(05)     BINARY. 
+          03 WS-PSUB                          PIC 9(05)     BINARY. 
+          03 WS-CAT                           PIC 9(05)     BINARY. 
+          03 WS-CDE-SUB                       PIC 9(05)     BINARY. 
+          03 WS-CAT-SUB                       PIC 9(05)     BINARY. 
+          03 WS-FEE-SUB                       PIC 9(05)     BINARY. 
+          03 WS-PAX-SUB                       PIC 9(05)     BINARY. 
+          03 WS-OCC-SUB                       PIC 9(05)     BINARY. 
+          03 WS-LOC-SUB                       PIC 9(05)     BINARY. 
+          03 WS-MAX-PAX                       PIC 9(02).
+          03 WS-QUAL-SUB                      PIC 9(05)     BINARY. 
+          03 WS-OCAC-SUB                      PIC 9(05)     BINARY. 
+          03 WS-TERM-SUB                      PIC 9(05)     BINARY. 
+          03 WS-SAIL-DATE                     PIC 9(08).
+          03 WS-OFFER-SUB                     PIC 9(05)     BINARY. 
+          03 WS-GUEST-SUB                     PIC 9(05)     BINARY. 
+          03 WS-GUEST-AGE                     PIC 9(03).
+PRCCMB    03 WS-TGO-SUB                       PIC 9(05)     BINARY. 
+PRCCMB    03 WS-IN-SUB1                       PIC 9(05)     BINARY. 
+
+CALFEE*   03 WS-TAX-AMOUNT                    PIC 9(05)V99  BINARY. 
+CALFEE    03 WS-FULL-GOVT-FEE-AMT             PIC 9(05)V99  BINARY. 
+CALFEE    03 WS-FULL-CRUS-FEE-AMT             PIC 9(05)V99  BINARY. 
+CALFEE    03 WS-FULL-EXCL-FEE-AMT             PIC 9(05)V99  BINARY. 
+CALFEE    03 WS-XTRA-GOVT-FEE-AMT             PIC 9(05)V99  BINARY. 
+CALFEE    03 WS-XTRA-CRUS-FEE-AMT             PIC 9(05)V99  BINARY. 
+CALFEE    03 WS-XTRA-EXCL-FEE-AMT             PIC 9(05)V99  BINARY. 
+         03 WS-REMAIN-CABIN                  PIC 9(05). 
+          03 WS-ADULT-GRATS-AMT               PIC 9(05)V99  BINARY. 
+          03 WS-CHILD-GRATS-AMT               PIC 9(05)V99  BINARY. 
+          03 WS-SENIOR-GRATS-AMT              PIC 9(05)V99  BINARY. 
+          03 WS-INFANT-GRATS-AMT              PIC 9(05)V99  BINARY. 
+          03 WS-AVG-CABIN-AMOUNT              PIC 9(05)V99  BINARY. 
+          03 WS-INSTALMENTS-OPTED             PIC 9(02).
+          03 WS-INSTALLMENT-AMOUNT            PIC 9(05)V99  BINARY. 
+          03 WS-OFFER-REMAIN-CABINS           PIC 9(05)     BINARY. 
+          03 WS-MINIMUM-INSTALLMENTS          PIC 9(02).
+          03 WS-MINIMUM-INSTALLMENT-AMT       PIC 9(03).
+          03 WS-PAST-GUEST-NUM                PIC S9(10).   
+          03 WS-OFFER-ID                      PIC S9(11) BINARY.
+PPC470    03 WS-NSUB                          PIC 9(05) BINARY. 
+PPC470    03 WS-IN-SUB                        PIC 9(05) BINARY. 
+NEWPEN    03 WS-NEW-PEN-GUIDE-DATE            PIC 9(08).
+
+       01 WS-FINAL-PMT-DATE                   PIC 9(08).
+       01 WS-FINAL-DATE REDEFINES WS-FINAL-PMT-DATE.
+          03 WS-FINAL-DATE-YYYY               PIC 9(04).
+          03 WS-FINAL-DATE-MM                 PIC 9(02).
+          03 WS-FINAL-DATE-DD                 PIC 9(02).
+
+       01 WS-LAST-INSTALMENT-DATE             PIC 9(08).
+       01 WS-LAST-DATE REDEFINES WS-LAST-INSTALMENT-DATE.   
+          05 WS-LAST-INSTALLMENT-YYYY         PIC 9(04).
+          05 WS-LAST-INSTALLMENT-MM           PIC 9(02).
+          05 WS-LAST-INSTALLMENT-DD           PIC 9(02).
+
+       01 WS-BOOK-END-DATE. 
+          03 WS-BOOK-END-DATE-YYYY            PIC X(04).
+          03 FILLER                           PIC X(01).
+          03 WS-BOOK-END-DATE-MM              PIC X(02).
+          03 FILLER                           PIC X(01).
+          03 WS-BOOK-END-DATE-DD              PIC X(02).
+
+       01  WS-META-CAT-CODE-TBL.
+           03 WS-META-ENTRY OCCURS 5 TIMES. 
+              05 WS-META-CAT-CODE             PIC X(02).
+              05 FILLER                       PIC X(01).
+
+       01  WS-O-OFFER-TABLE.
+           03 WS-O-OFFER-ID-CNT               PIC S9(05) BINARY.
+           03 WS-O-OFFER-ID-DTLS OCCURS 0 TO 50 TIMES DEPENDING ON  
+              WS-O-OFFER-ID-CNT.
+              05 WS-O-OFFER-ID                PIC S9(11) BINARY.
+              05 WS-O-PEN-START-DATE          PIC 9(08).
+              05 WS-O-PMT-TERM-D-DATE         PIC 9(08).
+              05 WS-O-PMT-TERM-D-TIME         PIC 9(06).
+              05 WS-O-PMT-TERM-F-DATE         PIC 9(08).
+              05 WS-O-CATEGORY-CNT            PIC S9(05) BINARY.
+              05 WS-O-PMT-CAT-ENTRY OCCURS 90 TIMES.
+                 07 WS-O-CATEGORY-CODE        PIC X(03).
+                 07 WS-O-CAT-META-CODE        PIC X(02).
+                 07 WS-O-CAT-EFF-PMT-AMT      PIC S9(08)V9(02) BINARY.  
+                 07 WS-O-VPP-INCL-CODE        PIC X(01).
+                 07 WS-O-VPP-INCL-TYPE        PIC X(01).
+CALFEE           07 WS-O-CAT-SINGLES-PCT      PIC 9(05)V9(03) BINARY.   
+                 07 WS-O-GUEST-TABLE OCCURS 5 TIMES.
+                    09 WS-O-TOTAL-FARE-AMT    PIC S9(08)V9(02) BINARY.  
+                    09 WS-O-VPP-AMT           PIC S9(08)V9(02) BINARY.  
+
+       01  WS-HOLD-META                      PIC X(2).  
+       01  WS-SAME-META                      PIC X(2).  
+       01  WS-CURRENT-META                   PIC X(2).  
+       01  WS-MOD-IND                        PIC X(1).  
+       01  WS-EFF-SPOILAGE                   PIC X(1).  
+       01  WS-EFF-SPOILAGE-N                 PIC 9(1).  
+        01  WS-RESULTS. 
+            03  WS-INS-CNT                    PIC 9(10) BINARY. 
+            03  WS-CYCLE-CNT                  PIC 9(10) BINARY. 
+
+        01  WS-START-DATETIME                 PIC X(26).
+        01  WS-MILLI                          PIC 9(6). 
+214442  01  WS-CONNECT-EXIST                  PIC X(01).
+214442  01  WS-HOLD-QPDTLS                    PIC 9(04) BINARY. 
+214442  01  WS-SKIP-OFFER                     PIC X(01).
+214442  01  WS-SKIP-COUNT                     PIC 9(05).
+
+       COPY CCP00CTW.   
+       COPY CCP00SWS.   
+       COPY CCP45AAW.   
+       COPY CCP10AWS.   
+       COPY DPP01CIW.   
+       COPY DPP01DTA.   
+       COPY DPP01DWS.   
+       COPY DPP01ERR.   
+       COPY DPP01MCB.   
+       COPY DPP01SCO.   
+       COPY DPP12SCO.   
+       COPY DPP42ERR.   
+       COPY RSP00DMS.   
+       COPY RSP32DMS.   
+       COPY RSP50INP.   
+       COPY RSP50OUT.   
+       COPY RSP49INP.   
+       COPY RSP49OUT.   
+       COPY RSP64DMS.   
+       COPY RSP77GMD.   
+       COPY SSP03GAD.   
+       COPY SSP05GCD.   
+       COPY RSP90OVW.   
+       COPY DPP02Y2K.   
+       COPY RSP51INP.   
+       COPY RSP51OUT.   
+       COPY RSP72OCA.   
+       COPY RSP72OCAMEM.
+       COPY RSP72OCACON.
+       COPY RSP10PON.   
+       COPY RSP10PGI.   
+       COPY RSP10PGO.   
+       COPY RSP21PENCON.
+       COPY RSP21PEN.   
+       COPY CCP76QPW.   
+       COPY RSP22CON.   
+       COPY RSP22INP.   
+       COPY RSP22OUT.   
+       COPY SSP09GCD.   
+       COPY TDP01SAW.   
+       COPY SMP68EFF.   
+       COPY RSP69INP.   
+       COPY RSP69OUT.   
+       COPY RSP69CON.   
+       COPY RSP86GLD.   
+       COMMON-STORAGE SECTION.  
+
+       PROCEDURE DIVISION.  
+       0000-MAIN-LINE.  
+           COPY DPP01INT.   
+
+           PERFORM DPP12-MCB-INIT THRU DPP12-MCB-INIT-EXIT. 
+
+           PERFORM DPP12-BEGIN-THREAD THRU DPP12-BEGIN-THREAD-EXIT. 
+
+           IF DPP01-SQL-ERROR-IND = 'Y' 
+              GO TO DPP12-THREAD-ERROR-EXIT.
+
+           EXEC SQL USE DEFAULT SCHEMA PSTRDMS  END-EXEC.   
+           EXEC SQL WHENEVER SQLERROR  CONTINUE END-EXEC.   
+           EXEC SQL WHENEVER NOT FOUND CONTINUE END-EXEC.   
+
+           EXEC SQL LOCK SAILING
+                        ,SAIL_CATEGORY  
+                        ,SAIL_OPEN_INVENTORY
+                        ,SAIL_OFFER_ID  
+                        ,SAIL_OFFER_RES_STATE   
+                        ,SAIL_OFF_SUP_LOCALITY  
+                        ,SAIL_PAYMENT_ITEM  
+PRCCMB*                 ,SAIL_OFF_CODE_SUPPRESS 
+                        ,SAIL_OFFER_PRICE   
+                        ,WEB_ENTITY_SUPPRESS
+                        ,OFFER_ID_STATIC_INFO   
+                        ,OFFER_ID_LOCALITY  
+                        ,OFFER_ID_AGENT_QUAL
+                        ,OFFER_ID_GUEST_QUAL
+                        ,OFFER_DESCRIPTION IN RETRIEVAL 
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR.
+
+       0100-INIT-DATABASE.  
+           IMPART.  
+
+           OPEN CIF0
+                CIF1
+                CIF2
+                CIF3
+                CIF4
+                CIF5
+                CIF6
+                CIF7
+                CIF8
+                CIF9
+                ERROR-DESC  
+                AGENT   
+                AGENT-PHONE 
+                AGNT-PHO-IDX
+                AGENT-TERMS 
+                AGENT-IDX   
+                AGENT-CURR  
+                NATIONALITY 
+                NATIONAL-IDX
+                AGENCY-ASSOC
+                AGENT-COMP  
+                AGENCY-RATE 
+                AGENT-BUS   
+                AGENCY-CONN 
+LOYLTY          MMISC-AMT   
+LOYLTY          MMISC-AMTX. 
+
+           PERFORM DPP45-OPEN-AVAIL-RETRIEVAL   
+              THRU DPP45-AVAIL-EXIT.
+
+       0200-NEXT-MESSAGE.   
+TESTIT*    EXEC SQL SELECT CURRENT_TIMESTAMP(6) INTO WS-START-DATETIME  
+TESTIT*       FROM RDMS.RDMS_DUMMY WHERE KEY_COL = 1
+TESTIT*       FETCH FIRST 1 ROW ONLY
+TESTIT*    END-EXEC.
+TESTIT*    CALL 'INS$ON'.   
+       COPY SMP68INT.   
+           CALL 'SMO68INT' USING DPP01-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 SMP68-INPUT-PARAMS 
+                                 SMP68-OUTPUT-PARAMS.   
+
+           IF DPP01-SUB-MSG-CTR > ZERO  
+              IF DPP01-SUB-MSG-STATUS (1) > 1   
+                 GO TO 9500-RETURN-SUBROUTINE-ERROR.
+
+           COPY CCP45INT.   
+           COPY RSP50INT.   
+           COPY IRP36INT.   
+           COPY CCP76INI.   
+           COPY CCP00INT.   
+
+           PERFORM DPP12-GET-NEXT-MESSAGE   
+              THRU DPP12-GET-NEXT-MESSAGE-EXIT. 
+           IF CCMV-ERROR-SUB > ZERO 
+              MOVE CCMV-ERROR-SUB     TO MSGHDR-ADVISE-CODE   (1)   
+              MOVE 'CCP47QPR'         TO MSGHDR-ADVISE-SOURCE (1)   
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                  THRU CCP75-OUTPUT-CCERRMSG-EXIT   
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+           IF (CCMH-MESSAGE-ID NOT = 'CCQPRIC1')
+              MOVE 0001               TO MSGHDR-ADVISE-CODE   (1)   
+              MOVE 'CCR47QPR'         TO MSGHDR-ADVISE-SOURCE (1)   
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+           COPY RSP90INT.   
+           COPY TDP01INT.   
+
+           MOVE QPRIC1-SAIL-DATE        TO DPP02-MMDDYYYY-DATE. 
+           PERFORM DPP10-MMDDYYYY-TO-YYYYMMDD.  
+
+           MOVE DPP02-YYYYMMDD-DATE     TO WS-SAIL-DATE.
+
+           MOVE 1                       TO CCP00-WHOLESALE-ONLY-FLG.
+
+           IF QPRIC1-CURRENCY-CODE > SPACES 
+              MOVE QPRIC1-CURRENCY-CODE TO CCP00-INPUT-CURRENCY-CODE
+           END-IF.  
+
+           PERFORM CCP10-VALIDATE-AGENT THRU CCP10-VALIDATE-AGENT-EXIT. 
+
+           IF CCMV-ERROR-SUB > ZERO 
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+       COPY RSP86INT.   
+
+           MOVE RSP50-O-LOCALITY-CODE TO RSP86-I-LOCALITY-CODE. 
+
+           CALL 'RSC86GLD' USING DPP01-COMMON-DATA-FIELDS,  
+                                 DPP01-COMMON-INFO, 
+                                 RSP86-INPUT-PARAMS,
+                                 RSP86-OUTPUT-PARAMS.   
+
+           IF DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1
+              GO TO 9500-RETURN-SUBROUTINE-ERROR
+           END-IF.  
+
+           IF CCM-INQUIRY-SW NOT = 'OFF'
+              ADD 1            TO CCMV-ADV-SUB  
+              MOVE 'CCR47QPR'  TO MSGHDR-ADVISE-SOURCE (CCMV-ADV-SUB)   
+              MOVE 0002        TO MSGHDR-ADVISE-CODE   (CCMV-ADV-SUB)   
+           END-IF.  
+
+           IF QPRIC1-CURRENCY-CODE > SPACES 
+              IF QPRIC1-CURRENCY-CODE NOT = RSP50-O-CURRENCY-CODE   
+                 ADD 1            TO CCMV-ADV-SUB   
+                 MOVE 'CCR47QPR'  TO MSGHDR-ADVISE-SOURCE (CCMV-ADV-SUB)
+                 MOVE 0003        TO MSGHDR-ADVISE-CODE   (CCMV-ADV-SUB)
+
+                 PERFORM CCP75-OUTPUT-CCERRMSG  
+                    THRU CCP75-OUTPUT-CCERRMSG-EXIT 
+                  GO TO 9000-END-OF-JOB 
+              END-IF
+           END-IF.  
+
+           MOVE DPP01-SYSTEM-DATE      TO DPP02-SYSTEM-DATE.
+           MOVE SPACES                 TO WS-GRATS-REQ-IND. 
+
+           IF QPRIC1-COUNTRY-CODE > SPACES  
+              MOVE QPRIC1-COUNTRY-CODE TO NR-NATIONALITY-CODE   
+
+              FETCH NATIONALITY-REC RECORD  
+                    ON ERROR GO TO 9100-DATABASE-ERROR  
+
+              MOVE NR-PP-GRATS-REQ-IND TO WS-GRATS-REQ-IND  
+           END-IF.  
+
+       0300-CALL-SAILING-AVAIL. 
+           COPY RSP51INT.   
+
+           MOVE 'B'                    TO RSP51-I-REQUEST-TYPE. 
+           MOVE 'Y'                    TO RSP51-I-ELEC-DIST-IND.
+           MOVE WS-SAIL-DATE           TO RSP51-I-SAIL-DATE.
+           MOVE QPRIC1-SHIP-CODE       TO RSP51-I-SHIP-CODE.
+           MOVE QPRIC1-DURATION-DAYS   TO RSP51-I-DURATION-DAYS.
+           MOVE QPRIC1-NUM-PAX         TO RSP51-I-NUM-PAX.  
+           MOVE 'I'                    TO RSP51-I-BOOK-TYPE.
+           MOVE 1                      TO RSP51-I-CABIN-REQUESTS.   
+           MOVE 'N'                    TO RSP51-I-PROT-POLICY-PHASE-IND.
+
+           IF    MSGHDR-AGENCY-ID           NOT > SPACES
+             AND (   MSGHDR-AGENT-PHONE-NUM NOT > SPACES
+                  OR MSGHDR-AGENT-PHONE-NUM NOT > ZEROES)   
+             AND (   MSGHDR-AGENT-ARC-NUM   NOT > SPACES
+                  OR MSGHDR-AGENT-ARC-NUM   NOT > ZEROES)   
+             AND (   MSGHDR-AGENT-CLIA-NUM  NOT > SPACES
+                  OR MSGHDR-AGENT-CLIA-NUM  NOT > ZEROES)   
+
+               MOVE 1                  TO RSP51-OVR-AGT-NEW-BOOK-FLG
+           END-IF.  
+
+           CALL 'RSO51SAV' USING DPP01-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 RSP51-SAILING-AVAIL-INPUT  
+                                 RSP51-SAILING-AVAIL-OUTPUT 
+                                 RSP50-AGENCY-OUTPUT
+                                 RSP90-OVERRIDE-FLAGS-INFO. 
+
+           IF DPP01-SUB-MSG-CTR > 0 
+                          AND DPP01-SUB-MSG-STATUS (1) > 1  
+              ADD 1       TO CCMV-ADV-SUB   
+              MOVE DPP01-SUB-MSG-SOURCE (1) 
+                TO MSGHDR-ADVISE-SOURCE (CCMV-ADV-SUB)  
+
+              MOVE DPP01-SUB-MSG-INDEX  (1) 
+                TO MSGHDR-ADVISE-NUM     (CCMV-ADV-SUB) 
+
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+           IF (TDP01-SCAT-SAIL-ID NOT = RSP51-O-SAIL-ID) OR 
+                 TDP01-SAIL-CAT-CNT <= 1
+               PERFORM TDP01-RET-ALL-SCAT THRU  
+                       TDP01-RET-ALL-SCAT-EXIT  
+               IF TDP01-SCAT-SQLERR 
+                  GO TO 9150-RDMS-ERROR.
+
+           MOVE SPACES TO WS-INTL-SAIL-IND. 
+
+           EXEC SQL SELECT COUNTRY_CODE INTO :WS-COUNTRY-CODE   
+              FROM PORT 
+              WHERE PORT_CODE = :TDP01-EMBARK-PORT-CODE 
+               FETCH FIRST 1 ROW ONLY   
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR 
+           ELSE 
+              IF SQLCODE = 100  
+                 GO TO 8000-EMBARK-ERROR.   
+
+           IF (WS-COUNTRY-CODE NOT = 'US' AND 'CA' AND 'PR')
+              MOVE 'I' TO WS-INTL-SAIL-IND  
+              GO TO 0500-CHECK-FOR-CHANGE.  
+
+           IF (TDP01-EMBARK-PORT-CODE NOT = TDP01-DEBARK-PORT-CODE) 
+              EXEC SQL SELECT COUNTRY_CODE INTO :WS-COUNTRY-CODE
+                 FROM PORT  
+                 WHERE PORT_CODE = :TDP01-DEBARK-PORT-CODE  
+                  FETCH FIRST 1 ROW ONLY
+              END-EXEC  
+              IF SQLCODE < 0
+                 GO TO 9150-RDMS-ERROR  
+              ELSE  
+                 IF SQLCODE = 100   
+                    GO TO 8100-DEBARK-ERROR 
+                 END-IF 
+              END-IF
+              IF (WS-COUNTRY-CODE NOT = 'US' AND 'CA' AND 'PR') 
+                 MOVE 'I' TO WS-INTL-SAIL-IND   
+                 GO TO 0500-CHECK-FOR-CHANGE.   
+
+           IF WS-INTL-SAIL-IND = 'Y'
+              GO TO 0600-GET-PAST-GUEST.
+
+       0500-CHECK-FOR-CHANGE.   
+           MOVE RSP51-O-SAIL-DATE  TO DPP02-SAIL-DATE.  
+
+           PERFORM DPP10-COMPUTE-DATE-DIFFERENCE.   
+
+           IF DPP02-DAYS-DIFFERENCE < 2 
+              IF DPP02-SYS-HHMMSS > 1615 OR DPP02-DAYS-DIFFERENCE < 1   
+                 ADD 1           TO CCMV-ADV-SUB
+                 MOVE 'CCR47QPR' TO MSGHDR-ADVISE-SOURCE (CCMV-ADV-SUB) 
+                 MOVE 0012       TO MSGHDR-ADVISE-CODE (CCMV-ADV-SUB)   
+              END-IF
+           ELSE 
+              IF DPP02-DAYS-DIFFERENCE < 61 
+                 IF WS-INTL-SAIL-IND = 'I'  
+                    ADD 1     TO CCMV-ADV-SUB   
+                    MOVE 'CCR47QPR' TO  
+                         MSGHDR-ADVISE-SOURCE (CCMV-ADV-SUB)
+                    MOVE 0011 TO MSGHDR-ADVISE-CODE (CCMV-ADV-SUB). 
+
+       0600-GET-PAST-GUEST. 
+           COPY RSP10PII.   
+
+           MOVE ZEROES          TO RSP10-I-LOYALTY-CNT. 
+
+           PERFORM VARYING WS-PAX-SUB FROM 1 BY 1   
+                           UNTIL WS-PAX-SUB > QPRIC1-NUM-PAX
+             IF QPMGIN-PAST-GUEST-NUM (WS-PAX-SUB) > SPACES 
+                ADD 1 TO RSP10-I-LOYALTY-CNT
+                MOVE QPMGIN-PAST-GUEST-NUM (WS-PAX-SUB) 
+                  TO WS-INP-PAST-GUEST-NUM  
+PPC470*         MOVE WS-PAST-GUEST-NUM TO   
+PPC470*              RSP10-I-LOYALTY-NUM (RSP10-I-LOYALTY-CNT)  
+PPC470          MOVE SPACES           TO WS-OUT-PAST-GUEST-NUM  
+PPC470          MOVE 10               TO WS-NSUB
+PPC470          PERFORM VARYING WS-IN-SUB FROM 10 BY -1 
+PPC470                  UNTIL WS-IN-SUB < 1 
+PPC470                  IF  WS-NSUB > 0 
+PPC470                      IF  WS-INP-PAST-GUEST-DIGIT(WS-IN-SUB) > ' '
+PPC470                          MOVE WS-INP-PAST-GUEST-DIGIT (WS-IN-SUB)
+PPC470                            TO WS-OUT-PAST-GUEST-DIGIT (WS-NSUB)  
+PPC470                          SUBTRACT 1 FROM WS-NSUB 
+PPC470                      END-IF  
+PPC470                  END-IF  
+PPC470          END-PERFORM 
+PPC470          INSPECT WS-OUT-PAST-GUEST-NUM   
+PPC470                       REPLACING LEADING ' ' BY '0'   
+PPC470          MOVE WS-OUT-PAST-GUEST-NUM  
+PPC470                        TO RSP10-I-LOYALTY-NUM
+PPC470                             (RSP10-I-LOYALTY-CNT)
+                IF QPMGIN-TIER-CODE (WS-PAX-SUB) > SPACES   
+                   MOVE QPMGIN-TIER-CODE (WS-PAX-SUB) TO
+                        RSP10-I-TIER-CODE (RSP10-I-LOYALTY-CNT) 
+                   MOVE 'Y' TO  
+                        RSP10-I-TRUST-ME-IND (RSP10-I-LOYALTY-CNT)  
+                ELSE
+                   MOVE 'N' TO  
+                        RSP10-I-TRUST-ME-IND (RSP10-I-LOYALTY-CNT)  
+                END-IF  
+              END-IF
+           END-PERFORM. 
+
+           IF RSP10-I-LOYALTY-CNT = 0   
+              GO TO 0700-GET-AVAIL-OFFERS.  
+
+           MOVE TDP01-SHIP-CODE          TO RSP10-I-SHIP-CODE.  
+           MOVE TDP01-SAIL-DATE-YYYYMMDD TO RSP10-I-SAIL-DATE.  
+           MOVE TDP01-DURATION-DAYS      TO RSP10-I-DURATION-DAYS.  
+           MOVE 'PG'                     TO RSP10-I-IDENTIFER-TYPE. 
+           MOVE 'O'                      TO RSP10-I-OFFER-STATUS-CODE.  
+
+           CALL 'RSO10PGI' USING DPP01-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 RSP10-INPUT-PARMS  
+                                 RSP10-OUTPUT-PARMS.
+
+           IF  DPP01-SUB-MSG-CTR > ZERO AND 
+                  DPP01-SUB-MSG-STATUS (1) > 1  
+               GO TO 9500-RETURN-SUBROUTINE-ERROR.  
+
+       0700-GET-AVAIL-OFFERS.   
+           COPY RSP72OCAINT.
+
+           MOVE RSP51-O-SAIL-ID        TO RSP72-I-SAIL-ID.  
+           MOVE QPRIC1-SHIP-CODE       TO RSP72-I-SHIP-CODE.
+           MOVE 'B'                    TO RSP72-I-REQUEST-TYPE. 
+           MOVE 'I'                    TO RSP72-I-BOOK-TYPE.
+           MOVE QPRIC1-NUM-PAX         TO RSP72-I-OCCUPANCY.
+           MOVE RSP51-O-POLICY-TYPE    TO RSP72-I-POLICY-CODE.  
+           MOVE QPRIC1-COUPON-CODE     TO RSP72-I-COUPON-CODE.  
+           MOVE 'Y'                    TO RSP72-I-NEW-BOOKING-IND.  
+           MOVE 'N'                    TO RSP72-I-INTERNAL-ACCESS-IND.  
+
+           IF QPRIC1-MODIFY-REQ-IND > SPACES AND
+                 QPRIC1-MODIFY-REQ-IND NOT = 'N'
+              MOVE QPRIC1-MODIFY-REQ-IND TO RSP72-I-ADA-CABIN-IND   
+           ELSE 
+              MOVE SPACES                TO RSP72-I-ADA-CABIN-IND.  
+
+           MOVE RSP51-O-PRC-XCHG-RATE  TO RSP72-I-PRC-XCHG-RATE.
+
+           IF SSP03-O-COUPON-ONLY-FLG = 1   
+              MOVE 1 TO RSP72-I-SPLIT-COUPON-FLG
+                        RSP72-I-COUPON-ONLY-FLG.
+
+           IF QPRIC1-OFFER-CODE > SPACES
+              MOVE QPRIC1-OFFER-CODE   TO RSP72-I-OFFER-CODE.   
+
+           PERFORM VARYING WS-PAX-SUB FROM 1 BY 1   
+                           UNTIL WS-PAX-SUB > QPRIC1-NUM-PAX
+              IF QPMGIN-HOME-STATE-CODE (WS-PAX-SUB) > SPACES AND   
+                    (QPMGIN-HOME-STATE-CODE (WS-PAX-SUB) NOT = 'XX')
+                MOVE QPMGIN-HOME-STATE-CODE (WS-PAX-SUB) TO 
+                     RSP72-I-STATE-CODE (WS-PAX-SUB)
+                EXEC SQL SELECT COUNTRY_CODE
+                   INTO RSP72-I-COUNTRY-CODE (WS-PAX-SUB)   
+                   FROM VALID_COUNTRY_STATE 
+                   WHERE CCL_STATE_CODE =   
+                         :QPMGIN-HOME-STATE-CODE (WS-PAX-SUB)   
+                   FETCH FIRST 1 ROW ONLY   
+                END-EXEC
+                IF SQLCODE < 0  
+                   GO TO 9150-RDMS-ERROR
+                ELSE
+                   IF SQLCODE = 100 
+                      ADD 1            TO CCMV-ADV-SUB  
+                      MOVE 'CCR47QPR'  TO   
+                           MSGHDR-ADVISE-SOURCE (CCMV-ADV-SUB)  
+                      MOVE 0013 TO MSGHDR-ADVISE-CODE(CCMV-ADV-SUB) 
+                      PERFORM CCP75-OUTPUT-CCERRMSG 
+                         THRU CCP75-OUTPUT-CCERRMSG-EXIT
+                      GO TO 9000-END-OF-JOB 
+                   END-IF   
+                END-IF  
+                PERFORM VARYING WS-QUAL-SUB FROM 1 BY 1 
+                        UNTIL WS-QUAL-SUB > 5   
+                           OR (RSP72-I-QUALIFICATION-CODE   
+                                 (WS-PAX-SUB WS-QUAL-SUB) NOT > SPACES) 
+                   CONTINUE 
+                END-PERFORM 
+                IF WS-QUAL-SUB > 5  
+                   ADD 1           TO CCMV-ADV-SUB  
+                   MOVE 'CCR47QPR' TO   
+                        MSGHDR-ADVISE-SOURCE (CCMV-ADV-SUB) 
+                   MOVE 0014 TO MSGHDR-ADVISE-CODE(CCMV-ADV-SUB)
+                   PERFORM CCP75-OUTPUT-CCERRMSG
+                      THRU CCP75-OUTPUT-CCERRMSG-EXIT   
+                   GO TO 9000-END-OF-JOB
+                ELSE
+                   MOVE 'RS' TO RSP72-I-QUALIFICATION-CODE  
+                                           (WS-PAX-SUB WS-QUAL-SUB) 
+                END-IF  
+             END-IF 
+             IF QPRIC1-MILITARY-IND  = 'Y'  
+                PERFORM VARYING WS-QUAL-SUB FROM 1 BY 1 
+                        UNTIL WS-QUAL-SUB > 5   
+                           OR (RSP72-I-QUALIFICATION-CODE   
+                               (WS-PAX-SUB WS-QUAL-SUB) NOT > SPACES)   
+                   CONTINUE 
+                END-PERFORM 
+                IF WS-QUAL-SUB > 5  
+                   ADD 1           TO CCMV-ADV-SUB  
+                   MOVE 'CCR47QPR' TO   
+                        MSGHDR-ADVISE-SOURCE (CCMV-ADV-SUB) 
+                   MOVE 0015 TO MSGHDR-ADVISE-CODE(CCMV-ADV-SUB)
+                   PERFORM CCP75-OUTPUT-CCERRMSG
+                      THRU CCP75-OUTPUT-CCERRMSG-EXIT   
+                   GO TO 9000-END-OF-JOB
+                ELSE
+                   MOVE 'ML' TO RSP72-I-QUALIFICATION-CODE  
+                                             (WS-PAX-SUB WS-QUAL-SUB)   
+                END-IF  
+             END-IF 
+             IF QPMGIN-PAST-GUEST-NUM (WS-PAX-SUB) > SPACES OR  
+                   QPMGIN-TIER-CODE (WS-PAX-SUB) > SPACES   
+                PERFORM VARYING WS-QUAL-SUB FROM 1 BY 1 
+                        UNTIL WS-QUAL-SUB > 5   
+                           OR (RSP72-I-QUALIFICATION-CODE   
+                                 (WS-PAX-SUB WS-QUAL-SUB) NOT > SPACES) 
+                   CONTINUE 
+                END-PERFORM 
+                IF WS-QUAL-SUB > 5  
+                   ADD 1           TO CCMV-ADV-SUB  
+                   MOVE 'CCR47QPR' TO   
+                        MSGHDR-ADVISE-SOURCE (CCMV-ADV-SUB) 
+                   MOVE 0016 TO MSGHDR-ADVISE-CODE(CCMV-ADV-SUB)
+                   PERFORM CCP75-OUTPUT-CCERRMSG
+                      THRU CCP75-OUTPUT-CCERRMSG-EXIT   
+                   GO TO 9000-END-OF-JOB
+                ELSE
+                   MOVE 'PG' TO RSP72-I-QUALIFICATION-CODE  
+                                             (WS-PAX-SUB WS-QUAL-SUB)   
+                END-IF  
+             END-IF 
+             IF QPRIC1-SENIOR-IND = 'Y' 
+                ADD 1     TO WS-QUAL-SUB
+                MOVE 'SN' TO RSP72-I-QUALIFICATION-CODE 
+                                               (WS-PAX-SUB WS-QUAL-SUB) 
+             ELSE   
+                IF QPMGIN-BIRTH-DATE (WS-PAX-SUB) > ZEROES  
+                   MOVE QPMGIN-BIRTH-DATE (WS-PAX-SUB) TO   
+                        DPP02-MMDDYYYY-DATE 
+                   PERFORM DPP10-MMDDYYYY-TO-YYYYMMDD   
+                   MOVE DPP02-YYYYMMDD-DATE TO DPP02-BD-YYYYMMDD-DATE   
+                   MOVE RSP51-O-SAIL-DATE   TO DPP02-SAIL-DATE  
+                   PERFORM DPP10-COMPUTE-GUEST-AGE  
+                   IF DPP02-YEAR-CNT NOT < TDP01-MIN-SENIOR-AGE 
+                      PERFORM VARYING WS-QUAL-SUB FROM 1 BY 1   
+                              UNTIL WS-QUAL-SUB > 5 
+                                 OR (RSP72-I-QUALIFICATION-CODE 
+                                  (WS-PAX-SUB WS-QUAL-SUB) NOT > SPACES)
+                         CONTINUE   
+                      END-PERFORM   
+                      IF WS-QUAL-SUB > 5
+                         ADD 1            TO CCMV-ADV-SUB   
+                         MOVE 'CCR47QPR'  TO
+                              MSGHDR-ADVISE-SOURCE (CCMV-ADV-SUB)   
+                         MOVE 0017 TO MSGHDR-ADVISE-CODE(CCMV-ADV-SUB)  
+                         PERFORM CCP75-OUTPUT-CCERRMSG  
+                            THRU CCP75-OUTPUT-CCERRMSG-EXIT 
+                         GO TO 9000-END-OF-JOB  
+                      ELSE  
+                         MOVE 'SN' TO   
+                              RSP72-I-QUALIFICATION-CODE
+                                              (WS-PAX-SUB WS-QUAL-SUB)  
+                      END-IF
+                   END-IF   
+                END-IF  
+             END-IF 
+           END-PERFORM. 
+
+           MOVE 1 TO RSP72-I-SPLIT-TGO-FLG. 
+
+           IF SSP03-O-PPC-COMPLAINT-FLG = 0 
+              MOVE 1                   TO RSP72-OVERRIDE-MILITARY-FLG   
+                                          RSP72-OVERRIDE-INTERLINE-FLG. 
+
+           MOVE 1 TO RSP72-I-CAT-BEST-CAT-FLG.  
+
+TESTIT*    CALL 'INS$GET' USING WS-RESULTS. 
+TESTIT*    EXEC SQL SELECT DATEDIFF('MS',:WS-START-DATETIME,
+TESTIT*                             CURRENT_TIMESTAMP(6)) INTO WS-MILLI 
+TESTIT*       FROM RDMS.RDMS_DUMMY WHERE KEY_COL = 1
+TESTIT*       FETCH FIRST 1 ROW ONLY
+TESTIT*    END-EXEC.
+TESTIT*    DISPLAY 'TIME(ms): ' WS-MILLI 'INS: ' WS-INS-CNT 'CYC: ' 
+TESTIT*            WS-CYCLE-CNT UPON PRINTER.   
+TESTIT*    CALL 'INS$OFF'.  
+TESTIT*    EXEC SQL SELECT CURRENT_TIMESTAMP(6) INTO WS-START-DATETIME  
+TESTIT*       FROM RDMS.RDMS_DUMMY WHERE KEY_COL = 1
+TESTIT*       FETCH FIRST 1 ROW ONLY
+TESTIT*    END-EXEC.
+TESTIT*    CALL 'INS$ON'.   
+
+           CALL 'RSO72OCA' USING DPP01-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 RSP72-INPUT-PARMS  
+                                 RSP72-OUTPUT-PARMS 
+                                 RSP50-AGENCY-OUTPUT
+                                 RSP90-OVERRIDE-FLAGS-INFO. 
+
+           IF DPP01-SUB-MSG-CTR > ZERO AND  
+                              DPP01-SUB-MSG-STATUS (1) > 1  
+              ADD 1       TO CCMV-ADV-SUB   
+              MOVE DPP01-SUB-MSG-SOURCE (1) 
+                TO MSGHDR-ADVISE-SOURCE (CCMV-ADV-SUB)  
+              MOVE DPP01-SUB-MSG-INDEX  (1) 
+                TO MSGHDR-ADVISE-NUM     (CCMV-ADV-SUB) 
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+TESTIT*    CALL 'INS$GET' USING WS-RESULTS. 
+TESTIT*    EXEC SQL SELECT DATEDIFF('MS',:WS-START-DATETIME,
+TESTIT*                             CURRENT_TIMESTAMP(6)) INTO WS-MILLI 
+TESTIT*       FROM RDMS.RDMS_DUMMY WHERE KEY_COL = 1
+TESTIT*       FETCH FIRST 1 ROW ONLY
+TESTIT*    END-EXEC.
+TESTIT*    DISPLAY 'TIME(ms): ' WS-MILLI 'INS: ' WS-INS-CNT 'CYC: ' 
+TESTIT*            WS-CYCLE-CNT UPON PRINTER.   
+TESTIT*    CALL 'INS$OFF'.  
+TESTIT*    EXEC SQL SELECT CURRENT_TIMESTAMP(6) INTO WS-START-DATETIME  
+TESTIT*       FROM RDMS.RDMS_DUMMY WHERE KEY_COL = 1
+TESTIT*       FETCH FIRST 1 ROW ONLY
+TESTIT*    END-EXEC.
+TESTIT*    CALL 'INS$ON'.   
+
+           IF RSP72-O-OCA-OFFER-CNT NOT > ZEROES
+              ADD 1       TO CCMV-ADV-SUB   
+              MOVE 'CCR47QPR'   
+                TO MSGHDR-ADVISE-SOURCE (CCMV-ADV-SUB)  
+              MOVE 0101 
+                TO MSGHDR-ADVISE-NUM     (CCMV-ADV-SUB) 
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+**NOTE** Individual Policy shouldn't have any controls, the sailing has 
+**NOTE** PP_GRATS_CODE, which one vaue is (M)andatory.  
+
+       0800-CALL-CAT-INVENTORY. 
+           MOVE TDP01-SHIP-CODE          TO QPRIC2-SHIP-CODE.   
+           MOVE TDP01-SAIL-DATE-YYYYMMDD TO QPRIC2-SAIL-DATE.   
+           MOVE TDP01-DURATION-DAYS      TO QPRIC2-DURATION-DAYS.   
+
+           EVALUATE TDP01-STATUS-CODE   
+               WHEN  'O'
+                  EVALUATE TDP01-SPECIAL-SAIL-IND   
+                     WHEN SPACES
+                         PERFORM VARYING WS-OCC-SUB FROM 1 BY 1 
+                                                 UNTIL WS-OCC-SUB > 5   
+                            IF TDP01-OCC-INDS (WS-OCC-SUB:1) = 'Y'  
+                               MOVE WS-OCC-SUB  
+                                       TO WS-MAX-PAX
+                               MOVE 5  TO WS-OCC-SUB
+                            END-IF  
+                         END-PERFORM
+                         IF  QPRIC1-NUM-PAX > WS-MAX-PAX         OR 
+                             RSP51-O-INDV-MAX-CABINS <= 0        OR 
+                             RSP51-O-SAIL-MAX-GUESTS <= 0   
+                             MOVE 7    TO QPRIC2-STATUS-CODE
+                         ELSE   
+                             MOVE 1    TO QPRIC2-STATUS-CODE
+                         END-IF 
+                     WHEN 'C'   
+                         MOVE 4        TO QPRIC2-STATUS-CODE
+                     WHEN  OTHER
+                         MOVE 2        TO QPRIC2-STATUS-CODE
+                  END-EVALUATE  
+               WHEN  'R'
+                  MOVE 4               TO QPRIC2-STATUS-CODE
+               WHEN  'D'
+                  MOVE 21              TO QPRIC2-STATUS-CODE
+               WHEN  'W'
+                  MOVE 21              TO QPRIC2-STATUS-CODE
+               WHEN  'C'
+                  IF  TDP01-SPECIAL-SAIL-IND = 'D'  
+                      MOVE 21          TO QPRIC2-STATUS-CODE
+                  ELSE  
+                      MOVE 2           TO QPRIC2-STATUS-CODE
+                  END-IF
+               WHEN  OTHER  
+                  MOVE 2               TO QPRIC2-STATUS-CODE
+           END-EVALUATE.
+
+           MOVE TDP01-ITINERARY-CODE   TO QPRIC2-ITINERARY-CODE.
+           MOVE TDP01-EMBARK-PORT-CODE TO QPRIC2-EMBARK-CODE.   
+           MOVE TDP01-DEBARK-PORT-CODE TO QPRIC2-DEBARK-CODE.   
+           MOVE TDP01-SHIP-CLASS       TO QPRIC2-SHIP-CLASS.
+
+           EXEC SQL 
+                SELECT DESCRIPTION  
+                  INTO WS-GEO-REGION
+                  FROM ITINERARY         IT 
+                  JOIN SUB_REGION        SR 
+                    ON SR.SUBREGION_CODE = IT.SUBREGION_CODE
+                 WHERE IT.EMBARK_PORT_CODE = :TDP01-EMBARK-PORT-CODE
+                   AND IT.ITINERARY_CODE   = :TDP01-ITINERARY-CODE  
+                   AND IT.DURATION_DAYS    = :QPRIC1-DURATION-DAYS  
+                 FETCH FIRST 1 ROW ONLY 
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR 
+           ELSE 
+              IF SQLCODE = 100  
+                 MOVE 'UNKNOWN GEO REGION'  
+                                         TO QPRIC2-GEO-REGION   
+              ELSE  
+                 MOVE WS-GEO-REGION      TO QPRIC2-GEO-REGION   
+              END-IF
+           END-IF.  
+
+           IF MSGHDR-SYSTEM-ID = 'CCL' OR 'CAU' 
+              COMPUTE QPRIC2-SAIL-REMAIN-CABINS = TDP01-CABIN-NET   
+                                                - TDP01-SELL-TO-NET 
+           ELSE 
+              MOVE 0 TO QPRIC2-SAIL-REMAIN-CABINS   
+           END-IF.  
+
+CALFEE COPY SSP05INT.   
+
+CALFEE     MOVE 'C'                    TO SSP05-I-COMPANY-CODE. 
+CALFEE     CALL 'SSC05GCD'        USING DPP01-COMMON-DATA-FIELDS
+CALFEE                                  DPP01-COMMON-INFO   
+CALFEE                                  SSP05-INPUT-PARAMS  
+CALFEE                                  SSP05-OUTPUT-PARAMS.
+
+CALFEE     IF DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1
+CALFEE        GO TO 9500-RETURN-SUBROUTINE-ERROR
+CALFEE     END-IF.  
+
+CALFEE     MOVE SSP05-O-GOVT-FEE-INCL-IND   
+CALFEE                                 TO QPRIC2-INCL-GOVT-FEE-IND. 
+
+CALFEE     MOVE ZEROES                 TO WS-FULL-GOVT-FEE-AMT  
+CALFEE                                    WS-FULL-CRUS-FEE-AMT  
+CALFEE                                    WS-FULL-EXCL-FEE-AMT  
+CALFEE                                    WS-XTRA-GOVT-FEE-AMT  
+CALFEE                                    WS-XTRA-CRUS-FEE-AMT  
+CALFEE                                    WS-XTRA-EXCL-FEE-AMT. 
+
+CALFEE     PERFORM VARYING WS-FEE-SUB FROM 1 BY 1   
+CALFEE                        UNTIL WS-FEE-SUB > RSP51-O-FEE-CNT
+CALFEE        IF RSP51-O-GOVT-FEE-IND (WS-FEE-SUB) = 1  
+CALFEE           COMPUTE WS-FULL-GOVT-FEE-AMT ROUNDED = 
+CALFEE                   WS-FULL-GOVT-FEE-AMT + 
+CALFEE                  (RSP51-O-FEE-AMT (WS-FEE-SUB) * 
+CALFEE                   RSP51-O-PRC-XCHG-RATE) 
+CALFEE           COMPUTE WS-XTRA-GOVT-FEE-AMT ROUNDED = 
+CALFEE                   WS-XTRA-GOVT-FEE-AMT + 
+CALFEE                  (RSP51-O-FEE-EXTRA-AMT (WS-FEE-SUB) *   
+CALFEE                   RSP51-O-PRC-XCHG-RATE) 
+CALFEE           IF RSP51-O-INCL-CRS-IND (WS-FEE-SUB) = 0   
+CALFEE              COMPUTE WS-FULL-EXCL-FEE-AMT ROUNDED =  
+CALFEE                      WS-FULL-EXCL-FEE-AMT +  
+CALFEE                     (RSP51-O-FEE-AMT (WS-FEE-SUB) *  
+CALFEE                      RSP51-O-PRC-XCHG-RATE)  
+CALFEE              COMPUTE WS-XTRA-EXCL-FEE-AMT ROUNDED =  
+CALFEE                      WS-XTRA-EXCL-FEE-AMT +  
+CALFEE                     (RSP51-O-FEE-EXTRA-AMT (WS-FEE-SUB) *
+CALFEE                      RSP51-O-PRC-XCHG-RATE)  
+CALFEE           END-IF 
+CALFEE        ELSE  
+CALFEE           COMPUTE WS-FULL-CRUS-FEE-AMT ROUNDED = 
+CALFEE                   WS-FULL-CRUS-FEE-AMT + 
+CALFEE                  (RSP51-O-FEE-AMT (WS-FEE-SUB) * 
+CALFEE                   RSP51-O-PRC-XCHG-RATE) 
+CALFEE           COMPUTE WS-XTRA-CRUS-FEE-AMT ROUNDED = 
+CALFEE                   WS-XTRA-CRUS-FEE-AMT + 
+CALFEE                  (RSP51-O-FEE-AMT (WS-FEE-SUB) * 
+CALFEE                   RSP51-O-PRC-XCHG-RATE) 
+CALFEE        END-IF
+CALFEE     END-PERFORM. 
+
+
+           MOVE ZEROES                  TO WS-OFFER-SUB 
+214442                                     WS-SKIP-COUNT.   
+214442     MOVE 'N'                     TO WS-SKIP-OFFER.   
+
+       1000-BUILD-QPRATE-SEGMENT.   
+
+           ADD 1                        TO WS-OFFER-SUB.
+
+           IF WS-OFFER-SUB > RSP72-O-OCA-OFFER-CNT  
+              PERFORM CCP76-OUTPUT-CCQPRIC2 
+                 THRU CCP76-OUTPUT-CCQPRIC2-EXIT
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+214442     IF WS-SKIP-OFFER NOT = 'Y'   
+              ADD 1                     TO QPRATE-SUB   
+214442     END-IF.  
+
+           IF QPRATE-SUB > QPRATE-SEGMENT-MAX   
+              ADD 1             TO CCMV-ADV-SUB 
+              MOVE 'CCR47QPR'   TO MSGHDR-ADVISE-SOURCE (CCMV-ADV-SUB)  
+              MOVE 0004         TO MSGHDR-ADVISE-NUM    (CCMV-ADV-SUB)  
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+           MOVE RSP72-O-OCA-OFFER-PTR (WS-OFFER-SUB)
+             TO RSP72-OCA-OFFER-PTR.
+
+           MOVE RSP72-OCA-OFFER-CODE
+             TO QPRATE-OFFER-CODE     (QPRATE-SUB). 
+
+           IF RSP72-OCA-TGO-ENTITY-TYPE = 'ADB' 
+              STRING RSP72-OCA-OFFER-CODE   
+                        RSP72-OCA-TGO-ENTITY-CODE   
+                        DELIMITED BY SPACES INTO
+                        QPRATE-OFFER-CODE     (QPRATE-SUB)  
+           END-IF.  
+
+           MOVE RSP72-OCA-OFFER-NAME
+             TO QPRATE-OFFER-NAME     (QPRATE-SUB). 
+
+           MOVE ZEROES  
+             TO WS-OFFER-REMAIN-CABINS. 
+           PERFORM VARYING WS-OCAC-SUB FROM 1 BY 1  
+                           UNTIL WS-OCAC-SUB > RSP72-OCA-CATEGORY-CNT   
+
+              COMPUTE WS-OFFER-REMAIN-CABINS
+                                  = WS-OFFER-REMAIN-CABINS  
+                                  + RSP72-OCAC-OPEN-CABINS (WS-OCAC-SUB)
+           END-PERFORM. 
+
+           IF QPRIC2-SAIL-REMAIN-CABINS > WS-OFFER-REMAIN-CABINS AND
+              WS-OFFER-REMAIN-CABINS > 0
+              MOVE WS-OFFER-REMAIN-CABINS   
+                TO QPRATE-REMAIN-CABINS (QPRATE-SUB)
+           ELSE 
+              MOVE QPRIC2-SAIL-REMAIN-CABINS
+                TO QPRATE-REMAIN-CABINS (QPRATE-SUB)
+           END-IF.  
+
+           IF RSP72-OCA-CARD-OVERRIDE = 9999
+              MOVE 0 TO QPRATE-CARD-OVERRIDE(QPRATE-SUB)
+           ELSE 
+              MOVE RSP72-OCA-CARD-OVERRIDE  
+                          TO QPRATE-CARD-OVERRIDE(QPRATE-SUB)   
+           END-IF.  
+
+           MOVE RSP72-OCA-PRICE-SORT-ORDER  
+             TO QPRATE-MERCH-SORT-ORDER(QPRATE-SUB).
+
+           MOVE 0 TO WS-O-OFFER-ID-CNT. 
+           PERFORM VARYING WS-OCAC-SUB FROM 1 BY 1  
+                     UNTIL WS-OCAC-SUB > RSP72-OCA-CATEGORY-CNT 
+              PERFORM VARYING WS-OSUB FROM 1 BY 1   
+                 UNTIL WS-OSUB > WS-O-OFFER-ID-CNT OR   
+                       WS-O-OFFER-ID (WS-OSUB) =
+                                    RSP72-OCAC-OFFER-ID (WS-OCAC-SUB)   
+                 CONTINUE   
+              END-PERFORM   
+              IF WS-OSUB > WS-O-OFFER-ID-CNT
+                 ADD 1 TO WS-O-OFFER-ID-CNT 
+                 MOVE WS-O-OFFER-ID-CNT TO WS-OSUB  
+                 MOVE RSP72-OCAC-OFFER-ID (WS-OCAC-SUB) 
+                       TO WS-O-OFFER-ID (WS-OSUB)   
+                 MOVE ZEROES TO WS-O-CATEGORY-CNT (WS-OSUB) 
+              END-IF
+              PERFORM VARYING WS-CSUB FROM 1 BY 1   
+                        UNTIL WS-CSUB > WS-O-CATEGORY-CNT (WS-OSUB) 
+                           OR WS-O-CATEGORY-CODE (WS-OSUB WS-CSUB) =
+                              RSP72-OCAC-CPA-CATEGORY-CODE (WS-OCAC-SUB)
+                 CONTINUE   
+              END-PERFORM   
+              IF WS-CSUB > WS-O-CATEGORY-CNT (WS-OSUB)  
+                 ADD 1 TO WS-O-CATEGORY-CNT (WS-OSUB)   
+                 MOVE WS-O-CATEGORY-CNT (WS-OSUB) TO WS-CSUB
+                 MOVE RSP72-OCAC-CPA-CATEGORY-CODE (WS-OCAC-SUB)
+                       TO WS-O-CATEGORY-CODE (WS-OSUB WS-CSUB)  
+                 MOVE RSP72-OCAC-META-CODE (WS-OCAC-SUB)
+                       TO WS-O-CAT-META-CODE (WS-OSUB WS-CSUB)  
+                 MOVE RSP72-OCAC-INCLUDE-VPP-CODE (WS-OCAC-SUB) 
+                       TO WS-O-VPP-INCL-CODE (WS-OSUB WS-CSUB)  
+                 MOVE RSP72-OCAC-INCLUDE-VPP-TYPE (WS-OCAC-SUB) 
+                       TO WS-O-VPP-INCL-TYPE (WS-OSUB WS-CSUB)  
+CALFEE           MOVE RSP72-OCAC-SINGLES-PCT (WS-OCAC-SUB)  
+CALFEE                 TO WS-O-CAT-SINGLES-PCT (WS-OSUB WS-CSUB)
+                 PERFORM VARYING WS-PSUB FROM 1 BY 1
+                           UNTIL WS-PSUB > QPRIC1-NUM-PAX   
+PRCCMB*    REVIEW AND TEST THIS CONDITION   
+PRCCMB              COMPUTE WS-O-TOTAL-FARE-AMT 
+PRCCMB                       (WS-OSUB WS-CSUB WS-PSUB) =
+PRCCMB                      RSP72-OCAC-CRUISE-AMT   
+PRCCMB                                 (WS-OCAC-SUB WS-PSUB) +  
+PRCCMB                      RSP72-OCAC-NON-COMM-AMT 
+PRCCMB                                  (WS-OCAC-SUB WS-PSUB) + 
+PRCCMB                      RSP72-OCAC-CRS-FARE-FEE-AMT 
+PRCCMB                                  (WS-OCAC-SUB WS-PSUB)   
+PRCCMB*             IF RSP72-OCA-CHARGE-FEE-IND = 'Y'   
+PRCCMB*                IF WS-PSUB < 3   
+PRCCMB*                   COMPUTE WS-O-TOTAL-FARE-AMT   
+PRCCMB*                            (WS-OSUB WS-CSUB WS-PSUB) =  
+PRCCMB*                           RSP72-OCAC-CRUISE-AMT 
+PRCCMB*                                      (WS-OCAC-SUB WS-PSUB) +
+PRCCMB*                           RSP72-OCAC-NON-COMM-AMT   
+PRCCMB*                                       (WS-OCAC-SUB WS-PSUB) +   
+PRCCMB*                           RSP72-OCAC-CRS-FARE-FEE-AMT   
+PRCCMB*                                       (WS-OCAC-SUB WS-PSUB) +   
+PRCCMB*                           WS-FULL-EXCL-FEE-AMT -
+PRCCMB*                           WS-FULL-GOVT-FEE-AMT  
+PRCCMB*                ELSE 
+PRCCMB*                   COMPUTE WS-O-TOTAL-FARE-AMT   
+PRCCMB*                            (WS-OSUB WS-CSUB WS-PSUB) =  
+PRCCMB*                           RSP72-OCAC-CRUISE-AMT 
+PRCCMB*                                      (WS-OCAC-SUB WS-PSUB) +
+PRCCMB*                           RSP72-OCAC-NON-COMM-AMT   
+PRCCMB*                                       (WS-OCAC-SUB WS-PSUB) +   
+PRCCMB*                           RSP72-OCAC-CRS-FARE-FEE-AMT   
+PRCCMB*                                       (WS-OCAC-SUB WS-PSUB) +   
+PRCCMB*                           WS-XTRA-EXCL-FEE-AMT -
+PRCCMB*                           WS-XTRA-GOVT-FEE-AMT  
+PRCCMB*                END-IF   
+PRCCMB*             ELSE
+PRCCMB*                COMPUTE WS-O-TOTAL-FARE-AMT  
+PRCCMB*                            (WS-OSUB WS-CSUB WS-PSUB) =  
+PRCCMB*                 RSP72-OCAC-CRUISE-AMT   (WS-OCAC-SUB WS-PSUB) + 
+PRCCMB*                 RSP72-OCAC-NON-COMM-AMT (WS-OCAC-SUB WS-PSUB)   
+PRCCMB*             END-IF  
+                 END-PERFORM
+              END-IF
+           END-PERFORM. 
+
+           PERFORM VARYING WS-OSUB FROM 1 BY 1  
+                     UNTIL WS-OSUB > WS-O-OFFER-ID-CNT  
+TESTIT*       DISPLAY 'PROCESS: ' WS-O-OFFER-ID (WS-OSUB) UPON PRINTER  
+              PERFORM 3000-CALL-PAY-PEN THRU
+                      3000-CALL-PAY-PEN-EXIT
+              PERFORM 3100-GET-VPP-DTLS 
+                 THRU 3100-GET-VPP-DTLS-EXIT
+           END-PERFORM. 
+
+           PERFORM VARYING WS-OSUB FROM 1 BY 1 UNTIL
+                          WS-OSUB > WS-O-OFFER-ID-CNT OR
+                          RSP72-OCA-OFFER-ID =  
+                                           WS-O-OFFER-ID (WS-OSUB)  
+              CONTINUE  
+           END-PERFORM  
+
+           IF WS-OSUB > WS-O-OFFER-ID-CNT   
+              ADD 1           TO CCMV-ADV-SUB   
+              MOVE 'CCR47QPR' TO MSGHDR-ADVISE-SOURCE (CCMV-ADV-SUB)
+              MOVE 0023       TO MSGHDR-ADVISE-CODE   (CCMV-ADV-SUB)
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+           MOVE WS-O-PMT-TERM-D-DATE (WS-OSUB) TO   
+                QPRATE-DEPOSIT-DUE-DATE (QPRATE-SUB).   
+           MOVE WS-O-PMT-TERM-D-TIME (WS-OSUB) TO   
+                QPRATE-DEPOSIT-DUE-TIME (QPRATE-SUB).   
+           MOVE WS-O-PMT-TERM-F-DATE (WS-OSUB) TO   
+                QPRATE-FINAL-PMT-DATE (QPRATE-SUB). 
+           MOVE WS-O-PEN-START-DATE (WS-OSUB) TO
+                QPRATE-PENALTY-START-DATE (QPRATE-SUB). 
+
+       1100-CHECK-EASYPAY.  
+
+           EXEC SQL 
+                SELECT SCHEDULED_PAYMENT_IND
+                  INTO WS-SCHEDULED-PAYMENT-IND 
+                  FROM COMPANY  
+                 WHERE COMPANY_CODE = :TDP01-COMPANY-CODE   
+                 FETCH FIRST 1 ROW ONLY 
+           END-EXEC.
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR 
+           ELSE 
+              IF SQLCODE = 100  
+                 GO TO 8300-COMPANY-ERROR   
+              END-IF
+           END-IF.  
+
+           IF WS-SCHEDULED-PAYMENT-IND NOT = 'Y'
+              GO TO 1200-BUILD-QPDTLS-SEGMENT   
+           END-IF.  
+
+       COPY SSP09INT.   
+
+           MOVE 'AVAILABLEPAY'         TO SSP09-I-CODE. 
+           MOVE 'SPAY'                 TO SSP09-I-TYPE. 
+
+           CALL 'SSC09GCD' USING DPP01-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 SSP09-INPUT-PARAMS 
+                                 SSP09-OUTPUT-PARAMS.   
+
+           IF DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1
+              IF (DPP01-SUB-MSG-SOURCE (1) = 'SSC09GCD' AND 
+                     DPP01-SUB-MSG-INDEX (1) = 2) OR
+                       (DPP01-SUB-MSG-SOURCE (1) = 'SSC10LCD' AND   
+                           DPP01-SUB-MSG-INDEX (1) = 5) 
+                  GO TO 1200-BUILD-QPDTLS-SEGMENT   
+              ELSE  
+                  GO TO 9500-RETURN-SUBROUTINE-ERROR
+           END-IF.  
+
+           IF SSP09-O-DESCRIPTION = 'M' 
+              CONTINUE  
+           ELSE 
+               GO TO 1100-CHECK-EASYPAY 
+           END-IF.  
+
+           MOVE QPRATE-FINAL-PMT-DATE (QPRATE-SUB) TO WS-FINAL-PMT-DATE.
+
+           COMPUTE WS-INSTALMENTS-OPTED = ((WS-FINAL-DATE-YYYY  
+                                       -  DPP01-SYSTEM-DATE-YEAR)* 12)  
+                                       +  (WS-FINAL-DATE-MM 
+                                       -  DPP01-SYSTEM-DATE-MM).
+
+           IF (WS-FINAL-DATE-DD <= DPP01-SYSTEM-DATE-DD)
+                       AND (WS-FINAL-DATE-DD NOT = 29 AND 30 AND 31)
+              SUBTRACT 1 FROM WS-INSTALMENTS-OPTED  
+                         GIVING WS-INSTALMENTS-OPTED
+           END-IF.  
+
+           MOVE DPP01-SYSTEM-DATE-YEAR TO WS-LAST-INSTALLMENT-YYYY. 
+
+           COMPUTE WS-LAST-INSTALLMENT-MM = DPP01-SYSTEM-DATE-MM +  
+                                            WS-INSTALMENTS-OPTED.   
+
+           IF WS-LAST-INSTALLMENT-MM > 12   
+              SUBTRACT 12 FROM WS-LAST-INSTALLMENT-MM   
+                       GIVING  WS-LAST-INSTALLMENT-MM   
+              ADD 1 TO WS-LAST-INSTALLMENT-YYYY 
+                       GIVING WS-LAST-INSTALLMENT-YYYY  
+           END-IF.  
+
+           IF DPP01-SYSTEM-DATE-DD = 29 AND 30 AND 31   
+              MOVE 28                   TO WS-LAST-INSTALLMENT-DD   
+           ELSE 
+              MOVE DPP01-SYSTEM-DATE-DD TO WS-LAST-INSTALLMENT-DD   
+           END-IF.  
+
+       COPY SSP09INT.   
+
+           MOVE 'EASYPAYMONTH'          TO SSP09-I-CODE.
+           MOVE 'PLAN'                  TO SSP09-I-TYPE.
+
+           CALL 'SSC09GCD' USING        DPP01-COMMON-DATA-FIELDS
+                                        DPP01-COMMON-INFO   
+                                        SSP09-INPUT-PARAMS  
+                                        SSP09-OUTPUT-PARAMS.
+
+           IF DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1
+              GO TO 9500-RETURN-SUBROUTINE-ERROR
+           END-IF.  
+           MOVE FUNCTION NUMVAL (SSP09-O-DESCRIPTION)   
+                                       TO WS-MINIMUM-INSTALLMENTS.  
+
+           IF WS-INSTALMENTS-OPTED > WS-MINIMUM-INSTALLMENTS
+               MOVE WS-INSTALMENTS-OPTED
+                 TO QPRATE-EASYPAY-DURATION (QPRATE-SUB)
+           END-IF.  
+
+       1200-BUILD-QPDTLS-SEGMENT.   
+           MOVE 0                      TO WS-OCAC-SUB.  
+           MOVE QPRIC1-META-CAT-CODE   TO WS-META-CAT-CODE-TBL. 
+214442     MOVE QPDTLS-SUB             TO WS-HOLD-QPDTLS.   
+
+       1300-LOAD-QPDTLS-SEGMENT.
+
+           ADD 1                        TO WS-OCAC-SUB. 
+
+           IF WS-OCAC-SUB > RSP72-OCA-CATEGORY-CNT  
+214442        MOVE 'N'    TO WS-SKIP-OFFER  
+214442        IF WS-HOLD-QPDTLS = QPDTLS-SUB
+214442           MOVE 'Y' TO WS-SKIP-OFFER  
+214442           ADD 1    TO WS-SKIP-COUNT  
+214442        END-IF
+              GO TO 1000-BUILD-QPRATE-SEGMENT   
+           END-IF.  
+
+PRCCMB*    MOVE 'N'                     TO WS-SKIP-META-CODE.   
+           IF  QPRIC1-META-CAT-CODE > SPACES
+PRCCMB         MOVE 'Y'                 TO WS-SKIP-META-CODE
+               PERFORM VARYING WS-SUB FROM 1 BY 1   
+                  UNTIL WS-SUB > 5 OR WS-META-CAT-CODE (WS-SUB) = ' '   
+                  IF RSP72-OCAC-META-CODE (WS-OCAC-SUB) =   
+                     WS-META-CAT-CODE (WS-SUB) OR   
+                    ((RSP72-OCAC-META-CODE (WS-OCAC-SUB) = 'UL') AND
+                      WS-META-CAT-CODE (WS-SUB) = 'IS') 
+PRCCMB               MOVE 'N'           TO WS-SKIP-META-CODE
+                     MOVE 5             TO WS-SUB   
+PRCCMB*           ELSE  
+PRCCMB*              MOVE 'Y'           TO WS-SKIP-META-CODE
+                  END-IF
+               END-PERFORM  
+PRCCMB     ELSE 
+PRCCMB         MOVE 'N'                 TO WS-SKIP-META-CODE
+           END-IF.  
+
+           IF WS-SKIP-META-CODE = 'Y'   
+              GO TO 1300-LOAD-QPDTLS-SEGMENT
+           END-IF.  
+
+214442     IF QPRIC1-CONNECT-REQ-IND = 'Y'  
+214442        MOVE 'N'                 TO WS-CONNECT-EXIST  
+214442        EXEC SQL  
+214442             SELECT 'Y'   
+214442               INTO :WS-CONNECT-EXIST 
+214442               FROM RDMS.RDMS_DUMMY   
+214442              WHERE EXISTS ( SELECT 1 
+214442                               FROM SAIL_CONNECT_CABIN
+214442                              WHERE SHIP_CODE = :TDP01-SHIP-CODE  
+214442                                AND SAIL_ID = :TDP01-SAIL-ID  
+214442                                AND RATE_CODE IN ('~',
+214442                                    :RSP72-OCA-RATE-CODE) 
+214442                                AND CATEGORY_CODE =   
+214442                                    :RSP72-OCAC-CATEGORY-CODE 
+214442                                                     (WS-OCAC-SUB)
+214442                                AND EFF_STATUS_CODE = 'O' 
+214442                             FETCH FIRST 1 ROW ONLY)  
+214442        END-EXEC  
+214442        IF SQLCODE < 0
+214442           GO TO 9150-RDMS-ERROR  
+214442        END-IF
+214442        IF WS-CONNECT-EXIST = 'N' 
+214442           GO TO 1300-LOAD-QPDTLS-SEGMENT 
+214442        END-IF
+214442     END-IF.  
+
+           ADD 1                       TO QPDTLS-SUB
+
+           IF QPDTLS-SUB > QPDTLS-SEGMENT-MAX   
+              ADD 1           TO CCMV-ADV-SUB   
+              MOVE 'CCR47QPR' TO MSGHDR-ADVISE-SOURCE (CCMV-ADV-SUB)
+              MOVE 0005       TO MSGHDR-ADVISE-CODE   (CCMV-ADV-SUB)
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+           MOVE WS-OFFER-SUB TO QPDTLS-OWNER-SUB (QPDTLS-SUB).  
+
+214442     SUBTRACT WS-SKIP-COUNT FROM QPDTLS-OWNER-SUB (QPDTLS-SUB).   
+
+           MOVE RSP72-OCAC-META-CODE             (WS-OCAC-SUB)  
+             TO QPDTLS-META-CAT-CODE             (QPDTLS-SUB).  
+
+           MOVE RSP72-OCAC-CATEGORY-CODE         (WS-OCAC-SUB)  
+             TO QPDTLS-CATEGORY-CODE             (QPDTLS-SUB).  
+
+           MOVE RSP72-OCAC-SELECT-CABIN-IND      (WS-OCAC-SUB)  
+             TO QPDTLS-SELECT-CABIN-IND          (QPDTLS-SUB).  
+
+           MOVE RSP72-OCAC-SELECT-GTEE-IND       (WS-OCAC-SUB)  
+             TO QPDTLS-SELECT-GTEE-IND           (QPDTLS-SUB).  
+
+           IF RSP72-OCAC-QUAL-CODE-CNT           (WS-OCAC-SUB) > 0  
+              MOVE RSP72-OCAC-QUAL-CODE           (WS-OCAC-SUB 1)   
+                TO QPRATE-QUAL-CODE              (QPRATE-SUB)   
+           END-IF.  
+
+           IF QPRATE-QUAL-CODE (QPRATE-SUB) = 'RS'  
+              MOVE RSP72-OCAC-STATE-CODE         (WS-OCAC-SUB 1)
+                TO QPDTLS-STATE-CODE             (QPDTLS-SUB)   
+           END-IF.  
+
+           PERFORM VARYING WS-PAX-SUB FROM 1 BY 1   
+                           UNTIL WS-PAX-SUB > QPRIC1-NUM-PAX
+              COMPUTE QPDTLS-CABIN-AMT (QPDTLS-SUB) =   
+                      QPDTLS-CABIN-AMT (QPDTLS-SUB) +   
+                      RSP72-OCAC-CRUISE-AMT (WS-OCAC-SUB WS-PAX-SUB) +  
+CALFEE*               RSP72-OCAC-NON-COMM-AMT(WS-OCAC-SUB WS-PAX-SUB)   
+CALFEE                RSP72-OCAC-NON-COMM-AMT(WS-OCAC-SUB WS-PAX-SUB) + 
+CALFEE                RSP72-OCAC-CRS-FARE-FEE-AMT   
+CALFEE                                        (WS-OCAC-SUB WS-PAX-SUB)  
+           END-PERFORM. 
+
+           MOVE QPDTLS-CABIN-AMT                (QPDTLS-SUB)
+             TO QPDTLS-TOTAL-CABIN-AMT          (QPDTLS-SUB).   
+
+           MOVE RSP72-OCAC-CPA-CATEGORY-CODE    (WS-OCAC-SUB)   
+             TO QPDTLS-UPGRADE-FROM-CAT         (QPDTLS-SUB).   
+
+           IF QPDTLS-UPGRADE-FROM-CAT (QPDTLS-SUB)  
+                        = QPDTLS-CATEGORY-CODE (QPDTLS-SUB) 
+              MOVE SPACES TO  QPDTLS-UPGRADE-FROM-CAT (QPDTLS-SUB)  
+           END-IF.  
+
+           IF RSP72-OCAC-COUPON-IND (WS-OCAC-SUB) = 'Y' 
+              MOVE 'Y' TO QPDTLS-COUPON-IND(QPDTLS-SUB) 
+           ELSE 
+              MOVE 'N' TO QPDTLS-COUPON-IND(QPDTLS-SUB) 
+           END-IF.  
+
+           MOVE RSP72-OCAC-DOLLAR-WEIGHT     (WS-OCAC-SUB)  
+             TO QPDTLS-DOLLAR-BENEFITS       (QPDTLS-SUB).  
+
+           MOVE RSP72-OCAC-NON-DOLLAR-WEIGHT (WS-OCAC-SUB)  
+             TO QPDTLS-NON-DOLLAR-BENEFITS   (QPDTLS-SUB).  
+
+           MOVE RSP72-OCAC-ALW-NAME-CHG-IND  (WS-OCAC-SUB)  
+             TO QPDTLS-NAME-CHG-ALLOWED-IND  (QPDTLS-SUB).  
+
+           COMPUTE QPDTLS-AVG-TOTAL-CABIN-AMT (QPDTLS-SUB) ROUNDED =
+                   (QPDTLS-CABIN-AMT (QPDTLS-SUB) / QPRIC1-NUM-PAX).
+
+           MOVE RSP72-OCAC-OFFER-ID          (WS-OCAC-SUB)  
+             TO QPDTLS-OFFER-ID              (QPDTLS-SUB).  
+
+           PERFORM VARYING WS-OSUB FROM 1 BY 1 UNTIL
+                          WS-OSUB > WS-O-OFFER-ID-CNT OR
+                          RSP72-OCAC-OFFER-ID (WS-OCAC-SUB) =   
+                                           WS-O-OFFER-ID (WS-OSUB)  
+              CONTINUE  
+           END-PERFORM  
+
+           IF WS-OSUB > WS-O-OFFER-ID-CNT   
+              ADD 1           TO CCMV-ADV-SUB   
+              MOVE 'CCR47QPR' TO MSGHDR-ADVISE-SOURCE (CCMV-ADV-SUB)
+              MOVE 0024       TO MSGHDR-ADVISE-CODE   (CCMV-ADV-SUB)
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+           PERFORM VARYING WS-CSUB FROM 1 BY 1  
+                     UNTIL WS-CSUB > WS-O-CATEGORY-CNT (WS-OSUB) OR 
+                           RSP72-OCAC-CPA-CATEGORY-CODE (WS-OCAC-SUB) = 
+                           WS-O-CATEGORY-CODE (WS-OSUB WS-CSUB) 
+               CONTINUE 
+           END-PERFORM. 
+
+           IF WS-CSUB > WS-O-CATEGORY-CNT (WS-OSUB) 
+              ADD 1           TO CCMV-ADV-SUB   
+              MOVE 'CCR47QPR' TO MSGHDR-ADVISE-SOURCE (CCMV-ADV-SUB)
+              MOVE 0025       TO MSGHDR-ADVISE-CODE   (CCMV-ADV-SUB)
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+           MOVE WS-O-CAT-EFF-PMT-AMT (WS-OSUB WS-CSUB)  
+             TO QPDTLS-DEPOSIT-AMT (QPDTLS-SUB).
+
+           MOVE RSP72-OCAC-BOOK-END-DATE     (WS-OCAC-SUB)  
+             TO WS-BOOK-END-DATE.   
+
+           STRING WS-BOOK-END-DATE-YYYY 
+                  WS-BOOK-END-DATE-MM   
+                  WS-BOOK-END-DATE-DD DELIMITED ' ' 
+                  INTO QPDTLS-BOOK-END-DATE  (QPDTLS-SUB).  
+
+           MOVE RSP72-OCAC-TGO-IND           (WS-OCAC-SUB)  
+             TO QPDTLS-TGO-IND-IND           (QPDTLS-SUB).  
+
+PRCCMB     MOVE RSP72-OCAC-FUN-PLAY-AMT   (WS-OCAC-SUB) 
+PRCCMB       TO WS-FUN-PLAY-AMT.
+
+PRCCMB     IF QPDTLS-TGO-IND-IND (QPDTLS-SUB) = 'N' 
+PRCCMB        GO TO 1390-CONTINUE   
+PRCCMB     END-IF.  
+PRCCMB  
+PRCCMB     MOVE ZEROES TO WS-TGO-SUB.   
+PRCCMB     MOVE SPACES TO WS-OUT-PAST-GUEST-NUM.
+PRCCMB  
+PRCCMB 1320-CHECK-TGO-RTE-DATA. 
+PRCCMB  
+PRCCMB     ADD 1 TO WS-TGO-SUB. 
+PRCCMB  
+PRCCMB     IF WS-TGO-SUB > RSP10-O-TGO-ENTRY-CNT
+PRCCMB        GO TO 1390-CONTINUE   
+PRCCMB     END-IF.  
+PRCCMB  
+PRCCMB     IF (RSP72-OCA-TGO-ENTITY-CODE =  
+PRCCMB                   RSP10-O-TGO-ENTITY-CODE-1 (WS-TGO-SUB)) OR 
+PRCCMB        (RSP72-OCA-TGO-ENTITY-CODE =  
+PRCCMB                   RSP10-O-TGO-ENTITY-CODE-2(WS-TGO-SUB)) 
+PRCCMB  
+PRCCMB         MOVE RSP10-O-TGO-LOYALTY-NUM (WS-TGO-SUB) TO 
+PRCCMB                                        WS-OUT-PAST-GUEST-NUM 
+PRCCMB     END-IF.  
+PRCCMB  
+PRCCMB     IF WS-OUT-PAST-GUEST-NUM > SPACES
+PRCCMB        GO TO 1350-FIND-TARGETED-SEQ-NUM  
+PRCCMB     END-IF.  
+PRCCMB  
+PRCCMB     GO TO 1320-CHECK-TGO-RTE-DATA.   
+PRCCMB  
+PRCCMB 1350-FIND-TARGETED-SEQ-NUM.  
+PRCCMB  
+PRCCMB     MOVE 1                     TO WS-IN-SUB1.
+PRCCMB  
+PRCCMB     MOVE WS-OUT-PAST-GUEST-NUM TO WS-CHG-PAST-GUEST-NUM. 
+PRCCMB  
+PRCCMB     PERFORM VARYING WS-IN-SUB FROM 1 BY 1
+PRCCMB                              UNTIL WS-IN-SUB > 10
+PRCCMB      IF  WS-IN-SUB1 > 0  
+PRCCMB          IF  WS-CHG-PAST-GUEST-DIGIT (WS-IN-SUB) > ' '   
+PRCCMB              MOVE WS-CHG-PAST-GUEST-DIGIT     (WS-IN-SUB)
+PRCCMB                TO WS-CHG-PAST-GUEST-TEN-DIGIT (WS-IN-SUB1)   
+PRCCMB  
+PRCCMB              ADD 1 TO WS-IN-SUB1 
+PRCCMB          END-IF  
+PRCCMB      END-IF  
+PRCCMB     END-PERFORM. 
+
+PRCCMB     PERFORM VARYING WS-PAX-SUB FROM 1 BY 1   
+PRCCMB                    UNTIL WS-PAX-SUB > QPRIC1-NUM-PAX 
+PRCCMB  
+PRCCMB        MOVE 10                   TO WS-IN-SUB1   
+PRCCMB        MOVE SPACES               TO WS-NEW-PAST-GUEST-NUM
+PRCCMB        MOVE QPMGIN-PAST-GUEST-NUM (WS-PAX-SUB)   
+PRCCMB                                  TO WS-OLD-PAST-GUEST-NUM
+PRCCMB        PERFORM VARYING WS-IN-SUB FROM 10 BY -1   
+PRCCMB                UNTIL WS-IN-SUB = 0   
+PRCCMB           IF WS-IN-SUB > 0   
+PRCCMB              IF WS-OLD-PAST-GUEST-DIGIT (WS-IN-SUB) NOT = SPACE  
+PRCCMB                 MOVE WS-OLD-PAST-GUEST-DIGIT (WS-IN-SUB) 
+PRCCMB                                  TO  
+PRCCMB                      WS-NEW-PAST-GUEST-DIGIT (WS-IN-SUB1)
+PRCCMB                 SUBTRACT 1 FROM WS-IN-SUB1   
+PRCCMB              END-IF  
+PRCCMB           END-IF 
+PRCCMB        END-PERFORM   
+PRCCMB        INSPECT WS-NEW-PAST-GUEST-NUM 
+PRCCMB                   REPLACING LEADING SPACES BY '0'
+PRCCMB        MOVE WS-NEW-PAST-GUEST-NUM
+PRCCMB                                  TO  
+PRCCMB                         QPMGIN-PAST-GUEST-NUM (WS-PAX-SUB)   
+PRCCMB  
+PRCCMB        IF QPMGIN-PAST-GUEST-NUM (WS-PAX-SUB) 
+PRCCMB                                       = WS-CHG-PAST-GUEST-TEN-NUM
+PRCCMB           MOVE WS-PAX-SUB        TO WS-TARGETED-SEQ-NUM  
+PRCCMB        END-IF
+PRCCMB     END-PERFORM. 
+
+PRCCMB 1390-CONTINUE.   
+PRCCMB     MOVE RSP72-OCA-COUPON-CODE   
+PRCCMB       TO QPDTLS-COUPON-CODE (QPDTLS-SUB).
+PRCCMB  
+PRCCMB     IF RSP72-OCA-FULL-PMT-IND = 'Y'  
+PRCCMB        MOVE 'Y' TO QPDTLS-FULL-PMT-IND (QPDTLS-SUB)  
+PRCCMB     ELSE 
+PRCCMB        MOVE 'N' TO QPDTLS-FULL-PMT-IND (QPDTLS-SUB)  
+PRCCMB     END-IF.  
+
+PRCCMB     MOVE RSP72-OCAC-PRICE-PROTECT-IND (WS-OCAC-SUB)  
+PRCCMB       TO QPDTLS-PRICE-PROTECT-IND     (QPDTLS-SUB).  
+PRCCMB  
+
+PRCCMB     IF RSP72-OCAC-CHG-SAIL-FEE-AMT (WS-OCAC-SUB) > 0 
+PRCCMB        MOVE 'Y' TO QPDTLS-CHANGE-SAIL-FEE-IND   (QPDTLS-SUB) 
+PRCCMB     ELSE 
+PRCCMB        MOVE 'N' TO QPDTLS-CHANGE-SAIL-FEE-IND   (QPDTLS-SUB) 
+PRCCMB     END-IF.  
+PRCCMB  
+PRCCMB     MOVE RSP72-OCAC-REDUCED-DEP-IND   (WS-OCAC-SUB)  
+PRCCMB       TO QPDTLS-REDUCE-DEPOSIT-IND    (QPDTLS-SUB).  
+PRCCMB  
+PRCCMB     MOVE RSP72-OCAC-GIFT-IND  (WS-OCAC-SUB)  
+PRCCMB       TO QPDTLS-GIFT-IND (QPDTLS-SUB).   
+PRCCMB  
+PRCCMB     MOVE RSP72-OCAC-OBC-IND  (WS-OCAC-SUB)   
+PRCCMB       TO QPDTLS-OBC-IND (QPDTLS-SUB).
+PRCCMB  
+PRCCMB     MOVE RSP72-OCA-PROMO-CODE
+PRCCMB       TO QPDTLS-PROMO-CODE (QPDTLS-SUB). 
+PRCCMB  
+PRCCMB     MOVE RSP72-OCA-CHOICE-CODE   
+PRCCMB       TO QPDTLS-CHOICE-CODE (QPDTLS-SUB).
+PRCCMB  
+PRCCMB     MOVE RSP72-OCAC-AB-CODE (WS-OCAC-SUB 1)  
+PRCCMB          TO QPDTLS-ADB-BENEFIT-1 (QPDTLS-SUB).   
+PRCCMB  
+PRCCMB     MOVE RSP72-OCAC-AB-CODE (WS-OCAC-SUB 2)  
+PRCCMB          TO QPDTLS-ADB-BENEFIT-2 (QPDTLS-SUB).   
+PRCCMB  
+PRCCMB     MOVE RSP72-OCAC-AB-CODE (WS-OCAC-SUB 3)  
+PRCCMB          TO QPDTLS-ADB-BENEFIT-3 (QPDTLS-SUB).   
+PRCCMB  
+PRCCMB     MOVE RSP72-OCAC-AB-CODE (WS-OCAC-SUB 4)  
+PRCCMB          TO QPDTLS-ADB-BENEFIT-4 (QPDTLS-SUB).   
+PRCCMB  
+PRCCMB     MOVE RSP72-OCAC-AB-CODE (WS-OCAC-SUB 5)  
+PRCCMB          TO QPDTLS-ADB-BENEFIT-5 (QPDTLS-SUB).   
+PRCCMB  
+PRCCMB     MOVE RSP72-OCAC-AB-CODE (WS-OCAC-SUB 6)  
+PRCCMB          TO QPDTLS-ADB-BENEFIT-6 (QPDTLS-SUB).   
+
+           IF QPRIC1-MODIFY-REQ-IND = 'N' OR
+              QPRIC1-MODIFY-REQ-IND NOT > SPACES
+              MOVE 'N' TO QPDTLS-ADA-AUTO-UPGRADE(QPDTLS-SUB)   
+              GO TO 1400-LOAD-EASYPAY-AMT   
+           END-IF.  
+
+           MOVE 'Y'    TO QPDTLS-ADA-AUTO-UPGRADE(QPDTLS-SUB).  
+           EVALUATE QPRIC1-MODIFY-REQ-IND   
+              WHEN 'P'  
+                 EXEC SQL   
+                    SELECT 'N'  
+                      INTO QPDTLS-ADA-AUTO-UPGRADE(QPDTLS-SUB)  
+                      FROM RDMS.RDMS_DUMMY  
+                    WHERE KEY_COL = 1   
+                      AND EXISTS
+                        (SELECT * FROM SAIL_META
+                          WHERE SHIP_CODE = :TDP01-SHIP-CODE
+                            AND SAIL_ID   = :TDP01-SAIL-ID  
+                            AND META_CODE = :RSP72-OCAC-META-CODE   
+                                                         (WS-OCAC-SUB)  
+                            AND ADA_PART_UPGRADE_META_CODE IS NULL) 
+                    FETCH FIRST 1 ROW ONLY  
+                 END-EXEC   
+              WHEN 'S' WHEN 'Y' 
+                 EXEC SQL   
+                    SELECT 'N'  
+                      INTO :QPDTLS-ADA-AUTO-UPGRADE(QPDTLS-SUB) 
+                      FROM RDMS.RDMS_DUMMY  
+                    WHERE KEY_COL = 1   
+                      AND EXISTS
+                        (SELECT * FROM SAIL_META
+                          WHERE SHIP_CODE = :TDP01-SHIP-CODE
+                            AND SAIL_ID   = :TDP01-SAIL-ID  
+                            AND META_CODE = :RSP72-OCAC-META-CODE   
+                                                           (WS-OCAC-SUB)
+                            AND (ADA_FULL_UPGRADE_META_CODE IS NULL 
+                             OR  ADA_SSA_UPGRADE_META_CODE IS NULL))
+                    FETCH FIRST 1 ROW ONLY  
+                 END-EXEC   
+              WHEN OTHER
+                 MOVE 'N' TO QPDTLS-ADA-AUTO-UPGRADE(QPDTLS-SUB)
+                 GO TO 1400-LOAD-EASYPAY-AMT
+           END-EVALUATE.
+
+           IF SQLCODE < 0   
+              GO TO 9150-RDMS-ERROR 
+           ELSE 
+              IF SQLCODE = 100  
+                 MOVE 'Y' TO QPDTLS-ADA-AUTO-UPGRADE(QPDTLS-SUB)
+              END-IF
+           END-IF.  
+
+
+
+       1400-LOAD-EASYPAY-AMT.   
+
+           COMPUTE WS-INSTALLMENT-AMOUNT ROUNDED =  
+                                 (QPDTLS-TOTAL-CABIN-AMT   (QPDTLS-SUB) 
+                               -  QPDTLS-DEPOSIT-AMT       (QPDTLS-SUB))
+                               /  QPRATE-EASYPAY-DURATION  (QPRATE-SUB).
+
+       COPY SSP09INT.   
+           MOVE 'EASYPAYMONTH'      TO SSP09-I-CODE 
+           MOVE 'INST'              TO SSP09-I-TYPE 
+
+           CALL 'SSC09GCD' USING     DPP01-COMMON-DATA-FIELDS   
+                                     DPP01-COMMON-INFO  
+                                     SSP09-INPUT-PARAMS 
+                                     SSP09-OUTPUT-PARAMS
+
+           IF DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1
+              GO TO 9500-RETURN-SUBROUTINE-ERROR
+           END-IF   
+
+           MOVE FUNCTION NUMVAL (SSP09-O-DESCRIPTION)   
+                                    TO WS-MINIMUM-INSTALLMENT-AMT   
+
+           IF WS-INSTALLMENT-AMOUNT >= WS-MINIMUM-INSTALLMENT-AMT   
+              MOVE WS-INSTALLMENT-AMOUNT
+                      TO  QPDTLS-EASYPAY-AMOUNT    (QPDTLS-SUB) 
+           ELSE 
+              MOVE 0  TO  QPDTLS-EASYPAY-AMOUNT    (QPDTLS-SUB) 
+                          QPRATE-EASYPAY-DURATION  (QPRATE-SUB) 
+           END-IF.  
+
+       1500-BUILD-QPRLOC-SEGMENT.   
+           IF QPDTLS-ADA-AUTO-UPGRADE(QPDTLS-SUB) = 'Y' 
+              GO TO 1600-BUILD-QPGUEST-SEGMENT  
+           END-IF.  
+
+           IF (RSP72-OCAC-DECK-CNT (WS-OCAC-SUB) = ZERO)      OR
+PPCPDT        (QPDTLS-SELECT-CABIN-IND(QPDTLS-SUB) = 'N' AND
+PPCPDT         QPDTLS-SELECT-GTEE-IND (QPDTLS-SUB) = 'Y'     )  
+              ADD 1 TO QPRLOC-SUB   
+              MOVE QPDTLS-SUB TO QPRLOC-OWNER-SUB (QPRLOC-SUB)  
+              STRING TDP01-SHIP-CODE DELIMITED BY SPACES
+                      RSP72-OCAC-META-CODE (WS-OCAC-SUB)
+                      DELIMITED BY SPACES   
+                      INTO QPRLOC-CABIN-TYPE (QPRLOC-SUB)   
+               GO TO 1600-BUILD-QPGUEST-SEGMENT 
+           END-IF.  
+
+           MOVE ZERO TO D-SUB.  
+
+       1510-NEXT-DECK-LOCATION. 
+            ADD 1 TO D-SUB. 
+
+            IF D-SUB > RSP72-OCAC-DECK-CNT (WS-OCAC-SUB)
+               GO TO 1600-BUILD-QPGUEST-SEGMENT.
+
+            MOVE 0 TO V-SUB.
+
+       1520-NEXT-VIEW-ENTRY.
+           ADD 1 TO V-SUB.  
+
+           IF V-SUB > RSP72-OCAC-VIEW-CNT (WS-OCAC-SUB D-SUB)   
+              GO TO 1510-NEXT-DECK-LOCATION.
+
+           ADD 1 TO QPRLOC-SUB. 
+
+           MOVE QPDTLS-SUB TO QPRLOC-OWNER-SUB (QPRLOC-SUB).
+           MOVE RSP72-OCAC-DECK-CODE (WS-OCAC-SUB D-SUB) TO 
+                QPRLOC-DECK-CODE (QPRLOC-SUB).  
+
+           IF RSP72-OCAC-VIEW-CODE (WS-OCAC-SUB D-SUB V-SUB) = '~'  
+              MOVE SPACE TO 
+                   RSP72-OCAC-VIEW-CODE (WS-OCAC-SUB D-SUB V-SUB).  
+
+           STRING TDP01-SHIP-CODE DELIMITED BY SPACES   
+                  RSP72-OCAC-META-CODE (WS-OCAC-SUB)
+                  RSP72-OCAC-SUBMETA-CODE (WS-OCAC-SUB D-SUB V-SUB) 
+                  RSP72-OCAC-VIEW-CODE (WS-OCAC-SUB D-SUB V-SUB)
+                  DELIMITED BY SPACES   
+                  INTO QPRLOC-CABIN-TYPE (QPRLOC-SUB).  
+
+           MOVE RSP72-OCAC-FWD-MID-AFT (WS-OCAC-SUB D-SUB V-SUB) TO 
+                QPRLOC-FWD-MID-AFT-CODE (QPRLOC-SUB).   
+
+           IF QPRIC1-MODIFY-REQ-IND = 'Y' OR 'P' OR 'S' 
+              IF QPRIC1-MODIFY-REQ-IND = 'Y' OR 'S' 
+                 COMPUTE QPRLOC-REMAIN-CABINS (QPRLOC-SUB) =
+                    RSP72-OCAC-FULL-ADA-CABINS (WS-OCAC-SUB D-SUB V-SUB)
+                   + RSP72-OCAC-SSA-ADA-CABINS (WS-OCAC-SUB D-SUB V-SUB)
+              ELSE  
+                 MOVE RSP72-OCAC-PART-ADA-CABINS
+                               (WS-OCAC-SUB D-SUB V-SUB) TO 
+                      QPRLOC-REMAIN-CABINS (QPRLOC-SUB) 
+              END-IF
+              IF QPRLOC-REMAIN-CABINS (QPRLOC-SUB) NOT > 0  
+                 SUBTRACT 1 FROM QPRLOC-SUB 
+              END-IF
+              GO TO 1520-NEXT-VIEW-ENTRY.   
+
+           MOVE RSP72-OCAC-NON-ADA-CABINS (WS-OCAC-SUB D-SUB V-SUB) TO  
+                QPRLOC-REMAIN-CABINS (QPRLOC-SUB).  
+
+           IF QPRLOC-REMAIN-CABINS (QPRLOC-SUB) NOT > 0 
+              SUBTRACT 1 FROM QPRLOC-SUB
+           END-IF.  
+
+           GO TO 1520-NEXT-VIEW-ENTRY.  
+
+       1600-BUILD-QPGUEST-SEGMENT.  
+
+           PERFORM VARYING WS-SUB FROM 1 BY 1   
+                   UNTIL WS-SUB > TDP01-SAIL-CAT-CNT OR 
+                         TDP01-CATEGORY-CODE (WS-SUB) = 
+                                     QPDTLS-CATEGORY-CODE(QPDTLS-SUB)   
+              CONTINUE  
+           END-PERFORM. 
+
+           IF WS-SUB > TDP01-SAIL-CAT-CNT   
+              MOVE ZEROES TO WS-SENIOR-GRATS-AMT
+                             WS-ADULT-GRATS-AMT 
+                             WS-CHILD-GRATS-AMT 
+                             WS-INFANT-GRATS-AMT
+           ELSE 
+              MOVE TDP01-SENIOR-PP-GRATS-AMT (WS-SUB)   
+                                            TO WS-SENIOR-GRATS-AMT  
+              MOVE TDP01-ADULT-PP-GRATS-AMT (WS-SUB)
+                                            TO WS-ADULT-GRATS-AMT   
+              MOVE TDP01-CHILD-PP-GRATS-AMT (WS-SUB)
+                                            TO WS-CHILD-GRATS-AMT   
+              MOVE TDP01-INFANT-PP-GRATS-AMT (WS-SUB)   
+                                            TO WS-INFANT-GRATS-AMT  
+121413        COMPUTE WS-SENIOR-GRATS-AMT ROUNDED   
+121413                                    = WS-SENIOR-GRATS-AMT *   
+121413                                     RSP51-O-PRC-XCHG-RATE
+
+121413        COMPUTE WS-ADULT-GRATS-AMT ROUNDED
+121413                                    = WS-ADULT-GRATS-AMT  *   
+121413                                     RSP51-O-PRC-XCHG-RATE
+
+121413        COMPUTE WS-CHILD-GRATS-AMT ROUNDED
+121413                                    = WS-CHILD-GRATS-AMT  *   
+121413                                     RSP51-O-PRC-XCHG-RATE
+
+121413        COMPUTE WS-INFANT-GRATS-AMT ROUNDED   
+121413                                    = WS-INFANT-GRATS-AMT *   
+121413                                     RSP51-O-PRC-XCHG-RATE
+
+           END-IF.  
+
+           MOVE 0                      TO WS-GUEST-SUB. 
+
+       1700-LOAD-GUEST-INFO.
+           ADD 1                       TO WS-GUEST-SUB. 
+
+           IF WS-GUEST-SUB > QPRIC1-NUM-PAX 
+              COMPUTE WS-AVG-CABIN-AMOUNT ROUNDED = 
+                      QPDTLS-TOTAL-CABIN-AMT(QPDTLS-SUB) /  
+                                                         QPRIC1-NUM-PAX 
+              MOVE WS-AVG-CABIN-AMOUNT TO QPDTLS-AVERAGE-CRUISE-AMT 
+                                                            (QPDTLS-SUB)
+              GO TO 1300-LOAD-QPDTLS-SEGMENT
+           END-IF.  
+
+           ADD 1                       TO QPGUEST-SUB.  
+
+           IF QPGUEST-SUB > QPGUEST-SEGMENT-MAX 
+              ADD 1           TO CCMV-ADV-SUB   
+              MOVE 'CCR47QPR' TO MSGHDR-ADVISE-SOURCE (CCMV-ADV-SUB)
+              MOVE 0006       TO MSGHDR-ADVISE-CODE   (CCMV-ADV-SUB)
+
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+           MOVE QPDTLS-SUB    TO QPGUEST-OWNER-SUB (QPGUEST-SUB).   
+           MOVE WS-GUEST-SUB  TO QPGUEST-SEQ       (QPGUEST-SUB).   
+
+PRCCMB     IF WS-GUEST-SUB = WS-TARGETED-SEQ-NUM
+PRCCMB        MOVE WS-FUN-PLAY-AMT  TO QPGUEST-FUN-PLAY-AMT 
+PRCCMB                                             (QPGUEST-SUB)
+PRCCMB     END-IF.  
+
+           ADD RSP72-OCAC-CRUISE-AMT       (WS-OCAC-SUB WS-GUEST-SUB)   
+               RSP72-OCAC-NON-COMM-AMT     (WS-OCAC-SUB WS-GUEST-SUB)   
+CALFEE         RSP72-OCAC-CRS-FARE-FEE-AMT (WS-OCAC-SUB WS-GUEST-SUB)   
+           GIVING QPGUEST-CRUISE-AMT (QPGUEST-SUB). 
+
+PRCCMB*    IF RSP72-OCA-CHARGE-FEE-IND = 'Y'
+PRCCMB     IF (QPGUEST-SEQ (QPGUEST-SUB) < 3 AND
+PRCCMB           (RSP72-OCA-FUL-CHRG-GOV-FEE-IND = 'Y' OR   
+PRCCMB            RSP72-OCA-FUL-CHRG-OTH-FEE-IND = 'Y')) OR 
+PRCCMB           (QPGUEST-SEQ (QPGUEST-SUB) > 2 AND 
+PRCCMB              (RSP72-OCA-XTA-CHRG-GOV-FEE-IND = 'Y' OR
+PRCCMB               RSP72-OCA-XTA-CHRG-OTH-FEE-IND = 'Y')) 
+              EVALUATE RSP72-OCAC-INCLUDE-FEE-CODE (WS-OCAC-SUB)
+                 WHEN 'A'   
+                    MOVE 'I'           TO QPGUEST-TAX-IND (QPGUEST-SUB) 
+                 WHEN 'F'   
+                    IF QPGUEST-SEQ  (QPGUEST-SUB) < 3   
+                       MOVE 'I'        TO QPGUEST-TAX-IND (QPGUEST-SUB) 
+                    ELSE
+                       MOVE 'R'        TO QPGUEST-TAX-IND (QPGUEST-SUB) 
+                    END-IF  
+                 WHEN 'E'   
+                    IF QPGUEST-SEQ  (QPGUEST-SUB) < 3   
+                       MOVE 'R'        TO QPGUEST-TAX-IND (QPGUEST-SUB) 
+                    ELSE
+                       MOVE 'I'        TO QPGUEST-TAX-IND (QPGUEST-SUB) 
+                    END-IF  
+                 WHEN 'N'   
+                    MOVE 'R'           TO QPGUEST-TAX-IND (QPGUEST-SUB) 
+              END-EVALUATE  
+           ELSE 
+              MOVE 'N'                 TO QPGUEST-TAX-IND (QPGUEST-SUB) 
+           END-IF.  
+
+           IF QPGUEST-TAX-IND (QPGUEST-SUB) = 'N'   
+              MOVE 0                   TO QPGUEST-TAX-AMT (QPGUEST-SUB) 
+CALFEE                                    QPGUEST-CRS-FEE-AMT   
+CALFEE                                                    (QPGUEST-SUB) 
+              GO TO 1800-LOAD-GRATS-INFO
+           END-IF.  
+
+CALFEE*    MOVE ZEROES                 TO WS-TAX-AMOUNT.
+
+CALFEE*    PERFORM VARYING WS-FEE-SUB FROM 1 BY 1   
+CALFEE*                       UNTIL WS-FEE-SUB > RSP51-O-FEE-CNT
+CALFEE*       IF QPGUEST-SEQ  (QPGUEST-SUB) < 3 
+CALFEE*          COMPUTE WS-TAX-AMOUNT ROUNDED = WS-TAX-AMOUNT +
+CALFEE*                               (RSP51-O-FEE-AMT (WS-FEE-SUB) *   
+CALFEE*                                RSP51-O-PRC-XCHG-RATE)   
+CALFEE*       ELSE  
+CALFEE*          COMPUTE WS-TAX-AMOUNT ROUNDED = WS-TAX-AMOUNT +
+CALFEE*                         (RSP51-O-FEE-EXTRA-AMT (WS-FEE-SUB) *   
+CALFEE*                          RSP51-O-PRC-XCHG-RATE) 
+CALFEE*    END-PERFORM. 
+
+CALFEE*    MOVE WS-TAX-AMOUNT          TO QPGUEST-TAX-AMT (QPGUEST-SUB).
+CALFEE*    ADD WS-TAX-AMOUNT           TO QPDTLS-TOTAL-CABIN-AMT
+CALFEE*                                                    (QPDTLS-SUB).
+
+CALFEE     IF QPGUEST-SUB < 3   
+CALFEE        MOVE WS-FULL-GOVT-FEE-AMT 
+CALFEE                                 TO QPGUEST-TAX-AMT (QPGUEST-SUB) 
+CALFEE        COMPUTE QPGUEST-CRS-FEE-AMT (QPGUEST-SUB) =   
+CALFEE                   RSP72-OCAC-CRS-FARE-FEE-AMT
+CALFEE                                  (WS-OCAC-SUB WS-GUEST-SUB) +
+CALFEE                   WS-FULL-EXCL-FEE-AMT - 
+CALFEE                   WS-FULL-GOVT-FEE-AMT   
+CALFEE        ADD WS-FULL-EXCL-FEE-AMT TO QPDTLS-TOTAL-CABIN-AMT
+CALFEE                                                     (QPDTLS-SUB) 
+CALFEE     ELSE 
+CALFEE        MOVE WS-XTRA-GOVT-FEE-AMT 
+CALFEE                                 TO QPGUEST-TAX-AMT (QPGUEST-SUB) 
+CALFEE        COMPUTE QPGUEST-CRS-FEE-AMT (QPGUEST-SUB) =   
+CALFEE                RSP72-OCAC-CRS-FARE-FEE-AMT   
+CALFEE                                  (WS-OCAC-SUB WS-GUEST-SUB) +
+CALFEE                WS-XTRA-EXCL-FEE-AMT -
+CALFEE                WS-XTRA-GOVT-FEE-AMT  
+CALFEE        ADD WS-XTRA-EXCL-FEE-AMT TO QPDTLS-TOTAL-CABIN-AMT
+CALFEE                                                     (QPDTLS-SUB) 
+CALFEE     END-IF.  
+
+       1800-LOAD-GRATS-INFO.
+           IF RSP86-O-PP-GRATS-CODE = 'N'   
+              MOVE 'N'              TO QPGUEST-GRAT-IND (QPGUEST-SUB)   
+              MOVE  0               TO QPGUEST-GRAT-AMT (QPGUEST-SUB)   
+              GO TO 2100-LOAD-VPP-INFO  
+           END-IF.  
+
+           IF TDP01-PP-GRATS-APPLY-CODE NOT = 'M' AND 'O'   
+              MOVE 'N'              TO QPGUEST-GRAT-IND (QPGUEST-SUB)   
+              MOVE  0               TO QPGUEST-GRAT-AMT (QPGUEST-SUB)   
+              GO TO 2100-LOAD-VPP-INFO  
+           END-IF.  
+
+           IF RSP72-OCA-INCLUDE-PPG-IND = 'Y'   
+              MOVE 'R'              TO QPGUEST-GRAT-IND (QPGUEST-SUB)   
+121413*       GO TO 1900-CALC-GRATS-AMT 
+121413        GO TO 2000-LOAD-GRATS-AMOUNTS 
+           END-IF.  
+
+           EVALUATE RSP72-OCAC-INCLUDE-PPG-CODE (WS-OCAC-SUB)   
+              WHEN 'A'  
+                 MOVE 'I'           TO QPGUEST-GRAT-IND (QPGUEST-SUB)   
+              WHEN 'F'  
+                 IF QPGUEST-SEQ  (QPGUEST-SUB) < 3  
+                    MOVE 'I'        TO QPGUEST-GRAT-IND (QPGUEST-SUB)   
+                 ELSE   
+                    IF TDP01-PP-GRATS-APPLY-CODE = 'M' OR   
+                       RSP72-OCAC-PP-GRATS-REQ-IND (WS-OCAC-SUB) = 'Y'  
+                        MOVE 'R'    TO QPGUEST-GRAT-IND (QPGUEST-SUB)   
+                    ELSE
+                        MOVE 'O'    TO QPGUEST-GRAT-IND (QPGUEST-SUB)   
+                    END-IF  
+                 END-IF 
+              WHEN 'E'  
+                 IF QPGUEST-SEQ  (QPGUEST-SUB) < 3  
+                    IF TDP01-PP-GRATS-APPLY-CODE = 'M' OR   
+                       RSP72-OCAC-PP-GRATS-REQ-IND (WS-OCAC-SUB) = 'Y'  
+                        MOVE 'R'    TO QPGUEST-GRAT-IND (QPGUEST-SUB)   
+                    ELSE
+                        MOVE 'O'    TO QPGUEST-GRAT-IND (QPGUEST-SUB)   
+                    END-IF  
+                 ELSE   
+                    MOVE 'I'        TO QPGUEST-GRAT-IND (QPGUEST-SUB)   
+                 END-IF 
+              WHEN 'N'  
+                 IF TDP01-PP-GRATS-APPLY-CODE = 'M' OR  
+                    RSP72-OCAC-PP-GRATS-REQ-IND (WS-OCAC-SUB) = 'Y' 
+                     MOVE 'R'       TO QPGUEST-GRAT-IND (QPGUEST-SUB)   
+                 ELSE   
+                     MOVE 'O'       TO QPGUEST-GRAT-IND (QPGUEST-SUB)   
+                 END-IF 
+           END-EVALUATE 
+
+           IF QPGUEST-GRAT-IND (QPGUEST-SUB) = 'I'  
+121413*       GO TO 1900-CALC-GRATS-AMT 
+121413        GO TO 2000-LOAD-GRATS-AMOUNTS 
+           END-IF.  
+
+           IF WS-GRATS-REQ-IND = 'Y'
+              MOVE 'R'              TO QPGUEST-GRAT-IND (QPGUEST-SUB)   
+121413*       GO TO 1900-CALC-GRATS-AMT 
+121413        GO TO 2000-LOAD-GRATS-AMOUNTS 
+           END-IF.  
+
+           IF WS-POLICY-PPG-REQ-IND = 'Y'   
+              MOVE 'R'           TO QPGUEST-GRAT-IND (QPGUEST-SUB)  
+           END-IF.  
+
+121413*1900-CALC-GRATS-AMT. 
+
+121413*    IF TDP01-BASE-CURRENCY-CODE = QPRIC1-CURRENCY-CODE   
+121413*       GO TO 2000-LOAD-GRATS-AMOUNTS 
+121413*    END-IF.  
+
+121413*    COMPUTE WS-SENIOR-GRATS-AMT ROUNDED = WS-SENIOR-GRATS-AMT *  
+121413*                                          RSP51-O-PRC-XCHG-RATE. 
+
+121413*    COMPUTE WS-ADULT-GRATS-AMT ROUNDED  = WS-ADULT-GRATS-AMT  *  
+121413*                                          RSP51-O-PRC-XCHG-RATE. 
+
+121413*    COMPUTE WS-CHILD-GRATS-AMT ROUNDED  = WS-CHILD-GRATS-AMT  *  
+121413*                                          RSP51-O-PRC-XCHG-RATE. 
+
+121413*    COMPUTE WS-INFANT-GRATS-AMT ROUNDED = WS-INFANT-GRATS-AMT *  
+121413*                                          RSP51-O-PRC-XCHG-RATE. 
+
+       2000-LOAD-GRATS-AMOUNTS. 
+
+           IF QPMGIN-BIRTH-DATE (WS-GUEST-SUB) <= ZEROES
+              MOVE WS-ADULT-GRATS-AMT TO QPGUEST-GRAT-AMT (QPGUEST-SUB) 
+              GO TO 2100-LOAD-VPP-INFO  
+           END-IF.  
+
+           MOVE QPMGIN-BIRTH-DATE (WS-GUEST-SUB)
+                                   TO DPP02-MMDDYYYY-DATE   
+           PERFORM DPP10-MMDDYYYY-TO-YYYYMMDD.  
+           MOVE DPP02-YYYYMMDD-DATE 
+                                   TO DPP02-BD-YYYYMMDD-DATE.   
+
+           MOVE QPRIC1-SAIL-DATE   TO DPP02-MMDDYYYY-DATE   
+           PERFORM DPP10-MMDDYYYY-TO-YYYYMMDD.  
+           MOVE DPP02-YYYYMMDD-DATE 
+                                   TO DPP02-SAIL-DATE.  
+
+           PERFORM DPP10-COMPUTE-GUEST-AGE. 
+
+           IF DPP02-IS-DATE-VALID = 'N' 
+              MOVE 0007            TO MSGHDR-ADVISE-CODE (1)
+              MOVE 'CCR47QPR'      TO MSGHDR-ADVISE-SOURCE (1)  
+              PERFORM CCP75-OUTPUT-CCERRMSG 
+                 THRU CCP75-OUTPUT-CCERRMSG-EXIT
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+           IF DPP02-MONTH-CNT < TDP01-MAX-INFANT-AGE
+              MOVE WS-INFANT-GRATS-AMT TO QPGUEST-GRAT-AMT (QPGUEST-SUB)
+           ELSE 
+              IF DPP02-YEAR-CNT < TDP01-MAX-CHILD-AGE   
+                 MOVE WS-SENIOR-GRATS-AMT   
+                                       TO QPGUEST-GRAT-AMT (QPGUEST-SUB)
+              ELSE  
+                IF DPP02-YEAR-CNT >= TDP01-MIN-SENIOR-AGE   
+                   MOVE WS-CHILD-GRATS-AMT  
+                                       TO QPGUEST-GRAT-AMT (QPGUEST-SUB)
+                ELSE
+                   MOVE WS-ADULT-GRATS-AMT  
+                                       TO QPGUEST-GRAT-AMT (QPGUEST-SUB)
+                END-IF  
+              END-IF
+           END-IF.  
+
+       2100-LOAD-VPP-INFO.  
+           IF RSP50-O-ALLOW-VPP-IND NOT = 'Y'   
+              MOVE 'N'            TO QPGUEST-VPP-IND (QPGUEST-SUB)  
+              MOVE  0             TO QPGUEST-VPP-AMT (QPGUEST-SUB)  
+              GO TO 2200-LOAD-TOTAL-CRUISE-AMT  
+           END-IF.  
+
+           EVALUATE RSP72-OCAC-INCLUDE-VPP-CODE (WS-OCAC-SUB)   
+              WHEN 'A'  
+                 MOVE 'I'           TO QPGUEST-VPP-IND (QPGUEST-SUB)
+              WHEN 'F'  
+                 IF QPGUEST-SEQ  (QPGUEST-SUB) < 3  
+                    MOVE 'I'        TO QPGUEST-VPP-IND (QPGUEST-SUB)
+                 ELSE   
+                    MOVE 'O'        TO QPGUEST-VPP-IND (QPGUEST-SUB)
+                 END-IF 
+              WHEN 'E'  
+                 IF QPGUEST-SEQ  (QPGUEST-SUB) < 3  
+                    MOVE 'O'        TO QPGUEST-VPP-IND (QPGUEST-SUB)
+                 ELSE   
+                    MOVE 'I'        TO QPGUEST-VPP-IND (QPGUEST-SUB)
+                 END-IF 
+              WHEN 'N'  
+                 MOVE 'O'           TO QPGUEST-VPP-IND (QPGUEST-SUB)
+           END-EVALUATE.
+
+           MOVE WS-O-VPP-AMT (WS-OSUB WS-CSUB WS-GUEST-SUB) 
+                                    TO QPGUEST-VPP-AMT (QPGUEST-SUB).   
+
+       2200-LOAD-TOTAL-CRUISE-AMT.  
+CALFEE     IF QPGUEST-SUB < 3   
+              COMPUTE QPGUEST-TOTAL-CRUISE-AMT (QPGUEST-SUB) =  
+                      QPGUEST-CRUISE-AMT (QPGUEST-SUB)       +  
+CALFEE*               QPGUEST-TAX-AMT (QPGUEST-SUB)          +  
+CALFEE                WS-FULL-EXCL-FEE-AMT                   +  
+                      QPGUEST-GRAT-AMT (QPGUEST-SUB)         +  
+                      QPGUEST-VPP-AMT (QPGUEST-SUB) 
+CALFEE     ELSE 
+CALFEE        COMPUTE QPGUEST-TOTAL-CRUISE-AMT (QPGUEST-SUB) =  
+CALFEE                QPGUEST-CRUISE-AMT (QPGUEST-SUB)       +  
+CALFEE                WS-XTRA-EXCL-FEE-AMT                   +  
+CALFEE                QPGUEST-GRAT-AMT (QPGUEST-SUB)         +  
+CALFEE                QPGUEST-VPP-AMT (QPGUEST-SUB) 
+CALFEE     END-IF.  
+
+           GO TO 1700-LOAD-GUEST-INFO.  
+
+       3000-CALL-PAY-PEN.   
+       COPY RSP22INT.   
+           MOVE QPRIC1-SHIP-CODE        TO RSP22-I-SHIP-CODE.   
+           MOVE RSP51-O-SAIL-ID         TO RSP22-I-SAIL-ID. 
+           MOVE WS-O-OFFER-ID (WS-OSUB) TO RSP22-I-OFFER-ID.
+           MOVE QPRIC1-NUM-PAX          TO RSP22-I-OCCUPANCY.   
+           MOVE 'B'                     TO RSP22-I-REQ-CAB-CODE.
+           MOVE RSP50-O-LOCALITY-CODE   TO RSP22-I-LOCALITY-CODE.   
+           MOVE QPRIC1-CURRENCY-CODE    TO RSP22-I-CURRENCY-CODE.   
+           MOVE RSP50-O-CUSTOMER-CODE   TO RSP22-I-CUSTOMER-CODE.   
+           MOVE RSP51-O-PRC-XCHG-RATE   TO RSP22-I-PRC-XCHG-RATE.   
+           MOVE RSP50-O-CONNECTION-CODE TO RSP22-I-CONNECTION-CODE. 
+           MOVE 1                       TO RSP22-I-OVR-ONE-HR-RULE. 
+           MOVE 'I'                     TO RSP22-I-BOOK-TYPE.   
+           MOVE RSP50-O-CUSTOMER-NUM    TO RSP22-I-CUSTOMER-NUM.
+           MOVE RSP72-OCA-PMT-ITEM-CODE TO RSP22-I-PAYMENT-ITEM-CODE.   
+           MOVE ZEROES                  TO RSP22-I-CATEGORY-CNT.
+
+           PERFORM VARYING WS-CSUB FROM 1 BY 1  
+                     UNTIL WS-CSUB > WS-O-CATEGORY-CNT (WS-OSUB)
+              ADD 1 TO RSP22-I-CATEGORY-CNT 
+              MOVE WS-O-CATEGORY-CODE (WS-OSUB WS-CSUB) 
+                   TO RSP22-I-CPA-CAT-CODE (RSP22-I-CATEGORY-CNT)   
+              MOVE WS-O-CAT-META-CODE (WS-OSUB WS-CSUB) 
+                   TO RSP22-I-META-CODE (RSP22-I-CATEGORY-CNT)  
+CALFEE        MOVE WS-O-CAT-SINGLES-PCT (WS-OSUB WS-CSUB)   
+CALFEE             TO RSP22-I-CAT-SINGLES-PCT (RSP22-I-CATEGORY-CNT)
+              PERFORM VARYING WS-PSUB FROM 1 BY 1   
+                        UNTIL WS-PSUB > QPRIC1-NUM-PAX  
+                 MOVE WS-O-TOTAL-FARE-AMT (WS-OSUB WS-CSUB WS-PSUB) 
+                   TO RSP22-I-TOTAL-FARE-AMT
+                                         (RSP22-I-CATEGORY-CNT WS-PSUB) 
+              END-PERFORM   
+           END-PERFORM. 
+
+           CALL 'RSO22PAY' USING DPP01-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 RSP22-INPUT-PARAMS 
+                                 RSP22-OUTPUT-PARAMS
+                                 RSP90-OVERRIDE-FLAGS-INFO. 
+
+           IF  DPP01-SUB-MSG-CTR > ZERO AND 
+               DPP01-SUB-MSG-STATUS (1) > 1 
+               GO TO 9500-RETURN-SUBROUTINE-ERROR   
+           END-IF.  
+
+           PERFORM VARYING WS-CSUB FROM 1 BY 1  
+                     UNTIL WS-CSUB > WS-O-CATEGORY-CNT (WS-OSUB)
+              PERFORM VARYING WS-CAT-SUB FROM 1 BY 1
+                        UNTIL WS-CAT-SUB > RSP22-O-CATEGORY-CNT  OR 
+                              RSP22-O-CATEGORY-CODE (WS-CAT-SUB) =  
+                              WS-O-CATEGORY-CODE (WS-OSUB WS-CSUB)  
+                 CONTINUE   
+              END-PERFORM   
+              IF WS-CAT-SUB > RSP22-O-CATEGORY-CNT  
+                 ADD 1           TO CCMV-ADV-SUB
+                 MOVE 'CCR47QPR' TO MSGHDR-ADVISE-SOURCE (CCMV-ADV-SUB) 
+                 MOVE 0021       TO MSGHDR-ADVISE-CODE   (CCMV-ADV-SUB) 
+                 PERFORM CCP75-OUTPUT-CCERRMSG  
+                    THRU CCP75-OUTPUT-CCERRMSG-EXIT 
+                 GO TO 9000-END-OF-JOB  
+              END-IF
+              PERFORM VARYING WS-TERM-SUB FROM 1 BY 1   
+                        UNTIL WS-TERM-SUB > RSP22-O-TERM-CNT OR 
+
+
+                              RSP22-O-TERM-CODE (WS-TERM-SUB) = 'D' 
+                 CONTINUE   
+              END-PERFORM   
+              IF WS-TERM-SUB > RSP22-O-TERM-CNT 
+                 ADD 1           TO CCMV-ADV-SUB
+                 MOVE 'CCR47QPR' TO MSGHDR-ADVISE-SOURCE (CCMV-ADV-SUB) 
+                 MOVE 0022       TO MSGHDR-ADVISE-CODE   (CCMV-ADV-SUB) 
+                 PERFORM CCP75-OUTPUT-CCERRMSG  
+                    THRU CCP75-OUTPUT-CCERRMSG-EXIT 
+                 GO TO 9000-END-OF-JOB  
+              END-IF
+              MOVE RSP22-O-CAT-EFF-PMT-AMT(WS-CAT-SUB WS-TERM-SUB)  
+                TO WS-O-CAT-EFF-PMT-AMT (WS-OSUB WS-CSUB)   
+           END-PERFORM. 
+
+           IF WS-O-OFFER-ID (WS-OSUB) NOT = RSP72-OCA-OFFER-ID  
+              GO TO 3000-CALL-PAY-PEN-EXIT  
+           END-IF.  
+
+           PERFORM VARYING WS-TERM-SUB FROM 1 BY 1  
+              UNTIL WS-TERM-SUB > RSP22-O-TERM-CNT  
+              IF RSP22-O-TERM-CODE (WS-TERM-SUB) = 'D'  
+                 IF RSP86-O-TIME-ZONE-CODE = 'AET'  
+                    PERFORM DPP10-INIT-TMZ-VARS 
+                       THRU DPP10-INIT-TMZ-VARS-EXIT
+                    MOVE 'USD'            TO DPP02-TMZ-FRM-BASE-CURRENCY
+                    MOVE 'AUD'            TO DPP02-TMZ-TO-BASE-CURRENCY 
+                    MOVE RSP22-O-PMT-DATE-N      (WS-TERM-SUB)  
+                      TO DPP02-TMZ-INP-DATE 
+                    MOVE RSP22-O-PMT-TIME-N      (WS-TERM-SUB)  
+                      TO DPP02-TMZ-INP-TIME 
+                    PERFORM DPP10-CHANGE-TIMEZONE THRU  
+                            DPP10-CHANGE-TIMEZONE-EXIT  
+                    IF DPP02-TMZ-ERROR-NUM > 0  
+                       MOVE DPP02-TMZ-ERROR-NUM TO DPP42-HOLD-MSG-INDEX 
+                       MOVE 'DPP10TMZ'          TO DPP42-HOLD-MSG-SOURCE
+                       GO TO 9150-RDMS-ERROR
+                    END-IF  
+                    MOVE DPP02-TMZ-OUT-DATE 
+                      TO WS-O-PMT-TERM-D-DATE (WS-OSUB) 
+                    MOVE DPP02-TMZ-OUT-TIME 
+                      TO WS-O-PMT-TERM-D-TIME (WS-OSUB) 
+                 ELSE   
+                    MOVE RSP22-O-PMT-DATE-N      (WS-TERM-SUB)  
+                      TO WS-O-PMT-TERM-D-DATE (WS-OSUB) 
+                    MOVE RSP22-O-PMT-TIME-N      (WS-TERM-SUB)  
+                      TO WS-O-PMT-TERM-D-TIME (WS-OSUB) 
+                 END-IF 
+              END-IF
+
+              IF RSP22-O-TERM-CODE (WS-TERM-SUB) = 'F'  
+                 IF RSP86-O-TIME-ZONE-CODE = 'AET'  
+                    PERFORM DPP10-INIT-TMZ-VARS 
+                       THRU DPP10-INIT-TMZ-VARS-EXIT
+                    MOVE 'USD'            TO DPP02-TMZ-FRM-BASE-CURRENCY
+                    MOVE 'AUD'            TO DPP02-TMZ-TO-BASE-CURRENCY 
+                    MOVE RSP22-O-PMT-DATE-N      (WS-TERM-SUB)  
+                      TO DPP02-TMZ-INP-DATE 
+                    MOVE RSP22-O-PMT-TIME-N      (WS-TERM-SUB)  
+                      TO DPP02-TMZ-INP-TIME 
+                    PERFORM DPP10-CHANGE-TIMEZONE THRU  
+                            DPP10-CHANGE-TIMEZONE-EXIT  
+                    IF DPP02-TMZ-ERROR-NUM > 0  
+                       MOVE DPP02-TMZ-ERROR-NUM TO DPP42-HOLD-MSG-INDEX 
+                       MOVE 'DPP10TMZ'          TO DPP42-HOLD-MSG-SOURCE
+                       GO TO 9150-RDMS-ERROR
+                    END-IF  
+                    MOVE DPP02-TMZ-OUT-DATE 
+                      TO WS-O-PMT-TERM-F-DATE (WS-OSUB) 
+                 ELSE   
+                    MOVE RSP22-O-PMT-DATE-N      (WS-TERM-SUB)  
+                      TO WS-O-PMT-TERM-F-DATE (WS-OSUB) 
+                    END-IF  
+              END-IF
+           END-PERFORM. 
+
+       COPY RSP21PENINT.
+           MOVE QPRIC1-SHIP-CODE        TO RSP21-I-SHIP-CODE.   
+           MOVE RSP51-O-SAIL-ID         TO RSP21-I-SAIL-ID. 
+           MOVE WS-O-OFFER-ID (WS-OSUB) TO RSP21-I-OFFER-ID.
+           MOVE QPRIC1-NUM-PAX          TO RSP21-I-OCCUPANCY.   
+           MOVE 'B'                     TO RSP21-I-REQ-CAB-CODE.
+           MOVE RSP50-O-LOCALITY-CODE   TO RSP21-I-LOCALITY-CODE.   
+           MOVE QPRIC1-CURRENCY-CODE    TO RSP21-I-CURRENCY-CODE.   
+           MOVE RSP50-O-CUSTOMER-CODE   TO RSP21-I-CUSTOMER-CODE.   
+           MOVE RSP51-O-PRC-XCHG-RATE   TO RSP21-I-PRC-XCHG-RATE.   
+           MOVE RSP50-O-CONNECTION-CODE TO RSP21-I-CONNECTION-CODE. 
+           MOVE 'I'                     TO RSP21-I-BOOK-TYPE.   
+           MOVE 1                       TO RSP21-I-SKIP-CAT-FLG.
+           MOVE RSP72-OCA-PEN-ITEM-CODE TO RSP21-I-PENALTY-ITEM-CODE.   
+
+           CALL 'RSO21PEN' USING DPP01-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 RSP21-INPUT-PARAMS 
+                                 RSP21-OUTPUT-PARAMS
+                                 RSP22-OUTPUT-PARAMS.   
+
+           IF  DPP01-SUB-MSG-CTR > ZERO AND 
+               DPP01-SUB-MSG-STATUS (1) > 1 
+               GO TO 9500-RETURN-SUBROUTINE-ERROR   
+           END-IF.  
+
+           IF RSP86-O-TIME-ZONE-CODE = 'AET'
+              PERFORM DPP10-INIT-TMZ-VARS   
+                 THRU DPP10-INIT-TMZ-VARS-EXIT  
+              MOVE 'USD'            TO DPP02-TMZ-FRM-BASE-CURRENCY  
+              MOVE 'AUD'            TO DPP02-TMZ-TO-BASE-CURRENCY   
+              MOVE RSP21-O-PEN-DATE (1) 
+                                    TO DPP02-TMZ-INP-DATE   
+              MOVE RSP21-O-PEN-TIME (1) 
+                                    TO DPP02-TMZ-INP-TIME   
+              PERFORM DPP10-CHANGE-TIMEZONE THRU
+                      DPP10-CHANGE-TIMEZONE-EXIT
+              IF DPP02-TMZ-ERROR-NUM > 0
+                 MOVE DPP02-TMZ-ERROR-NUM TO DPP42-HOLD-MSG-INDEX   
+                 MOVE 'DPP10TMZ'          TO DPP42-HOLD-MSG-SOURCE  
+                 GO TO 9150-RDMS-ERROR  
+              END-IF
+              MOVE DPP02-TMZ-OUT-DATE   
+                TO WS-O-PEN-START-DATE (WS-OSUB)
+           ELSE 
+              MOVE RSP21-O-PEN-DATE (1) 
+                TO WS-O-PEN-START-DATE (WS-OSUB)
+           END-IF.  
+
+       3000-CALL-PAY-PEN-EXIT.  
+           EXIT.
+
+       3100-GET-VPP-DTLS.   
+           COPY RSP69INT.   
+
+           MOVE TDP01-SHIP-CODE         TO RSP69-I-SHIP-CODE.   
+           MOVE TDP01-SAIL-ID           TO RSP69-I-SAIL-ID. 
+           MOVE TDP01-PRP-OWNER-CODE    TO RSP69-I-PRP-OWNER-CODE.  
+           MOVE TDP01-PRP-OWNER-ID      TO RSP69-I-PRP-OWNER-ID.
+           MOVE WS-O-OFFER-ID (WS-OSUB) TO RSP69-I-OFFER-ID.
+           MOVE RSP50-O-LOCALITY-CODE   TO RSP69-I-LOCALITY-CODE.   
+           MOVE QPRIC1-CURRENCY-CODE    TO RSP69-I-CURRENCY-CODE.   
+           MOVE TDP01-COMPANY-CODE      TO RSP69-I-COMPANY-CODE.
+           MOVE RSP51-O-PRC-XCHG-RATE   TO RSP69-I-PRC-XCHG-RATE.   
+
+NEWPEN COPY SSP09INT.   
+NEWPEN  
+NEWPEN     MOVE 'NEWPEN'       TO SSP09-I-CODE. 
+NEWPEN     MOVE 'DATE'         TO SSP09-I-TYPE. 
+NEWPEN  
+NEWPEN     CALL 'SSC09GCD' USING DPP01-COMMON-DATA-FIELDS   
+NEWPEN                           DPP01-COMMON-INFO  
+NEWPEN                           SSP09-INPUT-PARAMS 
+NEWPEN                           SSP09-OUTPUT-PARAMS.   
+NEWPEN  
+NEWPEN     IF DPP01-SUB-MSG-CTR > 0 AND DPP01-SUB-MSG-STATUS (1) > 1
+NEWPEN        GO TO 9500-RETURN-SUBROUTINE-ERROR
+NEWPEN     END-IF.  
+
+NEWPEN     MOVE FUNCTION NUMVAL (SSP09-O-DESCRIPTION)   
+NEWPEN                          TO WS-NEW-PEN-GUIDE-DATE.   
+
+NEWPEN     IF DPP01-SYSTEM-DATE >= WS-NEW-PEN-GUIDE-DATE
+NEWPEN        MOVE 'Y'          TO WS-FOLLOW-NEW-GUIDELINE  
+NEWPEN     ELSE 
+NEWPEN        MOVE 'N'          TO WS-FOLLOW-NEW-GUIDELINE  
+NEWPEN     END-IF.  
+
+           PERFORM VARYING WS-SUB FROM 1 BY 1   
+                    UNTIL WS-SUB > QPRIC1-NUM-PAX   
+              MOVE 30                   TO RSP69-I-MAX-AGE (WS-SUB) 
+           END-PERFORM. 
+
+           MOVE ZEROES TO RSP69-I-CATEGORY-CNT  
+           PERFORM VARYING WS-CSUB FROM 1 BY 1  
+                     UNTIL WS-CSUB > WS-O-CATEGORY-CNT (WS-OSUB)
+              ADD 1 TO RSP69-I-CATEGORY-CNT 
+              MOVE WS-O-CATEGORY-CODE (WS-OSUB WS-CSUB) 
+                   TO RSP69-I-CPA-CATEGORY-CODE (RSP69-I-CATEGORY-CNT)  
+              MOVE WS-O-VPP-INCL-CODE (WS-OSUB WS-CSUB) 
+                   TO RSP69-I-CAT-INCL-VPP-CODE (RSP69-I-CATEGORY-CNT)  
+              MOVE WS-O-VPP-INCL-TYPE (WS-OSUB WS-CSUB) 
+                   TO RSP69-I-CAT-INCL-VPP-TYPE (RSP69-I-CATEGORY-CNT)  
+              PERFORM VARYING WS-PSUB FROM 1 BY 1   
+                        UNTIL WS-PSUB > QPRIC1-NUM-PAX  
+NEWPEN           IF WS-FOLLOW-NEW-GUIDELINE = 'N'   
+                 MOVE WS-O-TOTAL-FARE-AMT (WS-OSUB WS-CSUB WS-PSUB) 
+                   TO RSP69-I-CAT-TOT-FARE-AMT  
+                                         (RSP69-I-CATEGORY-CNT WS-PSUB) 
+NEWPEN           ELSE   
+NEWPEN              IF WS-PSUB < 3  
+NEWPEN                 ADD WS-O-TOTAL-FARE-AMT (WS-OSUB WS-CSUB WS-PSUB)
+NEWPEN                     WS-FULL-GOVT-FEE-AMT 
+NEWPEN                 GIVING RSP69-I-CAT-TOT-FARE-AMT  
+NEWPEN                                   (RSP69-I-CATEGORY-CNT WS-PSUB) 
+NEWPEN              ELSE
+NEWPEN                 ADD WS-O-TOTAL-FARE-AMT (WS-OSUB WS-CSUB WS-PSUB)
+NEWPEN                     WS-XTRA-GOVT-FEE-AMT 
+NEWPEN                 GIVING RSP69-I-CAT-TOT-FARE-AMT  
+NEWPEN                                   (RSP69-I-CATEGORY-CNT WS-PSUB) 
+NEWPEN              END-IF  
+NEWPEN           END-IF 
+              END-PERFORM   
+           END-PERFORM. 
+
+           CALL 'RSO69VPP' USING DPP01-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 RSP69-INPUT-PARAMS 
+                                 RSP69-OUTPUT-PARAMS.   
+
+           IF (DPP01-SUB-MSG-CTR > 0)   
+               AND (DPP01-SUB-MSG-STATUS (1) >  1)  
+               GO TO 9500-RETURN-SUBROUTINE-ERROR   
+           END-IF.  
+
+           PERFORM VARYING WS-CSUB FROM 1 BY 1  
+                     UNTIL WS-CSUB > WS-O-CATEGORY-CNT (WS-OSUB)
+              PERFORM VARYING WS-CAT-SUB FROM 1 BY 1
+                        UNTIL WS-CAT-SUB > RSP69-O-CATEGORY-CNT  OR 
+                              RSP69-O-CATEGORY-CODE (WS-CAT-SUB) =  
+                              WS-O-CATEGORY-CODE (WS-OSUB WS-CSUB)  
+                 CONTINUE   
+              END-PERFORM   
+              PERFORM VARYING WS-PSUB FROM 1 BY 1   
+                        UNTIL WS-PSUB > QPRIC1-NUM-PAX  
+                 IF WS-CAT-SUB > RSP69-O-CATEGORY-CNT   
+                    MOVE ZEROES  TO WS-O-VPP-AMT
+                                           (WS-OSUB WS-CSUB WS-PSUB)
+                 ELSE   
+                    MOVE RSP69-O-VPP-AMT (WS-CAT-SUB WS-PSUB)   
+                                 TO WS-O-VPP-AMT
+                                           (WS-OSUB WS-CSUB WS-PSUB)
+                 END-IF 
+              END-PERFORM   
+           END-PERFORM. 
+
+       3100-GET-VPP-DTLS-EXIT.  
+           EXIT.
+
+       8000-EMBARK-ERROR.   
+
+           ADD 1               TO CCMV-ADV-SUB. 
+           MOVE 'CCR47QPR'     TO MSGHDR-ADVISE-SOURCE  (CCMV-ADV-SUB). 
+           MOVE 0080           TO MSGHDR-ADVISE-CODE    (CCMV-ADV-SUB). 
+
+           PERFORM CCP75-OUTPUT-CCERRMSG
+              THRU CCP75-OUTPUT-CCERRMSG-EXIT.  
+
+           GO TO 9150-RDMS-ERROR.   
+
+       8100-DEBARK-ERROR.   
+
+           ADD 1               TO CCMV-ADV-SUB. 
+           MOVE 'CCR47QPR'     TO MSGHDR-ADVISE-SOURCE  (CCMV-ADV-SUB). 
+           MOVE 0081           TO MSGHDR-ADVISE-CODE    (CCMV-ADV-SUB). 
+
+           PERFORM CCP75-OUTPUT-CCERRMSG
+              THRU CCP75-OUTPUT-CCERRMSG-EXIT.  
+
+           GO TO 9150-RDMS-ERROR.   
+
+       8300-COMPANY-ERROR.  
+
+           ADD 1               TO CCMV-ADV-SUB. 
+           MOVE 'CCR47QPR'     TO MSGHDR-ADVISE-SOURCE  (CCMV-ADV-SUB). 
+           MOVE 0083           TO MSGHDR-ADVISE-CODE    (CCMV-ADV-SUB). 
+
+           PERFORM CCP75-OUTPUT-CCERRMSG
+              THRU CCP75-OUTPUT-CCERRMSG-EXIT.  
+
+           GO TO 9150-RDMS-ERROR.   
+
+       8400-RATE-ERROR. 
+
+           ADD 1               TO CCMV-ADV-SUB. 
+           MOVE 'CCR47QPR'     TO MSGHDR-ADVISE-SOURCE  (CCMV-ADV-SUB). 
+           MOVE 0084           TO MSGHDR-ADVISE-CODE    (CCMV-ADV-SUB). 
+
+           PERFORM CCP75-OUTPUT-CCERRMSG
+              THRU CCP75-OUTPUT-CCERRMSG-EXIT.  
+
+           GO TO 9150-RDMS-ERROR.   
+
+       8500-LOCALITY-ERROR. 
+
+           ADD 1               TO CCMV-ADV-SUB. 
+           MOVE 'CCR47QPR'     TO MSGHDR-ADVISE-SOURCE  (CCMV-ADV-SUB). 
+           MOVE 0085           TO MSGHDR-ADVISE-CODE    (CCMV-ADV-SUB). 
+
+           PERFORM CCP75-OUTPUT-CCERRMSG
+              THRU CCP75-OUTPUT-CCERRMSG-EXIT.  
+
+           GO TO 9150-RDMS-ERROR.   
+
+       8600-SAIL-POLICY-ERROR.  
+
+           ADD 1               TO CCMV-ADV-SUB. 
+           MOVE 'CCR47QPR'     TO MSGHDR-ADVISE-SOURCE  (CCMV-ADV-SUB). 
+           MOVE 0086           TO MSGHDR-ADVISE-CODE    (CCMV-ADV-SUB). 
+
+           PERFORM CCP75-OUTPUT-CCERRMSG
+              THRU CCP75-OUTPUT-CCERRMSG-EXIT.  
+
+           GO TO 9150-RDMS-ERROR.   
+
+       9000-END-OF-JOB. 
+TESTIT*    CALL 'INS$GET' USING WS-RESULTS. 
+TESTIT*    EXEC SQL SELECT DATEDIFF('MS',:WS-START-DATETIME,
+TESTIT*                             CURRENT_TIMESTAMP(6)) INTO WS-MILLI 
+TESTIT*       FROM RDMS.RDMS_DUMMY WHERE KEY_COL = 1
+TESTIT*       FETCH FIRST 1 ROW ONLY
+TESTIT*    END-EXEC.
+TESTIT*    DISPLAY 'TIME(ms): ' WS-MILLI 'INS: ' WS-INS-CNT 'CYC: ' 
+TESTIT*            WS-CYCLE-CNT UPON PRINTER.   
+TESTIT*    CALL 'INS$OFF'.  
+           GO TO DPP12-END-OF-JOB.  
+
+       9100-DATABASE-ERROR. 
+           MOVE 0099        TO MSGHDR-ADVISE-CODE   (1).
+           MOVE 'CCR47QPR'  TO MSGHDR-ADVISE-SOURCE (1).
+
+           PERFORM CCP75-OUTPUT-CCERRMSG
+              THRU CCP75-OUTPUT-CCERRMSG-EXIT.  
+
+           GO TO DPP12-DATABASE-ERROR.  
+
+       9150-RDMS-ERROR. 
+           MOVE 8                      TO MSGHDR-ADVISE-CODE (1).   
+
+           PERFORM CCP75-OUTPUT-CCERRMSG
+              THRU CCP75-OUTPUT-CCERRMSG-EXIT.  
+
+           GO TO DPP12-RDMS-ERROR.  
+
+       9200-EDIT-ERROR-MSG. 
+           PERFORM DPP12-EDIT-ERROR-MSG 
+              THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+
+           GO TO 9000-END-OF-JOB.   
+
+       9210-EDIT-CONTINUE-MSG.  
+           PERFORM DPP12-EDIT-ERROR-MSG 
+              THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+
+       9300-SEVERE-ERROR-MSG.   
+           GO TO DPP12-SEVERE-ERROR-MSG.
+
+       9400-INFO-MSG.   
+           PERFORM DPP12-INFO-MSG   
+              THRU DPP12-INFO-MSG-EXIT. 
+
+       9500-RETURN-SUBROUTINE-ERROR.
+           GO TO DPP12-RETURN-SUBROUTINE-ERROR. 
+
+       9600-SAVE-SUBROUTINE-ERRORS. 
+           PERFORM DPP12-SAVE-SUBROUTINE-MSGS   
+              THRU DPP12-SAVE-SUBROUTINE-MSGS-X.
+
+       COPY CCP10CCC.   
+       COPY CCP10CCS.   
+       COPY CCP50P02.   
+       COPY CCP51QP1.   
+       COPY CCP75P02.   
+       COPY CCP76QP1.   
+       COPY DPP45AOP.   
+       COPY DPP10Y2K.   
+       COPY DPP10TMZ.   
+       COPY DPP12API.   
+       COPY DPP12AMI.   
+       COPY DPP12ERR.   
+       COPY DPP12WDB.   
+       COPY TDP01SAP.   
+       COPY TDP01SCP.   
+       COPY RSP49INT.   

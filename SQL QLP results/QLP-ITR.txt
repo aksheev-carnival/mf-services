@@ -1,0 +1,370 @@
+   5   5    LIST ITR-CALC-KEY, ITR-NBK-DESC, ITR-ENTRY-CTR ;
+   6   6    WHERE ITR-CALC-KEY = '14TYOJX0' 
+    ITR-CALC-KEY =  14TYOJX0
+    ITR-NBK-DESC =  JOURNEYS - ASIA 
+    ITR-ENTRY-CTR =     15  
+
+         1 ITR-CALC-KEY RECORDS SELECTED
+   7   7
+   8   8    LIST ITR-CALC-KEY, ;
+   9   9    ITR-ITIN-PORT-CODE(1), ;
+  10  10    ITR-DAY-NUM(1), ;   
+  11  11    ITR-ENTRY-TYPE(1), ;
+  12  12    ITR-ARRIVE-HH(1), ; 
+  13  13    ITR-ARRIVE-MM(1), ; 
+  14  14    ITR-ARRIVE-AM-PM(1), ;  
+  15  15    ITR-DEPART-HH(1), ; 
+  16  16    ITR-DEPART-MM(1), ; 
+  17  17    ITR-DEPART-AM-PM(1) ;   
+  18  18    WHERE ITR-CALC-KEY = '14TYOJX0' 
+    ITR-CALC-KEY =  14TYOJX0
+    ITR-ITIN-PORT-CODE ( 1 ) =  TYO 
+    ITR-DAY-NUM ( 1 ) =    0
+    ITR-ENTRY-TYPE ( 1 ) =  P   
+    ITR-ARRIVE-HH ( 1 ) =   
+    ITR-ARRIVE-MM ( 1 ) =   
+    ITR-ARRIVE-AM-PM ( 1 ) =
+    ITR-DEPART-HH ( 1 ) =   8   
+    ITR-DEPART-MM ( 1 ) =   0   
+    ITR-DEPART-AM-PM ( 1 ) =  PM
+
+         1 ITR-CALC-KEY RECORDS SELECTED
+  19  19
+  20  20    LIST ITR-CALC-KEY, ;
+  21  21    ITR-ITIN-PORT-CODE(2), ;
+  22  22    ITR-DAY-NUM(2), ;   
+  23  23    ITR-ENTRY-TYPE(2), ;
+  24  24    ITR-ARRIVE-HH(2), ; 
+  25  25    ITR-ARRIVE-MM(2), ; 
+  26  26    ITR-ARRIVE-AM-PM(2), ;  
+  27  27    ITR-DEPART-HH(2), ; 
+  28  28    ITR-DEPART-MM(2), ; 
+  29  29    ITR-DEPART-AM-PM(2) ;   
+  30  30    WHERE ITR-CALC-KEY = '14TYOJX0' 
+    ITR-CALC-KEY =  14TYOJX0
+    ITR-ITIN-PORT-CODE ( 2 ) =  FS1 
+    ITR-DAY-NUM ( 2 ) =    1
+    ITR-ENTRY-TYPE ( 2 ) =  F   
+    ITR-ARRIVE-HH ( 2 ) =   
+    ITR-ARRIVE-MM ( 2 ) =   
+    ITR-ARRIVE-AM-PM ( 2 ) =
+    ITR-DEPART-HH ( 2 ) =   
+    ITR-DEPART-MM ( 2 ) =   
+    ITR-DEPART-AM-PM ( 2 ) =
+
+         1 ITR-CALC-KEY RECORDS SELECTED
+  31  31
+  32  32    LIST ITR-CALC-KEY, ;
+  33  33    ITR-ITIN-PORT-CODE(3), ;
+  34  34    ITR-DAY-NUM(3), ;   
+  35  35    ITR-ENTRY-TYPE(3), ;
+  36  36    ITR-ARRIVE-HH(3), ; 
+  37  37    ITR-ARRIVE-MM(3), ; 
+  38  38    ITR-ARRIVE-AM-PM(3), ;  
+  39  39    ITR-DEPART-HH(3), ; 
+  40  40    ITR-DEPART-MM(3), ; 
+  41  41    ITR-DEPART-AM-PM(3) ;   
+  42  42    WHERE ITR-CALC-KEY = '14TYOJX0' 
+    ITR-CALC-KEY =  14TYOJX0
+    ITR-ITIN-PORT-CODE ( 3 ) =  OSA 
+    ITR-DAY-NUM ( 3 ) =    2
+    ITR-ENTRY-TYPE ( 3 ) =  P   
+    ITR-ARRIVE-HH ( 3 ) =   7   
+    ITR-ARRIVE-MM ( 3 ) =   0   
+    ITR-ARRIVE-AM-PM ( 3 ) =  AM
+    ITR-DEPART-HH ( 3 ) =   7   
+    ITR-DEPART-MM ( 3 ) =   0   
+    ITR-DEPART-AM-PM ( 3 ) =  PM
+
+         1 ITR-CALC-KEY RECORDS SELECTED
+  43  43
+  44  44    LIST ITR-CALC-KEY, ;
+  45  45    ITR-ITIN-PORT-CODE(4), ;
+  46  46    ITR-DAY-NUM(4), ;   
+  47  47    ITR-ENTRY-TYPE(4), ;
+  48  48    ITR-ARRIVE-HH(4), ; 
+  49  49    ITR-ARRIVE-MM(4), ; 
+  50  50    ITR-ARRIVE-AM-PM(4), ;  
+  51  51    ITR-DEPART-HH(4), ; 
+  52  52    ITR-DEPART-MM(4), ; 
+  53  53    ITR-DEPART-AM-PM(4) ;   
+  54  54    WHERE ITR-CALC-KEY = '14TYOJX0' 
+    ITR-CALC-KEY =  14TYOJX0
+    ITR-ITIN-PORT-CODE ( 4 ) =  FS1 
+    ITR-DAY-NUM ( 4 ) =    3
+    ITR-ENTRY-TYPE ( 4 ) =  F   
+    ITR-ARRIVE-HH ( 4 ) =   
+    ITR-ARRIVE-MM ( 4 ) =   
+    ITR-ARRIVE-AM-PM ( 4 ) =
+    ITR-DEPART-HH ( 4 ) =   
+    ITR-DEPART-MM ( 4 ) =   
+    ITR-DEPART-AM-PM ( 4 ) =
+
+         1 ITR-CALC-KEY RECORDS SELECTED
+  55  55
+  56  56    LIST ITR-CALC-KEY, ;
+  57  57    ITR-ITIN-PORT-CODE(5), ;
+  58  58    ITR-DAY-NUM(5), ;   
+  59  59    ITR-ENTRY-TYPE(5), ;
+  60  60    ITR-ARRIVE-HH(5), ; 
+  61  61    ITR-ARRIVE-MM(5), ; 
+  62  62    ITR-ARRIVE-AM-PM(5), ;  
+  63  63    ITR-DEPART-HH(5), ; 
+  64  64    ITR-DEPART-MM(5), ; 
+  65  65    ITR-DEPART-AM-PM(5) ;   
+  66  66    WHERE ITR-CALC-KEY = '14TYOJX0' 
+    ITR-CALC-KEY =  14TYOJX0
+    ITR-ITIN-PORT-CODE ( 5 ) =  FUK 
+    ITR-DAY-NUM ( 5 ) =    4
+    ITR-ENTRY-TYPE ( 5 ) =  P   
+    ITR-ARRIVE-HH ( 5 ) =   8   
+    ITR-ARRIVE-MM ( 5 ) =   0   
+    ITR-ARRIVE-AM-PM ( 5 ) =  AM
+    ITR-DEPART-HH ( 5 ) =   5   
+    ITR-DEPART-MM ( 5 ) =   0   
+    ITR-DEPART-AM-PM ( 5 ) =  PM
+
+         1 ITR-CALC-KEY RECORDS SELECTED
+  67  67
+  68  68    LIST ITR-CALC-KEY, ;
+  69  69    ITR-ITIN-PORT-CODE(6), ;
+  70  70    ITR-DAY-NUM(6), ;   
+  71  71    ITR-ENTRY-TYPE(6), ;
+  72  72    ITR-ARRIVE-HH(6), ; 
+  73  73    ITR-ARRIVE-MM(6), ; 
+  74  74    ITR-ARRIVE-AM-PM(6), ;  
+  75  75    ITR-DEPART-HH(6), ; 
+  76  76    ITR-DEPART-MM(6), ; 
+  77  77    ITR-DEPART-AM-PM(6) ;   
+  78  78    WHERE ITR-CALC-KEY = '14TYOJX0' 
+    ITR-CALC-KEY =  14TYOJX0
+    ITR-ITIN-PORT-CODE ( 6 ) =  SPO 
+    ITR-DAY-NUM ( 6 ) =    5
+    ITR-ENTRY-TYPE ( 6 ) =  P   
+    ITR-ARRIVE-HH ( 6 ) =   8   
+    ITR-ARRIVE-MM ( 6 ) =   0   
+    ITR-ARRIVE-AM-PM ( 6 ) =  AM
+    ITR-DEPART-HH ( 6 ) =   5   
+    ITR-DEPART-MM ( 6 ) =   0   
+    ITR-DEPART-AM-PM ( 6 ) =  PM
+
+         1 ITR-CALC-KEY RECORDS SELECTED
+  79  79
+  80  80    LIST ITR-CALC-KEY, ;
+  81  81    ITR-ITIN-PORT-CODE(7), ;
+  82  82    ITR-DAY-NUM(7), ;   
+  83  83    ITR-ENTRY-TYPE(7), ;
+  84  84    ITR-ARRIVE-HH(7), ; 
+  85  85    ITR-ARRIVE-MM(7), ; 
+  86  86    ITR-ARRIVE-AM-PM(7), ;  
+  87  87    ITR-DEPART-HH(7), ; 
+  88  88    ITR-DEPART-MM(7), ; 
+  89  89    ITR-DEPART-AM-PM(7) ;   
+  90  90    WHERE ITR-CALC-KEY = '14TYOJX0' 
+    ITR-CALC-KEY =  14TYOJX0
+    ITR-ITIN-PORT-CODE ( 7 ) =  FS1 
+    ITR-DAY-NUM ( 7 ) =    6
+    ITR-ENTRY-TYPE ( 7 ) =  F   
+    ITR-ARRIVE-HH ( 7 ) =   
+    ITR-ARRIVE-MM ( 7 ) =   
+    ITR-ARRIVE-AM-PM ( 7 ) =
+    ITR-DEPART-HH ( 7 ) =   
+    ITR-DEPART-MM ( 7 ) =   
+    ITR-DEPART-AM-PM ( 7 ) =
+
+         1 ITR-CALC-KEY RECORDS SELECTED
+  91  91
+  92  92    LIST ITR-CALC-KEY, ;
+  93  93    ITR-ITIN-PORT-CODE(8), ;
+  94  94    ITR-DAY-NUM(8), ;   
+  95  95    ITR-ENTRY-TYPE(8), ;
+  96  96    ITR-ARRIVE-HH(8), ; 
+  97  97    ITR-ARRIVE-MM(8), ; 
+  98  98    ITR-ARRIVE-AM-PM(8), ;  
+  99  99    ITR-DEPART-HH(8), ; 
+ 100 100    ITR-DEPART-MM(8), ; 
+ 101 101    ITR-DEPART-AM-PM(8) ;   
+ 102 102    WHERE ITR-CALC-KEY = '14TYOJX0' 
+    ITR-CALC-KEY =  14TYOJX0
+    ITR-ITIN-PORT-CODE ( 8 ) =  KEL 
+    ITR-DAY-NUM ( 8 ) =    7
+    ITR-ENTRY-TYPE ( 8 ) =  P   
+    ITR-ARRIVE-HH ( 8 ) =   8   
+    ITR-ARRIVE-MM ( 8 ) =   0   
+    ITR-ARRIVE-AM-PM ( 8 ) =  AM
+    ITR-DEPART-HH ( 8 ) =  10   
+    ITR-DEPART-MM ( 8 ) =   0   
+    ITR-DEPART-AM-PM ( 8 ) =  PM
+
+         1 ITR-CALC-KEY RECORDS SELECTED
+ 103 103
+ 104 104    LIST ITR-CALC-KEY, ;
+ 105 105    ITR-ITIN-PORT-CODE(9), ;
+ 106 106    ITR-DAY-NUM(9), ;   
+ 107 107    ITR-ENTRY-TYPE(9), ;
+ 108 108    ITR-ARRIVE-HH(9), ; 
+ 109 109    ITR-ARRIVE-MM(9), ; 
+ 110 110    ITR-ARRIVE-AM-PM(9), ;  
+ 111 111    ITR-DEPART-HH(9), ; 
+ 112 112    ITR-DEPART-MM(9), ; 
+ 113 113    ITR-DEPART-AM-PM(9) ;   
+ 114 114    WHERE ITR-CALC-KEY = '14TYOJX0' 
+    ITR-CALC-KEY =  14TYOJX0
+    ITR-ITIN-PORT-CODE ( 9 ) =  FS1 
+    ITR-DAY-NUM ( 9 ) =    8
+    ITR-ENTRY-TYPE ( 9 ) =  F   
+    ITR-ARRIVE-HH ( 9 ) =   
+    ITR-ARRIVE-MM ( 9 ) =   
+    ITR-ARRIVE-AM-PM ( 9 ) =
+    ITR-DEPART-HH ( 9 ) =   
+    ITR-DEPART-MM ( 9 ) =   
+    ITR-DEPART-AM-PM ( 9 ) =
+
+         1 ITR-CALC-KEY RECORDS SELECTED
+ 115 115
+ 116 116    LIST ITR-CALC-KEY, ;
+ 117 117    ITR-ITIN-PORT-CODE(10), ;   
+ 118 118    ITR-DAY-NUM(10), ;  
+ 119 119    ITR-ENTRY-TYPE(10), ;   
+ 120 120    ITR-ARRIVE-HH(10), ;
+ 121 121    ITR-ARRIVE-MM(10), ;
+ 122 122    ITR-ARRIVE-AM-PM(10), ; 
+ 123 123    ITR-DEPART-HH(10), ;
+ 124 124    ITR-DEPART-MM(10), ;
+ 125 125    ITR-DEPART-AM-PM(10) ;  
+ 126 126    WHERE ITR-CALC-KEY = '14TYOJX0' 
+    ITR-CALC-KEY =  14TYOJX0
+    ITR-ITIN-PORT-CODE ( 10 ) =  HKG
+    ITR-DAY-NUM ( 10 ) =    9   
+    ITR-ENTRY-TYPE ( 10 ) =  P  
+    ITR-ARRIVE-HH ( 10 ) =   7  
+    ITR-ARRIVE-MM ( 10 ) =   0  
+    ITR-ARRIVE-AM-PM ( 10 ) =  AM   
+    ITR-DEPART-HH ( 10 ) =  10  
+    ITR-DEPART-MM ( 10 ) =   0  
+    ITR-DEPART-AM-PM ( 10 ) =  PM   
+
+         1 ITR-CALC-KEY RECORDS SELECTED
+ 127 127
+ 128 128    LIST ITR-CALC-KEY, ;
+ 129 129    ITR-ITIN-PORT-CODE(11), ;   
+ 130 130    ITR-DAY-NUM(11), ;  
+ 131 131    ITR-ENTRY-TYPE(11), ;   
+ 132 132    ITR-ARRIVE-HH(11), ;
+ 133 133    ITR-ARRIVE-MM(11), ;
+ 134 134    ITR-ARRIVE-AM-PM(11), ; 
+ 135 135    ITR-DEPART-HH(11), ;
+ 136 136    ITR-DEPART-MM(11), ;
+ 137 137    ITR-DEPART-AM-PM(11) ;  
+ 138 138    WHERE ITR-CALC-KEY = '14TYOJX0' 
+    ITR-CALC-KEY =  14TYOJX0
+    ITR-ITIN-PORT-CODE ( 11 ) =  FS1
+    ITR-DAY-NUM ( 11 ) =   10   
+    ITR-ENTRY-TYPE ( 11 ) =  F  
+    ITR-ARRIVE-HH ( 11 ) =  
+    ITR-ARRIVE-MM ( 11 ) =  
+    ITR-ARRIVE-AM-PM ( 11 ) =   
+    ITR-DEPART-HH ( 11 ) =  
+    ITR-DEPART-MM ( 11 ) =  
+    ITR-DEPART-AM-PM ( 11 ) =   
+
+         1 ITR-CALC-KEY RECORDS SELECTED
+ 139 139
+ 140 140    LIST ITR-CALC-KEY, ;
+ 141 141    ITR-ITIN-PORT-CODE(12), ;   
+ 142 142    ITR-DAY-NUM(12), ;  
+ 143 143    ITR-ENTRY-TYPE(12), ;   
+ 144 144    ITR-ARRIVE-HH(12), ;
+ 145 145    ITR-ARRIVE-MM(12), ;
+ 146 146    ITR-ARRIVE-AM-PM(12), ; 
+ 147 147    ITR-DEPART-HH(12), ;
+ 148 148    ITR-DEPART-MM(12), ;
+ 149 149    ITR-DEPART-AM-PM(12) ;  
+ 150 150    WHERE ITR-CALC-KEY = '14TYOJX0' 
+    ITR-CALC-KEY =  14TYOJX0
+    ITR-ITIN-PORT-CODE ( 12 ) =  FS1
+    ITR-DAY-NUM ( 12 ) =   11   
+    ITR-ENTRY-TYPE ( 12 ) =  F  
+    ITR-ARRIVE-HH ( 12 ) =  
+    ITR-ARRIVE-MM ( 12 ) =  
+    ITR-ARRIVE-AM-PM ( 12 ) =   
+    ITR-DEPART-HH ( 12 ) =  
+    ITR-DEPART-MM ( 12 ) =  
+    ITR-DEPART-AM-PM ( 12 ) =   
+
+         1 ITR-CALC-KEY RECORDS SELECTED
+ 151 151
+ 152 152    LIST ITR-CALC-KEY, ;
+ 153 153    ITR-ITIN-PORT-CODE(13), ;   
+ 154 154    ITR-DAY-NUM(13), ;  
+ 155 155    ITR-ENTRY-TYPE(13), ;   
+ 156 156    ITR-ARRIVE-HH(13), ;
+ 157 157    ITR-ARRIVE-MM(13), ;
+ 158 158    ITR-ARRIVE-AM-PM(13), ; 
+ 159 159    ITR-DEPART-HH(13), ;
+ 160 160    ITR-DEPART-MM(13), ;
+ 161 161    ITR-DEPART-AM-PM(13) ;  
+ 162 162    WHERE ITR-CALC-KEY = '14TYOJX0' 
+    ITR-CALC-KEY =  14TYOJX0
+    ITR-ITIN-PORT-CODE ( 13 ) =  PHM
+    ITR-DAY-NUM ( 13 ) =   12   
+    ITR-ENTRY-TYPE ( 13 ) =  P  
+    ITR-ARRIVE-HH ( 13 ) =   7  
+    ITR-ARRIVE-MM ( 13 ) =   0  
+    ITR-ARRIVE-AM-PM ( 13 ) =  AM   
+    ITR-DEPART-HH ( 13 ) =   5  
+    ITR-DEPART-MM ( 13 ) =   0  
+    ITR-DEPART-AM-PM ( 13 ) =  PM   
+
+         1 ITR-CALC-KEY RECORDS SELECTED
+ 163 163
+ 164 164    LIST ITR-CALC-KEY, ;
+ 165 165    ITR-ITIN-PORT-CODE(14), ;   
+ 166 166    ITR-DAY-NUM(14), ;  
+ 167 167    ITR-ENTRY-TYPE(14), ;   
+ 168 168    ITR-ARRIVE-HH(14), ;
+ 169 169    ITR-ARRIVE-MM(14), ;
+ 170 170    ITR-ARRIVE-AM-PM(14), ; 
+ 171 171    ITR-DEPART-HH(14), ;
+ 172 172    ITR-DEPART-MM(14), ;
+ 173 173    ITR-DEPART-AM-PM(14) ;  
+ 174 174    WHERE ITR-CALC-KEY = '14TYOJX0' 
+    ITR-CALC-KEY =  14TYOJX0
+    ITR-ITIN-PORT-CODE ( 14 ) =  FS1
+    ITR-DAY-NUM ( 14 ) =   13   
+    ITR-ENTRY-TYPE ( 14 ) =  F  
+    ITR-ARRIVE-HH ( 14 ) =  
+    ITR-ARRIVE-MM ( 14 ) =  
+    ITR-ARRIVE-AM-PM ( 14 ) =   
+    ITR-DEPART-HH ( 14 ) =  
+    ITR-DEPART-MM ( 14 ) =  
+    ITR-DEPART-AM-PM ( 14 ) =   
+
+         1 ITR-CALC-KEY RECORDS SELECTED
+ 175 175
+ 176 176    LIST ITR-CALC-KEY, ;
+ 177 177    ITR-ITIN-PORT-CODE(15), ;   
+ 178 178    ITR-DAY-NUM(15), ;  
+ 179 179    ITR-ENTRY-TYPE(15), ;   
+ 180 180    ITR-ARRIVE-HH(15), ;
+ 181 181    ITR-ARRIVE-MM(15), ;
+ 182 182    ITR-ARRIVE-AM-PM(15), ; 
+ 183 183    ITR-DEPART-HH(15), ;
+ 184 184    ITR-DEPART-MM(15), ;
+ 185 185    ITR-DEPART-AM-PM(15) ;  
+ 186 186    WHERE ITR-CALC-KEY = '14TYOJX0' 
+    ITR-CALC-KEY =  14TYOJX0
+    ITR-ITIN-PORT-CODE ( 15 ) =  SIN
+    ITR-DAY-NUM ( 15 ) =   14   
+    ITR-ENTRY-TYPE ( 15 ) =  P  
+    ITR-ARRIVE-HH ( 15 ) =   7  
+    ITR-ARRIVE-MM ( 15 ) =   0  
+    ITR-ARRIVE-AM-PM ( 15 ) =  AM   
+    ITR-DEPART-HH ( 15 ) =  
+    ITR-DEPART-MM ( 15 ) =  
+    ITR-DEPART-AM-PM ( 15 ) =   
+
+         1 ITR-CALC-KEY RECORDS SELECTED
+ 187 187
+ 188 188
+

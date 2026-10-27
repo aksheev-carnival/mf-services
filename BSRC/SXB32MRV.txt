@@ -1,0 +1,317 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.    SXB32MRV. 
+       DATE-WRITTEN.  NOVEMBER 11, 2015.
+       DATE-COMPILED.   
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER. UNISYS. 
+       OBJECT-COMPUTER. UNISYS  MEMORY SIZE 3 MODULES.  
+       SPECIAL-NAMES.   
+           PRINTER IS PRT   
+           PRINTER IS PRINTER.  
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+             SELECT INPUT-FILE      ASSIGN TO DISC SXBMRV03D.   
+             SELECT OUTPUT-FILE     ASSIGN TO DISC SXBMRV01D.   
+
+       DATA DIVISION.   
+       SUBSCHEMA SECTION.   
+       INVOKE SUBSCHEMA PST200UCOBSU
+              IN FILE SUBSCHEMAS OF SCHEMA PST200SCHEMA 
+              COPYING RECORDS    INTO COMMON
+              COPYING DATA-NAMES INTO COMMON
+              SAVE DATA INCLUDES DEFERRED-UPDATES   
+              DMCA  COMMON  
+              ERROR RECOVERY IS 9100-DATABASE-ERROR 
+              ROLLBACK       IS 9100-DATABASE-ERROR.
+
+       FILE SECTION.
+
+       FD INPUT-FILE
+           LABEL RECORDS ARE STANDARD.  
+       01 INPUT-REC.
+          03 INPUT-BEG-DATE                   PIC 9(08).
+          03 INPUT-END-DATE                   PIC 9(08).
+          03 FILLER                           PIC X(116).   
+
+       FD OUTPUT-FILE   
+           LABEL RECORDS ARE STANDARD.  
+       01  OUTPUT-REC.  
+           03 OUT-ESDR-CALC-KEY               PIC X(27).
+           03 OUT-ESDR-EXC-TIME               PIC 9(04).
+           03 OUT-ESDR-STATUS                 PIC X(01).
+           03 OUT-PORT-CODE                   PIC X(03).
+           03 OUT-ESDR-EXC-END-TIME           PIC 9(04).
+           03 OUT-ESDR-EXC-END-DATE           PIC 9(08).
+           03 OUT-ESDR-PORT-TYPE              PIC X(01).
+
+       WORKING-STORAGE SECTION. 
+       01  MCFLAG                             PIC 9(10) BINARY. 
+       01  WS-PROG-ID                         PIC X(8) VALUE 'SXB32MRV'.
+       01  WS-SYSTEM-DATE                     PIC 9(08).
+       01  WS-SYSTEM-TIME                     PIC 9(08).
+       01  WS-TEMP-START-DATE                 PIC 9(08).
+       01  WS-TEMP-START-DATE1 REDEFINES WS-TEMP-START-DATE.
+           03 WS-TEMP-START-YEAR              PIC 9(04).
+           03 WS-TEMP-START-MM                PIC 9(02).
+           03 WS-TEMP-START-DD                PIC 9(02).
+       01  WS-TEMP-END-DATE                   PIC 9(08).
+       01  WS-TEMP-END-DATE1 REDEFINES WS-TEMP-END-DATE.
+           03 WS-TEMP-END-YEAR                PIC 9(04).
+           03 WS-TEMP-END-MM                  PIC 9(02).
+           03 WS-TEMP-END-DD                  PIC 9(02).
+       01  WS-AREA-NUM                        PIC 9(02).
+       01  WS-EDR-CALC-KEY. 
+           03 WS-EDR-EXC-ID                   PIC X(06).
+           03 WS-EDR-BEGIN-DATE               PIC 9(08).
+           03 WS-EDR-BEGIN-TIME               PIC 9(04).
+       01  WS-ESDR-CALC-KEY.
+           03 WS-ESDR-SHIP-CODE               PIC X(02).
+           03 WS-ESDR-SAIL-DATE               PIC 9(08).
+           03 WS-ESDR-DURATION-DAYS           PIC 9(03).
+           03 WS-ESDR-EXC-ID                  PIC X(06).
+           03 WS-ESDR-EXC-DATE                PIC 9(08).
+
+       COPY DPP01CIW.   
+       COPY DPP01DTA.   
+       COPY DPP01ERR.   
+       COPY DPP01MCB.   
+       COPY DPP01SCO.   
+       COPY DPP12SCO.   
+       COPY DPP42ERR.   
+       COPY RSP00DMS.   
+       COPY RSP32DMS.   
+       COPY RSP64DMS.   
+       COPY RSP77GMD.   
+       COPY DPP02Y2K.   
+       COMMON-STORAGE SECTION.  
+
+       PROCEDURE DIVISION.  
+
+       1000-INITIALIZE. 
+           COPY DPP01INT.   
+
+           ACCEPT WS-SYSTEM-DATE  FROM DATE YYYYMMDD.   
+           ACCEPT WS-SYSTEM-TIME  FROM TIME.
+
+           PERFORM DPP12-BEGIN-THREAD THRU DPP12-BEGIN-THREAD-EXIT. 
+
+           IF DPP01-SQL-ERROR-IND = 'Y' 
+              GO TO DPP12-THREAD-ERROR-EXIT.
+
+           IMPART.  
+
+           OPEN EXCINV01 USAGE-MODE  IS RETRIEVAL   
+                EXCINV02 USAGE-MODE  IS RETRIEVAL   
+                EXCINV03 USAGE-MODE  IS RETRIEVAL   
+                EXCINV04 USAGE-MODE  IS RETRIEVAL   
+                EXCINV05 USAGE-MODE  IS RETRIEVAL   
+                EXCINV06 USAGE-MODE  IS RETRIEVAL   
+                EXCINV07 USAGE-MODE  IS RETRIEVAL   
+                EXCINV08 USAGE-MODE  IS RETRIEVAL   
+                EXCINV09 USAGE-MODE  IS RETRIEVAL   
+                EXCINV10 USAGE-MODE  IS RETRIEVAL   
+                EXCINV11 USAGE-MODE  IS RETRIEVAL   
+                EXCINV12 USAGE-MODE  IS RETRIEVAL   
+                ETRF     USAGE-MODE  IS RETRIEVAL   
+                EXCURSION USAGE-MODE IS RETRIEVAL   
+                EXCORDER0 USAGE-MODE IS RETRIEVAL   
+                EXCORDER1 USAGE-MODE IS RETRIEVAL   
+                EXCORDER2 USAGE-MODE IS RETRIEVAL   
+                EXCORDER3 USAGE-MODE IS RETRIEVAL   
+                EXCORDER4 USAGE-MODE IS RETRIEVAL   
+                EXCORDER5 USAGE-MODE IS RETRIEVAL   
+                EXCORDER6 USAGE-MODE IS RETRIEVAL   
+                EXCORDER7 USAGE-MODE IS RETRIEVAL   
+                EXCORDER8 USAGE-MODE IS RETRIEVAL   
+                EXCORDER9 USAGE-MODE IS RETRIEVAL.  
+
+           OPEN INPUT  INPUT-FILE.  
+           OPEN OUTPUT OUTPUT-FILE. 
+
+           READ INPUT-FILE  
+              AT END GO TO 9000-END-OF-JOB. 
+           MOVE INPUT-BEG-DATE         TO WS-TEMP-START-DATE.   
+           MOVE INPUT-END-DATE         TO WS-TEMP-END-DATE. 
+
+       1020-BUILD-ESDR-FILE.
+           MOVE 'EXCINV'               TO EXCINV-CALCAREA (1:6).
+           MOVE 00                     TO WS-AREA-NUM.  
+
+       1040-FETCH-EMYR. 
+           IF WS-AREA-NUM < 12  
+              ADD 1                    TO WS-AREA-NUM   
+           ELSE 
+              GO TO 1180-ESDR-EXIT  
+           END-IF.  
+
+           MOVE WS-AREA-NUM            TO EXCINV-CALCAREA (7:2).
+
+       1060-FETCH-FIRST-EMYR.   
+
+           FETCH FIRST EXC-MMYY-REC WITHIN  
+              EXCINV-CALCAREA AREA  
+              ON ERROR GO TO 1100-EMYR-ERR. 
+
+           GO TO 1100-EMYR-ERR. 
+
+       1080-FETCH-NEXT-EMYR.
+
+           FETCH NEXT EXC-MMYY-REC WITHIN   
+              EXCINV-CALCAREA AREA  
+              ON ERROR GO TO 1100-EMYR-ERR. 
+
+       1100-EMYR-ERR.   
+
+           IF ERROR-NUM NOT = '0000'
+              GO TO 1040-FETCH-EMYR 
+           END-IF.  
+
+       1120-VALIDATE-EMYR.  
+           IF EMYR-EXC-YYYY >= WS-TEMP-START-YEAR AND   
+              EMYR-EXC-YYYY <= WS-TEMP-END-YEAR 
+              CONTINUE  
+           ELSE 
+              GO TO 1080-FETCH-NEXT-EMYR
+           END-IF.  
+
+           IF EMYR-EXC-YYYY = WS-TEMP-START-YEAR
+              IF EMYR-EXC-MM >= WS-TEMP-START-MM
+                 CONTINUE   
+              ELSE  
+                 GO TO 1080-FETCH-NEXT-EMYR 
+              END-IF
+           END-IF.  
+
+           IF EMYR-EXC-YYYY = WS-TEMP-END-YEAR  
+              IF EMYR-EXC-MM <= WS-TEMP-END-MM  
+                 CONTINUE   
+              ELSE  
+                 GO TO 1080-FETCH-NEXT-EMYR 
+              END-IF
+           END-IF.  
+
+       1140-FETCH-EDR.  
+
+           FETCH NEXT EXC-DEPARTURE-REC 
+              WITHIN EXC-MMYY-DEPARTURE-SET SET 
+              SUPPRESS AREA CURRENCY
+              ON ERROR GO TO 1140-FETCH-EDR-ERROR.  
+
+       1140-FETCH-EDR-ERROR.
+
+           IF ERROR-NUM NOT = '0000'
+              GO TO 1080-FETCH-NEXT-EMYR
+           END-IF.  
+
+           MOVE EDR-CALC-KEY           TO WS-EDR-CALC-KEY.  
+
+           IF WS-EDR-BEGIN-DATE >= WS-TEMP-START-DATE   
+              CONTINUE  
+           ELSE 
+              GO TO 1140-FETCH-EDR  
+           END-IF.  
+
+           IF WS-EDR-BEGIN-DATE < WS-TEMP-END-DATE  
+              CONTINUE  
+           ELSE 
+              GO TO 1140-FETCH-EDR  
+           END-IF.  
+
+       1160-FETCH-ESDR. 
+
+           FETCH NEXT EXC-SAILING-DEPARTURE-REC 
+              WITHIN EXC-DEPARTURE-SAILING-SET SET  
+              SUPPRESS AREA CURRENCY
+              ON ERROR GO TO 1160-FETCH-ESDR-ERROR. 
+
+       1160-FETCH-ESDR-ERROR.   
+
+           IF ERROR-NUM NOT = '0000'
+              GO TO 1140-FETCH-EDR  
+           END-IF.  
+
+           MOVE ESDR-CALC-KEY          TO WS-ESDR-CALC-KEY. 
+
+           IF WS-ESDR-EXC-DATE >= WS-TEMP-START-DATE
+              CONTINUE  
+           ELSE 
+              GO TO 1160-FETCH-ESDR 
+           END-IF.  
+
+           IF WS-ESDR-EXC-DATE < WS-TEMP-END-DATE   
+              CONTINUE  
+           ELSE 
+              GO TO 1160-FETCH-ESDR 
+           END-IF.  
+
+           MOVE WS-ESDR-EXC-ID         TO EMR-EXC-ID.   
+           FETCH EXC-MASTER-REC RECORD  
+              ON ERROR GO TO 1160-FETCH-ESDR.   
+
+           MOVE ESDR-CALC-KEY          TO OUT-ESDR-CALC-KEY.
+           MOVE ESDR-EXC-TIME          TO OUT-ESDR-EXC-TIME.
+           MOVE ESDR-STATUS            TO OUT-ESDR-STATUS.  
+           MOVE EMR-PORT-CODE          TO OUT-PORT-CODE.
+           MOVE ESDR-EXC-END-TIME      TO OUT-ESDR-EXC-END-TIME.
+           MOVE ESDR-EXC-END-DATE      TO OUT-ESDR-EXC-END-DATE.
+
+           IF ESDR-SAIL-DATE = ESDR-EXC-DATE
+              MOVE 'E'                 TO OUT-ESDR-PORT-TYPE
+           ELSE 
+              MOVE ESDR-DURATION-DAYS  TO DPP02-NUMBER-DAYS 
+              MOVE ESDR-SAIL-DATE      TO DPP02-YYYYMMDD-DATE   
+              PERFORM DPP10-ADVANCE-YYYYMMDD-DATE   
+              IF DPP02-YYYYMMDD-DATE = ESDR-EXC-DATE
+                 MOVE 'D'              TO OUT-ESDR-PORT-TYPE
+              ELSE  
+                 MOVE 'P'              TO OUT-ESDR-PORT-TYPE
+              END-IF
+           END-IF.  
+
+           WRITE OUTPUT-REC.
+
+           GO TO 1160-FETCH-ESDR.   
+
+       1180-ESDR-EXIT.  
+           EXIT.
+
+       9000-END-OF-JOB. 
+           CLOSE INPUT-FILE 
+                 OUTPUT-FILE.   
+
+           GO TO DPP12-END-OF-JOB.  
+
+       9100-DATABASE-ERROR. 
+           GO TO DPP12-DATABASE-ERROR.  
+
+       9200-EDIT-ERROR-MSG. 
+           PERFORM DPP12-EDIT-ERROR-MSG 
+              THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+
+           GO TO DPP12-END-OF-JOB.  
+
+       9210-EDIT-CONTINUE-MSG.  
+           PERFORM DPP12-EDIT-ERROR-MSG 
+              THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+
+       9300-SEVERE-ERROR-MSG.   
+           GO TO DPP12-SEVERE-ERROR-MSG.
+
+       9400-INFO-MSG.   
+           PERFORM DPP12-INFO-MSG   
+              THRU DPP12-INFO-MSG-EXIT. 
+
+       9500-RETURN-SUBROUTINE-ERROR.
+           GO TO DPP12-RETURN-SUBROUTINE-ERROR. 
+
+       9600-SAVE-SUBROUTINE-ERRORS. 
+           PERFORM DPP12-SAVE-SUBROUTINE-MSGS   
+              THRU DPP12-SAVE-SUBROUTINE-MSGS-X.
+
+       COPY DPP12BER.   
+       COPY DPP12ERR.   
+       COPY DPP12WDB.   
+       COPY DPP10Y2K.   

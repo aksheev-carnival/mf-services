@@ -1,0 +1,181 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.    SSC03GAD. 
+       AUTHOR.        CARNIVAL CRUISE LINES.
+       DATE-WRITTEN.  AUGUST 2012.  
+
+      ****************************************************************  
+      *              GET API CONTROL INFORMATION ROUTINE             *  
+      ****************************************************************  
+      * Description:                                                 *  
+      *     The purpose of this program is to get API control data   *  
+      *     from the cache or database and update the cache.         *  
+      ****************************************************************  
+      *                                                              *  
+      * Input      DPP01-COMMON-DATA-FIELDS                          *  
+      *            DPP01-COMMON-INFO                                 *  
+      *            SSP03-INPUT-PARAMS                                *  
+      *                                                              *  
+      * Output     SSP03-OUTPUT-PARMS                                *  
+      *                                                              *  
+      * Calling Sequence                                             *  
+      *                                                              *  
+      *            CALL 'SSC03GAD' USING DPP01-COMMON-DATA-FIELDS    *  
+      *                                  DPP01-COMMON-INFO           *  
+      *                                  SSP03-INPUT-PARAMS          *  
+      *                                  SSP03-OUTPUT-PARAMS.        *  
+      *                                                              *  
+      * Return Status Values:                                        *  
+      *                00       OK                                   *  
+      *                01       Informational                        *  
+      *                02       RPC Error                            *  
+      *                03       Fatal or Severe Error                *  
+      ****************************************************************  
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER.           UNISYS.   
+       OBJECT-COMPUTER. UNISYS-2200 MEMORY 3 MODULES.   
+       SPECIAL-NAMES.   PRINTER IS PRINTER  
+                        CONSOLE IS CONSOLE. 
+
+       DATA DIVISION.   
+
+       WORKING-STORAGE SECTION. 
+       01  WS-CONSTANTS.
+           03 WS-PROG-ID               PIC X(8) VALUE 'SSC03GAD'.   
+
+       01  WS-MISC-VARIABLES.   
+           03 SRCH-SUB                 PIC S9(10) BINARY.   
+
+       COPY DPP01DTA.   
+       COPY DPP42ERR.   
+       COPY DPP42SWS.   
+       COPY SSP00DTA.   
+       COPY SSP00PTR.   
+       COPY SSP02CON.   
+       COPY SSP04DTA.   
+       COPY SSP04LAD.   
+       COPY SSP04OUT.   
+       COPY SSP04LST.   
+
+       COMMON-STORAGE SECTION.  
+
+       LINKAGE SECTION. 
+       COPY DPP01SCO.   
+       COPY DPP01CIW.   
+       COPY SSP03GAD.   
+
+       PROCEDURE DIVISION USING DPP01-COMMON-DATA-FIELDS
+                                DPP01-COMMON-INFO   
+                                SSP03-INPUT-PARAMS  
+                                SSP03-OUTPUT-PARAMS.
+
+       0000-SSC03GAD-MAIN-CONTROL.  
+           COPY DPP42INT.   
+
+           MOVE LOW-VALUES TO SSP03-O-API-MSG-REC   
+                              SSP03-O-API-SYS-REC.  
+
+           IF SSP03-I-CHANNEL-ID <= SPACES  
+              IF SSP03-I-CALC-KEY <= SPACES 
+                 IF SSP03-GET-TEMPLATE-IND <= SPACES
+                    MOVE 1 TO DPP42-HOLD-MSG-INDEX  
+                    GO TO 9200-EDIT-ERROR-MSG.  
+
+           IF (SSP00-INIT-VALUE NOT = SSP00-O-INIT-CHECK-SUM)   
+              CALL 'SSC00PTR' USING SSP00-POINTER-TABLE.
+
+           CALL 'INC_COUNTER' USING SSP04-READ-CNT. 
+
+           IF SSP04-TS-LOCKED   
+              CALL 'SSC02TSP' USING DPP01-COMMON-INFO   
+                                    SSP02-API-DATA-CODE.
+
+           CALL 'SSC04FAD' USING SSP03-INPUT-PARAMS 
+                                 SSP04-OUTPUT-PARAMS.   
+
+           IF SSP03-I-CHANNEL-ID <= SPACES AND  
+                 (SSP03-GET-TEMPLATE-IND NOT = 'Y') 
+              GO TO 0100-CHECK-SYSTEM.  
+
+           IF SSP04-O-MSG-SUB = ZERO
+              IF SSP04-MSG-LIST-IND = 'Y'   
+                 MOVE 2 TO DPP42-HOLD-MSG-INDEX 
+                 GO TO 9200-EDIT-ERROR-MSG  
+              END-IF
+           ELSE 
+              IF SSP04-MSG-UPDATE-FLAG (SSP04-O-MSG-SUB) = 1
+                 NEXT SENTENCE  
+              ELSE  
+                 IF SSP03-I-LOCK-RECORD-IND = 'Y'   
+                    NEXT SENTENCE   
+                 ELSE   
+                    MOVE SSP04-API-MSG-REC (SSP04-O-MSG-SUB) TO 
+                         SSP03-O-API-MSG-REC
+                    GO TO 0100-CHECK-SYSTEM.
+
+           MOVE SSP03-INPUT-PARAMS TO SSP04-INPUT-PARAMS.   
+
+           CALL 'SSO04-LOAD-MSG' USING DPP42-COMMON-DATA-FIELDS 
+                                       DPP01-COMMON-INFO
+                                       SSP04-INPUT-PARAMS   
+                                       SSP04-OUTPUT-PARAMS. 
+
+           IF DPP42-SUB-MSG-CTR > ZERO AND DPP42-SUB-MSG-STATUS (1) > 1 
+              GO TO 9500-RETURN-SUBROUTINE-ERROR.   
+
+           MOVE SSP04-API-MSG-REC (SSP04-O-MSG-SUB) TO  
+                SSP03-O-API-MSG-REC.
+
+       0100-CHECK-SYSTEM.   
+           IF SSP04-O-MSG-SUB > ZERO AND SSP03-RETURN-SYSTEM-IND = 'Y'  
+              MOVE SSP03-O-AGENCY-CONN-CODE TO SSP03-I-AGENCY-CONN-CODE 
+              MOVE SSP03-O-LOCATION-CODE    TO SSP03-I-LOCATION-CODE.   
+
+           IF (SSP03-I-CALC-KEY <= SPACES) AND  
+AJSTST        (SSP03-GET-TEMPLATE-IND NOT = 'Y')
+              GO TO 9000-END-OF-JOB.
+
+           IF SSP04-O-SYS-SUB = ZERO
+              IF SSP04-SYS-LIST-IND = 'Y'   
+                 MOVE 3 TO DPP42-HOLD-MSG-INDEX 
+                 GO TO 9200-EDIT-ERROR-MSG  
+              END-IF
+           ELSE 
+              IF SSP04-API-SYS-UPD-FLAG (SSP04-O-SYS-SUB) = 1   
+                 NEXT SENTENCE  
+              ELSE  
+                 IF SSP03-I-LOCK-RECORD-IND = 'Y'   
+                    NEXT SENTENCE   
+                 ELSE   
+                    MOVE SSP04-API-SYS-REC (SSP04-O-SYS-SUB) TO 
+                         SSP03-O-API-SYS-REC
+                    GO TO 9000-END-OF-JOB.  
+
+           MOVE SSP03-INPUT-PARAMS TO SSP04-INPUT-PARAMS.   
+
+           CALL 'SSO04-LOAD-SYS' USING DPP42-COMMON-DATA-FIELDS 
+                                       DPP01-COMMON-INFO
+                                       SSP04-INPUT-PARAMS   
+                                       SSP04-OUTPUT-PARAMS. 
+
+           IF DPP42-SUB-MSG-CTR > ZERO AND DPP42-SUB-MSG-STATUS (1) > 1 
+              GO TO 9500-RETURN-SUBROUTINE-ERROR.   
+
+           MOVE SSP04-API-SYS-REC (SSP04-O-SYS-SUB) TO  
+                SSP03-O-API-SYS-REC.
+
+       9000-END-OF-JOB. 
+           GO TO DPP42-END-OF-JOB.  
+
+       9200-EDIT-ERROR-MSG. 
+           PERFORM DPP42-EDIT-ERROR-MSG 
+              THRU DPP42-EDIT-ERROR-MSG-EXIT.   
+
+           GO TO DPP42-END-OF-JOB.  
+
+       9500-RETURN-SUBROUTINE-ERROR.
+           GO TO DPP42-RETURN-SUBROUTINE-ERROR. 
+
+       COPY DPP42SER.   
+       COPY DPP42NDB.   

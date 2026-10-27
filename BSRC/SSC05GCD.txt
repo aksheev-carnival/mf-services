@@ -1,0 +1,237 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.    SSC05GCD. 
+       AUTHOR.        Michael Evert.
+       DATE-WRITTEN.  March 2014.   
+
+      ****************************************************************  
+      *              Get COMPANY data from Cache                     *  
+      ****************************************************************  
+      * Description:                                                 *  
+      *     The purpose of this FLSS routine is to get a company     *  
+      *     (CMP), company reference (CRR), and/or company threshold *  
+      *     (CTR) record from the cache or from the database while   *  
+      *     updating the cache.                                      *  
+      ****************************************************************  
+      *                                                              *  
+      * Input      DPP01-COMMON-DATA-FIELDS                          *  
+      *            DPP01-COMMON-INFO                                 *  
+      *            SSP05-INPUT-PARAMS                                *  
+      *                                                              *  
+      * Output     SSP05-OUTPUT-PARMS                                *  
+      *                                                              *  
+      * Calling Sequence                                             *  
+      *                                                              *  
+      *            CALL 'SSC05GCD' USING DPP01-COMMON-DATA-FIELDS    *  
+      *                                  DPP01-COMMON-INFO           *  
+      *                                  SSP05-INPUT-PARAMS          *  
+      *                                  SSP05-OUTPUT-PARAMS.        *  
+      *                                                              *  
+      * Return Status Values:                                        *  
+      *                00       OK                                   *  
+      *                01       Informational                        *  
+      *                02       RPC Error                            *  
+      *                03       Fatal or Severe Error                *  
+      ****************************************************************  
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER.           UNISYS.   
+       OBJECT-COMPUTER. UNISYS-2200 MEMORY 3 MODULES.   
+       SPECIAL-NAMES.   PRINTER IS PRINTER  
+                        CONSOLE IS CONSOLE. 
+
+       DATA DIVISION.   
+
+       WORKING-STORAGE SECTION. 
+       01  WS-CONSTANTS.
+           03 WS-PROG-ID               PIC X(8) VALUE 'SSC05GCD'.   
+
+       01  SUB                         PIC S9(10) BINARY.   
+
+       COPY DPP01DTA.   
+       COPY DPP42ERR.   
+       COPY DPP42SWS.   
+       COPY SSP00DTA.   
+       COPY SSP00PTR.   
+       COPY SSP02CON.   
+       COPY SSP15DTA.   
+       COPY SSP15LCD.   
+       COPY SSP15OUT.   
+
+       COMMON-STORAGE SECTION.  
+
+       LINKAGE SECTION. 
+       COPY DPP01SCO.   
+       COPY DPP01CIW.   
+       COPY SSP05GCD.   
+
+       PROCEDURE DIVISION USING DPP01-COMMON-DATA-FIELDS
+                                DPP01-COMMON-INFO   
+                                SSP05-INPUT-PARAMS  
+                                SSP05-OUTPUT-PARAMS.
+
+       0000-SSC05GCD-MAIN-CONTROL.  
+           COPY DPP42INT.   
+
+           MOVE LOW-VALUES TO SSP05-O-COMPANY-REC   
+                              SSP05-O-COMPANY-REFERENCE-REC 
+                              SSP05-O-COMPANY-THRESHOLD-REC.
+
+           IF      (SSP05-I-COMPANY-CODE <= SPACES) 
+               AND (SSP05-I-CRR-CALC-KEY <= SPACES) 
+               AND (SSP05-I-TSHD-TYPE <= SPACES)
+              MOVE 1 TO DPP42-HOLD-MSG-INDEX
+              GO TO 9200-EDIT-ERROR-MSG.
+
+      *    Check if pointers to all the SCSS cache tables have already  
+      *    built for this process.  If not, then call routine to do so. 
+           IF (SSP00-INIT-VALUE NOT = SSP00-O-INIT-CHECK-SUM)   
+              CALL 'SSC00PTR' USING SSP00-POINTER-TABLE.
+
+           CALL 'INC_COUNTER' USING SSP15-READ-CNT. 
+
+           IF SSP15-TS-LOCKED   
+
+      *       M3E note:  This attempt to set a lock forces this process 
+      *       to wait on any other process that is updating the cache.  
+      *       After the lock is made, it is cleared so that no other
+      *       processes will wait on this simple read.  (This is
+      *       different from DPP42-SET-TS-CELL used in SCSS routines
+      *       which do not immediately clear lock.) 
+
+              CALL 'SSC02TSP' USING DPP01-COMMON-INFO   
+                                    SSP02-COMPANY-DATA-CODE.
+
+      *    Search the cache if record has already been loaded.  
+
+           CALL 'SSC15FCD' USING SSP05-INPUT-PARAMS 
+                                 SSP15-OUTPUT-PARAMS.   
+
+      *=================================================================
+       0100-CHECK-CMP.  
+
+           IF SSP05-I-COMPANY-CODE <= SPACES
+              GO TO 0200-CHECK-CRR. 
+
+           IF SSP15-O-CMP-SUB = ZERO
+              IF SSP15-CMP-LIST-IND = 'Y'   
+      *          Record was not found in cache and cache is marked  
+      *          as fully loaded.  Record does not exist.   
+                 MOVE 2 TO DPP42-HOLD-MSG-INDEX 
+                 GO TO 9200-EDIT-ERROR-MSG  
+              END-IF
+      *       Record was not in cache but cache also isn't fully loaded.
+      *       Continue to check if record is on the database.   
+           ELSE 
+              IF SSP15-CMP-UPDATE-FLAG (SSP15-O-CMP-SUB) = 1
+      *          Record was in cache but is marked as having been   
+      *          updated on database.  Continue to get the record from  
+      *          the database.  
+                 NEXT SENTENCE  
+              ELSE  
+      *          Record was in cache so just output that.   
+                 MOVE SSP15-COMPANY-REC (SSP15-O-CMP-SUB) TO
+                      SSP05-O-COMPANY-REC   
+                 GO TO 9000-END-OF-JOB. 
+
+      *    Check database for record.  Load it into the cache if found. 
+      *    If not found, load routine will return error.
+
+           MOVE SSP05-INPUT-PARAMS TO SSP15-INPUT-PARAMS.   
+
+           CALL 'SSO15-LOAD-CMP'   USING DPP42-COMMON-DATA-FIELDS   
+                                         DPP01-COMMON-INFO  
+                                         SSP15-INPUT-PARAMS 
+                                         SSP15-OUTPUT-PARAMS.   
+
+           IF DPP42-SUB-MSG-CTR > ZERO AND DPP42-SUB-MSG-STATUS (1) > 1 
+              GO TO 9500-RETURN-SUBROUTINE-ERROR.   
+
+           MOVE SSP15-COMPANY-REC (SSP15-O-CMP-SUB) TO  
+                SSP05-O-COMPANY-REC.
+
+      *=================================================================
+       0200-CHECK-CRR.  
+
+      *    Paragraph 0100 has comments describing processing steps  
+      *    similar to what is below.
+
+           IF SSP05-I-CRR-CALC-KEY <= SPACES
+              GO TO 0300-CHECK-CTR. 
+
+           IF SSP15-O-CRR-SUB = ZERO
+              IF SSP15-CRR-LIST-IND = 'Y'   
+                 MOVE 3 TO DPP42-HOLD-MSG-INDEX 
+                 GO TO 9200-EDIT-ERROR-MSG  
+              END-IF
+           ELSE 
+              IF SSP15-CRR-UPDATE-FLAG (SSP15-O-CRR-SUB) = 1
+                 NEXT SENTENCE  
+              ELSE  
+                 MOVE SSP15-COMPANY-REFERENCE-REC (SSP15-O-CRR-SUB) TO  
+                      SSP05-O-COMPANY-REFERENCE-REC 
+                 GO TO 9000-END-OF-JOB. 
+
+           MOVE SSP05-INPUT-PARAMS TO SSP15-INPUT-PARAMS.   
+
+           CALL 'SSO15-LOAD-CRR'   USING DPP42-COMMON-DATA-FIELDS   
+                                         DPP01-COMMON-INFO  
+                                         SSP15-INPUT-PARAMS 
+                                         SSP15-OUTPUT-PARAMS.   
+
+           IF DPP42-SUB-MSG-CTR > ZERO AND DPP42-SUB-MSG-STATUS (1) > 1 
+              GO TO 9500-RETURN-SUBROUTINE-ERROR.   
+
+           MOVE SSP15-COMPANY-REFERENCE-REC (SSP15-O-CRR-SUB) TO
+                SSP05-O-COMPANY-REFERENCE-REC.  
+
+      *=================================================================
+       0300-CHECK-CTR.  
+
+      *    Paragraph 0100 has comments describing processing steps  
+      *    similar to what is below.
+
+           IF SSP05-I-TSHD-TYPE <= SPACES   
+              GO TO 9000-END-OF-JOB.
+
+           IF SSP15-O-CTR-SUB = ZERO
+              IF SSP15-CTR-LIST-IND = 'Y'   
+                 MOVE 4 TO DPP42-HOLD-MSG-INDEX 
+                 GO TO 9200-EDIT-ERROR-MSG  
+              END-IF
+           ELSE 
+              IF SSP15-CTR-UPDATE-FLAG (SSP15-O-CTR-SUB) = 1
+                 NEXT SENTENCE  
+              ELSE  
+                 MOVE SSP15-COMPANY-THRESHOLD-REC (SSP15-O-CTR-SUB) TO  
+                      SSP05-O-COMPANY-THRESHOLD-REC 
+                 GO TO 9000-END-OF-JOB. 
+
+           MOVE SSP05-INPUT-PARAMS TO SSP15-INPUT-PARAMS.   
+
+           CALL 'SSO15-LOAD-CTR'   USING DPP42-COMMON-DATA-FIELDS   
+                                         DPP01-COMMON-INFO  
+                                         SSP15-INPUT-PARAMS 
+                                         SSP15-OUTPUT-PARAMS.   
+
+           IF DPP42-SUB-MSG-CTR > ZERO AND DPP42-SUB-MSG-STATUS (1) > 1 
+              GO TO 9500-RETURN-SUBROUTINE-ERROR.   
+
+           MOVE SSP15-COMPANY-THRESHOLD-REC (SSP15-O-CTR-SUB) TO
+                SSP05-O-COMPANY-THRESHOLD-REC.  
+
+      *=================================================================
+       9000-END-OF-JOB. 
+           GO TO DPP42-END-OF-JOB.  
+
+       9200-EDIT-ERROR-MSG. 
+           PERFORM DPP42-EDIT-ERROR-MSG 
+              THRU DPP42-EDIT-ERROR-MSG-EXIT.   
+
+           GO TO DPP42-END-OF-JOB.  
+
+       9500-RETURN-SUBROUTINE-ERROR.
+           GO TO DPP42-RETURN-SUBROUTINE-ERROR. 
+
+       COPY DPP42SER.   
+       COPY DPP42NDB.   

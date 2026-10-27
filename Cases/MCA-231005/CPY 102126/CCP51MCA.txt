@@ -1,0 +1,133 @@
+CCP51MCA PROC   
+************************************************************************
+      * JAN-02-2013     DH7     TCS LTD.               CQ149284        *
+      * DESCRIPTON: 
+      *            INPUT MESSAGE PROC FOR MULTI CABIN AVAILABILITY     *
+************************************************************************
+PPC470* 24-MAY-18     STP     TCS LTD.               PPC470            *
+PPC470* MULTI CABIN AVAILABILTY FOR PPC PROJECT.                       *
+************************************************************************
+231005* 01-SEP-26     QG5     TCS LTD.               ADO2310057        *
+231005* INTRODUCED A NEW OPTIONAL REQ FIELD, IF 'Y', RESPONSE WILL ONLY*
+231005* HAVE CONNECTED CABINS AS PER INPUT FILTERS.                    *
+************************************************************************
+
+           IF CCMV-SEGMENT-NAME NOT = 'MCAVL1'  
+              GO TO CCP51-CONTINUE-1
+           END-IF.  
+           MOVE SPACES          TO MCAVL1-SEGMENT.  
+
+           UNSTRING CC-MESSAGE-WORKSPACE
+                    DELIMITED BY CCC-EOE-CHR OR CCC-EOS-CHR 
+                    INTO MCAVL1-SAIL-ID 
+                         MCAVL1-SAIL-DATE   
+                         MCAVL1-DURATION-DAYS   
+                         MCAVL1-SHIP-CODE   
+                         MCAVL1-CURRENCY-CODE   
+                         MCAVL1-META-CAT-CODE   
+231005                   MCAVL1-CONNECT-REQ-IND 
+231005                   MCAVL1-LOCATION-CODE   
+231005                   MCAVL1-DECK-CODE   
+                    DELIMITER CCMV-DELIMITER
+                    POINTER CCMV-MESSAGE-PTR.   
+
+           GO TO CCP50-GET-NEXT-SEGMENT.
+
+
+       CCP51-CONTINUE-1.
+
+           IF CCMV-SEGMENT-NAME NOT = 'MCACIN'  
+              GO TO CCP51-CONTINUE-2
+           END-IF.  
+           ADD 1                TO MCACIN-SUB.  
+           IF MCACIN-SUB > MCACIN-SEGMENT-MAX   
+              MOVE 25           TO CCMV-ERROR-SUB   
+              GO TO CCP75-EXIT  
+           END-IF.  
+
+           UNSTRING CC-MESSAGE-WORKSPACE
+                   DELIMITED BY CCC-EOE-CHR OR CCC-EOS-CHR  
+                   INTO MCACIN-SEQ-NUM         (MCACIN-SUB) 
+                        MCACIN-HOME-STATE-CODE (MCACIN-SUB) 
+                        MCACIN-PAST-GUEST-IND  (MCACIN-SUB) 
+                        MCACIN-SENIOR-IND      (MCACIN-SUB) 
+                        MCACIN-NUM-PAX         (MCACIN-SUB) 
+PPC470*                 MCACIN-RATE-CODE       (MCACIN-SUB) 
+PPC470                  MCACIN-OFFER-CODE      (MCACIN-SUB) 
+                        MCACIN-CAT-CODE        (MCACIN-SUB) 
+                        MCACIN-TRANS-TYPE      (MCACIN-SUB) 
+                        MCACIN-CITY-CODE       (MCACIN-SUB) 
+PPC470                  MCACIN-COUPON-CODE     (MCACIN-SUB) 
+231005                  MCACIN-CABIN-TYPE      (MCACIN-SUB) 
+                   DELIMITER CCMV-DELIMITER 
+                   POINTER CCMV-MESSAGE-PTR.
+
+           GO TO CCP50-GET-NEXT-SEGMENT.
+       CCP51-CONTINUE-2.
+
+           IF CCMV-SEGMENT-NAME NOT = 'MCAGIN'  
+              GO TO CCP51-CONTINUE-3
+           END-IF.  
+           ADD 1                TO MCAGIN-SUB.  
+           IF MCAGIN-SUB > MCAGIN-SEGMENT-MAX   
+              MOVE 26           TO CCMV-ERROR-SUB   
+              GO TO CCP75-EXIT  
+           END-IF.  
+
+           UNSTRING CC-MESSAGE-WORKSPACE
+                   DELIMITED BY CCC-EOE-CHR OR CCC-EOS-CHR  
+                   INTO MCAGIN-OWNER-SUB       (MCAGIN-SUB) 
+                        MCAGIN-PAX-SEQ-NUM     (MCAGIN-SUB) 
+                        MCAGIN-BIRTH-DATE      (MCAGIN-SUB) 
+                        MCAGIN-PAST-GUEST-NUM  (MCAGIN-SUB) 
+                        MCAGIN-HOME-STATE-CODE (MCAGIN-SUB) 
+                        MCAGIN-TIER-CODE       (MCAGIN-SUB) 
+PPC470                  MCAGIN-INTERLINE-IND   (MCAGIN-SUB) 
+PPC470                  MCAGIN-MILITARY-IND    (MCAGIN-SUB) 
+
+
+                   DELIMITER CCMV-DELIMITER 
+                   POINTER CCMV-MESSAGE-PTR.
+
+           GO TO CCP50-GET-NEXT-SEGMENT.
+       CCP51-CONTINUE-3.
+
+           IF CCMV-SEGMENT-NAME NOT = 'MCARCP'  
+              GO TO CCP51-CONTINUE-4
+           END-IF.  
+           ADD 1                TO MCARCP-SUB.  
+           IF MCARCP-SUB > MCARCP-SEGMENT-MAX   
+              MOVE 27           TO CCMV-ERROR-SUB   
+              GO TO CCP75-EXIT  
+           END-IF.  
+
+           UNSTRING CC-MESSAGE-WORKSPACE
+                   DELIMITED BY CCC-EOE-CHR OR CCC-EOS-CHR  
+                   INTO MCARCP-SEQ-NUM     (MCARCP-SUB) 
+                   DELIMITER CCMV-DELIMITER 
+                   POINTER CCMV-MESSAGE-PTR.
+
+           GO TO CCP50-GET-NEXT-SEGMENT.
+       CCP51-CONTINUE-4.
+           IF CCMV-SEGMENT-NAME NOT = 'MCASCI'  
+              GO TO CCP51-CONTINUE-5
+           END-IF.  
+           ADD 1                TO MCASCI-SUB.  
+           IF MCASCI-SUB > MCASCI-SEGMENT-MAX   
+              MOVE 28           TO CCMV-ERROR-SUB   
+              GO TO CCP75-EXIT  
+           END-IF.  
+
+           UNSTRING CC-MESSAGE-WORKSPACE
+                   DELIMITED BY CCC-EOE-CHR OR CCC-EOS-CHR  
+                   INTO MCASCI-OWNER-SUB     (MCASCI-SUB)   
+                        MCASCI-META-CAT-CODE (MCASCI-SUB)   
+                        MCASCI-NUM-CABINS (MCASCI-SUB)  
+                   DELIMITER CCMV-DELIMITER 
+                   POINTER CCMV-MESSAGE-PTR.
+
+           GO TO CCP50-GET-NEXT-SEGMENT.
+       CCP51-CONTINUE-5.
+
+ END PROC   
+

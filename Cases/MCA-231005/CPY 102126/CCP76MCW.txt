@@ -1,0 +1,151 @@
+CCP76MCW PROC   
+************************************************************************
+      * JAN-02-2013     DH7     TCS LTD.               CQ149284        *
+      * DESCRIPTON:                                                    *
+      *    WORKING STORAGE FOR MULTI CABIN AVAILABILITY                *
+************************************************************************
+197510* 21-JUL-16     SG8     TCS LTD.               CQ197510          *
+197510* ADDED MCAADV SEGMENT IN MCACAV SEGMENT TO PROVIDE MULTIPLE     *
+197510* ADVISORIES.                                                    *
+************************************************************************
+PPC470* 24-MAY-18     STP     TCS LTD.               PPC470            *
+PPC470* MULTI CABIN AVAILABILTY FOR PPC PROJECT.                       *
+************************************************************************
+218342* 22-APR-20     S0M                            CQ218342          *
+218342* Ensure no truncation in any Itinerary Description Used         *
+************************************************************************
+231005* 01-SEP-26     QG5     TCS LTD.               ADO2310057        *
+231005* INTRODUCED A NEW OPTIONAL REQ FIELD, IF 'Y', RESPONSE WILL ONLY*
+231005* HAVE CONNECTED CABINS AS PER INPUT FILTERS.                    *
+************************************************************************
+
+       01  CCP76-MCA-MISC.  
+           03  MCACIN-SUB                         PIC 9(02).
+           03  MCAGIN-SUB                         PIC 9(02).
+           03  MCARCP-SUB                         PIC 9(02).
+           03  MCASCI-SUB                         PIC 9(02).
+           03  MCACAG-SUB                         PIC 9(02).
+           03  MCACAV-SUB                         PIC 9(02).
+197510     03  MCAADV-SUB                         PIC 9(01).
+       01  MCACIN-SEGMENT-MAX                     PIC 9(01) VALUE 5.
+       01  MCAGIN-SEGMENT-MAX                     PIC 9(02) VALUE 25.   
+       01  MCARCP-SEGMENT-MAX                     PIC 9(01) VALUE 5.
+       01  MCASCI-SEGMENT-MAX                     PIC 9(02) VALUE 25.   
+       01  MCACAG-SEGMENT-MAX                     PIC 9(02) VALUE 10.   
+       01  MCACAV-SEGMENT-MAX                     PIC 9(02) VALUE 50.   
+
+       01  MCAVL1-SEGMENT.  
+           03  MCAVL1-SAIL-ID                     PIC X(20).
+           03  MCAVL1-SAIL-DATE                   PIC 9(08).
+           03  MCAVL1-DURATION-DAYS               PIC 9(03).
+           03  MCAVL1-SHIP-CODE                   PIC X(02).
+           03  MCAVL1-CURRENCY-CODE               PIC X(03).
+           03  MCAVL1-META-CAT-CODE               PIC X(02).
+231005     03  MCAVL1-CONNECT-REQ-IND             PIC X(01).
+231005     03  MCAVL1-LOCATION-CODE               PIC X(01).
+231005     03  MCAVL1-DECK-CODE                   PIC X(02).
+
+       01  MCACIN-TABLE.
+           03  MCACIN-SEGMENT OCCURS 5 TIMES.   
+               05  MCACIN-SEQ-NUM                 PIC 9(01).
+               05  MCACIN-HOME-STATE-CODE         PIC X(02).
+               05  MCACIN-PAST-GUEST-IND          PIC X(01).
+               05  MCACIN-SENIOR-IND              PIC X(01).
+               05  MCACIN-NUM-PAX                 PIC 9(01).
+PPC470*        05  MCACIN-RATE-CODE               PIC X(05).
+PPC470         05  MCACIN-OFFER-CODE              PIC X(20).
+               05  MCACIN-CAT-CODE                PIC X(03).
+               05  MCACIN-TRANS-TYPE              PIC X(01).
+               05  MCACIN-CITY-CODE               PIC X(03).
+PPC470         05  MCACIN-COUPON-CODE             PIC X(40).
+231005         05  MCACIN-CABIN-TYPE              PIC X(07).
+
+
+       01  MCAGIN-TABLE.
+           03  MCAGIN-SEGMENT OCCURS 25 TIMES.  
+               05  MCAGIN-OWNER-SUB               PIC 9(01).
+               05  MCAGIN-PAX-SEQ-NUM             PIC 9(05).
+               05  MCAGIN-BIRTH-DATE              PIC 9(08).
+               05  MCAGIN-PAST-GUEST-NUM          PIC X(10).
+               05  MCAGIN-HOME-STATE-CODE         PIC X(02).
+               05  MCAGIN-TIER-CODE               PIC X(02).
+PPC470         05  MCAGIN-INTERLINE-IND           PIC X(01).
+PPC470         05  MCAGIN-MILITARY-IND            PIC X(01).
+
+
+
+       01  MCARCP-TABLE.
+           03  MCARCP-SEGMENT OCCURS 5 TIMES.   
+               05  MCARCP-SEQ-NUM                  PIC 9(01).   
+
+       01  MCASCI-TABLE.
+           03  MCASCI-SEGMENT OCCURS 25 TIMES.  
+               05  MCASCI-OWNER-SUB               PIC 9(01).
+               05  MCASCI-META-CAT-CODE           PIC X(02).
+               05  MCASCI-NUM-CABINS              PIC 9(01).
+
+
+       01  MCASAV-SEGMENT.  
+           03  MCASAV-SAIL-ID                     PIC X(20).
+           03  MCASAV-STATUS-CODE                 PIC X(01).
+           03  MCASAV-SHIP-CODE                   PIC X(02).
+           03  MCASAV-SAIL-DATE                   PIC 9(08).
+           03  MCASAV-DURATION-DAYS               PIC 9(03).
+           03  MCASAV-EMBARK-CODE                 PIC X(03).
+           03  MCASAV-DEBARK-CODE                 PIC X(03).
+           03  MCASAV-ITINERARY-CODE              PIC X(03).
+218342*    03  MCASAV-ITINERARY-DESC              PIC X(30).
+218342     03  MCASAV-ITINERARY-DESC              PIC X(40).
+           03  MCASAV-OPTION-DATE                 PIC 9(08).
+           03  MCASAV-OPTION-TIME                 PIC X(06).
+           03  MCASAV-OPTION-TZONE                PIC X(05).
+
+       01  MCACAG-TABLE.
+           03  MCACAG-SEGMENT OCCURS 10 TIMES.  
+               05  MCACAG-DECK-CODE               PIC X(02).
+               05  MCACAG-FWD-MID-AFT-CODE        PIC X(01).
+               05  MCACAG-TOTAVG-CABIN-AMT        PIC S9(05)V9(02). 
+               05  MCACAG-TOTAVG-ADDON-AMT        PIC S9(05)V9(02). 
+               05  MCACAG-TOTAVG-CRUISE-AMT       PIC S9(05)V9(02). 
+               05  MCACAG-TOTAL-CRUISE-AMT        PIC S9(05)V9(02). 
+               05  MCACAG-RCP-SEQ-NUM             PIC 9(01).
+
+       01  MCACAV-TABLE.
+           03  MCACAV-SEGMENT OCCURS 50 TIMES.  
+               05  MCACAV-OWNER-SUB               PIC 9(02).
+PPC470*        05  MCACAV-RATE-CODE               PIC X(05).
+PPC470         05  MCACAV-OFFER-CODE              PIC X(20).
+               05  MCACAV-CABIN-NUM               PIC X(06).
+               05  MCACAV-UPGRADE-CODE            PIC X(03).
+               05  MCACAV-META-CAT-CODE           PIC X(02).
+               05  MCACAV-CAT-CODE                PIC X(02).
+               05  MCACAV-AVG-CABIN-AMT           PIC S9(05)V9(02). 
+               05  MCACAV-AVG-ADDON-AMT           PIC S9(05)V9(02). 
+               05  MCACAV-TOT-CABIN-AMT           PIC S9(05)V9(02). 
+               05  MCACAV-TOT-CRUISE-AMT          PIC S9(05)V9(02). 
+               05  MCACAV-CONNECT-CABIN-NUM       PIC X(06).
+               05  MCACAV-SEQ-NUM                 PIC 9(01).
+197510*        05  MCACAV-ADVISORY-CODE           PIC 9(04).
+197510*        05  MCACAV-ADVISORY-TEXT           PIC X(250).   
+197510*        05  MCACAV-CONDITION-CODE          PIC X(25).
+               05  MCACAV-CABIN-TYPE              PIC X(07).
+197510         05  MCACAV-ADVISORY OCCURS 5 TIMES.  
+197510             07  MCAADV-SEGMENT.  
+197510                 09  MCAADV-ADVISORY-CODE   PIC 9(04).
+197510                 09  MCAADV-ADVISORY-TEXT   PIC X(250).   
+197510                 09  MCAADV-CONDITION-CODE  PIC X(25).
+
+ END PROC   
+
+CCP76MCI PROC   
+           MOVE ZEROES TO CCP76-MCA-MISC.   
+
+
+           MOVE LOW-VALUES TO MCAVL1-SEGMENT
+                              MCACIN-TABLE  
+                              MCAGIN-TABLE  
+                              MCARCP-TABLE  
+                              MCASCI-TABLE  
+                              MCACAG-TABLE  
+                              MCACAV-TABLE. 
+ END PROC   

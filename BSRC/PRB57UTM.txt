@@ -1,0 +1,754 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.    PRB57UTM. 
+       DATE-WRITTEN.  NOV 5, 2025.  
+       DATE-COMPILED.   
+************************************************************************
+      * 5 NOV 2025 PGK                                                 *
+      *    THIS JOB UPDATES TARGET_OFFER_MASTER RECORDS USING INPUT    *
+      *    FILE RECEIVED THRU FTP UPLOADER, AFTER COMPLETE FEILD       *
+      *    VALIDATION, ALL INVALID FEILDS ARE LOGGED IN A CONSOLIDATED *
+      *    EXCEPTION REPORT.VALID ENTRIES ARE COMPARED WITH DB,        *
+      *    UPDATED IF DIFFERENT AND COMMITED.                          *
+      *    FINALLY, BACKUP IS GENERATED.                               *
+      *                                                                *
+      *    INPUT-FILE     : CCL*PRBUTMINP                              *
+      *    EXCEPTION-FILE : CCL*PRBUTM01P                              *
+      *                                                                *
+      *  INPUT-FILE IN CSV FORMAT.                                     *
+      *    OFFER_ID        - 6 DIGITS ONLY                             *
+      *    MAX_REDEEM_CNT  - INTEGER (VALUES 1-99)                     *
+      *    STATUS          - O (OPEN) / C (CLOSE)                      *
+      *    BOOK_BEGIN_DATE - YYYYMMDD                                  *
+      *    BOOK_END_DATE   - YYYYMMDD                                  *
+      *    SAIL_BEGIN_DATE - YYYYMMDD                                  *
+      *    SAIL_END_DATE   - YYYYMMDD                                  *
+************************************************************************
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER. UNISYS. 
+       OBJECT-COMPUTER. UNISYS  MEMORY SIZE 3 MODULES.  
+       SPECIAL-NAMES.   
+           PRINTER IS PRT   
+           PRINTER IS PRINTER.  
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT INPUT-FILE        ASSIGN TO DISC    PRBUTM01D.
+           SELECT EXCEPTION-FILE    ASSIGN TO DISC    PRBUTM01P.
+
+       DATA DIVISION.   
+       SUBSCHEMA SECTION.   
+       INVOKE SUBSCHEMA PST100UCOBSU
+              IN FILE SUBSCHEMAS OF SCHEMA PST100SCHEMA 
+              COPYING RECORDS    INTO COMMON
+              COPYING DATA-NAMES INTO COMMON
+              OVERLAY PAX-REC WITH PAX-CXF-REC  
+                                   PAX-VI-REC   
+              SAVE DATA INCLUDES DEFERRED-UPDATES   
+              DMCA  COMMON  
+              ERROR RECOVERY IS 9100-DATABASE-ERROR 
+              ROLLBACK       IS 9100-DATABASE-ERROR.
+
+       FILE SECTION.
+       FD  INPUT-FILE   
+           LABEL RECORDS ARE STANDARD.  
+       01  INPUT-REC                            PIC X(48).  
+
+       FD  EXCEPTION-FILE   
+           LABEL RECORDS ARE STANDARD.  
+       01  EXCEPTION-REC.   
+           05  OUT-SEQ-NO                       PIC 9(05).  
+           05  FILLER-E-1                       PIC X(01).  
+           05  OUT-OFFER-ID                     PIC X(10).  
+           05  FILLER-E-2                       PIC X(01).  
+           05  OUT-EXCEPTION-COMMENT            PIC X(390). 
+           05  FILLER-E-3                       PIC X(01).  
+
+       WORKING-STORAGE SECTION. 
+       01  WS-PROG-ID                           PIC X(08) VALUE 
+                                                            'PRB57UTM'. 
+       01  MCFLAG                               PIC 9(10) BINARY.   
+
+       01  WS-INPUT-REC.
+           05 WS-INP-OFFER-ID                   PIC X(06).  
+           05 WS-INP-MAX-REDEMPTION             PIC 9(03).  
+           05 WS-INP-STATUS                     PIC X(01).  
+           05 WS-INP-START-BOOK-DATE            PIC X(08).  
+           05 WS-INP-END-BOOK-DATE              PIC X(08).  
+           05 WS-INP-START-SAIL-DATE            PIC X(08).  
+           05 WS-INP-END-SAIL-DATE              PIC X(08).  
+
+       01  WS-INVALID-DATA. 
+           05 WS-INVALID-NAME  OCCURS 20 TIMES  PIC X(40).  
+
+       01  WS-HDG1-REC. 
+           03 FILLER VALUE 'Total no. of records read = '   
+                                               PIC X(28).   
+           03 WS-HDG1-CNT                      PIC 9(10).   
+
+       01  WS-HDG2-REC. 
+           03 FILLER VALUE 'No of entries processed = ' 
+                                               PIC X(28).   
+           03 WS-HDG2-CNT                      PIC 9(10).   
+
+       01  WS-HDG3-REC. 
+           03 FILLER VALUE 'Total no. of exceptions = ' 
+                                               PIC X(28).   
+           03 WS-HDG3-CNT                      PIC 9(10).   
+
+       01  WS-NUMERIC.  
+           05  WS-INVALID-COUNT                 PIC 9(10) BINARY.   
+           05  WS-EXCEPTION-COUNT               PIC 9(10) BINARY.   
+           05  WS-MAX-REDEMPTION                PIC 9(10).  
+           05  WS-INP-SEQ-NUM                   PIC 9(10) BINARY.   
+           05  WS-SUB2                          PIC 9(10) BINARY.   
+           05  WS-CNT                           PIC 9(10) BINARY.   
+           05  WS-FREE-CTR                      PIC 9(10) BINARY.   
+           05  WS-UPD-CNT                       PIC 9(10) BINARY.   
+           05  WS-INP-UPD-CNT                   PIC 9(10) BINARY.   
+
+       01  WS-ALPHANUMERIC. 
+           05  WS-COMMENT                       PIC X(200) VALUE SPACES.
+           05  WS-COMMENT-HOLD                  PIC X(200) VALUE SPACES.
+           05  WS-I-USER-ID                     PIC X(16).  
+           05  WS-DIFFER-FLAG                   PIC X(01).  
+           05  WS-STATUS                        PIC X(01).  
+           05  WS-START-BOOK-DATE               PIC X(08).  
+           05  WS-END-BOOK-DATE                 PIC X(08).  
+           05  WS-START-SAIL-DATE               PIC X(08).  
+           05  WS-END-SAIL-DATE                 PIC X(08).  
+           05  WS-SYSTEM-DATE                   PIC X(08).  
+           05  WS-OFFER-ID-FINAL                PIC X(10).  
+           05  WS-ACTIVITY-CODE                 PIC X(03).  
+           05  WS-ACTIVITY-COMMENT              PIC X(225). 
+           05  WS-MIN-OFFER-ID. 
+               10  WS-MIN-OFFER-ID-FIRST-SIX    PIC X(06).  
+               10  WS-MIN-OFFER-ID-LAST-FOUR    PIC X(04).  
+           05  WS-MAX-OFFER-ID. 
+               10  WS-MAX-OFFER-ID-FIRST-SIX    PIC X(06).  
+               10  WS-MAX-OFFER-ID-LAST-FOUR    PIC X(04).  
+           05  WS-RDMS-START-BOOK-DATE-TIME.
+               10  WS-INP-START-BOOK-DATE-YYYY  PIC X(4).   
+               10  FILLER                       PIC X  VALUE '-'.   
+               10  WS-INP-START-BOOK-DATE-MM    PIC XX. 
+               10  FILLER                       PIC X  VALUE '-'.   
+               10  WS-INP-START-BOOK-DATE-DD    PIC XX. 
+               10  WS-RDMS-START-DATE-TIME-BLK  PIC X.  
+               10  WS-INP-START-BOOK-TIME-HH    PIC 9(02).  
+               10  WS-RDMS-START-DATE-TIME-COL1 PIC X.  
+               10  WS-INP-START-BOOK-TIME-MM    PIC 9(02).  
+               10  WS-RDMS-START-DATE-TIME-COL2 PIC X.  
+               10  WS-INP-START-BOOK-TIME-SS    PIC 9(02).  
+           05  WS-RDMS-END-BOOK-DATE-TIME.  
+               10  WS-INP-END-BOOK-DATE-YYYY    PIC X(4).   
+               10  FILLER                       PIC X  VALUE '-'.   
+               10  WS-INP-END-BOOK-DATE-MM      PIC XX. 
+               10  FILLER                       PIC X  VALUE '-'.   
+               10  WS-INP-END-BOOK-DATE-DD      PIC XX. 
+               10  WS-RDMS-END-DATE-TIME-BLK    PIC X.  
+               10  WS-INP-END-BOOK-TIME-HH      PIC 9(02).  
+               10  WS-RDMS-END-DATE-TIME-COL1   PIC X.  
+               10  WS-INP-END-BOOK-TIME-MM      PIC 9(02).  
+               10  WS-RDMS-END-DATE-TIME-COL2   PIC X.  
+               10  WS-INP-END-BOOK-TIME-SS      PIC 9(02).  
+           05  WS-RDMS-INP-START-SAIL-DATE. 
+               10  WS-INP-START-SAIL-DATE-YYYY  PIC X(4).   
+               10  FILLER                       PIC X  VALUE '-'.   
+               10  WS-INP-START-SAIL-DATE-MM    PIC XX. 
+               10  FILLER                       PIC X  VALUE '-'.   
+               10  WS-INP-START-SAIL-DATE-DD    PIC XX. 
+           05  WS-RDMS-INP-END-SAIL-DATE.   
+               10  WS-INP-END-SAIL-DATE-YYYY    PIC X(4).   
+               10  FILLER                       PIC X  VALUE '-'.   
+               10  WS-INP-END-SAIL-DATE-MM      PIC XX. 
+               10  FILLER                       PIC X  VALUE '-'.   
+               10  WS-INP-END-SAIL-DATE-DD      PIC XX. 
+
+       COPY DPP01CIW.   
+       COPY DPP01DTA.   
+       COPY DPP01ERR.   
+       COPY DPP01MCB.   
+       COPY DPP01SCO.   
+       COPY DPP02Y2K.   
+       COPY DPP12SCO.   
+       COPY DPP42ERR.   
+       COPY RSP00DMS.   
+       COPY RSP32DMS.   
+       COPY RSP64DMS.   
+       COPY RSP77GMD.   
+       COPY SSP18GUD.   
+
+       COMMON-STORAGE SECTION.  
+
+       PROCEDURE DIVISION.  
+       0000-MAIN-LINE.  
+           COPY DPP01INT.   
+
+           PERFORM DPP12-BEGIN-THREAD THRU  
+                   DPP12-BEGIN-THREAD-EXIT. 
+
+           IF  DPP01-SQL-ERROR-IND = 'Y'
+               GO TO DPP12-THREAD-ERROR-EXIT.   
+
+           EXEC SQL 
+               USE DEFAULT SCHEMA PSTRDMS   
+           END-EXEC.
+
+           EXEC SQL WHENEVER SQLERROR   
+                CONTINUE
+           END-EXEC.
+
+           EXEC SQL WHENEVER NOT FOUND  
+                CONTINUE
+           END-EXEC.
+
+           OPEN INPUT  INPUT-FILE   
+                OUTPUT EXCEPTION-FILE.  
+
+           ACCEPT DPP02-YYYYMMDD-DATE FROM DATE YYYYMMDD.   
+           MOVE DPP02-YYYYMMDD-DATE     TO WS-SYSTEM-DATE.  
+
+           MOVE FUNCTION CURRENT-DATE   TO DPP01-SYSTEM-DATE-TIME.  
+
+           IMPART.  
+
+           OPEN DTRF USAGE-MODE IS UPDATE.  
+
+           READ INPUT-FILE  
+               AT END GO TO 9000-END-OF-JOB.
+
+           UNSTRING INPUT-REC   
+               DELIMITED BY ',' 
+               INTO WS-I-USER-ID.   
+
+           COPY SSP18INT.   
+
+           IF WS-I-USER-ID = 'AUTOFTP-UTM'  
+              MOVE 'SYS'                TO DPP01-3CHAR-USERID   
+              MOVE 'AUTOFTP-UTM'        TO DPP01-USERID 
+              CONTINUE  
+           ELSE 
+              MOVE FUNCTION UPPER-CASE(WS-I-USER-ID)
+                                        TO SSP18-I-NT-UID   
+              CALL 'SSC18GUD' USING        DPP01-COMMON-DATA-FIELDS 
+                                           DPP01-COMMON-INFO
+                                           SSP18-INPUT-PARAMS   
+                                           SSP18-OUTPUT-PARAMS  
+
+              IF DPP01-SUB-MSG-CTR > 0 AND  
+                 DPP01-SUB-MSG-STATUS (1) > 1   
+                 MOVE ZEROES            TO OUT-SEQ-NO   
+                                           OUT-OFFER-ID 
+                 MOVE 'User Id cannot be found' 
+                                        TO OUT-EXCEPTION-COMMENT
+                 ADD 1                  TO WS-EXCEPTION-COUNT   
+                 WRITE EXCEPTION-REC
+                 GO TO DPP12-END-OF-JOB 
+              END-IF
+              MOVE WS-I-USER-ID         TO DPP01-USERID 
+              MOVE SSP18-O-NTUR-MAPPER-UID  
+                                        TO DPP01-3CHAR-USERID   
+           END-IF.  
+
+      * To ignore header of input file. 
+           READ INPUT-FILE  
+               AT END GO TO 9000-END-OF-JOB.
+
+           MOVE ZEROS                   TO WS-INP-UPD-CNT.  
+
+       0100-READ-INPUT-PARAM.   
+
+           MOVE ZEROS                   TO WS-UPD-CNT.  
+           READ INPUT-FILE  
+                AT END GO TO 9000-END-OF-JOB.   
+
+           ADD  1                       TO WS-INP-SEQ-NUM.  
+
+           MOVE ZEROS                   TO WS-CNT   
+                                           OUT-SEQ-NO   
+                                           WS-INVALID-COUNT.
+           MOVE SPACES                  TO WS-COMMENT   
+                                           OUT-OFFER-ID 
+                                           OUT-EXCEPTION-COMMENT.   
+           MOVE '|'                     TO FILLER-E-1   
+                                           FILLER-E-2 FILLER-E-3.   
+
+           UNSTRING INPUT-REC   
+               DELIMITED BY ',' 
+               INTO WS-INP-OFFER-ID 
+                    WS-INP-MAX-REDEMPTION   
+                    WS-INP-STATUS   
+                    WS-INP-START-BOOK-DATE  
+                    WS-INP-END-BOOK-DATE
+                    WS-INP-START-SAIL-DATE  
+                    WS-INP-END-SAIL-DATE.   
+
+      *---------------------------VALIDATE EACH FEILD   
+           IF  WS-INP-OFFER-ID <= SPACES
+               ADD 1                    TO WS-INVALID-COUNT 
+               MOVE 'OFFER-ID'          TO WS-INVALID-NAME  
+                                        (WS-INVALID-COUNT)  
+           END-IF.  
+
+           IF  WS-INP-MAX-REDEMPTION < 1 OR WS-INP-MAX-REDEMPTION > 99  
+               ADD 1                    TO WS-INVALID-COUNT 
+               MOVE 'MAX-REDEMPTION'    TO WS-INVALID-NAME  
+                                        (WS-INVALID-COUNT)  
+           END-IF.  
+
+           IF  (WS-INP-STATUS = 'O' OR 'C') 
+               CONTINUE 
+           ELSE 
+               ADD 1                    TO WS-INVALID-COUNT 
+               MOVE 'STATUS'            TO WS-INVALID-NAME  
+                                        (WS-INVALID-COUNT)  
+           END-IF.  
+
+           IF  WS-INP-START-BOOK-DATE <= SPACES 
+               ADD 1                    TO WS-INVALID-COUNT 
+               MOVE 'BOOKING-BEGIN-DATE'
+                                        TO WS-INVALID-NAME  
+                                           (WS-INVALID-COUNT)   
+           END-IF.  
+
+           MOVE WS-INP-START-BOOK-DATE  TO DPP02-YYYYMMDD-DATE. 
+           PERFORM DPP10-VALIDATE-YYYYMMDD-DATE.
+
+           IF  DPP02-IS-DATE-VALID = 'N'
+               ADD 1                    TO WS-INVALID-COUNT 
+               MOVE 'BOOK-START-DATE'   TO WS-INVALID-NAME  
+                                        (WS-INVALID-COUNT)  
+           END-IF.  
+           MOVE WS-INP-END-BOOK-DATE    TO DPP02-YYYYMMDD-DATE. 
+           PERFORM DPP10-VALIDATE-YYYYMMDD-DATE.
+
+           IF  DPP02-IS-DATE-VALID = 'N'
+               ADD 1                    TO WS-INVALID-COUNT 
+               MOVE 'BOOK-END-DATE'   TO WS-INVALID-NAME
+                                        (WS-INVALID-COUNT)  
+           END-IF.  
+
+           MOVE WS-INP-START-SAIL-DATE  TO DPP02-YYYYMMDD-DATE. 
+           PERFORM DPP10-VALIDATE-YYYYMMDD-DATE.
+
+           IF  DPP02-IS-DATE-VALID = 'N'
+               ADD 1                    TO WS-INVALID-COUNT 
+               MOVE 'SAIL-START-DATE'   TO WS-INVALID-NAME  
+                                        (WS-INVALID-COUNT)  
+           END-IF.  
+
+           MOVE WS-INP-END-SAIL-DATE    TO DPP02-YYYYMMDD-DATE. 
+           PERFORM DPP10-VALIDATE-YYYYMMDD-DATE.
+
+           IF  DPP02-IS-DATE-VALID = 'N'
+               ADD 1                    TO WS-INVALID-COUNT 
+               MOVE 'SAIL-END-DATE'   TO WS-INVALID-NAME
+                                        (WS-INVALID-COUNT)  
+           END-IF.  
+
+           IF  WS-INP-END-BOOK-DATE <= WS-SYSTEM-DATE   
+               ADD 1                    TO WS-INVALID-COUNT 
+               MOVE 'BOOKING-END-DATE'  TO WS-INVALID-NAME  
+                                        (WS-INVALID-COUNT)  
+           END-IF.  
+
+           IF  WS-INP-START-SAIL-DATE = SPACES  
+               ADD 1                    TO WS-INVALID-COUNT 
+               MOVE 'SAILING-BEGIN-DATE'
+                                        TO WS-INVALID-NAME  
+                                        (WS-INVALID-COUNT)  
+           END-IF.  
+
+           IF  WS-INP-END-SAIL-DATE <= WS-SYSTEM-DATE   
+               ADD 1                    TO WS-INVALID-COUNT 
+               MOVE 'SAILING-END-DATE'  TO WS-INVALID-NAME  
+                                        (WS-INVALID-COUNT)  
+           END-IF.  
+
+           IF  WS-INP-END-BOOK-DATE <  WS-INP-START-BOOK-DATE   
+               ADD 1                    TO WS-INVALID-COUNT 
+               MOVE 'BOOK-END-DATE<BOOK-START-DATE' 
+                                        TO WS-INVALID-NAME  
+                                        (WS-INVALID-COUNT)  
+           END-IF.  
+
+           IF  WS-INP-END-SAIL-DATE < WS-INP-START-SAIL-DATE
+               ADD 1                    TO WS-INVALID-COUNT 
+               MOVE 'SAILING-END-DATE<SAILING-START-DATE'   
+                                        TO WS-INVALID-NAME  
+                                        (WS-INVALID-COUNT)  
+           END-IF.  
+
+           IF  WS-INP-END-SAIL-DATE < WS-INP-END-BOOK-DATE  
+               ADD 1                    TO WS-INVALID-COUNT 
+               MOVE 'SAILING-END-DATE<BOOK-END-DATE'
+                                        TO WS-INVALID-NAME  
+                                        (WS-INVALID-COUNT)  
+           END-IF.  
+
+           IF  WS-INVALID-COUNT > 0 
+               PERFORM VARYING WS-SUB2 FROM 1 BY 1  
+                   UNTIL WS-SUB2 > WS-INVALID-COUNT 
+                   IF  WS-SUB2 = 1  
+                       STRING WS-INVALID-NAME(WS-SUB2)  
+                           DELIMITED BY SPACE INTO WS-COMMENT   
+                   ELSE 
+                       MOVE WS-COMMENT  TO WS-COMMENT-HOLD  
+                       MOVE SPACES      TO WS-COMMENT   
+                       STRING WS-COMMENT-HOLD   
+                           DELIMITED BY SPACE ','   
+                           WS-INVALID-NAME(WS-SUB2) 
+                           DELIMITED BY SPACE INTO WS-COMMENT   
+                   END-IF   
+               END-PERFORM  
+               STRING WS-COMMENT
+                   DELIMITED BY SPACE ' INVALID.'   
+                   DELIMITED BY SIZE INTO WS-COMMENT
+               GO TO 0200-EXCEPTION 
+           END-IF.  
+
+           MOVE WS-INP-OFFER-ID         TO WS-MIN-OFFER-ID-FIRST-SIX
+                                           WS-MAX-OFFER-ID-FIRST-SIX.   
+           MOVE '0000'                  TO WS-MIN-OFFER-ID-LAST-FOUR.   
+           MOVE '9999'                  TO WS-MAX-OFFER-ID-LAST-FOUR.   
+
+       0100-PROCESS-UPDATE. 
+
+           EXEC SQL 
+                DECLARE OFFER_CURSOR CURSOR FOR RETENTION   
+                    SELECT OFFER_ID,
+                           IFNULL(MAX_REDEEM_CNT,99),   
+                           STATUS_CODE, 
+                           CONVERT(BOOK_BEGIN_DATETIME,112),
+                           CONVERT(BOOK_END_DATETIME,112),  
+                           CONVERT(SAIL_BEGIN_DATE,112),
+                           CONVERT(SAIL_END_DATE,112)   
+                    FROM TARGET_OFFER_MASTER
+                    WHERE (OFFER_ID BETWEEN :WS-MIN-OFFER-ID AND
+                                         :WS-MAX-OFFER-ID ) 
+           END-EXEC.
+
+           EXEC SQL 
+               OPEN OFFER_CURSOR
+           END-EXEC.
+
+       0200-FETCH-NEXT-CURSOR.  
+
+           MOVE ZEROS                   TO WS-MAX-REDEMPTION.   
+           MOVE SPACES                  TO WS-OFFER-ID-FINAL
+                                           WS-STATUS
+                                           WS-START-BOOK-DATE   
+                                           WS-END-BOOK-DATE 
+                                           WS-START-SAIL-DATE   
+                                           WS-END-SAIL-DATE.
+
+           EXEC SQL 
+              FETCH NEXT FROM OFFER_CURSOR  
+              INTO :WS-OFFER-ID-FINAL,  
+                   :WS-MAX-REDEMPTION,  
+                   :WS-STATUS,  
+                   :WS-START-BOOK-DATE, 
+                   :WS-END-BOOK-DATE,   
+                   :WS-START-SAIL-DATE, 
+                   :WS-END-SAIL-DATE
+           END-EXEC.
+
+           IF  SQLCODE < 0  
+               DISPLAY 'ERROR IN FETCH NEXT' UPON PRINTER   
+               GO TO 9150-RDMS-ERROR
+           END-IF.  
+
+           IF  SQLCODE = 100
+               IF  WS-CNT  = 0  
+                   DISPLAY 'ERROR IN 1ST FETCH' UPON PRINTER
+                   MOVE WS-INP-OFFER-ID TO WS-OFFER-ID-FINAL
+                   MOVE 'ERROR IN FETCH'
+                                        TO WS-COMMENT   
+                   EXEC SQL 
+                       CLOSE OFFER_CURSOR   
+                   END-EXEC 
+                   GO TO 0200-EXCEPTION 
+                ELSE
+                   DISPLAY 'TOTAL COUNT OF UPDATED OFFER_ID : ' 
+                       WS-INP-OFFER-ID ' = ' WS-UPD-CNT UPON PRINTER
+                   EXEC SQL 
+                       CLOSE OFFER_CURSOR   
+                   END-EXEC 
+                   GO TO 0100-READ-INPUT-PARAM  
+                END-IF  
+           END-IF.  
+
+           ADD  1                       TO WS-CNT.  
+
+           MOVE 'N'                     TO WS-DIFFER-FLAG.  
+
+           IF  WS-MAX-REDEMPTION NOT = WS-INP-MAX-REDEMPTION
+               MOVE SPACES              TO WS-ACTIVITY-COMMENT  
+               MOVE 'Y'                 TO WS-DIFFER-FLAG   
+               MOVE 'TOM'               TO WS-ACTIVITY-CODE 
+               STRING 'MAX REDEEM CNT CHG FROM: '   
+                       WS-MAX-REDEMPTION DELIMITED BY SIZE  
+                      ' TO: '   
+                      WS-INP-MAX-REDEMPTION  DELIMITED BY SIZE  
+                 INTO WS-ACTIVITY-COMMENT   
+               PERFORM 2400-STORE-TOM-HISTORY THRU  
+                       2400-EXIT
+           END-IF.  
+
+           IF  WS-STATUS NOT = WS-INP-STATUS
+               MOVE 'Y'                 TO WS-DIFFER-FLAG   
+               MOVE 'TOC'               TO WS-ACTIVITY-CODE 
+               MOVE SPACES              TO WS-ACTIVITY-COMMENT  
+               IF  WS-INP-STATUS = 'C'  
+                   MOVE 'OFFER DEACTIVATED' 
+                                        TO WS-ACTIVITY-COMMENT  
+               ELSE 
+                   MOVE 'OFFER ACTIVATED'   
+                                        TO WS-ACTIVITY-COMMENT  
+               END-IF   
+               PERFORM 2400-STORE-TOM-HISTORY THRU  
+                       2400-EXIT
+           END-IF.  
+
+           IF  WS-START-BOOK-DATE NOT = WS-INP-START-BOOK-DATE  
+               MOVE 'Y'                 TO WS-DIFFER-FLAG   
+               MOVE 'TOB'               TO WS-ACTIVITY-CODE 
+               MOVE SPACES              TO WS-ACTIVITY-COMMENT  
+               STRING 'BOOK EFF-DATE CHG FROM: ' WS-START-BOOK-DATE 
+                      ' TO: ' WS-INP-START-BOOK-DATE DELIMITED BY SIZE  
+                  INTO WS-ACTIVITY-COMMENT  
+               PERFORM 2400-STORE-TOM-HISTORY THRU  
+                       2400-EXIT
+           END-IF.  
+
+           IF  WS-END-BOOK-DATE NOT = WS-INP-END-BOOK-DATE  
+               MOVE 'Y'                 TO WS-DIFFER-FLAG   
+               MOVE 'TOB'               TO WS-ACTIVITY-CODE 
+               MOVE SPACES              TO WS-ACTIVITY-COMMENT  
+               STRING 'BOOK END-DATE CHG FROM: ' WS-END-BOOK-DATE   
+                      ' TO: ' WS-INP-END-BOOK-DATE DELIMITED BY SIZE
+                  INTO WS-ACTIVITY-COMMENT  
+               PERFORM 2400-STORE-TOM-HISTORY THRU  
+                       2400-EXIT
+           END-IF.  
+
+           IF  WS-START-SAIL-DATE NOT = WS-INP-START-SAIL-DATE  
+               MOVE 'Y'                 TO WS-DIFFER-FLAG   
+               MOVE 'TOB'               TO WS-ACTIVITY-CODE 
+               MOVE SPACES              TO WS-ACTIVITY-COMMENT  
+               STRING 'SAIL EFF-DATE CHG FROM: ' WS-START-SAIL-DATE 
+                      ' TO: ' WS-INP-START-SAIL-DATE DELIMITED BY SIZE  
+                  INTO WS-ACTIVITY-COMMENT  
+               PERFORM 2400-STORE-TOM-HISTORY THRU  
+                       2400-EXIT
+           END-IF.  
+
+           IF  WS-END-SAIL-DATE NOT = WS-INP-END-SAIL-DATE  
+               MOVE 'Y'                 TO WS-DIFFER-FLAG   
+               MOVE 'TOD'               TO WS-ACTIVITY-CODE 
+               MOVE SPACES              TO WS-ACTIVITY-COMMENT  
+               STRING 'SAIL END-DATE CHG FROM: ' WS-END-SAIL-DATE   
+                      ' TO: ' WS-INP-END-SAIL-DATE DELIMITED BY SIZE
+                  INTO WS-ACTIVITY-COMMENT  
+               PERFORM 2400-STORE-TOM-HISTORY THRU  
+                       2400-EXIT
+           END-IF.  
+
+           IF  WS-DIFFER-FLAG = 'N' 
+               DISPLAY 'NO DIFFERENCE FOUND FOR OFFER : '   
+                                     WS-INP-OFFER-ID UPON PRINTER   
+               MOVE 'NO DIFFERENCE FOUND FOR OFFER '
+                                        TO WS-COMMENT   
+               MOVE WS-INP-SEQ-NUM      TO OUT-SEQ-NO   
+               MOVE WS-OFFER-ID-FINAL   TO OUT-OFFER-ID 
+               MOVE WS-COMMENT          TO OUT-EXCEPTION-COMMENT
+               ADD 1                    TO WS-EXCEPTION-COUNT   
+               WRITE EXCEPTION-REC  
+               GO TO 0200-FETCH-NEXT-CURSOR 
+           END-IF.  
+
+      *----------------UPDATE DB IF DIFF FOUND  
+
+           MOVE WS-INP-START-BOOK-DATE  TO DPP02-DMS-DATE.  
+           PERFORM DPP10-DMS-TO-RDMS-DATETIME.  
+           MOVE DPP02-RDMS-DATE         TO WS-RDMS-START-BOOK-DATE-TIME.
+
+           MOVE WS-INP-END-BOOK-DATE    TO DPP02-DMS-DATE.  
+           PERFORM DPP10-DMS-TO-RDMS-DATETIME.  
+           MOVE DPP02-RDMS-DATE         TO WS-RDMS-END-BOOK-DATE-TIME.  
+
+           MOVE ' '                     TO WS-RDMS-START-DATE-TIME-BLK  
+                                           WS-RDMS-END-DATE-TIME-BLK.   
+
+           MOVE ':'                     TO WS-RDMS-START-DATE-TIME-COL1 
+                                           WS-RDMS-START-DATE-TIME-COL2 
+                                           WS-RDMS-END-DATE-TIME-COL1   
+                                           WS-RDMS-END-DATE-TIME-COL2.  
+
+           MOVE ZEROES                  TO WS-INP-START-BOOK-TIME-HH
+                                           WS-INP-START-BOOK-TIME-MM
+                                           WS-INP-START-BOOK-TIME-SS.   
+
+           MOVE 23                      TO WS-INP-END-BOOK-TIME-HH  
+           MOVE 59                      TO WS-INP-END-BOOK-TIME-MM  
+           MOVE 59                      TO WS-INP-END-BOOK-TIME-SS. 
+
+           MOVE WS-INP-START-SAIL-DATE  TO DPP02-DMS-DATE.  
+           PERFORM DPP10-DMS-TO-RDMS-DATETIME.  
+           MOVE DPP02-RDMS-DATE         TO WS-RDMS-INP-START-SAIL-DATE. 
+
+           MOVE WS-INP-END-SAIL-DATE    TO DPP02-DMS-DATE.  
+           PERFORM DPP10-DMS-TO-RDMS-DATETIME.  
+           MOVE DPP02-RDMS-DATE         TO WS-RDMS-INP-END-SAIL-DATE.   
+
+           EXEC SQL 
+                UPDATE TARGET_OFFER_MASTER  
+                SET MAX_REDEEM_CNT      = :WS-INP-MAX-REDEMPTION,   
+                    STATUS_CODE         = :WS-INP-STATUS,   
+                    BOOK_BEGIN_DATETIME = :WS-RDMS-START-BOOK-DATE-TIME,
+                    BOOK_END_DATETIME   = :WS-RDMS-END-BOOK-DATE-TIME,  
+                    SAIL_BEGIN_DATE     = :WS-RDMS-INP-START-SAIL-DATE, 
+                    SAIL_END_DATE       = :WS-RDMS-INP-END-SAIL-DATE,   
+                    UPDATE_DATETIME     =  GETDATE()
+                WHERE OFFER_ID          = :WS-OFFER-ID-FINAL
+           END-EXEC.
+
+           ADD 1                        TO WS-UPD-CNT   
+                                           WS-FREE-CTR. 
+           IF  SQLCODE < 0  
+               GO TO 9150-RDMS-ERROR
+           END-IF.  
+
+           IF WS-UPD-CNT = 1
+              ADD 1                     TO WS-INP-UPD-CNT   
+           END-IF.  
+
+           IF  WS-FREE-CTR > 0  
+               PERFORM DPP12-COMMIT THRU DPP12-COMMIT-EXIT  
+               MOVE 0                   TO WS-FREE-CTR  
+           END-IF.  
+
+           MOVE 'OFFER ID UPDATED SUCCESSFULLY '
+                                        TO WS-COMMENT.  
+           MOVE WS-INP-SEQ-NUM          TO OUT-SEQ-NO.  
+           MOVE WS-OFFER-ID-FINAL       TO OUT-OFFER-ID.
+           MOVE WS-COMMENT              TO OUT-EXCEPTION-COMMENT.   
+           WRITE EXCEPTION-REC. 
+
+           GO TO 0200-FETCH-NEXT-CURSOR.
+
+       0200-EXCEPTION.  
+           MOVE WS-INP-SEQ-NUM          TO OUT-SEQ-NO.  
+           MOVE WS-INP-OFFER-ID         TO OUT-OFFER-ID.
+           MOVE WS-COMMENT              TO OUT-EXCEPTION-COMMENT.   
+           ADD 1                        TO WS-EXCEPTION-COUNT.  
+           WRITE EXCEPTION-REC. 
+           GO TO 0100-READ-INPUT-PARAM. 
+
+       2400-STORE-TOM-HISTORY.  
+
+           EXEC SQL 
+              INSERT INTO TARGET_OFFER_MASTER_HIST  
+                      (OFFER_ID 
+                      ,ACTIVITY_DATETIME
+                      ,ACTIVITY_CODE
+                      ,USER_ID  
+                      ,COMMENT) 
+              VALUES (:WS-OFFER-ID-FINAL,   
+                       GETUTCDATE(),
+                      :WS-ACTIVITY-CODE,
+                      :DPP01-USERID,
+                      :WS-ACTIVITY-COMMENT) 
+           END-EXEC.
+
+           IF  SQLCODE < 0  
+               DISPLAY 'ERROR IN INSERT' UPON PRINTER   
+               GO TO 9150-RDMS-ERROR
+           END-IF.  
+
+           PERFORM 2500-STORE-DTRF THRU 
+                   2500-STORE-DTRF-EXIT.
+
+       2400-EXIT.   
+           EXIT.
+
+       2500-STORE-DTRF. 
+      *   Store DTRF Record to Track TGO Disabling *
+           MOVE SPACES                  TO DTRF-REC.
+           MOVE 'R'                     TO DTRF-CALC-KEY (1:1). 
+           MOVE WS-OFFER-ID-FINAL       TO DTRF-CALC-KEY (2:10).
+           MOVE DPP01-SYSTEM-DATE       TO DTRF-ACTIVITY-DATE.  
+           DIVIDE DPP01-SYSTEM-TIME BY 100 GIVING DTRF-ACTIVITY-TIME.   
+           MOVE WS-ACTIVITY-CODE        TO DTRF-ACTIVITY-CODE.  
+           MOVE 'PRB57UTM'              TO DTRF-OPER-INITIALS.  
+           MOVE ZEROS                   TO DTRF-PHONE-EXT   
+                                           DTRF-PAX-SEQ-NUM (1) 
+                                           DTRF-PAX-SEQ-NUM (2) 
+                                           DTRF-PAX-SEQ-NUM (3) 
+                                           DTRF-PAX-SEQ-NUM (4) 
+                                           DTRF-PAX-SEQ-NUM (5).
+
+           STORE DTRF-REC.  
+
+           DISPLAY 'STORED DTRF FOR ' DTRF-CALC-KEY UPON PRINTER.   
+
+       2500-STORE-DTRF-EXIT.
+           EXIT.
+
+       9000-END-OF-JOB. 
+
+           MOVE WS-INP-SEQ-NUM          TO WS-HDG1-CNT. 
+           WRITE EXCEPTION-REC FROM WS-HDG1-REC.
+
+           MOVE WS-INP-UPD-CNT          TO WS-HDG2-CNT. 
+           WRITE EXCEPTION-REC FROM WS-HDG2-REC.
+
+           MOVE WS-EXCEPTION-COUNT      TO WS-HDG3-CNT. 
+           WRITE EXCEPTION-REC FROM WS-HDG3-REC.
+
+           CLOSE INPUT-FILE 
+                 EXCEPTION-FILE.
+           GO TO DPP12-END-OF-JOB.  
+
+       9150-RDMS-ERROR. 
+           CLOSE INPUT-FILE 
+                 EXCEPTION-FILE.
+            GO TO DPP12-RDMS-ERROR. 
+
+       9100-DATABASE-ERROR. 
+           CLOSE INPUT-FILE 
+                 EXCEPTION-FILE.
+           GO TO DPP12-DATABASE-ERROR.  
+
+       9200-EDIT-ERROR-MSG. 
+           CLOSE INPUT-FILE 
+                 EXCEPTION-FILE.
+           PERFORM DPP12-EDIT-ERROR-MSG 
+              THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+
+           GO TO DPP12-END-OF-JOB.  
+
+       9210-EDIT-CONTINUE-MSG.  
+
+           PERFORM DPP12-EDIT-ERROR-MSG 
+              THRU DPP12-EDIT-ERROR-MSG-EXIT.   
+
+       9300-SEVERE-ERROR-MSG.   
+           GO TO DPP12-SEVERE-ERROR-MSG.
+
+       9400-INFO-MSG.   
+           PERFORM DPP12-INFO-MSG   
+              THRU DPP12-INFO-MSG-EXIT. 
+
+       9500-RETURN-SUBROUTINE-ERROR.
+           GO TO DPP12-RETURN-SUBROUTINE-ERROR. 
+
+       9600-SAVE-SUBROUTINE-ERRORS. 
+           PERFORM DPP12-SAVE-SUBROUTINE-MSGS   
+              THRU DPP12-SAVE-SUBROUTINE-MSGS-X.
+
+       COPY DPP10Y2K.   
+       COPY DPP12BER.   
+       COPY DPP12ERR.   
+       COPY DPP12WDB.   

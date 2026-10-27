@@ -1,0 +1,1380 @@
+       IDENTIFICATION DIVISION. 
+       PROGRAM-ID.    RSO49BCD. 
+       AUTHOR.        TCS LTD.  
+       DATE-WRITTEN.  AUGUST 2014.  
+       DATE-COMPILED.   
+      ******************************************************************
+      *          ROTUINE TO RETURN BOOKING COMMUNICATION DETAILS       *
+      ******************************************************************
+      * Description:                                                   *
+      *     Subprogram to return email/fax details based on the setup  *
+      *     on booking's agency and pax for communication purpose.     *
+      ******************************************************************
+      *    Areas to be opened before calling this sub-program          *
+      *  AGENCY-ASSOC AGENT AGENT-BUS AGENT-COMP AGENT-EMAIL AGENT-IDX *
+      *  AGENT-PHONE  AGNT-PHO-IDX    PAX-INFO   GRP1-BOOK             *
+      *  INDV-BK-0  - INDV-BK-9       PAX AREAS                        *
+      ******************************************************************
+      * Input      DPP01-COMMON-DATA-FIELDS                            *
+      *            DPP01-COMMON-INFO                                   *
+      *            RSP49-AGENCY-INPUT                                  *
+      * Output     RSP49-AGENCY-OUTPUT                                 *
+      * Calling Sequence                                               *
+      *                                                                *
+      *            CALL 'RSO49BCD' USING DPP01-COMMON-DATA-FIELDS      *
+      *                                  DPP01-COMMON-INFO             *
+      *                                  RSP49-AGENCY-INPUT            *
+      *                                  RSP49-AGENCY-OUTPUT           *
+      * Return Status Values:                                          *
+      *                00       OK                                     *
+      *                01       Informational                          *
+      *                02       Edit Error                             *
+      *                03       Fatal or Severe Error                  *
+************************************************************************
+163852* 15-MAY-15     V2B     JAI BHIMANI            CQ163852          *
+163852* CHECK RSP49-I-FIRST-EMAIL-IND AND SEND EMAIL ADDRESS WHEN SET. *
+************************************************************************
+189599* 05-JUL-16     0SA     TCS LTD.               CQ189599          *
+189599* CHANGES DONE TO SEND MEDICAL FORMS TO THE PAX EMAIL ADDRESS,   *
+189599* IF MENTIONED, INSTEAD OF SENDING THEM TO THE AGENCY.           *
+************************************************************************
+214948* 24-APR-19     FUB     TCS LTD.               CQ214948          *
+214948* CHANGES DONE TO INCORPORATE ALPHANUMERIC AGENCY CUSTOMER NUM.  *
+************************************************************************
+CCLAUS* 03-SEP-19     4NS     TCS LTD.               CCLAUS            *
+CCLAUS* CARNIVAL AUSTRALIA PROJECT RELATED CHANGES                     *
+************************************************************************
+818797* 22-MAR-21     0GJ     TCS LTD.               C818797           *
+818797* CHANGES DONE TO FETCH AGENT INFO.                              *
+************************************************************************
+AUPRSL* 25-FEB-22     IUJ     TCS LTD.               AUPRSL            *
+AUPRSL* CHANGES DONE TO FETCH AGENT ABN NUMBER                         *
+************************************************************************
+186084* 09-AUG-24     PVK     TCS LTD.               ADO1860847        *
+186084* CHANGES DONE FOR TRADE SALES PROJECT                           *
+************************************************************************
+229393* 06-OCT-25     HPL                            ADO2293938        *
+229393* ADD FEW FIELDS IN THE OUTPUT TO BE USED IN GRURUI FOR NAVWEB.  *
+************************************************************************
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.   
+       SOURCE-COMPUTER. UNISYS-2200.
+       OBJECT-COMPUTER. UNISYS-2200 MEMORY 3 MODULES.   
+       SPECIAL-NAMES.   PRINTER IS PRINTER  
+                        CONSOLE IS CONSOLE. 
+
+       DATA DIVISION.   
+
+       SUBSCHEMA SECTION.   
+       INVOKE SUBSCHEMA PST100UCOBSU
+              IN FILE SUBSCHEMAS OF SCHEMA PST100SCHEMA 
+              COPYING RECORDS    INTO COMMON
+              COPYING DATA-NAMES INTO COMMON
+              OVERLAY PAX-REC WITH PAX-CXF-REC  
+                                   PAX-VI-REC   
+              DMCA  COMMON  
+              SAVE DATA INCLUDES DEFERRED-UPDATES   
+              ERROR RECOVERY IS 9100-DATABASE-ERROR.
+
+       WORKING-STORAGE SECTION. 
+       01  WS-PROG-ID                          PIC X(08)
+                                               VALUE 'RSO49BCD'.
+       01  WS-MISC-N-VARS.  
+           03  WS-PSUB                         PIC 9(01) BINARY.
+           03  WS-ESUB                         PIC 9(01) BINARY.
+           03  WS-MAIN-TEMP-FAX                PIC 9(10) BINARY.
+           03  WS-ALT-TEMP-FAX                 PIC 9(10) BINARY.
+           03  WS-DIR-FAX-NUM                  PIC 9(10) BINARY.
+           03  WS-AGENT-DBKEY                  PIC 1(36)  BINARY-1. 
+           03  WS-ATCR-DBKEY                   PIC 1(36)  BINARY-1. 
+           03  FILLER                          PIC X(02).   
+
+       01  WS-MISC-AN-VARS. 
+           03  WS-CUSTOMER-NUM-DISP.
+214948*        05  WS-CUSTOMER-NUM             PIC 9(07).   
+214948         05  WS-CUSTOMER-NUM             PIC X(07).   
+           03  WS-DIRECT-COMM-FLG              PIC X(01).   
+           03  WS-DECIDING-AGENCY              PIC X(01).   
+           03  WS-DESTINATION-AGENCY           PIC X(01).   
+           03  WS-MAIN-OPER-IND                PIC X(01).   
+           03  WS-MAIN-ACCT-IND                PIC X(01).   
+           03  WS-MAIN-ALT-OPER-IND            PIC X(01).   
+           03  WS-MAIN-ALT-ACCT-IND            PIC X(01).   
+           03  WS-ALTN-ALT-OPER-IND            PIC X(01).   
+           03  WS-ALTN-ALT-ACCT-IND            PIC X(01).   
+           03  WS-ABR-OPER-IND                 PIC X(01).   
+           03  WS-ABR-ACCT-IND                 PIC X(01).   
+           03  WS-EMAIL-FOUND                  PIC X(01).   
+           03  WS-ACCT-EMAIL-FOUND             PIC X(01).   
+           03  WS-ALL-ACCT-EMAIL-FOUND         PIC X(01).   
+           03  WS-ALL-OPER-EMAIL-FOUND         PIC X(01).   
+           03  WS-RESP-AGENCY                  PIC X(01).   
+           03  WS-MAIN-TEMP-EMAIL              PIC X(100).  
+           03  WS-ALT-TEMP-EMAIL               PIC X(100).  
+           03  WS-AGENT-EMAIL-ADDR             PIC X(100).  
+           03  FILLER                          PIC X(01).   
+
+       01  WS-EMAIL-INDICATORS. 
+           03  WS-EMAIL-ALL-FLG                PIC 1 BINARY-1.  
+           03  WS-EMAIL-IBK-FLG                PIC 1 BINARY-1.  
+           03  WS-EMAIL-GBK-FLG                PIC 1 BINARY-1.  
+           03  WS-EMAIL-PRO-FLG                PIC 1 BINARY-1.  
+           03  WS-EMAIL-ACC-FLG                PIC 1 BINARY-1.  
+           03  WS-EMAIL-COP-FLG                PIC 1 BINARY-1.  
+           03  FILLER                          PIC 1(30) BINARY-1.  
+
+       01  WS-AGENCY-EMAIL-FAX-TABLE.   
+           03  WS-AGENCY-ENTRY OCCURS 2 TIMES.  
+               05  WS-PRIMARY-OR-ALT           PIC X(01).   
+               05  WS-AGENCY-OPER-EMAIL        PIC X(100).  
+               05  WS-AGENCY-ACCT-EMAIL        PIC X(100).  
+               05  WS-DIRECT-COMM-EMAIL        PIC X(100).  
+               05  WS-AGENCY-FAX-NUM           PIC 9(10) BINARY.
+               05  WS-ATCR-FAX-CONF-IND        PIC X(01).   
+
+       COPY DPP01DTA.   
+       COPY DPP42ERR.   
+       COPY DPP42SWS.   
+       COPY RSP86GLD.   
+       COPY RSP94GCD.   
+       COPY RSP95SPC.   
+       COPY SSP05GCD.   
+       COPY RSP23RGC.   
+       COPY RSP06CON.   
+       COPY RSP06GCI.   
+       COPY RSP06BLK.   
+
+       COMMON-STORAGE SECTION.  
+
+       LINKAGE SECTION. 
+       COPY DPP01SCO.   
+       COPY DPP01CIW.   
+       COPY RSP49INP.   
+       COPY RSP49OUT.   
+
+       PROCEDURE DIVISION USING DPP01-COMMON-DATA-FIELDS
+                                DPP01-COMMON-INFO   
+                                RSP49-AGENCY-INPUT  
+                                RSP49-AGENCY-OUTPUT.
+
+       0000-INITIALIZE. 
+           COPY DPP42INT.   
+
+           MOVE 'RSO49BCD'              TO DPP42-HOLD-MSG-SOURCE.   
+           MOVE LOW-VALUES              TO RSP49-O-N-PARAMS 
+                                           WS-AGENCY-EMAIL-FAX-TABLE.   
+           MOVE SPACES                  TO RSP49-O-AN-PARAMS.   
+
+           MOVE LOW-VALUES              TO WS-MISC-N-VARS.  
+           MOVE SPACES                  TO WS-MISC-AN-VARS. 
+
+           IF RSP49-I-COMPANY-CODE <= SPACES
+              MOVE 1                    TO DPP42-HOLD-MSG-INDEX 
+              GO TO 9200-EDIT-ERROR-MSG 
+           END-IF.  
+
+           COPY SSP05INT.   
+           MOVE RSP49-I-COMPANY-CODE    TO  SSP05-I-COMPANY-CODE.   
+
+           CALL 'SSC05GCD' USING DPP42-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 SSP05-INPUT-PARAMS 
+                                 SSP05-OUTPUT-PARAMS.   
+
+           IF DPP42-SUB-MSG-CTR > 0 AND 
+              DPP42-SUB-MSG-STATUS (1) > 1  
+              GO TO 9500-RETURN-SUBROUTINE-ERROR
+           END-IF.  
+
+           MOVE SSP05-O-COMPANY-CODE    TO RSP49-O-COMPANY-CODE.
+
+       0100-VALIDATE-INPUT. 
+           IF RSP49-I-LETTER-TYPE <= SPACES 
+               MOVE 2                   TO DPP42-HOLD-MSG-INDEX 
+               GO TO 9200-EDIT-ERROR-MSG
+           END-IF.  
+
+           IF RSP49-I-EMAIL-TYPE <= SPACES  
+              MOVE SPACES               TO RSP49-I-EMAIL-TYPE   
+           END-IF.  
+
+189599*    IF RSP49-DIRECT-COM-FLG = 1  
+189599*       IF RSP49-I-IBR-BOOK-NUM <= SPACES 
+189599*          MOVE 0                 TO RSP49-DIRECT-COM-FLG 
+189599*       END-IF
+189599*    END-IF.  
+
+189599     IF RSP49-DIRECT-COM-FLG = 1 OR 2 
+189599        IF RSP49-I-IBR-BOOK-NUM <= SPACES 
+189599           MOVE 0                 TO RSP49-DIRECT-COM-FLG 
+189599        END-IF
+189599     END-IF.  
+
+           IF RSP49-I-IBR-BOOK-NUM > SPACES OR  
+              RSP49-I-GRP-BOOK-NUM > SPACES 
+              GO TO 0300-FETCH-IBR  
+           END-IF.  
+
+           IF RSP49-I-AAR-AGENCY-ID > SPACES
+214948*       IF RSP49-I-CUSTOMER-NUM > 0 OR RSP49-I-PHONE-NUM > 0  
+214948        IF RSP49-I-CUSTOMER-NUM > SPACES OR RSP49-I-PHONE-NUM > 0 
+                 MOVE 3                 TO DPP42-HOLD-MSG-INDEX 
+                 GO TO 9200-EDIT-ERROR-MSG  
+              ELSE  
+                 GO TO 0200-VALIDATE-ALT-AGENCY 
+              END-IF
+           END-IF.  
+
+214948*    IF RSP49-I-CUSTOMER-NUM > ZERO   
+214948     IF RSP49-I-CUSTOMER-NUM > SPACES 
+              IF RSP49-I-PHONE-NUM > ZERO   
+                 MOVE 4                 TO DPP42-HOLD-MSG-INDEX 
+                 GO TO 9200-EDIT-ERROR-MSG  
+              ELSE  
+                 GO TO 0200-VALIDATE-ALT-AGENCY 
+              END-IF
+           END-IF.  
+
+           IF RSP49-I-PHONE-NUM > ZERO  
+              GO TO 0200-VALIDATE-ALT-AGENCY
+           END-IF.  
+
+           MOVE 5                       TO DPP42-HOLD-MSG-INDEX.
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+       0200-VALIDATE-ALT-AGENCY.
+           IF RSP49-I-AAR-ALT-AGENCY-ID > SPACES
+              IF RSP49-I-ALT-PHONE-NUM > ZERO OR
+214948*          RSP49-I-ALT-CUSTOMER-NUM > ZERO
+214948           RSP49-I-ALT-CUSTOMER-NUM > SPACES  
+                 MOVE 6                 TO DPP42-HOLD-MSG-INDEX 
+                 GO TO 9200-EDIT-ERROR-MSG  
+              ELSE  
+                 GO TO 0300-FETCH-IBR   
+              END-IF
+           END-IF.  
+
+214948*    IF RSP49-I-ALT-CUSTOMER-NUM > ZERO   
+214948     IF RSP49-I-ALT-CUSTOMER-NUM > SPACES 
+              IF RSP49-I-ALT-PHONE-NUM > ZERO   
+                 MOVE 7                 TO DPP42-HOLD-MSG-INDEX 
+                 GO TO 9200-EDIT-ERROR-MSG  
+              END-IF
+           END-IF.  
+
+       0300-FETCH-IBR.  
+           IF RSP49-I-IBR-BOOK-NUM <= SPACES
+              GO TO 0500-FETCH-GRP-BOOK-NUM 
+           END-IF.  
+
+           IF RSP49-I-IBR-BOOK-NUM = IBR-BOOK-NUM   
+              GO TO 0400-CHECK-IBR-BOOKING  
+           END-IF.  
+
+           MOVE RSP49-I-IBR-BOOK-NUM    TO IBR-BOOK-NUM.
+           MOVE SPACES                  TO INDV-BOOKING-CALCAREA.   
+
+           MOVE 'INDV-BK-'              TO INDV-BOOKING-CALCAREA.   
+CCLAUS*    MOVE RSP49-I-IBR-BOOK-NUM (6:1)  
+CCLAUS*                                 TO INDV-BOOKING-CALCAREA (9:1). 
+
+CCLAUS     EVALUATE IBR-BOOK-NUM (6:1)  
+CCLAUS        WHEN 'B' WHEN 'C' WHEN '0'
+CCLAUS              MOVE '0'  TO INDV-BOOKING-CALCAREA (9:1)
+CCLAUS        WHEN 'D' WHEN 'F' WHEN '1'
+CCLAUS              MOVE '1'  TO INDV-BOOKING-CALCAREA (9:1)
+CCLAUS        WHEN 'G' WHEN 'H' WHEN '2'
+CCLAUS              MOVE '2'  TO INDV-BOOKING-CALCAREA (9:1)
+CCLAUS        WHEN 'J' WHEN 'K' WHEN '3'
+CCLAUS              MOVE '3'  TO INDV-BOOKING-CALCAREA (9:1)
+CCLAUS        WHEN 'L' WHEN 'M' WHEN '4'
+CCLAUS              MOVE '4'  TO INDV-BOOKING-CALCAREA (9:1)
+CCLAUS        WHEN 'N' WHEN 'P' WHEN '5'
+CCLAUS              MOVE '5'  TO INDV-BOOKING-CALCAREA (9:1)
+CCLAUS        WHEN 'Q' WHEN 'R' WHEN '6'
+CCLAUS              MOVE '6'  TO INDV-BOOKING-CALCAREA (9:1)
+CCLAUS        WHEN 'S' WHEN 'T' WHEN '7'
+CCLAUS              MOVE '7'  TO INDV-BOOKING-CALCAREA (9:1)
+CCLAUS        WHEN 'V' WHEN 'W' WHEN '8'
+CCLAUS              MOVE '8'  TO INDV-BOOKING-CALCAREA (9:1)
+CCLAUS        WHEN 'X' WHEN 'Z' WHEN '9'
+CCLAUS              MOVE '9'  TO INDV-BOOKING-CALCAREA (9:1)
+CCLAUS     END-EVALUATE.
+
+           FETCH INDV-BOOKING-REC RECORD
+                 ON ERROR GO TO 7800-IBR-BOOK-NUM-NOT-FOUND.
+
+       0400-CHECK-IBR-BOOKING.  
+
+           MOVE IBR-CUSTOMER-NUM        TO RSP49-I-CUSTOMER-NUM.
+           MOVE IBR-ALT-CUSTOMER-NUM    TO RSP49-I-ALT-CUSTOMER-NUM.
+
+           GO TO 0700-CHECK-MAIN-CUST-NUM.  
+
+       0500-FETCH-GRP-BOOK-NUM. 
+           IF RSP49-I-GRP-BOOK-NUM <= SPACES
+              GO TO 0700-CHECK-MAIN-CUST-NUM
+           END-IF.  
+
+           IF RSP49-I-GRP-BOOK-NUM = GBR1-BOOK-NUM  
+              GO TO 0600-CHECK-GBR-BOOKING  
+           END-IF.  
+
+           MOVE RSP49-I-GRP-BOOK-NUM    TO GBR1-BOOK-NUM.   
+
+           FETCH GRP1-BOOKING-REC  RECORD   
+                 ON ERROR GO TO 7900-GRP1-BOOK-NUM-NOT-FOUND.   
+
+       0600-CHECK-GBR-BOOKING.  
+
+           MOVE GBR1-CUSTOMER-NUM       TO RSP49-I-CUSTOMER-NUM.
+           MOVE GBR1-ALT-CUSTOMER-NUM   TO RSP49-I-ALT-CUSTOMER-NUM.
+
+       0700-CHECK-MAIN-CUST-NUM.
+214948*    IF RSP49-I-CUSTOMER-NUM <= ZEROES
+214948     IF RSP49-I-CUSTOMER-NUM <= SPACES
+              GO TO 0800-CHECK-MAIN-PHONE-NUM   
+           END-IF.  
+
+           MOVE RSP49-I-CUSTOMER-NUM    TO WS-CUSTOMER-NUM. 
+           MOVE WS-CUSTOMER-NUM-DISP    TO AAR-NUM. 
+           MOVE 'CM'                    TO AAR-TYPE.
+
+           FETCH AGENCY-ASSOCIATION-REC RECORD  
+                 ON ERROR GO TO 7000-NO-MAIN-AGENCY-ASSOC.  
+
+           FETCH OWNER RECORD WITHIN AGENCY-ASSOCIATION-SET SET.
+
+           GO TO 1000-PROCESS-MAIN-AGENT.   
+
+       0800-CHECK-MAIN-PHONE-NUM.   
+           IF RSP49-I-PHONE-NUM <= ZEROES   
+              GO TO 0900-CHECK-MAIN-AGENCY-ID   
+           END-IF.  
+
+           MOVE RSP49-I-PHONE-NUM       TO APR-PHONE-NUM.   
+818797     MOVE 001                     TO APR-COUNTRY-NUM. 
+           FETCH AGENT-PHONE-REC RECORD 
+                 ON ERROR GO TO 7100-NO-MAIN-AGENT-PHONE.   
+
+           FETCH OWNER RECORD WITHIN AGENT-PHONE-SET SET.   
+
+           GO TO 1000-PROCESS-MAIN-AGENT.   
+
+       0900-CHECK-MAIN-AGENCY-ID.   
+
+           MOVE RSP49-I-AAR-AGENCY-ID   TO AAR-NUM. 
+           MOVE RSP49-I-AAR-TYPE        TO AAR-TYPE.
+
+           FETCH AGENCY-ASSOCIATION-REC RECORD  
+                 ON ERROR GO TO 7200-NO-MAIN-AGENCY-ID-ASSOC.   
+
+           FETCH OWNER RECORD WITHIN AGENCY-ASSOCIATION-SET SET.
+
+       1000-PROCESS-MAIN-AGENT. 
+           MOVE CURRENT-DBKEY           TO WS-AGENT-DBKEY.  
+
+           MOVE AGENT-PHONE-NUM         TO ATCR-PHONE-NUM.  
+           MOVE RSP49-I-COMPANY-CODE    TO ATCR-COMPANY-CODE.   
+
+           FETCH AGENT-TERMS-COMPANY-REC RECORD 
+                 ON ERROR GO TO 7300-NO-MAIN-AGENT-TERMS.   
+
+           MOVE CURRENT-DBKEY           TO WS-ATCR-DBKEY.   
+
+       1100-PROCESS-MAIN-AGENT-TERMS.   
+           MOVE 1                       TO RSP49-O-COMMUN-AGT-CNT.  
+
+           MOVE LOW-VALUES              TO  
+                            WS-AGENCY-ENTRY    (RSP49-O-COMMUN-AGT-CNT).
+
+           MOVE AGENT-FAX-NUM           TO  
+                             WS-AGENCY-FAX-NUM (RSP49-O-COMMUN-AGT-CNT) 
+                       RSP49-O-C-AGENT-FAX-NUM (RSP49-O-COMMUN-AGT-CNT).
+           MOVE SPACES                  TO  
+                         RSP49-O-C-AGENT-EMAIL (RSP49-O-COMMUN-AGT-CNT).
+           MOVE ATCR-FAX-CONF-IND       TO  
+                          WS-ATCR-FAX-CONF-IND (RSP49-O-COMMUN-AGT-CNT) 
+                   RSP49-O-C-ATCR-FAX-CONF-IND (RSP49-O-COMMUN-AGT-CNT).
+           MOVE 'P'                     TO  
+                             WS-PRIMARY-OR-ALT (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-NAME              TO  
+                      RSP49-O-C-AGENT-NAME     (RSP49-O-COMMUN-AGT-CNT).
+AUPRSL     MOVE AGENT-ABN-NUMBER        TO  
+AUPRSL             RSP49-O-C-AGENT-ABN-NUMBER  (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-TTA-NUM           TO  
+                      RSP49-O-C-AGENT-TTA-NUM  (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-ABTA-NUM          TO  
+                      RSP49-O-C-AGENT-ABTA-NUM (RSP49-O-COMMUN-AGT-CNT).
+229393     MOVE AGENT-IATA-NUM           TO 
+229393                RSP49-O-C-AGENT-IATA-NUM (RSP49-O-COMMUN-AGT-CNT).
+
+229393     MOVE AGENT-ARC-NUM           TO  
+229393                RSP49-O-C-AGENT-ARC-NUM  (RSP49-O-COMMUN-AGT-CNT).
+
+           MOVE AGENT-ADDRESS1          TO  
+                      RSP49-O-C-AGENT-ADDRESS1 (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-ADDRESS2          TO  
+                      RSP49-O-C-AGENT-ADDRESS2 (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-CITY              TO  
+                      RSP49-O-C-AGENT-CITY     (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-STATE             TO  
+                      RSP49-O-C-AGENT-STATE    (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-ZIP-CODE          TO  
+                      RSP49-O-C-AGENT-ZIP-CODE (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-COUNTRY-CODE      TO  
+                  RSP49-O-C-AGENT-COUNTRY-CODE (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-COMMENT           TO  
+                     RSP49-O-C-AGENT-COMMENT   (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-ACCT-COMMENT-CODE TO  
+                RSP49-O-C-AGENT-ACCT-COMM-CODE (RSP49-O-COMMUN-AGT-CNT).
+           IF AGENT-DIRECT-IND = 'Y'
+              MOVE 'C'                  TO  
+                     RSP49-O-C-AGENT-CUST-CODE (RSP49-O-COMMUN-AGT-CNT) 
+           ELSE 
+              MOVE 'A'                  TO  
+                     RSP49-O-C-AGENT-CUST-CODE (RSP49-O-COMMUN-AGT-CNT) 
+           END-IF.  
+           MOVE AGENT-OWNER-MANAGER     TO  
+                RSP49-O-C-AGENT-OWNER-MANAGER  (RSP49-O-COMMUN-AGT-CNT).
+           MOVE ATCR-MAIL-CONF-IND      TO  
+                RSP49-O-C-ATCR-MAIL-CONF-IND   (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-INTL-SALES-IND    TO  
+                RSP49-O-C-AGENT-INTL-SALES-IND (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-DIRECT-IND        TO  
+                RSP49-O-C-AGENT-DIRECT-IND     (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-PHONE-NUM         TO  
+                RSP49-O-C-AGENT-PHONE-NUM      (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-CUSTOMER-NUM      TO  
+                RSP49-O-C-AGENT-CUST-NUM       (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-COUNTRY-NUM       TO  
+                RSP49-O-C-AGENT-COUNTRY-NUM    (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-CITY-NUM          TO  
+                RSP49-O-C-AGENT-CITY-NUM       (RSP49-O-COMMUN-AGT-CNT).
+           MOVE WS-AGENT-DBKEY          TO  
+                RSP49-O-C-AGENT-DBKEY          (RSP49-O-COMMUN-AGT-CNT).
+           MOVE WS-ATCR-DBKEY           TO  
+                RSP49-O-C-ATCR-DBKEY           (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-REGION-REP-TERR   TO  
+                RSP49-O-C-AGENT-REG-REP-TERR   (RSP49-O-COMMUN-AGT-CNT).
+186084*    MOVE AGENT-CONTRACT-NUM      TO  
+186084*         RSP49-O-C-AGENT-CONTRACT-NUM   (RSP49-O-COMMUN-AGT-CNT).
+186084     MOVE AGENT-MASTER-CONTRACT-NUM TO
+186084          RSP49-O-C-AGENT-MSTR-CON-NUM   (RSP49-O-COMMUN-AGT-CNT).
+           MOVE ATCR-AGENCY-INDICATORS  TO  
+                RSP49-O-C-ATCR-INDICATORS      (RSP49-O-COMMUN-AGT-CNT).
+
+189599*    IF RSP49-DIRECT-COM-FLG = 1  
+189599*       IF AGENT-DIRECT-IND = 'Y' 
+189599*         MOVE 'Y'                TO WS-DIRECT-COMM-FLG   
+189599*       END-IF
+189599*    END-IF.  
+
+189599     IF RSP49-DIRECT-COM-FLG = 1 OR 2 
+189599        IF AGENT-DIRECT-IND = 'Y' 
+189599          MOVE 'Y'                TO WS-DIRECT-COMM-FLG   
+189599        END-IF
+189599     END-IF.  
+
+           MOVE ATCR-OPER-RESP-AGENCY   TO WS-MAIN-OPER-IND.
+           MOVE ATCR-ACCT-RESP-AGENCY   TO WS-MAIN-ACCT-IND.
+           MOVE ATCR-ALT-OPER-IND       TO WS-MAIN-ALT-OPER-IND.
+           MOVE ATCR-ALT-ACCT-IND       TO WS-MAIN-ALT-ACCT-IND.
+
+           PERFORM 2700-GET-EMAIL THRU 2700-GET-EMAIL-EXIT  
+           IF RSP49-I-LETTER-TYPE = 'O' OR 'B'  
+              MOVE WS-AGENT-EMAIL-ADDR  TO  
+                   WS-AGENCY-OPER-EMAIL (RSP49-O-COMMUN-AGT-CNT)
+           ELSE 
+              IF RSP49-I-LETTER-TYPE = 'A'  
+                 MOVE WS-AGENT-EMAIL-ADDR   
+                                        TO  
+                     WS-AGENCY-ACCT-EMAIL (RSP49-O-COMMUN-AGT-CNT)  
+              END-IF
+           END-IF.  
+
+       1200-CHECK-FOR-ALTERNATES.   
+
+214948*    IF RSP49-I-ALT-CUSTOMER-NUM = ZERO   
+214948     IF RSP49-I-ALT-CUSTOMER-NUM = SPACES 
+              GO TO 1300-CHECK-ALT-PHONE-NUM
+           END-IF.  
+
+           MOVE RSP49-I-ALT-CUSTOMER-NUM
+                                        TO WS-CUSTOMER-NUM. 
+           MOVE WS-CUSTOMER-NUM-DISP    TO AAR-NUM. 
+           MOVE 'CM'                    TO AAR-TYPE.
+
+           FETCH AGENCY-ASSOCIATION-REC RECORD  
+                 ON ERROR GO TO 7400-NO-ALT-AGENCY-ASSOC.   
+
+           FETCH OWNER RECORD WITHIN AGENCY-ASSOCIATION-SET SET.
+
+           GO TO 1500-PROCESS-ALTERNATE-AGENT.  
+
+       1300-CHECK-ALT-PHONE-NUM.
+           IF RSP49-I-ALT-PHONE-NUM = ZERO  
+              GO TO 1400-CHECK-ALT-AGENCY-ID
+           END-IF.  
+
+           MOVE RSP49-I-ALT-PHONE-NUM   TO APR-PHONE-NUM.   
+
+           FETCH AGENT-PHONE-REC RECORD 
+                 ON ERROR GO TO 7500-NO-ALT-AGENT-PHONE.
+
+           FETCH OWNER RECORD WITHIN AGENT-PHONE-SET SET.   
+
+           GO TO 1500-PROCESS-ALTERNATE-AGENT.  
+
+       1400-CHECK-ALT-AGENCY-ID.
+           IF (RSP49-I-AAR-ALT-AGENCY-ID NOT > SPACES)  
+              GO TO 2200-POPULATE-COMM-TBL  
+           END-IF.  
+
+           MOVE RSP49-I-AAR-ALT-AGENCY-ID   
+                                        TO AAR-NUM. 
+           MOVE RSP49-I-AAR-TYPE        TO AAR-TYPE.
+
+           FETCH AGENCY-ASSOCIATION-REC RECORD  
+                 ON ERROR GO TO 7600-NO-ALT-AGENCY-ID-ASSOC.
+
+           FETCH OWNER RECORD WITHIN AGENCY-ASSOCIATION-SET SET.
+
+       1500-PROCESS-ALTERNATE-AGENT.
+           MOVE CURRENT-DBKEY           TO WS-AGENT-DBKEY.  
+           MOVE AGENT-PHONE-NUM         TO ATCR-PHONE-NUM.  
+           MOVE RSP49-I-COMPANY-CODE    TO ATCR-COMPANY-CODE.   
+
+           FETCH AGENT-TERMS-COMPANY-REC RECORD 
+                 ON ERROR GO TO 7700-NO-ALT-AGENT-TERMS.
+
+           MOVE CURRENT-DBKEY           TO WS-ATCR-DBKEY.   
+
+           IF RSP49-I-IBR-BOOK-NUM > SPACES 
+              IF IBR-ALT-CUSTOMER-NUM = IBR-CUSTOMER-NUM
+                 GO TO 2200-POPULATE-COMM-TBL   
+              END-IF
+           END-IF.  
+
+           IF RSP49-I-GRP-BOOK-NUM > SPACES 
+              IF GBR1-ALT-CUSTOMER-NUM = GBR1-CUSTOMER-NUM  
+                 GO TO 2200-POPULATE-COMM-TBL   
+              END-IF
+           END-IF.  
+
+           ADD 1                        TO RSP49-O-COMMUN-AGT-CNT.  
+
+           MOVE LOW-VALUES              TO  
+                              WS-AGENCY-ENTRY  (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-FAX-NUM           TO  
+                            WS-AGENCY-FAX-NUM  (RSP49-O-COMMUN-AGT-CNT) 
+                      RSP49-O-C-AGENT-FAX-NUM  (RSP49-O-COMMUN-AGT-CNT).
+           MOVE SPACES                  TO  
+                         RSP49-O-C-AGENT-EMAIL (RSP49-O-COMMUN-AGT-CNT).
+           MOVE ATCR-FAX-CONF-IND       TO  
+                         WS-ATCR-FAX-CONF-IND  (RSP49-O-COMMUN-AGT-CNT) 
+                  RSP49-O-C-ATCR-FAX-CONF-IND  (RSP49-O-COMMUN-AGT-CNT).
+           MOVE 'A'                     TO  
+                            WS-PRIMARY-OR-ALT  (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-NAME              TO  
+                RSP49-O-C-AGENT-NAME           (RSP49-O-COMMUN-AGT-CNT).
+AUPRSL     MOVE AGENT-ABN-NUMBER        TO  
+AUPRSL             RSP49-O-C-AGENT-ABN-NUMBER  (RSP49-O-COMMUN-AGT-CNT).
+
+229393     MOVE AGENT-IATA-NUM          TO  
+229393          RSP49-O-C-AGENT-IATA-NUM       (RSP49-O-COMMUN-AGT-CNT).
+
+229393     MOVE AGENT-ARC-NUM           TO  
+229393          RSP49-O-C-AGENT-ARC-NUM        (RSP49-O-COMMUN-AGT-CNT).
+
+           MOVE AGENT-TTA-NUM           TO  
+                RSP49-O-C-AGENT-TTA-NUM        (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-ABTA-NUM          TO  
+                RSP49-O-C-AGENT-ABTA-NUM       (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-ADDRESS1          TO  
+                RSP49-O-C-AGENT-ADDRESS1       (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-ADDRESS2          TO  
+                RSP49-O-C-AGENT-ADDRESS2       (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-CITY              TO  
+                RSP49-O-C-AGENT-CITY           (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-STATE             TO  
+                RSP49-O-C-AGENT-STATE          (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-ZIP-CODE          TO  
+                RSP49-O-C-AGENT-ZIP-CODE       (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-COUNTRY-CODE      TO  
+                RSP49-O-C-AGENT-COUNTRY-CODE   (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-COMMENT           TO  
+                RSP49-O-C-AGENT-COMMENT        (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-ACCT-COMMENT-CODE  TO 
+                RSP49-O-C-AGENT-ACCT-COMM-CODE (RSP49-O-COMMUN-AGT-CNT).
+           IF AGENT-DIRECT-IND = 'Y'
+              MOVE 'C'                  TO  
+                RSP49-O-C-AGENT-CUST-CODE      (RSP49-O-COMMUN-AGT-CNT) 
+           ELSE 
+             MOVE 'A'                   TO  
+                RSP49-O-C-AGENT-CUST-CODE      (RSP49-O-COMMUN-AGT-CNT) 
+           END-IF.  
+           MOVE AGENT-OWNER-MANAGER     TO  
+                RSP49-O-C-AGENT-OWNER-MANAGER  (RSP49-O-COMMUN-AGT-CNT).
+           MOVE ATCR-MAIL-CONF-IND      TO  
+                RSP49-O-C-ATCR-MAIL-CONF-IND   (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-INTL-SALES-IND    TO  
+                RSP49-O-C-AGENT-INTL-SALES-IND (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-DIRECT-IND        TO  
+                RSP49-O-C-AGENT-DIRECT-IND     (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-PHONE-NUM         TO  
+                RSP49-O-C-AGENT-PHONE-NUM      (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-CUSTOMER-NUM      TO  
+                RSP49-O-C-AGENT-CUST-NUM       (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-FAX-NUM           TO  
+                RSP49-O-C-AGENT-FAX-NUM        (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-COUNTRY-NUM       TO  
+                RSP49-O-C-AGENT-COUNTRY-NUM    (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-CITY-NUM          TO  
+                RSP49-O-C-AGENT-CITY-NUM       (RSP49-O-COMMUN-AGT-CNT).
+           MOVE WS-AGENT-DBKEY          TO  
+                RSP49-O-C-AGENT-DBKEY          (RSP49-O-COMMUN-AGT-CNT).
+           MOVE WS-ATCR-DBKEY           TO  
+                RSP49-O-C-ATCR-DBKEY           (RSP49-O-COMMUN-AGT-CNT).
+           MOVE AGENT-REGION-REP-TERR   TO  
+                RSP49-O-C-AGENT-REG-REP-TERR   (RSP49-O-COMMUN-AGT-CNT).
+186084*    MOVE AGENT-CONTRACT-NUM      TO  
+186084*         RSP49-O-C-AGENT-CONTRACT-NUM   (RSP49-O-COMMUN-AGT-CNT).
+186084     MOVE AGENT-MASTER-CONTRACT-NUM TO
+186084          RSP49-O-C-AGENT-MSTR-CON-NUM   (RSP49-O-COMMUN-AGT-CNT).
+           MOVE ATCR-AGENCY-INDICATORS  TO  
+                RSP49-O-C-ATCR-INDICATORS      (RSP49-O-COMMUN-AGT-CNT).
+
+           IF WS-DIRECT-COMM-FLG = 'Y'  
+              MOVE AGENT-DIRECT-IND     TO WS-DIRECT-COMM-FLG   
+           END-IF.  
+
+           MOVE ATCR-ALT-OPER-IND       TO WS-ALTN-ALT-OPER-IND.
+           MOVE ATCR-ALT-ACCT-IND       TO WS-ALTN-ALT-ACCT-IND.
+
+           IF WS-DIRECT-COMM-FLG = 'Y'  
+              GO TO 2100-PROCESS-ALT-EMAIL-INFO 
+           END-IF.  
+
+       1600-FIND-BUSINESS-RELATION. 
+           MOVE 'Y'                     TO ABR-WHOLESALE-IND.   
+
+           FETCH AGENT-BUSINESS-REC VIA AGENT-BUSINESS-SET  
+                 USING ABR-WHOLESALE-IND
+                 ON ERROR GO TO 1700-CHECK-ERROR-STATUS.
+
+           GO TO 1900-CHECK-BUSINESS-RELATION.  
+
+       1700-CHECK-ERROR-STATUS. 
+           IF ERROR-NUM = '0013' OR '0007'  
+              GO TO 2100-PROCESS-ALT-EMAIL-INFO 
+           ELSE 
+              GO TO 9100-DATABASE-ERROR 
+           END-IF.  
+
+       1800-NEXT-BUSINESS-RELATION. 
+           FETCH NEXT DUPLICATE AGENT-BUSINESS-REC RECORD   
+                 WITHIN AGENT-BUSINESS-SET USING ABR-WHOLESALE-IND  
+                 ON ERROR GO TO 2000-CHECK-ERROR-STATUS.
+
+       1900-CHECK-BUSINESS-RELATION.
+           IF (ABR-COMPANY-CODE NOT = RSP49-I-COMPANY-CODE) 
+              GO TO 1800-NEXT-BUSINESS-RELATION 
+           END-IF.  
+
+           MOVE ABR-MEMBER-CUSTOMER-NUM TO WS-CUSTOMER-NUM-DISP.
+
+           IF (WS-CUSTOMER-NUM NOT = RSP49-I-CUSTOMER-NUM)  
+              GO TO 1800-NEXT-BUSINESS-RELATION 
+           END-IF.  
+
+           MOVE ABR-OPER-RESP-AGENCY    TO WS-ABR-OPER-IND. 
+           MOVE ABR-ACCT-RESP-AGENCY    TO WS-ABR-ACCT-IND. 
+
+           GO TO 2100-PROCESS-ALT-EMAIL-INFO.   
+
+       2000-CHECK-ERROR-STATUS. 
+           IF ERROR-NUM = '0013' OR '0007'  
+              GO TO 2100-PROCESS-ALT-EMAIL-INFO 
+           ELSE 
+              GO TO 9100-DATABASE-ERROR 
+           END-IF.  
+
+       2100-PROCESS-ALT-EMAIL-INFO. 
+           PERFORM 2700-GET-EMAIL THRU 2700-GET-EMAIL-EXIT. 
+           IF RSP49-I-LETTER-TYPE = 'O' OR 'B'  
+              MOVE WS-AGENT-EMAIL-ADDR  TO  
+                          WS-AGENCY-OPER-EMAIL (RSP49-O-COMMUN-AGT-CNT) 
+           ELSE 
+              IF RSP49-I-LETTER-TYPE = 'A'  
+                 MOVE WS-AGENT-EMAIL-ADDR   
+                                        TO  
+                          WS-AGENCY-ACCT-EMAIL (RSP49-O-COMMUN-AGT-CNT) 
+              END-IF
+           END-IF.  
+
+       2200-POPULATE-COMM-TBL.  
+
+           MOVE SPACES                  TO WS-MAIN-TEMP-EMAIL   
+                                           WS-ALT-TEMP-EMAIL.   
+           MOVE ZEROES                  TO WS-MAIN-TEMP-FAX 
+                                           WS-ALT-TEMP-FAX. 
+
+           IF WS-DIRECT-COMM-FLG = 'Y'  
+              GO TO 2500-POPULATE-DIRECT-COM-TBL
+           END-IF.  
+
+           IF ((RSP49-I-IBR-BOOK-NUM > SPACES) AND  
+214948*        (IBR-ALT-CUSTOMER-NUM = IBR-CUSTOMER-NUM OR ZEROES)) 
+214948         (IBR-ALT-CUSTOMER-NUM = IBR-CUSTOMER-NUM OR SPACES)) 
+              MOVE WS-MAIN-ALT-OPER-IND TO WS-ALTN-ALT-OPER-IND 
+              MOVE WS-MAIN-ALT-ACCT-IND TO WS-ALTN-ALT-ACCT-IND 
+              MOVE 'P'                  TO WS-DESTINATION-AGENCY
+                                           WS-RESP-AGENCY   
+              GO TO 2300-POPULATE-COMMUN
+           END-IF.  
+
+           IF ((RSP49-I-GRP-BOOK-NUM > SPACES) AND  
+214948*        (GBR1-ALT-CUSTOMER-NUM = GBR1-CUSTOMER-NUM OR ZEROES))   
+214948         (GBR1-ALT-CUSTOMER-NUM = GBR1-CUSTOMER-NUM OR SPACES))   
+              MOVE WS-MAIN-ALT-OPER-IND TO WS-ALTN-ALT-OPER-IND 
+              MOVE WS-MAIN-ALT-ACCT-IND TO WS-ALTN-ALT-ACCT-IND 
+              MOVE 'P'                  TO WS-DESTINATION-AGENCY
+                                           WS-RESP-AGENCY   
+              GO TO 2300-POPULATE-COMMUN
+           END-IF.  
+
+           IF RSP49-I-LETTER-TYPE = 'O' OR 'B'  
+              IF WS-ABR-OPER-IND > SPACES   
+                 MOVE WS-ABR-OPER-IND   TO WS-DECIDING-AGENCY   
+                                           WS-RESP-AGENCY   
+              ELSE  
+                 MOVE WS-MAIN-OPER-IND  TO WS-DECIDING-AGENCY   
+                                           WS-RESP-AGENCY   
+              END-IF
+           ELSE 
+              IF RSP49-I-LETTER-TYPE = 'A'  
+                IF WS-ABR-ACCT-IND > SPACES 
+                  MOVE WS-ABR-ACCT-IND  TO WS-DECIDING-AGENCY   
+                                           WS-RESP-AGENCY   
+                ELSE
+                  MOVE WS-MAIN-ACCT-IND TO WS-DECIDING-AGENCY   
+                                           WS-RESP-AGENCY   
+                END-IF  
+             END-IF 
+           END-IF.  
+
+           IF WS-DECIDING-AGENCY = 'P' OR SPACES
+              IF RSP49-I-LETTER-TYPE = 'O' OR 'B'   
+                 MOVE WS-MAIN-ALT-OPER-IND  
+                                        TO WS-DESTINATION-AGENCY
+              ELSE  
+                 IF RSP49-I-LETTER-TYPE = 'A'   
+                    MOVE WS-MAIN-ALT-ACCT-IND   
+                                        TO WS-DESTINATION-AGENCY
+                 END-IF 
+              END-IF
+           END-IF.  
+
+           IF WS-DECIDING-AGENCY = 'A'  
+              IF RSP49-I-LETTER-TYPE = 'O' OR 'B'   
+                 MOVE WS-ALTN-ALT-OPER-IND  
+                                        TO WS-DESTINATION-AGENCY
+              ELSE  
+                 IF RSP49-I-LETTER-TYPE = 'A'   
+                    MOVE WS-ALTN-ALT-ACCT-IND   
+                                        TO WS-DESTINATION-AGENCY
+                 END-IF 
+              END-IF
+           END-IF.  
+
+       2300-POPULATE-COMMUN.
+
+           IF WS-RESP-AGENCY = 'P'  
+              MOVE 1 TO RSP49-O-RESP-AGENCY-SUB 
+           ELSE 
+              MOVE 2 TO RSP49-O-RESP-AGENCY-SUB 
+           END-IF.  
+
+           IF RSP49-I-LETTER-TYPE NOT = 'O' AND 'B' 
+              GO TO 2400-CHECK-FOR-ACCT 
+           END-IF.  
+
+           IF WS-DESTINATION-AGENCY = 'P' OR 'B'
+              IF (WS-ATCR-FAX-CONF-IND (1) = 'Y'         OR 
+                  RSP49-OVERRIDE-EMAIL-FAX-FLG = 1 )
+                  MOVE 'Y'              TO RSP49-O-CONF-ALLOW-IND   
+                  IF (WS-AGENCY-OPER-EMAIL (1) > SPACES  OR 
+                      WS-AGENCY-FAX-NUM (1)    > ZEROES)
+                     ADD 1              TO RSP49-O-COMMUN-ENTRY-CNT 
+                     MOVE 'O'           TO  
+                        RSP49-O-C-LETTER-TYPE (RSP49-O-COMMUN-ENTRY-CNT)
+                     MOVE WS-AGENCY-OPER-EMAIL (1)  
+                                        TO  
+                              RSP49-O-C-EMAIL (RSP49-O-COMMUN-ENTRY-CNT)
+                              WS-MAIN-TEMP-EMAIL
+                     MOVE WS-AGENCY-FAX-NUM (1) 
+                                        TO  
+                            RSP49-O-C-FAX-NUM (RSP49-O-COMMUN-ENTRY-CNT)
+                            WS-MAIN-TEMP-FAX
+                     MOVE ZEROES        TO WS-AGENCY-FAX-NUM (1)
+                     MOVE 1             TO  
+                         RSP49-O-C-AGENCY-SUB (RSP49-O-COMMUN-ENTRY-CNT)
+                  END-IF
+              END-IF
+           END-IF.  
+
+           IF WS-DESTINATION-AGENCY = 'A' OR 'B'
+              IF ( WS-ATCR-FAX-CONF-IND (2) = 'Y'         OR
+                   RSP49-OVERRIDE-EMAIL-FAX-FLG = 1)
+                   MOVE 'Y'             TO RSP49-O-CONF-ALLOW-IND   
+                 IF (WS-AGENCY-OPER-EMAIL (2) > SPACES    OR
+                     WS-AGENCY-FAX-NUM (2)    > ZEROES) 
+                    ADD 1               TO RSP49-O-COMMUN-ENTRY-CNT 
+                    MOVE 'O'            TO  
+                        RSP49-O-C-LETTER-TYPE (RSP49-O-COMMUN-ENTRY-CNT)
+                    MOVE WS-AGENCY-OPER-EMAIL (2)   
+                                        TO  
+                              RSP49-O-C-EMAIL (RSP49-O-COMMUN-ENTRY-CNT)
+                              WS-ALT-TEMP-EMAIL 
+                    MOVE WS-AGENCY-FAX-NUM (2)  
+                                        TO  
+                            RSP49-O-C-FAX-NUM (RSP49-O-COMMUN-ENTRY-CNT)
+                            WS-ALT-TEMP-FAX 
+                    MOVE ZEROES         TO WS-AGENCY-FAX-NUM (2)
+                    MOVE 2              TO  
+                         RSP49-O-C-AGENCY-SUB (RSP49-O-COMMUN-ENTRY-CNT)
+                 END-IF 
+              END-IF
+           END-IF.  
+
+           IF RSP49-I-LETTER-TYPE = 'O' 
+              GO TO 2500-VALIDATE-OUTPUT-TBL
+           END-IF.  
+
+      *   POPULATING ACCOUNTING SETTING IN CASE OF BOTH 
+
+           IF WS-ABR-ACCT-IND NOT > SPACES  
+              CONTINUE  
+           ELSE 
+              IF WS-ABR-ACCT-IND = 'P'  
+                 MOVE WS-MAIN-ALT-ACCT-IND  
+                                        TO WS-DESTINATION-AGENCY
+              ELSE  
+                 MOVE WS-ALTN-ALT-ACCT-IND  
+                                        TO WS-DESTINATION-AGENCY
+              END-IF
+              GO TO 2400-CHECK-FOR-ACCT 
+           END-IF.  
+
+           IF WS-MAIN-ACCT-IND = 'P' OR SPACES  
+              MOVE WS-MAIN-ALT-ACCT-IND TO WS-DESTINATION-AGENCY
+           ELSE 
+              MOVE WS-ALTN-ALT-ACCT-IND TO WS-DESTINATION-AGENCY
+           END-IF.  
+
+           IF ((RSP49-I-IBR-BOOK-NUM > SPACES) AND  
+214948*        (IBR-ALT-CUSTOMER-NUM = IBR-CUSTOMER-NUM OR ZEROES)) 
+214948         (IBR-ALT-CUSTOMER-NUM = IBR-CUSTOMER-NUM OR SPACES)) 
+                MOVE 'P'                TO WS-DESTINATION-AGENCY
+                GO TO 2400-CHECK-FOR-ACCT   
+           END-IF.  
+
+           IF ((RSP49-I-GRP-BOOK-NUM > SPACES) AND  
+214948*        (GBR1-ALT-CUSTOMER-NUM = GBR1-CUSTOMER-NUM OR ZEROES))   
+214948         (GBR1-ALT-CUSTOMER-NUM = GBR1-CUSTOMER-NUM OR SPACES))   
+                MOVE 'P'                TO WS-DESTINATION-AGENCY
+           END-IF.  
+
+       2400-CHECK-FOR-ACCT. 
+
+           IF RSP49-I-LETTER-TYPE NOT = 'A' AND 'B' 
+              GO TO 2500-VALIDATE-OUTPUT-TBL
+           END-IF.  
+
+           IF WS-DESTINATION-AGENCY = 'P' OR 'B'
+              IF ( WS-ATCR-FAX-CONF-IND (1) = 'Y'         OR
+                   RSP49-OVERRIDE-EMAIL-FAX-FLG = 1)
+                   MOVE 'Y'             TO RSP49-O-CONF-ALLOW-IND   
+                 IF ( WS-AGENCY-ACCT-EMAIL (1) > SPACES AND 
+                      WS-MAIN-TEMP-EMAIL NOT = WS-AGENCY-ACCT-EMAIL (1))
+                 OR (WS-AGENCY-FAX-NUM (1) > 0) AND 
+                    (WS-AGENCY-FAX-NUM (1) NOT = WS-MAIN-TEMP-FAX)  
+                    ADD 1               TO RSP49-O-COMMUN-ENTRY-CNT 
+                    MOVE 'A'            TO  
+                        RSP49-O-C-LETTER-TYPE (RSP49-O-COMMUN-ENTRY-CNT)
+                    MOVE WS-AGENCY-ACCT-EMAIL (1)   
+                                        TO  
+                              RSP49-O-C-EMAIL (RSP49-O-COMMUN-ENTRY-CNT)
+                    MOVE WS-AGENCY-FAX-NUM (1)  
+                                        TO  
+                            RSP49-O-C-FAX-NUM (RSP49-O-COMMUN-ENTRY-CNT)
+                    MOVE 1              TO  
+                         RSP49-O-C-AGENCY-SUB (RSP49-O-COMMUN-ENTRY-CNT)
+                 END-IF 
+              END-IF
+           END-IF.  
+
+           IF WS-DESTINATION-AGENCY = 'A' OR 'B'
+              IF ( WS-ATCR-FAX-CONF-IND (2) = 'Y'         OR
+                   RSP49-OVERRIDE-EMAIL-FAX-FLG = 1)
+                   MOVE 'Y'             TO RSP49-O-CONF-ALLOW-IND   
+                 IF ( WS-AGENCY-ACCT-EMAIL (2) > SPACES AND 
+                      WS-ALT-TEMP-EMAIL NOT = WS-AGENCY-ACCT-EMAIL (2)) 
+                 OR (WS-AGENCY-FAX-NUM (2) > 0) AND 
+                    (WS-ALT-TEMP-FAX NOT = WS-AGENCY-FAX-NUM (2))   
+                    ADD 1               TO RSP49-O-COMMUN-ENTRY-CNT 
+                    MOVE 'A'            TO  
+                        RSP49-O-C-LETTER-TYPE (RSP49-O-COMMUN-ENTRY-CNT)
+                    MOVE WS-AGENCY-ACCT-EMAIL (2)   
+                                        TO  
+                              RSP49-O-C-EMAIL (RSP49-O-COMMUN-ENTRY-CNT)
+                    MOVE WS-AGENCY-FAX-NUM (2)  
+                                        TO  
+                            RSP49-O-C-FAX-NUM (RSP49-O-COMMUN-ENTRY-CNT)
+                    MOVE 2              TO  
+                         RSP49-O-C-AGENCY-SUB (RSP49-O-COMMUN-ENTRY-CNT)
+                END-IF  
+              END-IF
+           END-IF.  
+
+           GO TO 9000-END-OF-JOB.   
+
+       2500-POPULATE-DIRECT-COM-TBL.
+
+           IF RSP49-O-COMMUN-AGT-CNT > 1
+              MOVE 2                    TO RSP49-O-PAX-AGENCY-SUB   
+                                           RSP49-O-RESP-AGENCY-SUB  
+           ELSE 
+              MOVE 1                    TO RSP49-O-PAX-AGENCY-SUB   
+                                           RSP49-O-RESP-AGENCY-SUB  
+           END-IF.  
+
+           IF WS-ATCR-FAX-CONF-IND (1) = 'Y' OR 
+              WS-ATCR-FAX-CONF-IND (2) = 'Y'
+              MOVE 'Y'                  TO RSP49-O-CONF-ALLOW-IND   
+           END-IF.  
+
+           IF WS-AGENCY-FAX-NUM (1) > ZEROES
+              MOVE WS-AGENCY-FAX-NUM (1)
+                                        TO WS-DIR-FAX-NUM   
+           ELSE 
+              IF WS-AGENCY-FAX-NUM (2) > ZEROES 
+                 MOVE WS-AGENCY-FAX-NUM (2) 
+                                        TO WS-DIR-FAX-NUM   
+              ELSE  
+                 MOVE ZEROES            TO WS-DIR-FAX-NUM   
+              END-IF
+           END-IF.  
+
+           IF WS-DIRECT-COMM-EMAIL (1) > SPACES 
+              ADD 1                     TO RSP49-O-COMMUN-ENTRY-CNT 
+              MOVE 'O'                  TO  
+                        RSP49-O-C-LETTER-TYPE (RSP49-O-COMMUN-ENTRY-CNT)
+              MOVE WS-DIRECT-COMM-EMAIL (1) 
+                                        TO  
+                              RSP49-O-C-EMAIL (RSP49-O-COMMUN-ENTRY-CNT)
+              MOVE WS-DIR-FAX-NUM       TO  
+                            RSP49-O-C-FAX-NUM (RSP49-O-COMMUN-ENTRY-CNT)
+              MOVE 1                    TO  
+                         RSP49-O-C-AGENCY-SUB (RSP49-O-COMMUN-ENTRY-CNT)
+              GO TO 2500-VALIDATE-OUTPUT-TBL
+           END-IF.  
+
+           IF WS-DIRECT-COMM-EMAIL (2) > SPACES 
+              ADD 1                     TO RSP49-O-COMMUN-ENTRY-CNT 
+              MOVE 'O'                  TO  
+                        RSP49-O-C-LETTER-TYPE (RSP49-O-COMMUN-ENTRY-CNT)
+              MOVE WS-DIRECT-COMM-EMAIL (2) 
+                                        TO  
+                              RSP49-O-C-EMAIL (RSP49-O-COMMUN-ENTRY-CNT)
+              MOVE WS-DIR-FAX-NUM       TO  
+                            RSP49-O-C-FAX-NUM (RSP49-O-COMMUN-ENTRY-CNT)
+              MOVE 2                    TO  
+                         RSP49-O-C-AGENCY-SUB (RSP49-O-COMMUN-ENTRY-CNT)
+           END-IF.  
+
+
+       2500-VALIDATE-OUTPUT-TBL.
+189599     IF RSP49-DIRECT-COM-FLG = 2  
+189599        IF RSP49-O-COMMUN-AGT-CNT > 1 
+189599          MOVE 2                  TO RSP49-O-PAX-AGENCY-SUB   
+189599        ELSE  
+189599          MOVE 1                  TO RSP49-O-PAX-AGENCY-SUB   
+189599        END-IF
+189599        GO TO 2550-POPULATE-PIER-TABLE
+189599     END-IF.  
+
+           IF RSP49-O-COMMUN-ENTRY-CNT > 0  
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+
+           IF WS-DIRECT-COMM-FLG NOT = 'Y'  
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+189599 2550-POPULATE-PIER-TABLE.
+           IF RSP49-I-IBR-BOOK-NUM <= SPACES
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+
+           COPY RSP23INT.   
+           COPY RSP06INT.   
+           MOVE RSP49-I-IBR-BOOK-NUM    TO RSP23-I-INDV-BOOK-NUM.   
+214948*    MOVE SPACES                  TO RSP23-I-SHIP-CODE.   
+214948     MOVE SPACES                  TO RSP23-I-SHIP-CODE
+           MOVE 0                       TO RSP23-I-SAIL-DATE
+214948*                                    RSP23-I-DURATION-DAYS
+214948*                                    RSP23-I-CUSTOMER-NUM.
+214948                                     RSP23-I-DURATION-DAYS.   
+           MOVE 'A'                     TO RSP23-I-BOOK-TYPE.   
+           MOVE 'Y'                     TO RSP23-I-READ-IBR-IND 
+                                           RSP23-I-READ-PAX-IND 
+                                           RSP23-I-READ-PIER-IND.   
+
+           CALL 'RSO23RGC' USING DPP42-COMMON-DATA-FIELDS   
+                                 DPP01-COMMON-INFO  
+                                 RSP23-RGC-INPUT
+                                 RSP06-GUEST-CABIN-INFO.
+
+           IF DPP42-SUB-MSG-CTR > ZERO AND DPP42-SUB-MSG-STATUS(1) > 1  
+              GO TO 9500-RETURN-SUBROUTINE-ERROR
+           END-IF.  
+
+           MOVE ZEROES                  TO WS-PSUB. 
+
+       2600-PROCESS-PIER.   
+           ADD 1 TO WS-PSUB.
+
+           IF WS-PSUB > RSP06-PAX-CNT   
+              IF RSP49-O-PAX-EMAIL-CNT <= ZEROES
+                 GO TO 2650-VALIDATE-FAX-DETAILS
+              ELSE  
+                 GO TO 9000-END-OF-JOB  
+              END-IF
+           END-IF.  
+
+           IF RSP06-PIER-EXIST-IND (WS-PSUB) NOT = 'Y'  
+              GO TO 2600-PROCESS-PIER   
+           END-IF.  
+
+           MOVE 'N'                     TO WS-EMAIL-FOUND.  
+
+           PERFORM VARYING WS-ESUB FROM 1 BY 1  
+                           UNTIL WS-ESUB > RSP49-O-PAX-EMAIL-CNT
+                              OR WS-EMAIL-FOUND = 'Y'   
+              IF RSP06-PIER-EMAIL-ADDR (WS-PSUB) =  
+                                             RSP49-O-PAX-EMAIL (WS-ESUB)
+                MOVE 'Y'                TO WS-EMAIL-FOUND   
+             END-IF 
+           END-PERFORM. 
+
+           IF WS-EMAIL-FOUND = 'Y'  
+              GO TO 2600-PROCESS-PIER   
+           END-IF.  
+
+           ADD 1 TO RSP49-O-PAX-EMAIL-CNT.  
+
+           MOVE RSP06-PIER-EMAIL-ADDR (WS-PSUB) 
+                                        TO  
+                             RSP49-O-PAX-EMAIL (RSP49-O-PAX-EMAIL-CNT). 
+
+           GO TO 2600-PROCESS-PIER. 
+
+       2650-VALIDATE-FAX-DETAILS.   
+
+189599     IF RSP49-DIRECT-COM-FLG = 2  
+189599        IF RSP49-O-COMMUN-ENTRY-CNT > 0 OR
+189599           WS-DIRECT-COMM-FLG NOT = 'Y'   
+189599           GO TO 9000-END-OF-JOB  
+189599        END-IF
+189599     END-IF.  
+
+           IF WS-AGENCY-FAX-NUM (1) > ZEROES
+              ADD 1                     TO RSP49-O-COMMUN-ENTRY-CNT 
+              MOVE 'O'                  TO  
+                        RSP49-O-C-LETTER-TYPE (RSP49-O-COMMUN-ENTRY-CNT)
+              MOVE WS-DIRECT-COMM-EMAIL (1) 
+                                        TO  
+                              RSP49-O-C-EMAIL (RSP49-O-COMMUN-ENTRY-CNT)
+              MOVE WS-AGENCY-FAX-NUM (1)
+                                        TO  
+                            RSP49-O-C-FAX-NUM (RSP49-O-COMMUN-ENTRY-CNT)
+              MOVE 1                    TO  
+                         RSP49-O-C-AGENCY-SUB (RSP49-O-COMMUN-ENTRY-CNT)
+              GO TO 9000-END-OF-JOB 
+           END-IF.  
+           IF WS-AGENCY-FAX-NUM (2) > ZEROES
+              ADD 1                     TO RSP49-O-COMMUN-ENTRY-CNT 
+              MOVE 'O'                  TO  
+                        RSP49-O-C-LETTER-TYPE (RSP49-O-COMMUN-ENTRY-CNT)
+              MOVE WS-DIRECT-COMM-EMAIL (2) 
+                                        TO  
+                              RSP49-O-C-EMAIL (RSP49-O-COMMUN-ENTRY-CNT)
+              MOVE WS-AGENCY-FAX-NUM (2)
+                                        TO  
+                            RSP49-O-C-FAX-NUM (RSP49-O-COMMUN-ENTRY-CNT)
+              MOVE 2                    TO  
+                         RSP49-O-C-AGENCY-SUB (RSP49-O-COMMUN-ENTRY-CNT)
+           END-IF.  
+
+           GO TO 9000-END-OF-JOB.   
+
+       2700-GET-EMAIL.  
+           MOVE SPACES                  TO WS-AGENT-EMAIL-ADDR. 
+           MOVE 'N'                     TO WS-EMAIL-FOUND   
+                                           WS-ACCT-EMAIL-FOUND  
+                                           WS-ALL-OPER-EMAIL-FOUND  
+                                           WS-ALL-ACCT-EMAIL-FOUND. 
+
+           FETCH FIRST AGENT-EMAIL-REC WITHIN AGENT-EMAIL-SET SET   
+                 ON ERROR GO TO 2750-ERROR-EXIT.
+
+           IF WS-DIRECT-COMM-FLG NOT = 'Y'  
+              MOVE SPACES               TO WS-DIRECT-COMM-EMAIL 
+                                           (RSP49-O-COMMUN-AGT-CNT) 
+              GO TO 2720-PROCESS-EMAIL-REC  
+           END-IF.  
+
+           IF AER-EMAIL-ADDRESS > SPACES
+              MOVE AER-EMAIL-ADDRESS    TO WS-DIRECT-COMM-EMAIL 
+                                                (RSP49-O-COMMUN-AGT-CNT)
+           ELSE 
+              MOVE SPACES               TO WS-DIRECT-COMM-EMAIL 
+                                                (RSP49-O-COMMUN-AGT-CNT)
+           END-IF.  
+
+           GO TO 2720-PROCESS-EMAIL-REC.
+
+       2710-FETCH-NEXT-EMAIL.   
+           FETCH NEXT AGENT-EMAIL-REC WITHIN AGENT-EMAIL-SET SET
+                 ON ERROR GO TO 2750-ERROR-EXIT.
+
+       2720-PROCESS-EMAIL-REC.  
+
+           IF WS-DIRECT-COMM-FLG = 'Y' AND  
+              RSP49-O-COMMUN-AGT-CNT > 1
+              GO TO 2700-GET-EMAIL-EXIT 
+           END-IF.  
+
+           MOVE AER-MESSAGE-IND         TO WS-EMAIL-INDICATORS. 
+
+           IF RSP49-O-C-AGENT-EMAIL (RSP49-O-COMMUN-AGT-CNT) > SPACES   
+              GO TO 2725-PROCESS-EMAIL-REC-CONTD
+           END-IF.  
+163852  
+174603     IF WS-EMAIL-ACC-FLG = 1  
+174603        MOVE AER-EMAIL-ADDRESS TO 
+174603            RSP49-O-C-AGENT-ACCT-EMAIL (RSP49-O-COMMUN-AGT-CNT)   
+174603     ELSE 
+174603        IF WS-EMAIL-IBK-FLG = 1   
+174603           MOVE AER-EMAIL-ADDRESS TO  
+174603            RSP49-O-C-AGENT-IBR-EMAIL  (RSP49-O-COMMUN-AGT-CNT)   
+174603        ELSE  
+174603           IF WS-EMAIL-GBK-FLG = 1
+174603              MOVE AER-EMAIL-ADDRESS TO   
+174603             RSP49-O-C-AGENT-GBR-EMAIL  (RSP49-O-COMMUN-AGT-CNT)  
+174603           ELSE   
+174603               IF WS-EMAIL-ALL-FLG = 1
+174603               MOVE AER-EMAIL-ADDRESS TO  
+174603             RSP49-O-C-AGENT-ALL-EMAIL   (RSP49-O-COMMUN-AGT-CNT).
+
+
+163852     IF (RSP49-I-FIRST-EMAIL-IND > SPACES) AND
+163852        (WS-EMAIL-ALL-FLG = 1 OR  
+163852         WS-EMAIL-IBK-FLG = 1 OR  
+163852         WS-EMAIL-GBK-FLG = 1)
+163852        MOVE AER-EMAIL-ADDRESS TO 
+163852                RSP49-O-C-AGENT-EMAIL (RSP49-O-COMMUN-AGT-CNT)
+163852        GO TO 2725-PROCESS-EMAIL-REC-CONTD
+163852     END-IF.  
+
+           IF RSP49-I-EMAIL-TYPE = SPACES AND   
+              WS-EMAIL-ALL-FLG = 1  
+              MOVE AER-EMAIL-ADDRESS TO 
+                      RSP49-O-C-AGENT-EMAIL (RSP49-O-COMMUN-AGT-CNT)
+              GO TO 2725-PROCESS-EMAIL-REC-CONTD
+           END-IF.  
+
+           IF RSP49-I-EMAIL-TYPE = 'I' AND  
+              WS-EMAIL-IBK-FLG = 1  
+              MOVE AER-EMAIL-ADDRESS TO 
+                      RSP49-O-C-AGENT-EMAIL (RSP49-O-COMMUN-AGT-CNT)
+              GO TO 2725-PROCESS-EMAIL-REC-CONTD
+           END-IF.  
+
+           IF RSP49-I-EMAIL-TYPE = 'G' AND  
+              WS-EMAIL-GBK-FLG = 1  
+              MOVE AER-EMAIL-ADDRESS TO 
+                      RSP49-O-C-AGENT-EMAIL (RSP49-O-COMMUN-AGT-CNT)
+           END-IF.  
+
+           IF RSP49-I-EMAIL-TYPE = 'A' AND  
+              WS-EMAIL-ACC-FLG = 1  
+              MOVE AER-EMAIL-ADDRESS TO 
+                      RSP49-O-C-AGENT-EMAIL (RSP49-O-COMMUN-AGT-CNT)
+           END-IF.  
+
+           IF RSP49-I-EMAIL-TYPE = 'P' AND  
+              WS-EMAIL-PRO-FLG = 1  
+              MOVE AER-EMAIL-ADDRESS TO 
+                      RSP49-O-C-AGENT-EMAIL (RSP49-O-COMMUN-AGT-CNT)
+           END-IF.  
+
+           IF RSP49-I-EMAIL-TYPE = 'C' AND  
+              WS-EMAIL-COP-FLG = 1  
+              MOVE AER-EMAIL-ADDRESS TO 
+                      RSP49-O-C-AGENT-EMAIL (RSP49-O-COMMUN-AGT-CNT)
+           END-IF.  
+
+       2725-PROCESS-EMAIL-REC-CONTD.
+           IF RSP49-I-LETTER-TYPE = 'B' 
+              IF WS-ACCT-EMAIL-FOUND = 'N'  
+                 IF WS-EMAIL-ACC-FLG = 1
+                    MOVE AER-EMAIL-ADDRESS  
+                                        TO  
+                         WS-AGENCY-ACCT-EMAIL (RSP49-O-COMMUN-AGT-CNT)  
+                    MOVE 'Y'            TO WS-ACCT-EMAIL-FOUND  
+                 ELSE   
+                    IF WS-EMAIL-ALL-FLG = 1 
+                       AND WS-ALL-ACCT-EMAIL-FOUND = 'N'
+                       MOVE AER-EMAIL-ADDRESS   
+                                        TO  
+                           WS-AGENCY-ACCT-EMAIL (RSP49-O-COMMUN-AGT-CNT)
+                       MOVE 'Y'         TO WS-ALL-ACCT-EMAIL-FOUND  
+                    END-IF  
+                 END-IF 
+              END-IF
+           END-IF.  
+
+           IF RSP49-I-EMAIL-TYPE = 'I' AND WS-EMAIL-IBK-FLG = 1 
+              AND WS-EMAIL-FOUND = 'N'  
+              MOVE AER-EMAIL-ADDRESS TO WS-AGENT-EMAIL-ADDR 
+              MOVE 'Y' TO WS-EMAIL-FOUND
+           ELSE 
+              IF RSP49-I-EMAIL-TYPE = 'G' AND WS-EMAIL-GBK-FLG = 1  
+                 AND WS-EMAIL-FOUND = 'N'   
+                 MOVE AER-EMAIL-ADDRESS TO WS-AGENT-EMAIL-ADDR  
+                 MOVE 'Y' TO WS-EMAIL-FOUND 
+              ELSE  
+                 IF RSP49-I-EMAIL-TYPE = 'A' AND WS-EMAIL-ACC-FLG = 1   
+                    AND WS-EMAIL-FOUND = 'N'
+                    MOVE AER-EMAIL-ADDRESS TO WS-AGENT-EMAIL-ADDR   
+                    MOVE 'Y' TO WS-EMAIL-FOUND  
+                 ELSE   
+                    IF RSP49-I-EMAIL-TYPE = 'P' AND WS-EMAIL-PRO-FLG = 1
+                       AND WS-EMAIL-FOUND = 'N' 
+                       MOVE AER-EMAIL-ADDRESS TO WS-AGENT-EMAIL-ADDR
+                       MOVE 'Y' TO WS-EMAIL-FOUND   
+                    ELSE
+                       IF RSP49-I-EMAIL-TYPE = 'C'  
+                          AND WS-EMAIL-COP-FLG = 1  
+                          AND WS-EMAIL-FOUND = 'N'  
+                          MOVE AER-EMAIL-ADDRESS TO WS-AGENT-EMAIL-ADDR 
+                          MOVE 'Y' TO WS-EMAIL-FOUND
+                       ELSE 
+                          IF WS-EMAIL-ALL-FLG = 1   
+                             AND WS-ALL-OPER-EMAIL-FOUND = 'N'  
+                             AND WS-EMAIL-FOUND = 'N'   
+                             MOVE AER-EMAIL-ADDRESS TO  
+                                  WS-AGENT-EMAIL-ADDR   
+                             MOVE 'Y' TO WS-ALL-OPER-EMAIL-FOUND
+                          ELSE  
+                             GO TO 2710-FETCH-NEXT-EMAIL
+                          END-IF
+                       END-IF   
+                    END-IF  
+                 END-IF 
+              END-IF
+           END-IF.  
+
+           IF RSP49-I-EMAIL-TYPE > SPACES   
+              IF (WS-EMAIL-ALL-FLG = 1) OR  
+                 ((RSP49-I-LETTER-TYPE = 'B') AND   
+                    (WS-EMAIL-FOUND = 'N' OR WS-ACCT-EMAIL-FOUND = 'N'))
+                 GO TO 2710-FETCH-NEXT-EMAIL
+              END-IF
+           END-IF.  
+
+           GO TO 2700-GET-EMAIL-EXIT.   
+
+       2750-ERROR-EXIT. 
+           IF ERROR-NUM = '0006' OR '0007' OR '0013'
+              GO TO 2700-GET-EMAIL-EXIT 
+           END-IF.  
+
+           GO TO 9100-DATABASE-ERROR.   
+
+       2700-GET-EMAIL-EXIT. 
+           EXIT.
+
+       7000-NO-MAIN-AGENCY-ASSOC.   
+           MOVE 8                       TO DPP42-HOLD-MSG-INDEX.
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+       7100-NO-MAIN-AGENT-PHONE.
+           MOVE 9                       TO DPP42-HOLD-MSG-INDEX.
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+       7200-NO-MAIN-AGENCY-ID-ASSOC.
+           MOVE 10                      TO DPP42-HOLD-MSG-INDEX.
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+       7300-NO-MAIN-AGENT-TERMS.
+           MOVE 11                      TO DPP42-HOLD-MSG-INDEX.
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+       7400-NO-ALT-AGENCY-ASSOC.
+           MOVE 12                      TO DPP42-HOLD-MSG-INDEX.
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+       7500-NO-ALT-AGENT-PHONE. 
+           MOVE 13                     TO DPP42-HOLD-MSG-INDEX. 
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+       7600-NO-ALT-AGENCY-ID-ASSOC. 
+           MOVE 14                      TO DPP42-HOLD-MSG-INDEX.
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+       7700-NO-ALT-AGENT-TERMS. 
+           MOVE 15                      TO DPP42-HOLD-MSG-INDEX.
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+       7800-IBR-BOOK-NUM-NOT-FOUND. 
+           MOVE 16                      TO DPP42-HOLD-MSG-INDEX.
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+       7900-GRP1-BOOK-NUM-NOT-FOUND.
+           MOVE 17                      TO DPP42-HOLD-MSG-INDEX.
+           GO TO 9200-EDIT-ERROR-MSG.   
+
+       9000-END-OF-JOB. 
+           GO TO DPP42-END-OF-JOB.  
+
+       9100-DATABASE-ERROR. 
+           GO TO DPP42-DATABASE-ERROR.  
+
+       9200-EDIT-ERROR-MSG. 
+           PERFORM DPP42-EDIT-ERROR-MSG 
+              THRU DPP42-EDIT-ERROR-MSG-EXIT.   
+
+           GO TO DPP42-END-OF-JOB.  
+
+       9400-INFO-MSG.   
+           PERFORM DPP42-INFO-MSG THRU DPP42-INFO-MSG-EXIT. 
+
+       9500-RETURN-SUBROUTINE-ERROR.
+           GO TO DPP42-RETURN-SUBROUTINE-ERROR. 
+
+       9600-SAVE-SUBROUTINE-ERRORS. 
+           PERFORM DPP42-SAVE-SUBROUTINE-MSGS   
+              THRU DPP42-SAVE-SUBROUTINE-MSGS-X.
+
+       COPY DPP42SER.   
+       COPY DPP42WDB.   
+
+
+
+
